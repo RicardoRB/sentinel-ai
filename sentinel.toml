@@ -1,0 +1,5 @@
+version = 1
+
+[quality-gates.tests]
+enabled = true
+command = "./mvnw test"

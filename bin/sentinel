@@ -1,0 +1,7 @@
+#!/usr/bin/env sh
+# Development launcher: runs the jar built by ./mvnw package.
+# Uses $JAVA_HOME/bin/java when JAVA_HOME is set (Java 25 required).
+set -e
+DIR="$(cd "$(dirname "$0")/.." && pwd)"
+JAVA="${JAVA_HOME:+$JAVA_HOME/bin/}java"
+exec "$JAVA" -jar "$DIR/target/sentinel.jar" "$@"
