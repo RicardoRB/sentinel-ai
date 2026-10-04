@@ -66,13 +66,13 @@ class CheckServiceTest {
     }
 
     @Test
-    void failsOnEnabledUnsupportedGate(@TempDir Path dir) throws Exception {
+    void supportsConfiguredAnalysisGate(@TempDir Path dir) throws Exception {
         withPom(dir, PLAIN_POM);
         Files.writeString(dir.resolve("sentinel.toml"),
                 "version = 1\n[quality-gates.sonar]\ncommand = \"sonar analyze agentic\"\n");
 
-        assertThatThrownBy(() -> service(new FakeCommandExecutor(0, "", "")).check(dir))
-                .hasMessageContaining("'sonar'").hasMessageContaining("not supported");
+        assertThat(service(new FakeCommandExecutor(0, "", "")).check(dir).results())
+                .singleElement().extracting(result -> result.name()).isEqualTo("sonar");
     }
 
     @Test

@@ -4,6 +4,7 @@ import dev.sentinel.domain.config.GateConfiguration;
 import dev.sentinel.domain.config.SentinelConfiguration;
 import dev.sentinel.domain.config.SentinelException;
 import dev.sentinel.domain.gate.MavenTestGate;
+import dev.sentinel.domain.gate.CommandQualityGate;
 import dev.sentinel.domain.gate.QualityGate;
 import dev.sentinel.domain.process.CommandExecutor;
 import com.google.inject.Inject;
@@ -12,8 +13,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-/** Builds the gates for every enabled entry of the configuration. Only {@code tests} exists for now. */
+/** Resolves the typed built-in gate registry in stable configuration order. */
 public class QualityGateFactory {
+
+    public static final List<String> SUPPORTED_GATES = List.of(
+            "tests", "compile", "architecture", "command", "archunit", "checkstyle", "spotbugs", "sonar");
 
     private final CommandExecutor executor;
 
@@ -28,12 +32,17 @@ public class QualityGateFactory {
 
     public List<QualityGate> create(SentinelConfiguration configuration, dev.sentinel.domain.project.Project project) {
         List<QualityGate> gates = new ArrayList<>();
+        configuration.gates().keySet().forEach(id -> {
+            if (!SUPPORTED_GATES.contains(id)) {
+                throw new SentinelException("Quality gate '" + id + "' is unknown. Supported gates: " + SUPPORTED_GATES);
+            }
+        });
         for (Map.Entry<String, GateConfiguration> entry : configuration.enabledGates().entrySet()) {
-            gates.add(switch (entry.getKey()) {
+            String id = entry.getKey();
+            gates.add(switch (id) {
                 case MavenTestGate.NAME -> new MavenTestGate(executor,
                         testsCommand(entry.getValue().command(), project));
-                default -> throw new SentinelException("Quality gate '" + entry.getKey()
-                        + "' is enabled but not supported yet. Supported gates: " + MavenTestGate.NAME);
+                default -> new CommandQualityGate(id, executor, entry.getValue().command());
             });
         }
         return gates;
