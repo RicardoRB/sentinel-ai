@@ -11,6 +11,8 @@ Sentinel currently provides a small Java/Maven quality-gate CLI, but its impleme
 - Add built-in and optional external quality gates for compilation, tests, architecture, Checkstyle, SpotBugs, and Sonar without installing tools automatically.
 - Add bounded agentic quality loops with structured feedback, timeouts, terminal states, and Git safety checks.
 - Evolve detection, gates, profiles, policies, and agent adapters to support multiple languages, build tools, monorepos, and agents while retaining Java/Maven support.
+- Document the trusted-code-execution security model for repository-defined commands and publish the versioned JSON result schema as a public machine-facing API.
+- Enforce layer boundaries (domain free of Guice, Picocli, process and filesystem APIs) with automated architecture tests.
 - Require tests and native executable verification after each sequential iteration; do not advance an iteration until the preceding one is complete.
 
 ## Capabilities

@@ -29,6 +29,13 @@ Sentinel SHALL support `sentinel integrate opencode --remove` and SHALL remove o
 - **WHEN** removal is requested for an existing Sentinel integration
 - **THEN** Sentinel removes Sentinel-owned content and preserves unrelated configuration
 
+### Requirement: Agent-facing results
+`sentinel check --format json` SHALL include, for each gate, a concise `summary` and relevant `output` suitable for an agent, and Sentinel SHALL NOT modify project source code itself.
+
+#### Scenario: Failed gate for an agent
+- **WHEN** a gate fails and JSON output is requested
+- **THEN** the gate entry contains its status, exit code, summary, and captured output within schema version 1
+
 ### Requirement: Diagnostics
 `sentinel doctor` SHALL check project detection, configuration, Maven and wrapper availability, enabled gates, agent integration, and native capabilities, reporting each finding as OK, warning, or error.
 

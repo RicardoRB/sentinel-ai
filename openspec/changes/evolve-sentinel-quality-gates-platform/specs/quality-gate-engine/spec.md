@@ -36,6 +36,13 @@ The tests gate SHALL run the project's Maven Wrapper when available and otherwis
 - **WHEN** configuration is missing, malformed, or contains no runnable enabled gate
 - **THEN** the command reports an actionable error and exits 2
 
+### Requirement: Trusted command execution
+Sentinel SHALL execute commands as argument lists without a shell and SHALL document that repository-defined commands are trusted code execution.
+
+#### Scenario: No shell wrapper
+- **WHEN** a gate runs a configured command
+- **THEN** it is launched directly with the project root as working directory and never through `sh -c`, `bash -c`, or `cmd /c`
+
 ### Requirement: Human and JSON output
 The check command SHALL provide readable human output and a versioned JSON representation whose stdout contains JSON only and whose diagnostics are sent to stderr.
 

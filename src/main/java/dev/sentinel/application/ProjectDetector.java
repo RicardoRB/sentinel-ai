@@ -27,7 +27,7 @@ public class ProjectDetector {
         for (Path dir = start.toAbsolutePath().normalize(); dir != null; dir = dir.getParent()) {
             if (Files.isRegularFile(dir.resolve(POM))) {
                 return Optional.of(new Project(dir, Language.JAVA, BuildTool.MAVEN,
-                        detectFramework(dir.resolve(POM))));
+                        detectFramework(dir.resolve(POM)), Files.isRegularFile(dir.resolve("mvnw"))));
             }
         }
         return Optional.empty();

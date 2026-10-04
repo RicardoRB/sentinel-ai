@@ -30,7 +30,7 @@ Optional native image (GraalVM 25 as `JAVA_HOME`):
 ./mvnw -Pnative -DskipTests native:compile   # produces target/sentinel
 ```
 
-Stack: Spring Boot 4, Picocli, tomlj, Jackson, JUnit 5 + AssertJ.
+Stack: Java 25, Guice, Picocli, tomlj, Jackson, JUnit 5 + AssertJ. Sentinel has no Spring runtime dependency.
 
 ## Commands
 
@@ -83,7 +83,9 @@ An existing `sentinel.toml` is never overwritten; Sentinel says so and exits 0.
 ### Configuration
 
 Each gate lives under `[quality-gates.<name>]` with `enabled` (default `true`) and `command`.
-`command` is either a string or an array of strings:
+`command` is either a string or an array of strings. Repository-defined commands are trusted code
+execution: they run with the current user's privileges in the project root, directly as an argument
+list and never through a shell:
 
 ```toml
 command = "./mvnw test"
@@ -173,8 +175,8 @@ dev.sentinel
 ```
 
 `cli → application → domain`, and `infrastructure` implements the ports defined in `domain`, so the
-domain never touches `ProcessBuilder` or a TOML library. Spring wires the pieces; Picocli obtains
-its commands from the Spring context.
+domain never touches `ProcessBuilder` or a TOML library. The composition root wires the pieces
+explicitly; the native entry point uses the same constructor graph without reflective startup.
 
 `QualityGate` (`name()`, `execute(Project)`) is the extension point. `QualityGateFactory` maps
 configuration entries to gates; today only `tests` → `MavenTestGate`, whose command always comes

@@ -21,6 +21,7 @@ public class JsonReportRenderer {
 
     public String render(CheckReport report) {
         Map<String, Object> root = new LinkedHashMap<>();
+        root.put("schemaVersion", 1);
         root.put("status", report.status().name());
         root.put("project", project(report.project()));
         List<Object> checks = new ArrayList<>();
@@ -33,6 +34,8 @@ public class JsonReportRenderer {
             check.put("durationMs", result.duration().toMillis());
             check.put("stdout", result.stdout());
             check.put("stderr", result.stderr());
+            check.put("summary", result.summary() == null ? result.status().name() : result.summary());
+            check.put("output", result.stdout().isBlank() ? result.stderr() : result.stdout());
             checks.add(check);
         }
         root.put("checks", checks);

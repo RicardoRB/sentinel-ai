@@ -1,9 +1,9 @@
 package dev.sentinel.cli;
 
 import dev.sentinel.domain.config.SentinelException;
+import picocli.CommandLine;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
-import picocli.CommandLine;
 
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
@@ -12,22 +12,48 @@ import java.nio.charset.StandardCharsets;
 /** Bridges application startup to Picocli and turns the command's result into the process exit code. */
 public class CommandLineRunnerImpl {
 
-    private final Injector injector;
     private final SentinelCommand rootCommand;
-    private int exitCode;
+    private final CheckCommand checkCommand;
+    private final InitCommand initCommand;
+    private final DetectCommand detectCommand;
+    private final Injector injector;
 
+    public CommandLineRunnerImpl(dev.sentinel.application.CheckService checks,
+                                 dev.sentinel.application.InitService init,
+                                 dev.sentinel.application.ProjectDetector detector,
+                                 TextReportRenderer text, JsonReportRenderer json) {
+        this.rootCommand = new SentinelCommand();
+        this.checkCommand = new CheckCommand(checks, text, json);
+        this.initCommand = new InitCommand(init);
+        this.detectCommand = new DetectCommand(detector);
+        this.injector = null;
+    }
+
+    /** Compatibility constructor for embedding/tests that still use the Guice composition root. */
     @Inject
     public CommandLineRunnerImpl(Injector injector, SentinelCommand rootCommand) {
         this.injector = injector;
         this.rootCommand = rootCommand;
+        this.checkCommand = null;
+        this.initCommand = null;
+        this.detectCommand = null;
     }
 
     public int run(String... args) {
-        CommandLine commandLine = new CommandLine(rootCommand, new GuiceCommandFactory(injector));
+        CommandLine.IFactory factory = injector != null ? new GuiceCommandFactory(injector) : new CommandLine.IFactory() {
+            @Override
+            public <K> K create(Class<K> type) throws Exception {
+                if (type == CheckCommand.class) return type.cast(checkCommand);
+                if (type == InitCommand.class) return type.cast(initCommand);
+                if (type == DetectCommand.class) return type.cast(detectCommand);
+                return CommandLine.defaultFactory().create(type);
+            }
+        };
+        CommandLine commandLine = new CommandLine(rootCommand, factory);
         commandLine.setOut(new PrintWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8), true));
         commandLine.setErr(new PrintWriter(new OutputStreamWriter(System.err, StandardCharsets.UTF_8), true));
         commandLine.setExecutionExceptionHandler(CommandLineRunnerImpl::handle);
-        exitCode = commandLine.execute(args);
+        int exitCode = commandLine.execute(args);
         commandLine.getOut().flush();
         commandLine.getErr().flush();
         return exitCode;

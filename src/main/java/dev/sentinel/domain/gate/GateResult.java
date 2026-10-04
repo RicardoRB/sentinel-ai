@@ -12,12 +12,19 @@ public record GateResult(
         int exitCode,
         Duration duration,
         String stdout,
-        String stderr) {
+        String stderr,
+        String summary) {
+
+    public GateResult(String name, GateStatus status, List<String> command, int exitCode,
+                      Duration duration, String stdout, String stderr) {
+        this(name, status, command, exitCode, duration, stdout, stderr, null);
+    }
 
     public static GateResult from(String name, List<String> command, CommandResult result) {
-        GateStatus status = result.succeeded() ? GateStatus.PASSED : GateStatus.FAILED;
+        GateStatus status = result.hasExecutionError() ? GateStatus.EXECUTION_ERROR
+                : result.succeeded() ? GateStatus.PASSED : GateStatus.FAILED;
         return new GateResult(name, status, List.copyOf(command), result.exitCode(), result.duration(),
-                result.stdout(), result.stderr());
+                result.stdout(), result.stderr(), result.executionError());
     }
 
     public boolean passed() {

@@ -56,6 +56,24 @@ Tasks will be grouped into six phases: native foundation, quality engine, agent 
 
 **Alternative considered:** implement all abstractions first and defer verification. Rejected because it would create a broad untestable migration and violate the sequential delivery constraint.
 
+### 7. Reconcile the agent adapter contract across iterations
+
+Iteration 3 needs `integrate`/`remove` (project wiring) and iteration 5 needs `run(AgentRequest)` (task execution). Rather than one interface that forces every adapter to implement both, keep `AgentAdapter` with `id()` and split capabilities into `AgentIntegration` (`integrate`, `remove`) and `AgentRunner` (`run`), with adapters implementing the capabilities they support. The loop and gate engine depend only on `AgentRunner`/result contracts, never on a concrete agent.
+
+**Alternative considered:** a single widened interface. Rejected because an adapter that can integrate but not run (or vice versa) would need stub methods.
+
+### 8. Fixed configuration schema, introduced incrementally
+
+`sentinel.toml` uses `version = 1`, `[quality-gates.<id>]` (`enabled`, `command` as an argument list or a string split without shell semantics), `[loop]` (`enabled`, `max-iterations`, `timeout-seconds`), and `[profiles.<name>]` (`gates`). Each iteration adds only its own tables; unknown tables or keys produce an actionable configuration error (exit 2), not silent acceptance. Parsing maps TOML into typed records explicitly so no reflection metadata is needed.
+
+### 9. Native-image strategy
+
+Guice bindings are explicit (no classpath scanning, no JIT-generated bindings where avoidable); Picocli uses its annotation processor for reflection configuration; JSON is produced by an explicit writer over immutable records; TOML is mapped by hand. Native metadata is generated or hand-written only for what the native build and smoke tests prove necessary. `./mvnw -Pnative native:compile` producing `target/sentinel` is part of each iteration's definition of done.
+
+### 10. Security model
+
+Repository-defined commands are trusted code execution and will be documented as such. Commands run as argument lists via the process API with the project root as working directory; Sentinel opens no network services and never installs tools. JSON stdout never contains ANSI escapes; human output may use color only when stdout is an interactive terminal.
+
 ## Risks / Trade-offs
 
 - [Risk] Removing Spring or changing dependency wiring can regress existing CLI behavior or native metadata. → Establish characterization tests before migration and run JVM plus native smoke tests at every phase.

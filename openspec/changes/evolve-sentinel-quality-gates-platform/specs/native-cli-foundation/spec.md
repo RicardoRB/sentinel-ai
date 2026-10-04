@@ -33,6 +33,20 @@ Sentinel SHALL create a versioned `sentinel.toml` with the initial tests gate en
 - **WHEN** `init` runs while `sentinel.toml` already exists
 - **THEN** it leaves the file unchanged and reports an actionable error
 
+### Requirement: Framework-independent architecture
+Sentinel SHALL NOT depend on Spring Framework or Spring Boot, SHALL wire dependencies through an explicit Guice composition root using constructor injection, and SHALL keep domain types independent of Guice, Picocli, process APIs, and filesystem implementations.
+
+#### Scenario: Dependency boundary check
+- **WHEN** the architecture tests run
+- **THEN** they fail if a domain type references a framework, CLI, process, or filesystem implementation package or if Spring appears in the dependency tree
+
+### Requirement: Typed configuration
+Sentinel SHALL parse `sentinel.toml` into immutable typed models, reject unknown keys and unsupported versions with an actionable error, and parse identically on the JVM and native executable.
+
+#### Scenario: Malformed configuration
+- **WHEN** `sentinel.toml` is syntactically invalid or has an unsupported `version`
+- **THEN** the command reports the problem and exits with a configuration error
+
 ### Requirement: Native parity
 The supported foundation commands SHALL behave consistently when invoked from the native executable, without requiring a JVM at runtime.
 

@@ -12,5 +12,9 @@ import java.util.List;
  */
 public interface CommandExecutor {
 
+    default CommandResult execute(Command command) {
+        return execute(command.arguments(), command.workingDirectory());
+    }
+
     CommandResult execute(List<String> command, Path workingDirectory);
 }
