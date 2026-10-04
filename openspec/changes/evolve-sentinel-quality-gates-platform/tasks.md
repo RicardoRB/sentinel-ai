@@ -35,8 +35,8 @@
 - [x] 4.2 Add configuration validation for unknown gate IDs, disabled gates, commands, deterministic ordering, and skipped output.
 - [x] 4.3 Add optional ArchUnit, Checkstyle, SpotBugs, and Sonar process integrations without automatic installation.
 - [x] 4.4 Define unavailable-tool diagnostics and distinguish unavailable, failed, skipped, and execution-error outcomes.
-- [ ] 4.5 Add gate-specific fake-executor tests, malformed-configuration tests, JSON/human parity tests, and native tests.
-- [ ] 4.6 Build and exercise the native executable for all applicable commands, then commit the passing iteration.
+- [x] 4.5 Add gate-specific fake-executor tests, malformed-configuration tests, JSON/human parity tests, and native tests.
+- [x] 4.6 Build and exercise the native executable for all applicable commands, then commit the passing iteration.
 
 ## 5. Iteration 5 — Agentic quality loop
 
