@@ -13,6 +13,7 @@ import dev.sentinel.cli.DetectCommand;
 import dev.sentinel.cli.InitCommand;
 import dev.sentinel.cli.IntegrateCommand;
 import dev.sentinel.cli.DoctorCommand;
+import dev.sentinel.cli.LoopCommand;
 import dev.sentinel.cli.JsonReportRenderer;
 import dev.sentinel.cli.SentinelCommand;
 import dev.sentinel.cli.TextReportRenderer;
@@ -45,6 +46,7 @@ public final class SentinelModule extends AbstractModule {
         bind(CheckCommand.class);
         bind(IntegrateCommand.class);
         bind(DoctorCommand.class);
+        bind(LoopCommand.class);
         bind(TextReportRenderer.class);
         bind(JsonReportRenderer.class);
         bind(VersionProvider.class);

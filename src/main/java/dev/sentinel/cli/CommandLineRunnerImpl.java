@@ -18,6 +18,7 @@ public class CommandLineRunnerImpl {
     private final DetectCommand detectCommand;
     private final IntegrateCommand integrateCommand;
     private final DoctorCommand doctorCommand;
+    private final LoopCommand loopCommand;
     private final Injector injector;
 
     public CommandLineRunnerImpl(dev.sentinel.application.CheckService checks,
@@ -31,6 +32,7 @@ public class CommandLineRunnerImpl {
         this.integrateCommand = new IntegrateCommand(new dev.sentinel.application.IntegrationService(
                 detector, java.util.List.of(new dev.sentinel.application.OpenCodeIntegration())));
         this.doctorCommand = new DoctorCommand(new dev.sentinel.application.DoctorService(detector));
+        this.loopCommand = new LoopCommand();
         this.injector = null;
     }
 
@@ -44,6 +46,7 @@ public class CommandLineRunnerImpl {
         this.detectCommand = null;
         this.integrateCommand = null;
         this.doctorCommand = null;
+        this.loopCommand = null;
     }
 
     public int run(String... args) {
@@ -55,6 +58,7 @@ public class CommandLineRunnerImpl {
                 if (type == DetectCommand.class) return type.cast(detectCommand);
                 if (type == IntegrateCommand.class) return type.cast(integrateCommand);
                 if (type == DoctorCommand.class) return type.cast(doctorCommand);
+                if (type == LoopCommand.class) return type.cast(loopCommand);
                 return CommandLine.defaultFactory().create(type);
             }
         };

@@ -34,7 +34,7 @@
 - [x] 4.1 Add the typed gate registry and built-in compile, tests, architecture, and command gates.
 - [x] 4.2 Add configuration validation for unknown gate IDs, disabled gates, commands, deterministic ordering, and skipped output.
 - [x] 4.3 Add optional ArchUnit, Checkstyle, SpotBugs, and Sonar process integrations without automatic installation.
-- [ ] 4.4 Define unavailable-tool diagnostics and distinguish unavailable, failed, skipped, and execution-error outcomes.
+- [x] 4.4 Define unavailable-tool diagnostics and distinguish unavailable, failed, skipped, and execution-error outcomes.
 - [ ] 4.5 Add gate-specific fake-executor tests, malformed-configuration tests, JSON/human parity tests, and native tests.
 - [ ] 4.6 Build and exercise the native executable for all applicable commands, then commit the passing iteration.
 
@@ -44,14 +44,14 @@
 - [x] 5.2 Implement iteration limits, timeout enforcement, success handling, and explicit agent/gate error handling.
 - [x] 5.3 Implement structured failed-gate feedback for the next agent request and final loop output.
 - [x] 5.4 Implement Git repository, branch, and dirty-state inspection without automatic commit, reset, stash, or deletion.
-- [ ] 5.5 Implement `sentinel loop` with safe terminal behavior and no silent retries.
+- [x] 5.5 Implement `sentinel loop` with safe terminal behavior and no silent retries.
 - [ ] 5.6 Add fake-agent tests for success, retry success, multiple failures, maximum iterations, timeout, agent failure, Git state, and native execution; commit the passing iteration.
 
 ## 6. Iteration 6 — Multi-project platform
 
 - [x] 6.1 Expand project descriptors and detection for Java, Kotlin, TypeScript, JavaScript, Python, Go, Rust, and C# markers and build tools.
 - [x] 6.2 Implement deterministic multi-root and monorepo discovery, with gate commands scoped to their project roots.
-- [ ] 6.3 Add language-specific gate registries while preserving the Java/Maven gate behavior.
+- [x] 6.3 Add language-specific gate registries while preserving the Java/Maven gate behavior.
 - [x] 6.4 Add Claude Code and Codex adapters through the existing agent boundary without gate-engine conditionals.
 - [x] 6.5 Implement named profiles, profile selection, separate policy evaluation, and strict-profile behavior.
 - [x] 6.6 Preserve and document the versioned JSON contract (including a written schema reference in `docs/`) across languages, agents, projects, and policies.

@@ -21,7 +21,8 @@ public record GateResult(
     }
 
     public static GateResult from(String name, List<String> command, CommandResult result) {
-        GateStatus status = result.hasExecutionError() ? GateStatus.EXECUTION_ERROR
+        GateStatus status = result.hasExecutionError() && result.exitCode() == -1 ? GateStatus.UNAVAILABLE
+                : result.hasExecutionError() ? GateStatus.EXECUTION_ERROR
                 : result.succeeded() ? GateStatus.PASSED : GateStatus.FAILED;
         return new GateResult(name, status, List.copyOf(command), result.exitCode(), result.duration(),
                 result.stdout(), result.stderr(), result.executionError());

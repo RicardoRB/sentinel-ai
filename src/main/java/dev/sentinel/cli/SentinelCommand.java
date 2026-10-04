@@ -10,7 +10,7 @@ import java.util.concurrent.Callable;
         description = "Sentinel is a quality gate orchestrator for AI coding agents.",
         mixinStandardHelpOptions = true,
         versionProvider = VersionProvider.class,
-        subcommands = {DetectCommand.class, InitCommand.class, CheckCommand.class, IntegrateCommand.class, DoctorCommand.class},
+        subcommands = {DetectCommand.class, InitCommand.class, CheckCommand.class, IntegrateCommand.class, DoctorCommand.class, LoopCommand.class},
         footer = {"", "Exit codes: 0 = ok, 1 = failed, 2 = error"})
 public class SentinelCommand implements Callable<Integer> {
 
