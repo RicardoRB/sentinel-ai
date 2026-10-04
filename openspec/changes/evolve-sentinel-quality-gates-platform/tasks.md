@@ -21,13 +21,13 @@
 
 ## 3. Iteration 3 — Agent integration
 
-- [ ] 3.1 Define the agent adapter with separate integration and run capabilities and agent-facing request/result boundaries independent of the gate engine.
-- [ ] 3.2 Implement OpenCode integration-point discovery and non-destructive conflict handling using filesystem fixtures.
-- [ ] 3.3 Implement `sentinel integrate opencode` with explicit change reporting and ownership markers.
-- [ ] 3.4 Implement `sentinel integrate opencode --remove` to remove only Sentinel-owned content.
-- [ ] 3.5 Implement `sentinel doctor` checks for configuration, project, Maven, wrapper, gates, integration, and native capabilities.
+- [x] 3.1 Define the agent adapter with separate integration and run capabilities and agent-facing request/result boundaries independent of the gate engine.
+- [x] 3.2 Implement OpenCode integration-point discovery and non-destructive conflict handling using filesystem fixtures.
+- [x] 3.3 Implement `sentinel integrate opencode` with explicit change reporting and ownership markers.
+- [x] 3.4 Implement `sentinel integrate opencode --remove` to remove only Sentinel-owned content.
+- [x] 3.5 Implement `sentinel doctor` checks for configuration, project, Maven, wrapper, gates, integration, and native capabilities.
 - [x] 3.6 Extend JSON with concise agent-facing `summary` and `output` fields without breaking schema version 1.
-- [ ] 3.7 Test integration, removal, conflicts, unknown agents, doctor diagnostics, JSON contract, and the native executable; commit the passing iteration.
+- [x] 3.7 Test integration, removal, conflicts, unknown agents, doctor diagnostics, JSON contract, and the native executable; commit the passing iteration.
 
 ## 4. Iteration 4 — Real quality gates
 

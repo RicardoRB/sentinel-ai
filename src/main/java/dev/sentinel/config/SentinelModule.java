@@ -11,6 +11,8 @@ import dev.sentinel.cli.CheckCommand;
 import dev.sentinel.cli.CommandLineRunnerImpl;
 import dev.sentinel.cli.DetectCommand;
 import dev.sentinel.cli.InitCommand;
+import dev.sentinel.cli.IntegrateCommand;
+import dev.sentinel.cli.DoctorCommand;
 import dev.sentinel.cli.JsonReportRenderer;
 import dev.sentinel.cli.SentinelCommand;
 import dev.sentinel.cli.TextReportRenderer;
@@ -33,11 +35,16 @@ public final class SentinelModule extends AbstractModule {
         bind(QualityGateRunner.class);
         bind(InitService.class);
         bind(CheckService.class);
+        bind(dev.sentinel.application.IntegrationService.class);
+        bind(dev.sentinel.application.OpenCodeIntegration.class);
+        bind(dev.sentinel.application.DoctorService.class);
 
         bind(SentinelCommand.class);
         bind(DetectCommand.class);
         bind(InitCommand.class);
         bind(CheckCommand.class);
+        bind(IntegrateCommand.class);
+        bind(DoctorCommand.class);
         bind(TextReportRenderer.class);
         bind(JsonReportRenderer.class);
         bind(VersionProvider.class);
