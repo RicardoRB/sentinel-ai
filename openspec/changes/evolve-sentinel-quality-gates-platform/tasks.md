@@ -40,10 +40,10 @@
 
 ## 5. Iteration 5 — Agentic quality loop
 
-- [ ] 5.1 Extend the agent contract for bounded task execution and define loop configuration and terminal states.
-- [ ] 5.2 Implement iteration limits, timeout enforcement, success handling, and explicit agent/gate error handling.
-- [ ] 5.3 Implement structured failed-gate feedback for the next agent request and final loop output.
-- [ ] 5.4 Implement Git repository, branch, and dirty-state inspection without automatic commit, reset, stash, or deletion.
+- [x] 5.1 Extend the agent contract for bounded task execution and define loop configuration and terminal states.
+- [x] 5.2 Implement iteration limits, timeout enforcement, success handling, and explicit agent/gate error handling.
+- [x] 5.3 Implement structured failed-gate feedback for the next agent request and final loop output.
+- [x] 5.4 Implement Git repository, branch, and dirty-state inspection without automatic commit, reset, stash, or deletion.
 - [ ] 5.5 Implement `sentinel loop` with safe terminal behavior and no silent retries.
 - [ ] 5.6 Add fake-agent tests for success, retry success, multiple failures, maximum iterations, timeout, agent failure, Git state, and native execution; commit the passing iteration.
 
