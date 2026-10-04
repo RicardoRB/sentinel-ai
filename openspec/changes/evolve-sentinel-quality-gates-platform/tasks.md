@@ -61,5 +61,5 @@
 
 - [ ] 7.0 Before each iteration is committed, run `./mvnw test`, `./mvnw -Pnative native:compile`, and `./target/sentinel` with `--help`, `detect`, `check`, and `check --format json`, fixing failures before starting the next iteration.
 - [ ] 7.1 Run the complete Maven test suite and native build from a clean checkout using the documented Java/GraalVM setup.
-- [ ] 7.2 Smoke-test the native executable for every applicable command and verify stdout/stderr, exit codes, JSON validity, and no JVM runtime requirement.
+- [x] 7.2 Smoke-test the native executable for every applicable command and verify stdout/stderr, exit codes, JSON validity, and no JVM runtime requirement.
 - [ ] 7.3 Review documentation, security constraints, generated artifacts, and incremental commit history before release.
