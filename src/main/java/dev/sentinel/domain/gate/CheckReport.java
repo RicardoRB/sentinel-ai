@@ -11,7 +11,8 @@ public record CheckReport(Project project, List<GateResult> results) {
     }
 
     public GateStatus status() {
-        return results.stream().allMatch(GateResult::passed) ? GateStatus.PASSED : GateStatus.FAILED;
+        return results.stream().filter(result -> result.status() != GateStatus.SKIPPED)
+                .allMatch(GateResult::passed) ? GateStatus.PASSED : GateStatus.FAILED;
     }
 
     public boolean passed() {

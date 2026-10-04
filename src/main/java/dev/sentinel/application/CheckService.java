@@ -32,7 +32,7 @@ public class CheckService {
         SentinelConfiguration configuration =
                 configurationReader.read(project.root().resolve(SentinelConfiguration.FILE_NAME));
         List<QualityGate> gates = gateFactory.create(configuration, project);
-        if (gates.isEmpty()) {
+        if (configuration.enabledGates().isEmpty()) {
             throw new SentinelException("No quality gates are enabled in " + SentinelConfiguration.FILE_NAME
                     + "; refusing to report a pass without checking anything.");
         }

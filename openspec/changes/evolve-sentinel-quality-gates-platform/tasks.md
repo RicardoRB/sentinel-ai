@@ -32,7 +32,7 @@
 ## 4. Iteration 4 — Real quality gates
 
 - [x] 4.1 Add the typed gate registry and built-in compile, tests, architecture, and command gates.
-- [ ] 4.2 Add configuration validation for unknown gate IDs, disabled gates, commands, deterministic ordering, and skipped output.
+- [x] 4.2 Add configuration validation for unknown gate IDs, disabled gates, commands, deterministic ordering, and skipped output.
 - [x] 4.3 Add optional ArchUnit, Checkstyle, SpotBugs, and Sonar process integrations without automatic installation.
 - [ ] 4.4 Define unavailable-tool diagnostics and distinguish unavailable, failed, skipped, and execution-error outcomes.
 - [ ] 4.5 Add gate-specific fake-executor tests, malformed-configuration tests, JSON/human parity tests, and native tests.

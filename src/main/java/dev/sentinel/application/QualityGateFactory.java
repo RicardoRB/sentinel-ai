@@ -5,6 +5,7 @@ import dev.sentinel.domain.config.SentinelConfiguration;
 import dev.sentinel.domain.config.SentinelException;
 import dev.sentinel.domain.gate.MavenTestGate;
 import dev.sentinel.domain.gate.CommandQualityGate;
+import dev.sentinel.domain.gate.SkippedQualityGate;
 import dev.sentinel.domain.gate.QualityGate;
 import dev.sentinel.domain.process.CommandExecutor;
 import com.google.inject.Inject;
@@ -37,8 +38,12 @@ public class QualityGateFactory {
                 throw new SentinelException("Quality gate '" + id + "' is unknown. Supported gates: " + SUPPORTED_GATES);
             }
         });
-        for (Map.Entry<String, GateConfiguration> entry : configuration.enabledGates().entrySet()) {
+        for (Map.Entry<String, GateConfiguration> entry : configuration.gates().entrySet()) {
             String id = entry.getKey();
+            if (!entry.getValue().enabled()) {
+                gates.add(new SkippedQualityGate(id));
+                continue;
+            }
             gates.add(switch (id) {
                 case MavenTestGate.NAME -> new MavenTestGate(executor,
                         testsCommand(entry.getValue().command(), project));
