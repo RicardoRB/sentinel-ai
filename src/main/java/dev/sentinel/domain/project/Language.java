@@ -1,7 +1,8 @@
 package dev.sentinel.domain.project;
 
 public enum Language {
-    JAVA("Java");
+    JAVA("Java"), KOTLIN("Kotlin"), TYPESCRIPT("TypeScript"), JAVASCRIPT("JavaScript"),
+    PYTHON("Python"), GO("Go"), RUST("Rust"), CSHARP("C#");
 
     private final String displayName;
 

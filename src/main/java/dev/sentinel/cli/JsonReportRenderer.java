@@ -55,6 +55,7 @@ public class JsonReportRenderer {
         map.put("language", project.language().name());
         map.put("buildTool", project.buildTool().name());
         map.put("framework", project.framework().name());
+        map.put("root", project.root().toString());
         return map;
     }
 }

@@ -49,12 +49,12 @@
 
 ## 6. Iteration 6 — Multi-project platform
 
-- [ ] 6.1 Expand project descriptors and detection for Java, Kotlin, TypeScript, JavaScript, Python, Go, Rust, and C# markers and build tools.
-- [ ] 6.2 Implement deterministic multi-root and monorepo discovery, with gate commands scoped to their project roots.
+- [x] 6.1 Expand project descriptors and detection for Java, Kotlin, TypeScript, JavaScript, Python, Go, Rust, and C# markers and build tools.
+- [x] 6.2 Implement deterministic multi-root and monorepo discovery, with gate commands scoped to their project roots.
 - [ ] 6.3 Add language-specific gate registries while preserving the Java/Maven gate behavior.
 - [ ] 6.4 Add Claude Code and Codex adapters through the existing agent boundary without gate-engine conditionals.
 - [ ] 6.5 Implement named profiles, profile selection, separate policy evaluation, and strict-profile behavior.
-- [ ] 6.6 Preserve and document the versioned JSON contract (including a written schema reference in `docs/`) across languages, agents, projects, and policies.
+- [x] 6.6 Preserve and document the versioned JSON contract (including a written schema reference in `docs/`) across languages, agents, projects, and policies.
 - [ ] 6.7 Add mixed-repository, monorepo, adapter, profile, policy, backward-compatibility, and native end-to-end tests; commit the final passing iteration.
 
 ## 7. Final verification
