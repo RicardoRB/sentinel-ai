@@ -13,7 +13,8 @@ versions; existing fields retain their meaning within a schema version.
     "name": "string", "status": "PASSED|FAILED|SKIPPED|UNAVAILABLE|EXECUTION_ERROR",
     "command": "string", "exitCode": "number", "durationMs": "number",
     "stdout": "string", "stderr": "string", "summary": "string", "output": "string"
-  }]
+  }],
+  "policies": [{ "name": "string", "passed": "boolean", "message": "string" }]
 }
 ```
 

@@ -5,6 +5,7 @@ import dev.sentinel.domain.config.GateConfiguration;
 import dev.sentinel.domain.config.SentinelConfiguration;
 import dev.sentinel.domain.config.SentinelConfigurationReader;
 import dev.sentinel.domain.config.SentinelException;
+import dev.sentinel.domain.config.Profile;
 import org.tomlj.Toml;
 import org.tomlj.TomlArray;
 import org.tomlj.TomlParseResult;
@@ -21,6 +22,7 @@ import java.util.Map;
 public class TomlConfigurationReader implements SentinelConfigurationReader {
 
     private static final String GATES_TABLE = "quality-gates";
+    private static final String PROFILES_TABLE = "profiles";
 
     @Override
     public SentinelConfiguration read(Path file) {
@@ -63,7 +65,24 @@ public class TomlConfigurationReader implements SentinelConfigurationReader {
                 gates.put(name, parseGate(name, gate));
             }
         }
-        return new SentinelConfiguration((int) (long) version, gates);
+        Map<String, Profile> profiles = new LinkedHashMap<>();
+        if (toml.contains(PROFILES_TABLE)) {
+            TomlTable table = toml.getTable(PROFILES_TABLE);
+            if (table == null) throw new SentinelException("'profiles' must be a table");
+            for (String name : table.keySet()) {
+                TomlTable profile = table.getTable(List.of(name));
+                if (profile == null || !profile.isArray("gates"))
+                    throw new SentinelException("'profiles." + name + ".gates' must be an array of strings");
+                TomlArray array = profile.getArray("gates");
+                List<String> names = new ArrayList<>();
+                for (int i = 0; i < array.size(); i++) {
+                    if (!array.isString(i)) throw new SentinelException("'profiles." + name + ".gates' must contain only strings");
+                    names.add(array.getString(i));
+                }
+                profiles.put(name, new Profile(name, names));
+            }
+        }
+        return new SentinelConfiguration((int) (long) version, gates, profiles);
     }
 
     private GateConfiguration parseGate(String name, TomlTable gate) {

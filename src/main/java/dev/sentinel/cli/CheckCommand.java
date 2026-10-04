@@ -29,6 +29,9 @@ public class CheckCommand implements Callable<Integer> {
             description = "Output format: ${COMPLETION-CANDIDATES} (default: ${DEFAULT-VALUE}).")
     private Format format;
 
+    @Option(names = "--profile", description = "Named gate profile from sentinel.toml.")
+    private String profile;
+
     private final CheckService service;
     private final TextReportRenderer textRenderer;
     private final JsonReportRenderer jsonRenderer;
@@ -45,7 +48,7 @@ public class CheckCommand implements Callable<Integer> {
         PrintWriter out = spec.commandLine().getOut();
         CheckReport report;
         try {
-            report = service.check(options.directory());
+            report = service.check(options.directory(), profile);
         } catch (SentinelException e) {
             if (format == Format.json) {
                 // stdout stays machine-readable; the human message goes to stderr as well.
@@ -53,7 +56,7 @@ public class CheckCommand implements Callable<Integer> {
             }
             throw e;
         }
-        out.print(format == Format.json ? jsonRenderer.render(report) + System.lineSeparator()
+            out.print(format == Format.json ? jsonRenderer.render(report, "strict".equals(profile)) + System.lineSeparator()
                 : textRenderer.render(report));
         return report.passed() ? ExitCodes.OK : ExitCodes.FAILED;
     }

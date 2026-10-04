@@ -3,6 +3,7 @@ package dev.sentinel.cli;
 import dev.sentinel.domain.gate.CheckReport;
 import dev.sentinel.domain.gate.GateResult;
 import dev.sentinel.domain.project.Project;
+import dev.sentinel.domain.policy.PolicyEvaluator;
 import tools.jackson.databind.SerializationFeature;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -20,6 +21,10 @@ public class JsonReportRenderer {
     private final JsonMapper mapper = JsonMapper.builder().enable(SerializationFeature.INDENT_OUTPUT).build();
 
     public String render(CheckReport report) {
+        return render(report, false);
+    }
+
+    public String render(CheckReport report, boolean strict) {
         Map<String, Object> root = new LinkedHashMap<>();
         root.put("schemaVersion", 1);
         root.put("status", report.status().name());
@@ -39,6 +44,15 @@ public class JsonReportRenderer {
             checks.add(check);
         }
         root.put("checks", checks);
+        List<Object> policies = new ArrayList<>();
+        new PolicyEvaluator().evaluate(report, strict).forEach(policy -> {
+            Map<String, Object> value = new LinkedHashMap<>();
+            value.put("name", policy.name());
+            value.put("passed", policy.passed());
+            value.put("message", policy.message());
+            policies.add(value);
+        });
+        root.put("policies", policies);
         return mapper.writeValueAsString(root);
     }
 
