@@ -15,8 +15,10 @@ import java.util.List;
 public final class ProjectDiscovery {
     public List<Project> discover(Path start) {
         Path root = start.toAbsolutePath().normalize();
-        while (root.getParent() != null && Files.exists(root.resolve(".git")) == false
-                && Files.exists(root.resolve("pom.xml")) == false) root = root.getParent();
+        Path candidate = root;
+        while (candidate.getParent() != null && !Files.exists(candidate.resolve(".git"))
+                && !Files.exists(candidate.resolve("pom.xml"))) candidate = candidate.getParent();
+        if (Files.exists(candidate.resolve(".git")) || Files.exists(candidate.resolve("pom.xml"))) root = candidate;
         List<Project> projects = new ArrayList<>();
         try (var paths = Files.walk(root, 4)) {
             paths.filter(Files::isDirectory).forEach(dir -> addMarkers(dir, projects));

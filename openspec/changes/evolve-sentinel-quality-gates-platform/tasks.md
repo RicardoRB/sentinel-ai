@@ -45,7 +45,7 @@
 - [x] 5.3 Implement structured failed-gate feedback for the next agent request and final loop output.
 - [x] 5.4 Implement Git repository, branch, and dirty-state inspection without automatic commit, reset, stash, or deletion.
 - [x] 5.5 Implement `sentinel loop` with safe terminal behavior and no silent retries.
-- [ ] 5.6 Add fake-agent tests for success, retry success, multiple failures, maximum iterations, timeout, agent failure, Git state, and native execution; commit the passing iteration.
+- [x] 5.6 Add fake-agent tests for success, retry success, multiple failures, maximum iterations, timeout, agent failure, Git state, and native execution; commit the passing iteration.
 
 ## 6. Iteration 6 — Multi-project platform
 
@@ -55,7 +55,7 @@
 - [x] 6.4 Add Claude Code and Codex adapters through the existing agent boundary without gate-engine conditionals.
 - [x] 6.5 Implement named profiles, profile selection, separate policy evaluation, and strict-profile behavior.
 - [x] 6.6 Preserve and document the versioned JSON contract (including a written schema reference in `docs/`) across languages, agents, projects, and policies.
-- [ ] 6.7 Add mixed-repository, monorepo, adapter, profile, policy, backward-compatibility, and native end-to-end tests; commit the final passing iteration.
+- [x] 6.7 Add mixed-repository, monorepo, adapter, profile, policy, backward-compatibility, and native end-to-end tests; commit the final passing iteration.
 
 ## 7. Final verification
 
