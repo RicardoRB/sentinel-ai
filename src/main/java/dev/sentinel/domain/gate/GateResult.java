@@ -15,6 +15,10 @@ public record GateResult(
         String stderr,
         String summary) {
 
+    public GateResult {
+        command = List.copyOf(command);
+    }
+
     public GateResult(String name, GateStatus status, List<String> command, int exitCode,
                       Duration duration, String stdout, String stderr) {
         this(name, status, command, exitCode, duration, stdout, stderr, null);

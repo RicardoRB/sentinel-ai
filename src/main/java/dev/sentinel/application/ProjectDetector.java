@@ -10,8 +10,10 @@ import org.w3c.dom.NodeList;
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import org.xml.sax.SAXException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.io.IOException;
 import java.util.Optional;
 
 /**
@@ -49,7 +51,7 @@ public class ProjectDetector {
                     return Framework.SPRING_BOOT;
                 }
             }
-        } catch (Exception e) {
+        } catch (javax.xml.parsers.ParserConfigurationException | SAXException | IOException e) {
             // An unreadable pom is still a Maven project; we just cannot identify the framework.
         }
         return Framework.NONE;

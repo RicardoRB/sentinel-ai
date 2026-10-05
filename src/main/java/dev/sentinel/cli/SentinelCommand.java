@@ -6,6 +6,7 @@ import picocli.CommandLine.Spec;
 
 import java.util.concurrent.Callable;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 
 @Command(name = "sentinel",
         description = "Sentinel is a quality gate orchestrator for AI coding agents.",
@@ -21,7 +22,7 @@ public class SentinelCommand implements Callable<Integer> {
     @Override
     public Integer call() {
         if (spec == null) {
-            PrintWriter err = new PrintWriter(System.err, true);
+            PrintWriter err = new PrintWriter(System.err, true, StandardCharsets.UTF_8);
             err.println("Usage: sentinel [COMMAND]");
             err.println("Use 'sentinel --help' for available commands.");
         } else {

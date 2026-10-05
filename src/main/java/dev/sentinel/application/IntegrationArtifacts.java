@@ -34,7 +34,8 @@ final class IntegrationArtifacts {
             return new IntegrationResult(IntegrationResult.Status.CONFLICT, List.of(target.toString()),
                     "Existing user-owned integration preserved; resolve the conflict explicitly.");
         }
-        Files.createDirectories(target.getParent());
+        Path parent = java.util.Objects.requireNonNull(target.getParent(), "target must have a parent");
+        Files.createDirectories(parent);
         Files.writeString(target, content, StandardOpenOption.CREATE_NEW);
         return new IntegrationResult(IntegrationResult.Status.CHANGED, List.of(target.toString()), message);
     }

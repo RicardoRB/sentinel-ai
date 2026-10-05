@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.Callable;
 
 @Command(name = "integrate", description = "Configure a supported coding-agent integration.",
@@ -76,6 +77,6 @@ public final class IntegrateCommand implements Callable<Integer> {
     }
 
     private PrintWriter output() {
-        return spec == null ? new PrintWriter(System.out, true) : spec.commandLine().getOut();
+        return spec == null ? new PrintWriter(System.out, true, StandardCharsets.UTF_8) : spec.commandLine().getOut();
     }
 }

@@ -43,6 +43,7 @@ public class InitService {
         }
 
         public InitResult {
+            gates = gates == null ? List.of() : List.copyOf(gates);
             integrations = integrations == null ? List.of() : List.copyOf(integrations);
             pomChanges = pomChanges == null ? List.of() : List.copyOf(pomChanges);
         }

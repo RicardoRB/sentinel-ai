@@ -16,8 +16,11 @@ public final class ProjectDiscovery {
     public List<Project> discover(Path start) {
         Path root = start.toAbsolutePath().normalize();
         Path candidate = root;
-        while (candidate.getParent() != null && !Files.exists(candidate.resolve(".git"))
-                && !Files.exists(candidate.resolve("pom.xml"))) candidate = candidate.getParent();
+        Path parent;
+        while ((parent = candidate.getParent()) != null && !Files.exists(candidate.resolve(".git"))
+                && !Files.exists(candidate.resolve("pom.xml"))) {
+            candidate = parent;
+        }
         if (Files.exists(candidate.resolve(".git")) || Files.exists(candidate.resolve("pom.xml"))) root = candidate;
         List<Project> projects = new ArrayList<>();
         try (var paths = Files.walk(root, 4)) {

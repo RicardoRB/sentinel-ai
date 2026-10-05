@@ -15,6 +15,7 @@ import picocli.CommandLine.Parameters;
 import picocli.CommandLine.Spec;
 
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.Callable;
 
 @Command(name = "loop", description = "Run bounded agent attempts followed by quality checks.", mixinStandardHelpOptions = true)
@@ -40,6 +41,6 @@ public final class LoopCommand implements Callable<Integer> {
     }
 
     private PrintWriter output() {
-        return spec == null ? new PrintWriter(System.out, true) : spec.commandLine().getOut();
+        return spec == null ? new PrintWriter(System.out, true, StandardCharsets.UTF_8) : spec.commandLine().getOut();
     }
 }

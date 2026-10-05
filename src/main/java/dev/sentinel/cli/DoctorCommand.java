@@ -8,6 +8,7 @@ import picocli.CommandLine.Spec;
 import com.google.inject.Inject;
 
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.Callable;
 
 @Command(name = "doctor", description = "Diagnose Sentinel project and integration prerequisites.", mixinStandardHelpOptions = true)
@@ -28,6 +29,6 @@ public final class DoctorCommand implements Callable<Integer> {
     }
 
     private PrintWriter output() {
-        return spec == null ? new PrintWriter(System.out, true) : spec.commandLine().getOut();
+        return spec == null ? new PrintWriter(System.out, true, StandardCharsets.UTF_8) : spec.commandLine().getOut();
     }
 }

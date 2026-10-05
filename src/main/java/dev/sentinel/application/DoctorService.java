@@ -43,6 +43,11 @@ public final class DoctorService {
     }
 
     private static boolean commandAvailable(String command) {
-        return Files.isExecutable(Path.of("/usr/bin", command)) || Files.isExecutable(Path.of("/opt/homebrew/bin", command));
+        String path = System.getenv("PATH");
+        if (path == null) return false;
+        return java.util.Arrays.stream(path.split(java.io.File.pathSeparator))
+                .map(Path::of)
+                .map(directory -> directory.resolve(command))
+                .anyMatch(Files::isExecutable);
     }
 }

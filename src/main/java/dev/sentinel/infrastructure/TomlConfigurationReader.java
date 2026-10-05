@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class TomlConfigurationReader implements SentinelConfigurationReader {
 
@@ -73,7 +74,7 @@ public class TomlConfigurationReader implements SentinelConfigurationReader {
                 TomlTable profile = table.getTable(List.of(name));
                 if (profile == null || !profile.isArray("gates"))
                     throw new SentinelException("'profiles." + name + ".gates' must be an array of strings");
-                TomlArray array = profile.getArray("gates");
+                TomlArray array = Objects.requireNonNull(profile.getArray("gates"));
                 List<String> names = new ArrayList<>();
                 for (int i = 0; i < array.size(); i++) {
                     if (!array.isString(i)) throw new SentinelException("'profiles." + name + ".gates' must contain only strings");
@@ -107,9 +108,16 @@ public class TomlConfigurationReader implements SentinelConfigurationReader {
     private List<String> parseCommand(String where, TomlTable gate) {
         List<String> command;
         if (gate.isString("command")) {
-            command = CommandLineTokenizer.tokenize(gate.getString("command"));
+            String value = gate.getString("command");
+            if (value == null) {
+                throw new SentinelException("'" + where + ".command' must be a string");
+            }
+            command = CommandLineTokenizer.tokenize(value);
         } else if (gate.isArray("command")) {
             TomlArray array = gate.getArray("command");
+            if (array == null) {
+                throw new SentinelException("'" + where + ".command' must be an array of strings");
+            }
             command = new ArrayList<>();
             for (int i = 0; i < array.size(); i++) {
                 if (!array.isString(i)) {

@@ -11,6 +11,7 @@ import picocli.CommandLine.Option;
 import picocli.CommandLine.Spec;
 
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.Callable;
 
 @Command(name = "check", description = "Run all enabled quality gates from sentinel.toml.",
@@ -63,7 +64,7 @@ public class CheckCommand implements Callable<Integer> {
 
     private PrintWriter output() {
         return spec == null
-                ? new PrintWriter(System.out, true)
+                ? new PrintWriter(System.out, true, StandardCharsets.UTF_8)
                 : spec.commandLine().getOut();
     }
 }

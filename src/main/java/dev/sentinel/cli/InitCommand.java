@@ -23,6 +23,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.concurrent.Callable;
+import java.util.function.Supplier;
 
 @Command(name = "init", description = "Create sentinel.toml with an interactive setup wizard.",
         mixinStandardHelpOptions = true, versionProvider = VersionProvider.class)
@@ -41,7 +42,7 @@ public class InitCommand implements Callable<Integer> {
     @Option(names = "--overwrite", description = "Overwrite an existing sentinel.toml without prompting.")
     private boolean overwriteOption;
 
-    private final InitService service;
+    private final Supplier<InitService> service;
     private final InputStream input;
     private final BufferedReader reader;
 
@@ -51,7 +52,7 @@ public class InitCommand implements Callable<Integer> {
     }
 
     public InitCommand(InitService service, InputStream input) {
-        this.service = service;
+        this.service = () -> service;
         this.input = input;
         this.reader = new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8));
     }
@@ -59,20 +60,20 @@ public class InitCommand implements Callable<Integer> {
     @Override
     public Integer call() {
         Path start = options.directory();
-        var project = service.project(start);
+        var project = service.get().project(start);
         Path file = project.root().resolve(SentinelConfiguration.FILE_NAME);
         boolean overwrite = overwriteOption;
         if (Files.exists(file)) {
             if (!overwrite) {
                 if (input == System.in && System.console() == null) {
-                    return printResult(service.init(project.root()));
+            return printResult(service.get().init(project.root()));
                 }
-                if (!confirmOverwrite(file)) return printResult(service.init(project.root()));
+                if (!confirmOverwrite(file)) return printResult(service.get().init(project.root()));
                 overwrite = true;
             }
         }
 
-        InitSetupCatalog catalog = service.catalog();
+        InitSetupCatalog catalog = service.get().catalog();
         List<String> selectedIntegrations = integrations.isEmpty() ? selectIntegrations(catalog) : integrations;
         List<String> selectedGates = gates.isEmpty() ? selectGates(catalog, project) : gates;
         String selectedArchitecture = architecture;
@@ -88,7 +89,7 @@ public class InitCommand implements Callable<Integer> {
                     gateOption.available() ? "AVAILABLE" : "UNAVAILABLE");
             out.println(gateOption.availabilityMessage());
         }
-        InitService.InitResult result = service.initialize(project.root(),
+        InitService.InitResult result = service.get().initialize(project.root(),
                 new InitSelection(selectedIntegrations, selectedGates, selectedArchitecture), overwrite);
         return printResult(result);
     }
@@ -421,7 +422,7 @@ public class InitCommand implements Callable<Integer> {
 
     private PrintWriter output() {
         return spec == null
-                ? new PrintWriter(System.out, true)
+                ? new PrintWriter(System.out, true, StandardCharsets.UTF_8)
                 : spec.commandLine().getOut();
     }
 }

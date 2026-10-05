@@ -206,6 +206,8 @@ class CoverageExpansionTest {
         assertThat(new GateConfiguration(true, List.of("test")).command()).containsExactly("test");
         assertThat(new SentinelConfiguration(1, Map.of(), Map.of()).enabledGates()).isEmpty();
         assertThat(new AgentResult(true, "done", "").succeeded()).isTrue();
+        assertThat(new InitService.InitResult(Path.of("/tmp/sentinel.toml"), true, false, null, null, null, null)
+                .gates()).isEmpty();
     }
 
     @Test
@@ -303,5 +305,17 @@ class CoverageExpansionTest {
     void versionProviderSupportsRuntimeAndInjectedVersions() {
         assertThat(new VersionProvider().getVersion()).containsExactly("sentinel dev");
         assertThat(new VersionProvider("1.2.3").getVersion()).containsExactly("sentinel 1.2.3");
+    }
+
+    @Test
+    void validatesProcessAndAgentResults() {
+        CommandResult success = new CommandResult(0, "out", "err", Duration.ZERO);
+        assertThat(success.succeeded()).isTrue();
+        assertThat(success.hasExecutionError()).isFalse();
+        assertThat(new CommandResult(1, "", "", Duration.ZERO, "failed").hasExecutionError()).isTrue();
+        assertThatThrownBy(() -> new dev.sentinel.domain.agent.AgentRequest("", 1))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new dev.sentinel.domain.agent.AgentRequest("task", 0))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 }
