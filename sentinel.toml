@@ -3,3 +3,11 @@ version = 1
 [quality-gates.tests]
 enabled = true
 command = "./mvnw test"
+
+[quality-gates.checkstyle]
+enabled = true
+command = "./mvnw checkstyle:check"
+
+[quality-gates.spotbugs]
+enabled = true
+command = "./mvnw spotbugs:check"

@@ -17,7 +17,7 @@ class OpenCodeIntegrationTest {
         assertThat(created.status()).isEqualTo(IntegrationResult.Status.CHANGED);
         assertThat(Files.exists(root.resolve(".opencode/commands/sentinel-check.md"))).isTrue();
         assertThat(Files.readString(root.resolve(".opencode/plugins/sentinel-edit-write.js")))
-                .contains(OpenCodeIntegration.PLUGIN_MARKER, "tool.execute.after", "sentinel", "check", "--format", "json");
+                .contains(OpenCodeIntegration.PLUGIN_MARKER, "tool.execute.after", "verify-quality.sh", "multiedit", "patch");
         assertThat(integration.integrate(root, false).status()).isEqualTo(IntegrationResult.Status.ALREADY_PRESENT);
         assertThat(integration.integrate(root, true).status()).isEqualTo(IntegrationResult.Status.REMOVED);
         assertThat(root.resolve(".opencode/plugins/sentinel-edit-write.js")).doesNotExist();

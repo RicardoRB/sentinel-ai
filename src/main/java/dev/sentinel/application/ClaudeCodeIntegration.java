@@ -25,7 +25,7 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
               "hooks": {
                 "PostToolUse": [
                   {
-                    "matcher": "^(Edit|Write)$",
+                    "matcher": "^(Edit|Write|MultiEdit)$",
                     "hooks": [
                       {
                         "type": "command",
@@ -36,14 +36,14 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
                 ]
               }
             }
-            """.formatted(SETTINGS_MARKER);
+            """.replace("%s", SETTINGS_MARKER);
 
     private static final String HOOK = """ 
             #!/bin/sh
             # %s
-            # Event payload is intentionally ignored; Sentinel checks the current project state.
-            exec sentinel check --format json
-            """.formatted(HOOK_MARKER);
+            # Event payload is intentionally ignored; verify-quality checks the current project state.
+            exec ./verify-quality.sh
+            """.replace("%s", HOOK_MARKER);
 
     @Override
     public String id() {
@@ -69,12 +69,12 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
 
         List<String> changed = new ArrayList<>();
         if (!Files.exists(settings)) {
-            Files.createDirectories(settings.getParent());
+            Files.createDirectories(java.util.Objects.requireNonNull(settings.getParent()));
             Files.writeString(settings, SETTINGS);
             changed.add(settings.toString());
         }
         if (!Files.exists(hook)) {
-            Files.createDirectories(hook.getParent());
+            Files.createDirectories(java.util.Objects.requireNonNull(hook.getParent()));
             Files.writeString(hook, HOOK);
             makeExecutable(hook);
             changed.add(hook.toString());

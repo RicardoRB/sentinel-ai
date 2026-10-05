@@ -23,8 +23,8 @@ public final class OpenCodeIntegration implements AgentIntegration {
             export default async ({ directory }) => ({
               "tool.execute.after": async (input, output) => {
                 const tool = String(input?.tool ?? input?.name ?? "").toLowerCase();
-                if (tool !== "edit" && tool !== "write") return;
-                const result = Bun.spawnSync(["sentinel", "check", "--format", "json"], {
+                if (tool !== "edit" && tool !== "write" && tool !== "multiedit" && tool !== "patch") return;
+                const result = Bun.spawnSync(["./verify-quality.sh"], {
                   cwd: directory,
                   stdout: "pipe",
                   stderr: "pipe"
@@ -36,7 +36,7 @@ public final class OpenCodeIntegration implements AgentIntegration {
                 }
               }
             });
-            """.formatted(PLUGIN_MARKER);
+            """.replace("%s", PLUGIN_MARKER);
 
     @Override
     public String id() {
@@ -63,12 +63,12 @@ public final class OpenCodeIntegration implements AgentIntegration {
 
         List<String> changed = new ArrayList<>();
         if (!Files.exists(command)) {
-            Files.createDirectories(command.getParent());
+            Files.createDirectories(java.util.Objects.requireNonNull(command.getParent()));
             Files.writeString(command, COMMAND);
             changed.add(command.toString());
         }
         if (!Files.exists(plugin)) {
-            Files.createDirectories(plugin.getParent());
+            Files.createDirectories(java.util.Objects.requireNonNull(plugin.getParent()));
             Files.writeString(plugin, PLUGIN);
             changed.add(plugin.toString());
         }

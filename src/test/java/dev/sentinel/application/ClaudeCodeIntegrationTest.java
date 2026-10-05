@@ -19,8 +19,8 @@ class ClaudeCodeIntegrationTest {
         Path settings = root.resolve(".claude/settings.json");
         Path hook = root.resolve(".claude/hooks/sentinel-edit-write");
         assertThat(settings).hasContent(Files.readString(settings));
-        assertThat(Files.readString(settings)).contains("PostToolUse", "^(Edit|Write)$", ClaudeCodeIntegration.SETTINGS_MARKER);
-        assertThat(Files.readString(hook)).contains(ClaudeCodeIntegration.HOOK_MARKER, "sentinel check --format json");
+        assertThat(Files.readString(settings)).contains("PostToolUse", "^(Edit|Write|MultiEdit)$", ClaudeCodeIntegration.SETTINGS_MARKER);
+        assertThat(Files.readString(hook)).contains(ClaudeCodeIntegration.HOOK_MARKER, "./verify-quality.sh");
         assertThat(integration.integrate(root, false).status()).isEqualTo(IntegrationResult.Status.ALREADY_PRESENT);
         assertThat(integration.integrate(root, true).status()).isEqualTo(IntegrationResult.Status.REMOVED);
         assertThat(settings).doesNotExist();

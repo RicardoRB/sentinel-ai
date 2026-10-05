@@ -65,7 +65,7 @@ export default Plugin.define({
   async setup(ctx) {
     const options = (ctx.options ?? {}) as PluginOptions
     const threshold = options.threshold ?? DEFAULT_THRESHOLD
-    const command = options.command ?? ["./mvnw", "org.jacoco:jacoco-maven-plugin:prepare-agent", "test", "org.jacoco:jacoco-maven-plugin:report"]
+    const command = options.command ?? ["./verify-quality.sh"]
     const projectRoot = ctx.location.project.directory
 
     if (!Number.isFinite(threshold) || threshold < 0 || threshold > 1) {
