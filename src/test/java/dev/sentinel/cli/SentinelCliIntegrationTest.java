@@ -13,6 +13,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
+import java.io.ByteArrayInputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.nio.file.Files;
@@ -50,6 +51,19 @@ class SentinelCliIntegrationTest {
     private int run(String... args) {
         CommandLine cli = new CommandLine(injector.getInstance(SentinelCommand.class),
                 new GuiceCommandFactory(injector));
+        cli.setOut(new PrintWriter(out, true));
+        cli.setErr(new PrintWriter(err, true));
+        cli.setExecutionExceptionHandler(CommandLineRunnerImpl::handle);
+        return cli.execute(args);
+    }
+
+    private int runWithInput(String input, String... args) {
+        IntegrateCommand integrate = new IntegrateCommand(
+                new dev.sentinel.application.IntegrationService(new dev.sentinel.application.ProjectDetector(),
+                        java.util.List.of(new dev.sentinel.application.OpenCodeIntegration(),
+                                new dev.sentinel.application.ClaudeCodeIntegration())),
+                new ByteArrayInputStream(input.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        CommandLine cli = new CommandLine(integrate);
         cli.setOut(new PrintWriter(out, true));
         cli.setErr(new PrintWriter(err, true));
         cli.setExecutionExceptionHandler(CommandLineRunnerImpl::handle);
@@ -133,5 +147,53 @@ class SentinelCliIntegrationTest {
     @Test
     void invalidFormatIsAUsageError() {
         assertThat(run("check", "--format", "xml")).isEqualTo(ExitCodes.ERROR);
+    }
+
+    @Test
+    void integratesClaudeCodeAndOpenCodeAndRemovesOwnedArtifacts() {
+        assertThat(run("integrate", "claude-code", "-C", project.toString())).isZero();
+        assertThat(project.resolve(".claude/settings.json")).exists();
+        assertThat(project.resolve(".claude/hooks/sentinel-edit-write")).exists();
+
+        out.getBuffer().setLength(0);
+        assertThat(run("integrate", "opencode", "-C", project.toString())).isZero();
+        assertThat(project.resolve(".opencode/commands/sentinel-check.md")).exists();
+        assertThat(project.resolve(".opencode/plugins/sentinel-edit-write.js")).exists();
+
+        assertThat(run("integrate", "claude-code", "--remove", "-C", project.toString())).isZero();
+        assertThat(project.resolve(".claude/settings.json")).doesNotExist();
+        assertThat(run("integrate", "opencode", "--remove", "-C", project.toString())).isZero();
+        assertThat(project.resolve(".opencode/plugins/sentinel-edit-write.js")).doesNotExist();
+    }
+
+    @Test
+    void unknownIntegrationListsSupportedAgentsWithoutWritingFiles() {
+        assertThat(run("integrate", "unknown", "-C", project.toString())).isEqualTo(ExitCodes.ERROR);
+        assertThat(err.toString()).contains("Supported agents: opencode, claude-code");
+        assertThat(project.resolve(".claude")).doesNotExist();
+        assertThat(project.resolve(".opencode")).doesNotExist();
+    }
+
+    @Test
+    void promptsForAgentWhenArgumentIsOmitted() {
+        assertThat(runWithInput("2\n", "-C", project.toString())).isZero();
+        assertThat(out.toString()).contains("Select an agent integration", "1) opencode", "2) claude-code");
+        assertThat(project.resolve(".claude/settings.json")).exists();
+    }
+
+    @Test
+    void rejectsInvalidInteractiveSelectionWithoutWritingFiles() {
+        assertThat(runWithInput("9\n", "-C", project.toString())).isEqualTo(ExitCodes.ERROR);
+        assertThat(err.toString()).contains("Invalid agent selection");
+        assertThat(project.resolve(".claude")).doesNotExist();
+        assertThat(project.resolve(".opencode")).doesNotExist();
+    }
+
+    @Test
+    void rejectsEndOfInputWithoutWritingFiles() {
+        assertThat(runWithInput("", "-C", project.toString())).isEqualTo(ExitCodes.ERROR);
+        assertThat(err.toString()).contains("No agent selected");
+        assertThat(project.resolve(".claude")).doesNotExist();
+        assertThat(project.resolve(".opencode")).doesNotExist();
     }
 }

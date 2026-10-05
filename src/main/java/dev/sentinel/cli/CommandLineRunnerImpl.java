@@ -30,7 +30,8 @@ public class CommandLineRunnerImpl {
         this.initCommand = new InitCommand(init);
         this.detectCommand = new DetectCommand(detector);
         this.integrateCommand = new IntegrateCommand(new dev.sentinel.application.IntegrationService(
-                detector, java.util.List.of(new dev.sentinel.application.OpenCodeIntegration())));
+                detector, java.util.List.of(new dev.sentinel.application.OpenCodeIntegration(),
+                new dev.sentinel.application.ClaudeCodeIntegration())));
         this.doctorCommand = new DoctorCommand(new dev.sentinel.application.DoctorService(detector));
         this.loopCommand = new LoopCommand();
         this.injector = null;
@@ -53,6 +54,7 @@ public class CommandLineRunnerImpl {
         CommandLine.IFactory factory = injector != null ? new GuiceCommandFactory(injector) : new CommandLine.IFactory() {
             @Override
             public <K> K create(Class<K> type) throws Exception {
+                if (type == VersionProvider.class) return type.cast(new VersionProvider());
                 if (type == CheckCommand.class) return type.cast(checkCommand);
                 if (type == InitCommand.class) return type.cast(initCommand);
                 if (type == DetectCommand.class) return type.cast(detectCommand);

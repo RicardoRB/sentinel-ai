@@ -9,9 +9,9 @@ a project one deterministic place to answer "is this change acceptable?": a set 
 gates** declared in `sentinel.toml`, run with one command, reported with a clear pass/fail and a
 meaningful exit code, in text for humans or JSON for programs.
 
-This first iteration is deliberately small: Java, Maven, and one gate (automated tests).
-Sentinel does **not** yet integrate with any AI coding agent; that is on the roadmap. Today it is
-a standalone CLI that an agent (or a person, or CI) can call.
+This first iteration is deliberately small: Java, Maven, and one gate (automated tests). Sentinel
+also provides project-local integrations for Claude Code and OpenCode so file edits can trigger a
+machine-readable quality check.
 
 ## Development setup
 
@@ -40,6 +40,7 @@ Stack: Java 25, Guice, Picocli, tomlj, Jackson, JUnit 5 + AssertJ. Sentinel has 
 | `sentinel detect` | Detect the Maven/Java project in the current directory (or nearest parent) |
 | `sentinel init` | Create `sentinel.toml` |
 | `sentinel check [--format text\|json]` | Run all enabled quality gates |
+| `sentinel integrate <agent>` | Install or remove an agent integration |
 
 Every command also accepts `-C <dir>` to run as if started in `<dir>`.
 
@@ -144,6 +145,38 @@ All enabled gates run even if an earlier one fails; the result is the aggregate.
 If Sentinel cannot run at all (exit code 2) stdout is `{"status": "ERROR", "error": "..."}`.
 `framework` is `NONE` when no framework is recognised.
 
+## `sentinel integrate`
+
+Sentinel supports `opencode` and `claude-code` integrations. Installation is project-local,
+idempotent, and ownership-marked:
+
+```text
+sentinel integrate claude-code
+sentinel integrate opencode
+sentinel integrate claude-code --remove
+sentinel integrate opencode --remove
+sentinel integrate                 # prompts to choose an agent
+```
+
+If the agent argument is omitted, Sentinel presents a numbered selection for `opencode` or
+`claude-code`. Invalid or missing input exits without changing project files; scripts can avoid the
+prompt by supplying the agent identifier explicitly.
+
+Claude Code creates `.claude/settings.json` and the executable
+`.claude/hooks/sentinel-edit-write`. Its `PostToolUse` hook matches `Edit` and `Write` tools and
+runs `sentinel check --format json` after the operation. OpenCode retains the existing
+`.opencode/commands/sentinel-check.md` command and additionally creates
+`.opencode/plugins/sentinel-edit-write.js`, whose `tool.execute.after` handler checks `edit` and
+`write` tools. A failed or unavailable check is returned to the host agent as a non-success result
+with the Sentinel output.
+
+Generated files contain Sentinel ownership markers. Existing user-owned targets are never
+overwritten; installation reports a conflict and does not enable a partial integration. `--remove`
+deletes only Sentinel-owned generated files (the existing OpenCode command is also removed when it
+is Sentinel-owned) and preserves unrelated agent configuration. These hooks and plugins execute
+repository-local configuration with the user's privileges, so only enable them in repositories
+you trust.
+
 ## Security
 
 **`sentinel.toml` is code.** `sentinel check` executes whatever `command` the repository
@@ -191,5 +224,5 @@ with a stub `mvnw` so it stays fast and offline).
 - More built-in gates (architecture rules, static analysis, SonarQube) behind `QualityGate`
 - Predefined safe gate integrations instead of free-form commands; command timeouts
 - Gradle and other languages
-- Integrations with AI coding agents (e.g. feeding the JSON report back to an agent) and MCP
+- Additional integrations with AI coding agents and MCP
 - Published native binaries

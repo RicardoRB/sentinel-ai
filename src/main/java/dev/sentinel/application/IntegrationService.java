@@ -18,14 +18,15 @@ public final class IntegrationService {
     }
 
     @Inject
-    public IntegrationService(ProjectDetector detector, OpenCodeIntegration openCode) {
-        this(detector, List.of(openCode));
+    public IntegrationService(ProjectDetector detector, OpenCodeIntegration openCode,
+                              ClaudeCodeIntegration claudeCode) {
+        this(detector, List.of(openCode, claudeCode));
     }
 
     public IntegrationResult integrate(String agent, Path start, boolean remove) {
         AgentIntegration adapter = integrations.stream().filter(candidate -> candidate.id().equals(agent))
                 .findFirst().orElseThrow(() -> new SentinelException(
-                        "Unknown agent '" + agent + "'. Supported agents: opencode"));
+                        "Unknown agent '" + agent + "'. Supported agents: opencode, claude-code"));
         Path root = detector.detect(start).orElseThrow(ProjectNotFoundException::new).root();
         return adapter.integrate(root, remove);
     }

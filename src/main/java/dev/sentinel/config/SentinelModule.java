@@ -38,6 +38,7 @@ public final class SentinelModule extends AbstractModule {
         bind(CheckService.class);
         bind(dev.sentinel.application.IntegrationService.class);
         bind(dev.sentinel.application.OpenCodeIntegration.class);
+        bind(dev.sentinel.application.ClaudeCodeIntegration.class);
         bind(dev.sentinel.application.DoctorService.class);
 
         bind(SentinelCommand.class);
