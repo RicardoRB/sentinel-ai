@@ -98,7 +98,17 @@ public final class OpenCodeIntegration implements AgentIntegration {
             Files.delete(plugin);
             removed.add(plugin.toString());
         }
+        deleteIfEmpty(plugin.getParent());
+        deleteIfEmpty(command.getParent());
         return new IntegrationResult(IntegrationResult.Status.REMOVED, removed,
                 "Removed Sentinel-owned OpenCode integration.");
+    }
+
+    private static void deleteIfEmpty(Path directory) throws IOException {
+        if (directory != null && Files.isDirectory(directory)) {
+            try (var entries = Files.list(directory)) {
+                if (entries.findAny().isEmpty()) Files.deleteIfExists(directory);
+            }
+        }
     }
 }

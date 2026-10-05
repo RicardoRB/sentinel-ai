@@ -69,7 +69,35 @@ Detection looks for a `pom.xml` and marks the project as Spring Boot when the po
 
 ## `sentinel init`
 
-Writes this `sentinel.toml` in the project root:
+When `sentinel.toml` does not exist, `sentinel init` launches a setup wizard that selects one or
+more agent integrations and one quality gate. The integration choices are `none`, `opencode`, and `claude-code`;
+the gate choices are the supported quality-gate registry entries (`tests`, `compile`,
+`architecture`, `command`, `archunit`, `checkstyle`, `spotbugs`, and `sonar`).
+
+For automation, provide both selections explicitly:
+
+```bash
+sentinel init --integration none --gate tests
+sentinel init --integration claude-code --gate compile
+sentinel init --integration opencode,claude-code --gate tests,compile
+sentinel init --integration none --gate architecture --architecture hexagonal
+```
+
+In a terminal, both the integration and quality-gate selectors use checkboxes: arrow keys move,
+Space toggles the highlighted option, and Enter confirms. In piped/non-TTY input, enter multiple
+option numbers separated by spaces (for example `2 3`) and press Enter. The `none` option is
+mutually exclusive with agent integrations.
+
+Selecting `architecture` or `archunit` also asks for a Layered, Hexagonal, or Clean architecture
+style and creates a minimal `ArchitectureTest.java` when one is missing. Existing architecture
+tests are preserved and reported instead of overwritten.
+
+The wizard detects whether the selected Maven wrapper or system Maven is available and reports
+missing tooling with remediation guidance. It does not install tools or run the gate during init;
+the selected gate runs later through `sentinel check` or an agent guard. An unavailable gate is
+still written to `sentinel.toml` so the project can be configured before dependencies are installed.
+
+The default tests selection writes:
 
 ```toml
 version = 1
@@ -79,7 +107,10 @@ enabled = true
 command = "./mvnw test"
 ```
 
-An existing `sentinel.toml` is never overwritten; Sentinel says so and exits 0.
+An existing `sentinel.toml` is never overwritten, and initialization does not prompt or change
+integrations in that case. Invalid or incomplete interactive input exits without creating partial
+configuration. Selected integrations use the same ownership markers and conflict protection as
+`sentinel integrate`.
 
 ### Configuration
 
@@ -93,9 +124,10 @@ command = "./mvnw test"
 command = ["./mvnw", "test", "-Dtest=A, B"]   # exact arguments, no splitting
 ```
 
-Only the `tests` gate is implemented. Other gates may be declared but must have `enabled = false`;
-enabling an unknown gate is an error rather than a silent skip. Running with no enabled gates is
-also an error, so a pass always means something was actually checked.
+The quality-gate registry accepts the listed gate IDs. Gate execution still depends on the
+project's configured command and installed tools; enabling an unknown gate is an error rather than
+a silent skip. Running with no enabled gates is also an error, so a pass always means something
+was actually checked.
 
 ## `sentinel check`
 

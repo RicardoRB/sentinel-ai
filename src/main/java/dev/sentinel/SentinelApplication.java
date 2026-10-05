@@ -19,7 +19,11 @@ public class SentinelApplication {
         QualityGateFactory factory = new QualityGateFactory(executor);
         CheckService checks = new CheckService(detector, new TomlConfigurationReader(), factory,
                 new QualityGateRunner());
-        CommandLineRunnerImpl runner = new CommandLineRunnerImpl(checks, new InitService(detector),
+        dev.sentinel.application.IntegrationService integrations = new dev.sentinel.application.IntegrationService(
+                detector, java.util.List.of(new dev.sentinel.application.OpenCodeIntegration(),
+                        new dev.sentinel.application.ClaudeCodeIntegration()));
+        CommandLineRunnerImpl runner = new CommandLineRunnerImpl(checks,
+                new InitService(detector, integrations, new dev.sentinel.application.InitSetupCatalog()),
                 detector, new TextReportRenderer(), new JsonReportRenderer());
         System.exit(runner.run(args));
     }

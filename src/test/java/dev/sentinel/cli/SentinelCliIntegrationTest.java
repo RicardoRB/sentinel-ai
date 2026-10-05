@@ -70,6 +70,22 @@ class SentinelCliIntegrationTest {
         return cli.execute(args);
     }
 
+    private int runInitWithInput(String input, String... args) {
+        dev.sentinel.application.IntegrationService integrations = new dev.sentinel.application.IntegrationService(
+                new dev.sentinel.application.ProjectDetector(),
+                java.util.List.of(new dev.sentinel.application.OpenCodeIntegration(),
+                        new dev.sentinel.application.ClaudeCodeIntegration()));
+        InitCommand init = new InitCommand(
+                new dev.sentinel.application.InitService(new dev.sentinel.application.ProjectDetector(),
+                        integrations, new dev.sentinel.application.InitSetupCatalog()),
+                new ByteArrayInputStream(input.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        CommandLine cli = new CommandLine(init);
+        cli.setOut(new PrintWriter(out, true));
+        cli.setErr(new PrintWriter(err, true));
+        cli.setExecutionExceptionHandler(CommandLineRunnerImpl::handle);
+        return cli.execute(args);
+    }
+
     @Test
     void detectsFixtureProject() {
         assertThat(run("detect", "-C", project.toString())).isZero();
@@ -84,7 +100,7 @@ class SentinelCliIntegrationTest {
 
     @Test
     void initThenCheckPasses() {
-        assertThat(run("init", "-C", project.toString())).isZero();
+        assertThat(run("init", "--integration", "none", "--gate", "tests", "-C", project.toString())).isZero();
         assertThat(project.resolve("sentinel.toml")).exists();
 
         out.getBuffer().setLength(0);
@@ -96,7 +112,7 @@ class SentinelCliIntegrationTest {
     void initDoesNotOverwriteAndExitsCleanly() throws IOException {
         Files.writeString(project.resolve("sentinel.toml"), "version = 1\n");
 
-        assertThat(run("init", "-C", project.toString())).isZero();
+        assertThat(run("init", "--integration", "none", "--gate", "tests", "-C", project.toString())).isZero();
 
         assertThat(out.toString()).contains("already exists");
         assertThat(project.resolve("sentinel.toml")).hasContent("version = 1\n");
@@ -104,7 +120,7 @@ class SentinelCliIntegrationTest {
 
     @Test
     void initThenFailingCheckExitsWithOne() throws IOException {
-        run("init", "-C", project.toString());
+        run("init", "--integration", "none", "--gate", "tests", "-C", project.toString());
         Files.createFile(project.resolve("FAIL"));
         out.getBuffer().setLength(0);
 
@@ -115,7 +131,7 @@ class SentinelCliIntegrationTest {
 
     @Test
     void jsonOutputIsValidJsonAndNothingElse() throws IOException {
-        run("init", "-C", project.toString());
+        run("init", "--integration", "none", "--gate", "tests", "-C", project.toString());
         Files.createFile(project.resolve("FAIL"));
         out.getBuffer().setLength(0);
 
@@ -195,5 +211,119 @@ class SentinelCliIntegrationTest {
         assertThat(err.toString()).contains("No agent selected");
         assertThat(project.resolve(".claude")).doesNotExist();
         assertThat(project.resolve(".opencode")).doesNotExist();
+    }
+
+    @Test
+    void initPromptsForIntegrationAndGateAndCreatesSelectedConfiguration() throws IOException {
+        assertThat(runInitWithInput("1\n1\n", "-C", project.toString())).isZero();
+        assertThat(out.toString()).contains("Select agent integrations", "> [ ] 1)", "Select quality gates", "AVAILABLE");
+        assertThat(Files.readString(project.resolve("sentinel.toml"))).contains("[quality-gates.tests]");
+        assertThat(project.resolve(".claude")).doesNotExist();
+        assertThat(project.resolve(".opencode")).doesNotExist();
+    }
+
+    @Test
+    void initInstallsMultipleIntegrationsSelectedWithSpaces() {
+        assertThat(runInitWithInput("2 3\n1\n", "-C", project.toString())).isZero();
+        assertThat(project.resolve(".opencode/commands/sentinel-check.md")).exists();
+        assertThat(project.resolve(".opencode/plugins/sentinel-edit-write.js")).exists();
+        assertThat(project.resolve(".claude/settings.json")).exists();
+        assertThat(out.toString()).contains("Created Sentinel-owned OpenCode", "Created Sentinel-owned Claude Code");
+    }
+
+    @Test
+    void initConfiguresMultipleQualityGatesSelectedWithSpaces() throws IOException {
+        assertThat(runInitWithInput("1\n1 2\n", "-C", project.toString())).isZero();
+        String config = Files.readString(project.resolve("sentinel.toml"));
+        assertThat(config).contains("[quality-gates.tests]", "[quality-gates.compile]");
+    }
+
+    @Test
+    void archunitSelectionPromptsForArchitectureAndGeneratesTest() throws IOException {
+        assertThat(runInitWithInput("1\n5\n2\n", "-C", project.toString())).isZero();
+        Path test = project.resolve("src/test/java/com/example/ArchitectureTest.java");
+        assertThat(test).exists();
+        assertThat(Files.readString(test)).contains("hexagonal", "@AnalyzeClasses(packages = \"com.example\")");
+        assertThat(Files.readString(project.resolve("pom.xml"))).contains("archunit-junit5");
+        assertThat(out.toString()).contains("Select an architecture style", "Generated hexagonal ArchUnit test");
+    }
+
+    @Test
+    void existingArchitectureTestIsPreserved() throws IOException {
+        Path test = project.resolve("src/test/java/com/example/ArchitectureTest.java");
+        Files.createDirectories(test.getParent());
+        Files.writeString(test, "user-owned architecture test\n");
+
+        assertThat(runInitWithInput("1\n5\n1\n", "-C", project.toString())).isZero();
+        assertThat(test).hasContent("user-owned architecture test\n");
+        assertThat(out.toString()).contains("Preserved existing ArchUnit test");
+    }
+
+    @Test
+    void selectedCheckstyleAddsMissingMavenPluginAndReportsIt() throws IOException {
+        assertThat(run("init", "--integration", "none", "--gate", "checkstyle", "-C", project.toString())).isZero();
+        assertThat(Files.readString(project.resolve("pom.xml"))).contains("maven-checkstyle-plugin");
+        assertThat(out.toString()).contains("Updated pom.xml with Maven tools", "maven-checkstyle-plugin");
+    }
+
+    @Test
+    void existingMavenPluginIsNotDuplicated() throws IOException {
+        Path pom = project.resolve("pom.xml");
+        String original = Files.readString(pom);
+        Files.writeString(pom, original.replace("</project>", """
+                <build><plugins><plugin><artifactId>maven-checkstyle-plugin</artifactId></plugin></plugins></build>
+                </project>"""));
+
+        assertThat(run("init", "--integration", "none", "--gate", "checkstyle", "-C", project.toString())).isZero();
+        String updated = Files.readString(pom);
+        assertThat(updated.indexOf("<artifactId>maven-checkstyle-plugin</artifactId>"))
+                .isEqualTo(updated.lastIndexOf("<artifactId>maven-checkstyle-plugin</artifactId>"));
+        assertThat(out.toString()).doesNotContain("Updated pom.xml with Maven tools");
+    }
+
+    @Test
+    void generatedMavenAndArchitectureFilesRollBackOnLaterSetupFailure() throws IOException {
+        Path testRoot = project.resolve("src/test/java");
+        Files.createDirectories(testRoot.getParent());
+        Files.writeString(testRoot, "not a directory\n");
+        String originalPom = Files.readString(project.resolve("pom.xml"));
+
+        assertThat(run("init", "--integration", "none", "--gate", "archunit",
+                "--architecture", "clean", "-C", project.toString())).isEqualTo(ExitCodes.ERROR);
+        assertThat(Files.readString(project.resolve("pom.xml"))).isEqualTo(originalPom);
+        assertThat(project.resolve("sentinel.toml")).doesNotExist();
+    }
+
+    @Test
+    void rejectsCombiningNoIntegrationWithAnAgent() {
+        assertThat(runInitWithInput("1 2\n1\n", "-C", project.toString())).isEqualTo(ExitCodes.ERROR);
+        assertThat(err.toString()).contains("no-integration choice cannot be combined");
+        assertThat(project.resolve("sentinel.toml")).doesNotExist();
+        assertThat(project.resolve(".opencode")).doesNotExist();
+    }
+
+    @Test
+    void rollsBackEarlierIntegrationWhenLaterSelectionConflicts() throws IOException {
+        Path target = project.resolve(".opencode/commands/sentinel-check.md");
+        Files.createDirectories(target.getParent());
+        Files.writeString(target, "user-owned\n");
+
+        assertThat(runInitWithInput("3 2\n1\n", "-C", project.toString())).isEqualTo(ExitCodes.ERROR);
+        assertThat(project.resolve(".claude")).doesNotExist();
+        assertThat(project.resolve("sentinel.toml")).doesNotExist();
+        assertThat(target).hasContent("user-owned\n");
+    }
+
+    @Test
+    void initReportsIntegrationConflictWithoutCreatingConfiguration() throws IOException {
+        Path target = project.resolve(".opencode/commands/sentinel-check.md");
+        Files.createDirectories(target.getParent());
+        Files.writeString(target, "user-owned\n");
+
+        assertThat(run("init", "--integration", "opencode", "--gate", "tests", "-C", project.toString()))
+                .isEqualTo(ExitCodes.ERROR);
+        assertThat(err.toString()).contains("selected integration conflicts");
+        assertThat(project.resolve("sentinel.toml")).doesNotExist();
+        assertThat(target).hasContent("user-owned\n");
     }
 }

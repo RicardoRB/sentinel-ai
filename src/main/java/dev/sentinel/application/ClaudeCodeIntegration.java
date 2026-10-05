@@ -105,8 +105,18 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
             Files.delete(hook);
             removed.add(hook.toString());
         }
+        deleteIfEmpty(hook.getParent());
+        deleteIfEmpty(settings.getParent());
         return new IntegrationResult(IntegrationResult.Status.REMOVED, removed,
                 "Removed Sentinel-owned Claude Code integration.");
+    }
+
+    private static void deleteIfEmpty(Path directory) throws IOException {
+        if (directory != null && Files.isDirectory(directory)) {
+            try (var entries = Files.list(directory)) {
+                if (entries.findAny().isEmpty()) Files.deleteIfExists(directory);
+            }
+        }
     }
 
     private static void makeExecutable(Path file) throws IOException {

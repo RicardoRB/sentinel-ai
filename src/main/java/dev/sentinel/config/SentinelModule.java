@@ -32,6 +32,9 @@ public final class SentinelModule extends AbstractModule {
         bind(SentinelConfigurationReader.class).to(TomlConfigurationReader.class);
 
         bind(ProjectDetector.class);
+        bind(dev.sentinel.application.InitSetupCatalog.class);
+        bind(dev.sentinel.application.PomToolConfigurator.class);
+        bind(dev.sentinel.application.ArchitectureTestGenerator.class);
         bind(QualityGateFactory.class);
         bind(QualityGateRunner.class);
         bind(InitService.class);
