@@ -1,6 +1,7 @@
 package dev.sentinel.application.init;
 
 import dev.sentinel.domain.agent.IntegrationResult;
+import dev.sentinel.domain.agent.AgentIntegration;
 import dev.sentinel.domain.config.GateConfiguration;
 import dev.sentinel.domain.config.SentinelConfiguration;
 import dev.sentinel.domain.config.SentinelException;
@@ -15,13 +16,13 @@ import dev.sentinel.domain.init.PomChange;
 import dev.sentinel.domain.project.Project;
 import dev.sentinel.application.project.ProjectDetector;
 import dev.sentinel.application.project.ProjectNotFoundException;
-import dev.sentinel.application.agent.IntegrationService;
 import com.google.inject.Inject;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 public class InitService {
 
@@ -34,7 +35,7 @@ public class InitService {
             """;
 
     private final ProjectDetector detector;
-    private final IntegrationService integrations;
+    private final Set<AgentIntegration> integrations;
     private final InitSetupCatalog catalog;
     private final BuildToolConfiguration pomTools;
     private final ArchitectureTestGeneration architectureTests;
@@ -43,11 +44,11 @@ public class InitService {
     @Inject
     @SuppressFBWarnings(value = "EI_EXPOSE_REP2",
             justification = "The constructor-injected storage port is retained for use-case orchestration.")
-    public InitService(ProjectDetector detector, IntegrationService integrations,
+    public InitService(ProjectDetector detector, Set<AgentIntegration> integrations,
                        InitSetupCatalog catalog, BuildToolConfiguration pomTools,
                        ArchitectureTestGeneration architectureTests, ConfigurationStorage configurationStorage) {
         this.detector = detector;
-        this.integrations = integrations;
+        this.integrations = Set.copyOf(integrations);
         this.catalog = catalog;
         this.pomTools = pomTools;
         this.architectureTests = architectureTests;
@@ -144,22 +145,27 @@ public class InitService {
     }
 
     private IntegrationResult installIntegration(Path root, String id) {
-        if (integrations == null) {
+        if (integrations.isEmpty()) {
             throw new SentinelException("Agent integrations are unavailable in this runtime.");
         }
-        return integrations.integrate(id, root, false);
+        return integration(id).integrate(root, false);
     }
 
     private void rollbackNewIntegrations(Path root, List<String> ids, List<IntegrationResult> results) {
-        if (integrations == null) return;
         for (int i = 0; i < Math.min(ids.size(), results.size()); i++) {
             if (results.get(i).status() != IntegrationResult.Status.CHANGED) continue;
             try {
-                integrations.integrate(ids.get(i), root, true);
+                integration(ids.get(i)).integrate(root, true);
             } catch (RuntimeException ignored) {
                 // Preserve the original initialization error; ownership-safe removal remains available.
             }
         }
+    }
+
+    private AgentIntegration integration(String id) {
+        return integrations.stream().filter(candidate -> candidate.id().equals(id))
+                .findFirst().orElseThrow(() -> new SentinelException(
+                        "Unknown agent '" + id + "'. Supported agents: opencode, claude-code"));
     }
 
     private void validateIntegrations(List<String> ids) {

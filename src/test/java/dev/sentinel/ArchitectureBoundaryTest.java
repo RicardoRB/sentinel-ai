@@ -3,14 +3,18 @@ package dev.sentinel;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
+import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.base.DescribedPredicate;
+import com.tngtech.archunit.junit.AnalyzeClasses;
+import com.tngtech.archunit.junit.ArchTest;
 import com.tngtech.archunit.library.dependencies.SlicesRuleDefinition;
 import dev.sentinel.application.agent.fixture.PrivateImplementationCoupling;
 import dev.sentinel.application.cyclealpha.Alpha;
 import dev.sentinel.application.cyclebeta.Beta;
 import dev.sentinel.application.gate.internal.HiddenImplementation;
 import dev.sentinel.domain.architecturefixture.DirectFilesystemAccess;
+import dev.sentinel.domain.architecturefixture.ExternalEffectAccess;
 import dev.sentinel.domain.architecturefixture.FullyQualifiedAdapterReference;
 import dev.sentinel.infrastructure.MisplacedAdapter;
 import org.junit.jupiter.api.Test;
@@ -24,6 +28,7 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+@AnalyzeClasses(packages = "dev.sentinel", importOptions = ImportOption.DoNotIncludeTests.class)
 class ArchitectureBoundaryTest {
     private static final Map<String, Set<String>> DOMAIN_FEATURE_EDGES = Map.of(
             "agent", Set.of(), "config", Set.of(), "doctor", Set.of(),
@@ -35,49 +40,44 @@ class ArchitectureBoundaryTest {
                     "dev.sentinel.application.project.ProjectDiscovery",
                     "dev.sentinel.application.project.ProjectNotFoundException"),
             "init", Set.of("dev.sentinel.application.project.ProjectDetector",
-                    "dev.sentinel.application.project.ProjectNotFoundException",
-                    "dev.sentinel.application.agent.IntegrationService"),
+                    "dev.sentinel.application.project.ProjectNotFoundException"),
             "agent", Set.of("dev.sentinel.application.project.ProjectDetector",
                     "dev.sentinel.application.project.ProjectNotFoundException"),
             "doctor", Set.of("dev.sentinel.application.project.ProjectDetector"),
             "project", Set.of());
 
-    @Test
-    void domainDoesNotDependOnOuterLayersOrExternalEffectImplementations() {
-        assertNoDependencies(classes(), "dev.sentinel.domain..", target ->
+    @ArchTest
+    static void domainDoesNotDependOnOuterLayersOrExternalEffectImplementations(JavaClasses classes) {
+        assertNoDependencies(classes, "dev.sentinel.domain..", target ->
                 target.startsWith("dev.sentinel.application.")
                         || target.startsWith("dev.sentinel.infrastructure.")
                         || target.startsWith("dev.sentinel.config.")
                         || target.startsWith("com.google.inject.")
                         || target.startsWith("picocli.")
                         || target.startsWith("org.springframework.")
-                        || Set.of("java.lang.Process", "java.lang.ProcessBuilder", "java.nio.file.Files",
-                        "java.nio.file.FileSystem").contains(target)
-                        || target.startsWith("java.io.")
+                        || isInnerLayerExternalEffectApi(target)
                         || target.startsWith("org.tomlj.")
                         || target.startsWith("tools.jackson.")
                         || target.startsWith("javax.xml.")
                         || target.startsWith("org.w3c.dom."));
     }
 
-    @Test
-    void applicationDoesNotDependOnInfrastructureOrPerformExternalEffects() {
-        assertNoDependencies(classes(), "dev.sentinel.application..", target ->
+    @ArchTest
+    static void applicationDoesNotDependOnInfrastructureOrPerformExternalEffects(JavaClasses classes) {
+        assertNoDependencies(classes, "dev.sentinel.application..", target ->
                 target.startsWith("dev.sentinel.infrastructure.")
                         || target.startsWith("dev.sentinel.config.")
                         || target.startsWith("org.springframework.")
-                        || target.startsWith("java.io.")
-                        || Set.of("java.lang.Process", "java.lang.ProcessBuilder", "java.lang.Runtime",
-                        "java.nio.file.Files", "java.nio.file.FileSystem").contains(target)
+                        || isInnerLayerExternalEffectApi(target)
                         || target.startsWith("org.tomlj.")
                         || target.startsWith("tools.jackson.")
                         || target.startsWith("javax.xml.")
                         || target.startsWith("org.w3c.dom."));
     }
 
-    @Test
-    void cliAdaptersDoNotDependOnOutboundAdaptersOrPerformFilesystemOrProcessWork() {
-        assertNoDependencies(classes(), "dev.sentinel.infrastructure.cli..", target ->
+    @ArchTest
+    static void cliAdaptersDoNotDependOnOutboundAdaptersOrPerformFilesystemOrProcessWork(JavaClasses classes) {
+        assertNoDependencies(classes, "dev.sentinel.infrastructure.cli..", target ->
                 target.startsWith("dev.sentinel.infrastructure.agent.")
                         || target.startsWith("dev.sentinel.infrastructure.config.")
                         || target.startsWith("dev.sentinel.infrastructure.doctor.")
@@ -85,38 +85,38 @@ class ArchitectureBoundaryTest {
                         || target.startsWith("dev.sentinel.infrastructure.loop.")
                         || target.startsWith("dev.sentinel.infrastructure.process.")
                         || target.startsWith("dev.sentinel.infrastructure.project.")
-                        || Set.of("java.lang.Process", "java.lang.ProcessBuilder", "java.nio.file.Files",
-                        "java.nio.file.FileSystem").contains(target));
+                        || isCliExternalEffectApi(target));
     }
 
-    @Test
-    void productionCodeDoesNotUseGuiceFieldInjection() {
+    @ArchTest
+    static void productionCodeDoesNotUseGuiceFieldInjection(JavaClasses classes) {
         ArchRule noFieldInjection = com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noFields()
                 .should().beAnnotatedWith(com.google.inject.Inject.class);
-        noFieldInjection.check(classes());
+        noFieldInjection.check(classes);
     }
 
-    @Test
-    void productionClassesFollowLayerFeaturePackagesAndExplicitRootExceptions() {
+    @ArchTest
+    static void productionClassesFollowLayerFeaturePackagesAndExplicitRootExceptions(JavaClasses classes) {
         Set<String> commonCliTypes = Set.of("CommandLineRunnerImpl", "ExitCodes", "GuiceCommandFactory",
                 "ProjectOptions", "SentinelCommand", "VersionProvider");
-        classes().forEach(javaClass -> assertThat(isAllowedPackage(javaClass, commonCliTypes))
+        classes.forEach(javaClass -> assertThat(isAllowedPackage(javaClass, commonCliTypes))
                 .as("package placement for %s", javaClass.getName()).isTrue());
     }
 
-    @Test
-    void springIsAbsentFromProductionDependenciesAndResolvedTestClasspath() {
-        assertNoDependencies(classes(), "dev.sentinel..", target -> target.startsWith("org.springframework."));
+    @ArchTest
+    static void springIsAbsentFromProductionDependencies(JavaClasses classes) {
+        assertNoDependencies(classes, "dev.sentinel..", target -> target.startsWith("org.springframework."));
         assertThat(System.getProperty("java.class.path")).doesNotContain("spring");
     }
 
-    @Test
-    void domainAndApplicationFeatureGraphsAreAcyclicAndUseDocumentedEdges() {
-        JavaClasses production = classes();
+    @ArchTest
+    static void domainAndApplicationFeatureGraphsAreAcyclicAndUseDocumentedEdges(JavaClasses production) {
         SlicesRuleDefinition.slices().matching("dev.sentinel.domain.(*)..")
                 .should().beFreeOfCycles().check(production);
         SlicesRuleDefinition.slices().matching("dev.sentinel.application.(*)..")
                 .should().beFreeOfCycles().check(production);
+        assertFeatureAllowlistCoverage(production, "dev.sentinel.domain.", DOMAIN_FEATURE_EDGES.keySet());
+        assertFeatureAllowlistCoverage(production, "dev.sentinel.application.", APPLICATION_ENTRY_POINTS.keySet());
         assertDomainFeatureEdges(production);
         assertApplicationEntryPoints(production);
     }
@@ -125,12 +125,12 @@ class ArchitectureBoundaryTest {
     void architectureRulesRejectForbiddenDependencyPlacementAndCycleFixtures() {
         JavaClasses dependencies = new ClassFileImporter().importClasses(
                 FullyQualifiedAdapterReference.class, DirectFilesystemAccess.class,
-                PrivateImplementationCoupling.class, HiddenImplementation.class);
+                ExternalEffectAccess.class, PrivateImplementationCoupling.class, HiddenImplementation.class);
         assertThatThrownBy(() -> assertNoDependencies(dependencies, "dev.sentinel.domain.architecturefixture..",
                 target -> target.startsWith("dev.sentinel.infrastructure.")))
                 .isInstanceOf(AssertionError.class);
         assertThatThrownBy(() -> assertNoDependencies(dependencies, "dev.sentinel.domain.architecturefixture..",
-                target -> Set.of("java.nio.file.Files").contains(target)))
+                ArchitectureBoundaryTest::isInnerLayerExternalEffectApi))
                 .isInstanceOf(AssertionError.class);
         assertThatThrownBy(() -> assertApplicationEntryPoints(dependencies))
                 .isInstanceOf(AssertionError.class);
@@ -158,10 +158,6 @@ class ArchitectureBoundaryTest {
         assertThat(classes).anyMatch(javaClass -> javaClass.getName().equals("dev.sentinel.domain.project.Project"));
     }
 
-    private static JavaClasses classes() {
-        return new ClassFileImporter().importPath(Path.of("target/classes"));
-    }
-
     private static void assertDomainFeatureEdges(JavaClasses classes) {
         DOMAIN_FEATURE_EDGES.forEach((sourceFeature, allowedTargets) ->
                 assertNoDependencies(classes, "dev.sentinel.domain." + sourceFeature + "..", target -> {
@@ -181,6 +177,17 @@ class ArchitectureBoundaryTest {
                 }));
     }
 
+    private static void assertFeatureAllowlistCoverage(JavaClasses classes, String layerPrefix,
+                                                       Set<String> declaredFeatures) {
+        Set<String> discoveredFeatures = classes.stream()
+                .map(JavaClass::getPackageName)
+                .filter(packageName -> packageName.startsWith(layerPrefix))
+                .map(packageName -> packageName.substring(layerPrefix.length()).split("\\.")[0])
+                .collect(java.util.stream.Collectors.toSet());
+        assertThat(declaredFeatures).as("documented features for %s", layerPrefix)
+                .containsExactlyInAnyOrderElementsOf(discoveredFeatures);
+    }
+
     private static boolean isAllowedPackage(JavaClass javaClass, Set<String> commonCliTypes) {
         String name = javaClass.getName();
         String packageName = javaClass.getPackageName();
@@ -191,6 +198,25 @@ class ArchitectureBoundaryTest {
             default -> packageName.matches("dev\\.sentinel\\.(domain|application)\\.[^.]+(\\..*)?")
                     || packageName.matches("dev\\.sentinel\\.infrastructure\\.[^.]+(\\..*)?");
         };
+    }
+
+    private static boolean isInnerLayerExternalEffectApi(String target) {
+        return target.startsWith("java.io.")
+                || target.startsWith("java.net.")
+                || target.startsWith("java.nio.channels.")
+                || target.startsWith("java.nio.file.spi.")
+                || Set.of("java.lang.Process", "java.lang.ProcessBuilder", "java.lang.ProcessHandle",
+                "java.lang.Runtime", "java.nio.file.Files", "java.nio.file.FileSystem",
+                "java.nio.file.FileSystems", "java.nio.file.WatchService").contains(target);
+    }
+
+    private static boolean isCliExternalEffectApi(String target) {
+        return target.startsWith("java.net.")
+                || target.startsWith("java.nio.channels.")
+                || target.startsWith("java.nio.file.spi.")
+                || Set.of("java.lang.Process", "java.lang.ProcessBuilder", "java.lang.ProcessHandle",
+                "java.lang.Runtime", "java.nio.file.Files", "java.nio.file.FileSystem",
+                "java.nio.file.FileSystems", "java.nio.file.WatchService").contains(target);
     }
 
     private static void assertNoDependencies(JavaClasses classes, String sourcePackage,

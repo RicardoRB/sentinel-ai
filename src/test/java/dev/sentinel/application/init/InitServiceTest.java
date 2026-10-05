@@ -12,6 +12,7 @@ import dev.sentinel.infrastructure.init.PomToolConfigurator;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Set;
 
 import static dev.sentinel.TestProjects.PLAIN_POM;
 import static dev.sentinel.TestProjects.withPom;
@@ -21,7 +22,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class InitServiceTest {
 
     private final InitService service = new InitService(
-            new dev.sentinel.application.project.ProjectDetector(new dev.sentinel.infrastructure.project.FileSystemProjectInspection()), null,
+            new dev.sentinel.application.project.ProjectDetector(new dev.sentinel.infrastructure.project.FileSystemProjectInspection()), Set.of(),
             new InitSetupCatalog(new dev.sentinel.infrastructure.doctor.SystemEnvironmentInspection()), new PomToolConfigurator(), new ArchitectureTestGenerator(),
             new FileConfigurationStorage());
 

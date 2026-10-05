@@ -73,13 +73,11 @@ class SentinelCliIntegrationTest {
     }
 
     private int runInitWithInput(String input, String... args) {
-        dev.sentinel.application.agent.IntegrationService integrations = new dev.sentinel.application.agent.IntegrationService(
-                new dev.sentinel.application.project.ProjectDetector(new dev.sentinel.infrastructure.project.FileSystemProjectInspection()),
-                java.util.List.of(new dev.sentinel.infrastructure.agent.OpenCodeIntegration(),
-                        new dev.sentinel.infrastructure.agent.ClaudeCodeIntegration()));
         InitCommand init = new InitCommand(
                 new dev.sentinel.application.init.InitService(new dev.sentinel.application.project.ProjectDetector(new dev.sentinel.infrastructure.project.FileSystemProjectInspection()),
-                        integrations, new dev.sentinel.application.init.InitSetupCatalog(new dev.sentinel.infrastructure.doctor.SystemEnvironmentInspection()),
+                        java.util.Set.of(new dev.sentinel.infrastructure.agent.OpenCodeIntegration(),
+                                new dev.sentinel.infrastructure.agent.ClaudeCodeIntegration()),
+                        new dev.sentinel.application.init.InitSetupCatalog(new dev.sentinel.infrastructure.doctor.SystemEnvironmentInspection()),
                         new dev.sentinel.infrastructure.init.PomToolConfigurator(),
                         new dev.sentinel.infrastructure.init.ArchitectureTestGenerator(),
                         new dev.sentinel.infrastructure.init.FileConfigurationStorage()),
