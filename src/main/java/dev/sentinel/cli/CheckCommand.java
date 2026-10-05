@@ -45,7 +45,7 @@ public class CheckCommand implements Callable<Integer> {
 
     @Override
     public Integer call() {
-        PrintWriter out = spec.commandLine().getOut();
+        PrintWriter out = output();
         CheckReport report;
         try {
             report = service.check(options.directory(), profile);
@@ -59,5 +59,11 @@ public class CheckCommand implements Callable<Integer> {
             out.print(format == Format.json ? jsonRenderer.render(report, "strict".equals(profile)) + System.lineSeparator()
                 : textRenderer.render(report));
         return report.passed() ? ExitCodes.OK : ExitCodes.FAILED;
+    }
+
+    private PrintWriter output() {
+        return spec == null
+                ? new PrintWriter(System.out, true)
+                : spec.commandLine().getOut();
     }
 }

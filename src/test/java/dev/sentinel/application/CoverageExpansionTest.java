@@ -291,6 +291,8 @@ class CoverageExpansionTest {
                 new ProjectDetector(), new TextReportRenderer(), new JsonReportRenderer());
         assertThat(runner.run("--help")).isZero();
         assertThat(runner.run("detect", "-C", root.toString())).isZero();
+        Files.writeString(root.resolve("sentinel.toml"), "version = 1\n\n[quality-gates.tests]\nenabled = true\ncommand = \"echo ok\"\n");
+        assertThat(runner.run("check", "-C", root.toString())).isZero();
         assertThat(runner.run("unknown-command")).isEqualTo(2);
     }
 
