@@ -1,5 +1,3 @@
-import { Plugin } from "@opencode/plugin"
-
 const EDIT_TOOLS = new Set(["edit", "write", "multiedit", "patch"])
 
 type ToolInput = Readonly<Record<string, unknown>>
@@ -8,6 +6,18 @@ interface ToolExecutionEvent {
   readonly status: "completed" | "error"
   readonly tool: string
   readonly input: ToolInput
+}
+
+interface PluginContext {
+  readonly location: {
+    readonly project: { readonly canonical: string }
+  }
+  readonly tool: {
+    hook(
+      name: "execute.after",
+      callback: (event: ToolExecutionEvent) => void,
+    ): Promise<unknown>
+  }
 }
 
 function targetsMainSource(input: ToolInput): boolean {
@@ -20,9 +30,9 @@ function targetsMainSource(input: ToolInput): boolean {
   })
 }
 
-export default Plugin.define({
+export default {
   id: "sentinel.quality-check",
-  async setup(ctx) {
+  async setup(ctx: PluginContext): Promise<void> {
     await ctx.tool.hook("execute.after", (event: ToolExecutionEvent): void => {
       if (event.status !== "completed") return
       if (!EDIT_TOOLS.has(event.tool.toLowerCase())) return
@@ -40,4 +50,4 @@ export default Plugin.define({
       }
     })
   },
-})
+}
