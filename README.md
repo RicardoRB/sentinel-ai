@@ -88,9 +88,10 @@ Space toggles the highlighted option, and Enter confirms. In piped/non-TTY input
 option numbers separated by spaces (for example `2 3`) and press Enter. The `none` option is
 mutually exclusive with agent integrations.
 
-Selecting `architecture` or `archunit` also asks for a Layered, Hexagonal, or Clean architecture
-style and creates a minimal `ArchitectureTest.java` when one is missing. Existing architecture
-tests are preserved and reported instead of overwritten.
+Selecting `archunit` also asks for a Layered, Hexagonal, or Clean architecture style and creates a
+minimal `ArchitectureTest.java` when one is missing. Its gate runs only that test with
+`mvn -Dtest=ArchitectureTest test`. Existing architecture tests are preserved and reported
+instead of overwritten. `architecture` remains as a legacy compatibility alias for `archunit`.
 
 The wizard detects whether the selected Maven wrapper or system Maven is available and reports
 missing tooling with remediation guidance. It does not install tools or run the gate during init;

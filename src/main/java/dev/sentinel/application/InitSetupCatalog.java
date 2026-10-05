@@ -53,11 +53,12 @@ public final class InitSetupCatalog {
         List<GateOption> options = new ArrayList<>();
         options.add(option("tests", executable, "test", mavenAvailable, availability));
         options.add(option("compile", executable, "compile", mavenAvailable, availability));
-        options.add(option("architecture", executable, "test", mavenAvailable,
-                availability + " (architecture checks use the configured Maven test command.)"));
+        options.add(option("architecture", executable, "-Dtest=ArchitectureTest", "test", mavenAvailable,
+                availability + " (legacy alias; runs only ArchitectureTest.)"));
         options.add(option("command", executable, "test", mavenAvailable,
                 availability + " (customize the command in sentinel.toml after initialization.)"));
-        options.add(option("archunit", executable, "test", mavenAvailable, availability));
+        options.add(option("archunit", executable, "-Dtest=ArchitectureTest", "test", mavenAvailable,
+                availability + " (runs only ArchitectureTest.)"));
         options.add(option("checkstyle", executable, "checkstyle:check", mavenAvailable, availability));
         options.add(option("spotbugs", executable, "spotbugs:check", mavenAvailable, availability));
         options.add(option("sonar", executable, "sonar", mavenAvailable, availability));
@@ -79,6 +80,11 @@ public final class InitSetupCatalog {
     private static GateOption option(String id, String executable, String goal,
                                      boolean available, String message) {
         return new GateOption(id, List.of(executable, goal), available, message);
+    }
+
+    private static GateOption option(String id, String executable, String firstGoal, String secondGoal,
+                                     boolean available, String message) {
+        return new GateOption(id, List.of(executable, firstGoal, secondGoal), available, message);
     }
 
     private static boolean commandAvailable(String command) {

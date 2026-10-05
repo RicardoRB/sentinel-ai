@@ -249,6 +249,14 @@ class SentinelCliIntegrationTest {
     }
 
     @Test
+    void archunitGateTargetsOnlyGeneratedArchitectureTest() throws IOException {
+        assertThat(run("init", "--integration", "none", "--gate", "archunit",
+                "--architecture", "layered", "-C", project.toString())).isZero();
+        assertThat(Files.readString(project.resolve("sentinel.toml")))
+                .contains("./mvnw -Dtest=ArchitectureTest test");
+    }
+
+    @Test
     void existingArchitectureTestIsPreserved() throws IOException {
         Path test = project.resolve("src/test/java/com/example/ArchitectureTest.java");
         Files.createDirectories(test.getParent());
