@@ -1,5 +1,7 @@
 package dev.sentinel.domain.config;
 
+
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -11,8 +13,8 @@ public record SentinelConfiguration(int version, Map<String, GateConfiguration> 
     public static final int SUPPORTED_VERSION = 1;
 
     public SentinelConfiguration {
-        gates = java.util.Collections.unmodifiableMap(new LinkedHashMap<>(gates));
-        profiles = java.util.Collections.unmodifiableMap(new LinkedHashMap<>(profiles));
+        gates = Collections.unmodifiableMap(new LinkedHashMap<>(gates));
+        profiles = Collections.unmodifiableMap(new LinkedHashMap<>(profiles));
     }
 
     public SentinelConfiguration(int version, Map<String, GateConfiguration> gates) {

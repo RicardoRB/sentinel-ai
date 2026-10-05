@@ -1,5 +1,7 @@
 package dev.sentinel.infrastructure.cli.agent;
 
+
+import java.io.InputStream;
 import dev.sentinel.application.agent.IntegrationService;
 import dev.sentinel.infrastructure.cli.ExitCodes;
 import dev.sentinel.infrastructure.cli.ProjectOptions;
@@ -29,14 +31,14 @@ public final class IntegrateCommand implements Callable<Integer> {
     @Parameters(index = "0", arity = "0..1", description = "Agent: opencode or claude-code (prompts when omitted)") private String agent;
     @Option(names = "--remove", description = "Remove only Sentinel-owned integration content.") private boolean remove;
     private final IntegrationService service;
-    private final java.io.InputStream input;
+    private final InputStream input;
 
     @Inject
     public IntegrateCommand(IntegrationService service) {
         this(service, System.in);
     }
 
-    public IntegrateCommand(IntegrationService service, java.io.InputStream input) {
+    public IntegrateCommand(IntegrationService service, InputStream input) {
         this.service = service;
         this.input = input;
     }

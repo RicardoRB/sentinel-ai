@@ -1,5 +1,7 @@
 package dev.sentinel.application.agent;
 
+
+import java.util.List;
 import dev.sentinel.domain.FakeCommandExecutor;
 import org.junit.jupiter.api.Test;
 
@@ -16,7 +18,7 @@ class EditWriteGuardRunnerTest {
 
         assertThat(result.succeeded()).isTrue();
         assertThat(result.output()).contains("PASSED");
-        assertThat(executor.commands).containsExactly(java.util.List.of("sentinel", "check", "--format", "json"));
+        assertThat(executor.commands).containsExactly(List.of("sentinel", "check", "--format", "json"));
         assertThat(executor.workingDirectories).containsExactly(Path.of("/tmp/project"));
     }
 

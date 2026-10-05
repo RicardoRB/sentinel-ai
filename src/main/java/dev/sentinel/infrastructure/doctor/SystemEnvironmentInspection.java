@@ -1,5 +1,7 @@
 package dev.sentinel.infrastructure.doctor;
 
+
+import java.io.File;
 import dev.sentinel.domain.doctor.EnvironmentFacts;
 import dev.sentinel.domain.doctor.EnvironmentInspection;
 
@@ -19,7 +21,7 @@ public final class SystemEnvironmentInspection implements EnvironmentInspection 
         Set<String> available = new HashSet<>();
         String path = System.getenv("PATH");
         if (path != null) {
-            Arrays.stream(path.split(java.io.File.pathSeparator))
+            Arrays.stream(path.split(File.pathSeparator))
                     .map(Path::of)
                     .forEach(directory -> PROBED_EXECUTABLES.stream()
                             .filter(name -> Files.isExecutable(directory.resolve(name)))

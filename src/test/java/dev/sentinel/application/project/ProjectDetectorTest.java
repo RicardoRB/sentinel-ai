@@ -1,5 +1,7 @@
 package dev.sentinel.application.project;
 
+
+import dev.sentinel.infrastructure.project.FileSystemProjectInspection;
 import dev.sentinel.domain.project.BuildTool;
 import dev.sentinel.domain.project.Framework;
 import dev.sentinel.domain.project.Language;
@@ -18,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class ProjectDetectorTest {
 
-    private final dev.sentinel.application.project.ProjectDetector detector = new dev.sentinel.application.project.ProjectDetector(new dev.sentinel.infrastructure.project.FileSystemProjectInspection());
+    private final ProjectDetector detector = new ProjectDetector(new FileSystemProjectInspection());
 
     @Test
     void detectsMavenJavaProject(@TempDir Path dir) {

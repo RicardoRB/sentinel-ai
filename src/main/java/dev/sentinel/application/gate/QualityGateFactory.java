@@ -1,5 +1,7 @@
 package dev.sentinel.application.gate;
 
+
+import dev.sentinel.domain.project.Project;
 import dev.sentinel.domain.config.GateConfiguration;
 import dev.sentinel.domain.config.SentinelConfiguration;
 import dev.sentinel.domain.config.SentinelException;
@@ -31,7 +33,7 @@ public class QualityGateFactory {
         return create(configuration, null);
     }
 
-    public List<QualityGate> create(SentinelConfiguration configuration, dev.sentinel.domain.project.Project project) {
+    public List<QualityGate> create(SentinelConfiguration configuration, Project project) {
         List<QualityGate> gates = new ArrayList<>();
         configuration.gates().keySet().forEach(id -> {
             if (!SUPPORTED_GATES.contains(id) && !SupportedQualityGates.LEGACY_IDS.contains(id)) {
@@ -54,7 +56,7 @@ public class QualityGateFactory {
     }
 
     private static List<String> testsCommand(List<String> configured,
-                                              dev.sentinel.domain.project.Project project) {
+                                              Project project) {
         if (project != null && !project.mavenWrapperAvailable() && configured.size() >= 1
                 && (configured.getFirst().equals("./mvnw") || configured.getFirst().equals("mvnw"))) {
             List<String> fallback = new ArrayList<>(configured);

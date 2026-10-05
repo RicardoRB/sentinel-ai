@@ -1,5 +1,7 @@
 package dev.sentinel.infrastructure.agent;
 
+
+import java.util.Objects;
 import dev.sentinel.domain.agent.AgentIntegration;
 import dev.sentinel.domain.agent.IntegrationResult;
 
@@ -69,12 +71,12 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
 
         List<String> changed = new ArrayList<>();
         if (!Files.exists(settings)) {
-            Files.createDirectories(java.util.Objects.requireNonNull(settings.getParent()));
+            Files.createDirectories(Objects.requireNonNull(settings.getParent()));
             Files.writeString(settings, SETTINGS);
             changed.add(settings.toString());
         }
         if (!Files.exists(hook)) {
-            Files.createDirectories(java.util.Objects.requireNonNull(hook.getParent()));
+            Files.createDirectories(Objects.requireNonNull(hook.getParent()));
             Files.writeString(hook, HOOK);
             makeExecutable(hook);
             changed.add(hook.toString());

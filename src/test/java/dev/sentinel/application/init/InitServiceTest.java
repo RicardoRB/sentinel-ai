@@ -1,5 +1,9 @@
 package dev.sentinel.application.init;
 
+
+import dev.sentinel.application.project.ProjectDetector;
+import dev.sentinel.infrastructure.doctor.SystemEnvironmentInspection;
+import dev.sentinel.infrastructure.project.FileSystemProjectInspection;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import dev.sentinel.domain.init.InitResult;
@@ -22,8 +26,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class InitServiceTest {
 
     private final InitService service = new InitService(
-            new dev.sentinel.application.project.ProjectDetector(new dev.sentinel.infrastructure.project.FileSystemProjectInspection()), Set.of(),
-            new InitSetupCatalog(new dev.sentinel.infrastructure.doctor.SystemEnvironmentInspection()), new PomToolConfigurator(), new ArchitectureTestGenerator(),
+            new ProjectDetector(new FileSystemProjectInspection()), Set.of(),
+            new InitSetupCatalog(new SystemEnvironmentInspection()), new PomToolConfigurator(), new ArchitectureTestGenerator(),
             new FileConfigurationStorage());
 
     @Test

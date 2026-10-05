@@ -1,9 +1,17 @@
 package dev.sentinel.application;
 
+
+
+import dev.sentinel.domain.process.CommandExecutor;
+import dev.sentinel.infrastructure.cli.ExitCodes;
+import dev.sentinel.application.project.ProjectDetector;
+import dev.sentinel.application.project.ProjectDiscovery;
+import dev.sentinel.domain.agent.AgentRequest;
+import dev.sentinel.infrastructure.doctor.SystemEnvironmentInspection;
+import dev.sentinel.infrastructure.project.FileSystemProjectInspection;
 import com.google.inject.Guice;
 import dev.sentinel.config.SentinelModule;
 import dev.sentinel.TestProjects;
-import dev.sentinel.application.init.InitService;
 import dev.sentinel.application.init.InitSetupCatalog;
 import dev.sentinel.domain.agent.AgentResult;
 import dev.sentinel.domain.config.CommandLineTokenizer;
@@ -47,7 +55,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -82,21 +89,21 @@ class CoverageExpansionTest {
         Files.createDirectories(root.resolve("csharp"));
         Files.writeString(root.resolve("csharp/app.csproj"), "<Project/>");
 
-        assertThat(new dev.sentinel.application.project.ProjectDiscovery(new dev.sentinel.infrastructure.project.FileSystemProjectInspection()).discover(root)).extracting(Project::language)
+        assertThat(new ProjectDiscovery(new FileSystemProjectInspection()).discover(root)).extracting(Project::language)
                 .containsExactlyInAnyOrder(Language.JAVA, Language.JAVA, Language.KOTLIN,
                         Language.TYPESCRIPT, Language.JAVASCRIPT, Language.PYTHON, Language.PYTHON,
                         Language.GO, Language.RUST, Language.CSHARP);
-        assertThat(new dev.sentinel.application.project.ProjectDiscovery(new dev.sentinel.infrastructure.project.FileSystemProjectInspection()).discover(root.resolve("maven"))).hasSize(1);
+        assertThat(new ProjectDiscovery(new FileSystemProjectInspection()).discover(root.resolve("maven"))).hasSize(1);
     }
 
     @Test
     void projectDiscoverySelectsPackageManagerMarkers(@TempDir Path root) throws IOException {
         Files.writeString(root.resolve("package.json"), "{}");
         Files.writeString(root.resolve("pnpm-lock.yaml"), "");
-        assertThat(new dev.sentinel.application.project.ProjectDiscovery(new dev.sentinel.infrastructure.project.FileSystemProjectInspection()).discover(root).getFirst().buildTool()).isEqualTo(BuildTool.PNPM);
+        assertThat(new ProjectDiscovery(new FileSystemProjectInspection()).discover(root).getFirst().buildTool()).isEqualTo(BuildTool.PNPM);
         Files.delete(root.resolve("pnpm-lock.yaml"));
         Files.writeString(root.resolve("yarn.lock"), "");
-        assertThat(new dev.sentinel.application.project.ProjectDiscovery(new dev.sentinel.infrastructure.project.FileSystemProjectInspection()).discover(root).getFirst().buildTool()).isEqualTo(BuildTool.YARN);
+        assertThat(new ProjectDiscovery(new FileSystemProjectInspection()).discover(root).getFirst().buildTool()).isEqualTo(BuildTool.YARN);
     }
 
     @Test
@@ -135,7 +142,7 @@ class CoverageExpansionTest {
     @Test
     void pomConfiguratorAddsAndRollsBackAllTools(@TempDir Path root) throws IOException {
         TestProjects.withPom(root, TestProjects.PLAIN_POM);
-        InitSetupCatalog catalog = new InitSetupCatalog(new dev.sentinel.infrastructure.doctor.SystemEnvironmentInspection());
+        InitSetupCatalog catalog = new InitSetupCatalog(new SystemEnvironmentInspection());
         List<InitGateOption> gates = catalog.gates(new Project(root, Language.JAVA, BuildTool.MAVEN,
                 Framework.NONE));
         PomToolConfigurator configurator = new PomToolConfigurator();
@@ -156,7 +163,7 @@ class CoverageExpansionTest {
     void pomConfiguratorHandlesExistingBuildSections(@TempDir Path root) throws IOException {
         String pom = "<project><build><plugins></plugins></build><dependencies></dependencies></project>";
         Files.writeString(root.resolve("pom.xml"), pom);
-        InitSetupCatalog catalog = new InitSetupCatalog(new dev.sentinel.infrastructure.doctor.SystemEnvironmentInspection());
+        InitSetupCatalog catalog = new InitSetupCatalog(new SystemEnvironmentInspection());
         Project project = new Project(root, Language.JAVA, BuildTool.MAVEN, Framework.NONE);
         PomChange change = new PomToolConfigurator().apply(project,
                 List.of(catalog.gate(project, "checkstyle"), catalog.gate(project, "archunit")));
@@ -166,7 +173,7 @@ class CoverageExpansionTest {
 
     @Test
     void gateDomainCoversPassFailureSkippedAndExecutionError() {
-        var executor = (dev.sentinel.domain.process.CommandExecutor) (command, root) ->
+        var executor = (CommandExecutor) (command, root) ->
                 new CommandResult(command.getFirst().equals("fail") ? 1 : 0, "out", "err", Duration.ofMillis(2));
         assertThat(new CommandQualityGate("custom", executor, List.of("ok")).execute(PROJECT).status())
                 .isEqualTo(GateStatus.PASSED);
@@ -243,13 +250,13 @@ class CoverageExpansionTest {
 
     @Test
     void processAgentRunnerAddsTaskAndReportsSuccessOrFailure() {
-        var executor = (dev.sentinel.domain.process.CommandExecutor) (command, root) ->
+        var executor = (CommandExecutor) (command, root) ->
                 new CommandResult(command.contains("fail") ? 1 : 0, "out", "err", Duration.ZERO);
         ProcessAgentRunner runner = new ProcessAgentRunner(executor, Path.of("/tmp"), List.of("agent"));
         assertThat(runner.id()).isEqualTo("external");
-        assertThat(runner.run(new dev.sentinel.domain.agent.AgentRequest("fix", 2)).succeeded()).isTrue();
+        assertThat(runner.run(new AgentRequest("fix", 2)).succeeded()).isTrue();
         ProcessAgentRunner failing = new ProcessAgentRunner(executor, Path.of("/tmp"), List.of("fail"));
-        assertThat(failing.run(new dev.sentinel.domain.agent.AgentRequest("fix", 2)).summary())
+        assertThat(failing.run(new AgentRequest("fix", 2)).summary())
                 .isEqualTo("Agent failed.");
     }
 
@@ -273,9 +280,9 @@ class CoverageExpansionTest {
                 [profiles.tests-only]
                 gates = ["tests"]
                 """);
-        var executor = (dev.sentinel.domain.process.CommandExecutor) (command, path) ->
+        var executor = (CommandExecutor) (command, path) ->
                 new CommandResult(0, "ok", "", Duration.ZERO);
-        CheckService service = new CheckService(new dev.sentinel.application.project.ProjectDetector(new dev.sentinel.infrastructure.project.FileSystemProjectInspection()), new TomlConfigurationReader(),
+        CheckService service = new CheckService(new ProjectDetector(new FileSystemProjectInspection()), new TomlConfigurationReader(),
                 new QualityGateFactory(executor), new QualityGateRunner());
         assertThat(service.check(root, "tests-only").results()).hasSize(1);
         assertThatThrownBy(() -> service.check(root, "missing")).isInstanceOf(SentinelException.class);
@@ -288,7 +295,7 @@ class CoverageExpansionTest {
         TestProjects.withPom(root, TestProjects.PLAIN_POM);
         CommandLineRunnerImpl runner = Guice.createInjector(new SentinelModule())
                 .getInstance(CommandLineRunnerImpl.class);
-        assertThat(runner.run()).isEqualTo(dev.sentinel.infrastructure.cli.ExitCodes.ERROR);
+        assertThat(runner.run()).isEqualTo(ExitCodes.ERROR);
         assertThat(runner.run("--help")).isZero();
         assertThat(runner.run("detect", "-C", root.toString())).isZero();
         Files.writeString(root.resolve("sentinel.toml"), "version = 1\n\n[quality-gates.tests]\nenabled = true\ncommand = \"echo ok\"\n");
@@ -308,9 +315,9 @@ class CoverageExpansionTest {
         assertThat(success.succeeded()).isTrue();
         assertThat(success.hasExecutionError()).isFalse();
         assertThat(new CommandResult(1, "", "", Duration.ZERO, "failed").hasExecutionError()).isTrue();
-        assertThatThrownBy(() -> new dev.sentinel.domain.agent.AgentRequest("", 1))
+        assertThatThrownBy(() -> new AgentRequest("", 1))
                 .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> new dev.sentinel.domain.agent.AgentRequest("task", 0))
+        assertThatThrownBy(() -> new AgentRequest("task", 0))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 }

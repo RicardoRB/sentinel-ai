@@ -1,5 +1,8 @@
 package dev.sentinel;
 
+
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
@@ -183,7 +186,7 @@ class ArchitectureBoundaryTest {
                 .map(JavaClass::getPackageName)
                 .filter(packageName -> packageName.startsWith(layerPrefix))
                 .map(packageName -> packageName.substring(layerPrefix.length()).split("\\.")[0])
-                .collect(java.util.stream.Collectors.toSet());
+                .collect(Collectors.toSet());
         assertThat(declaredFeatures).as("documented features for %s", layerPrefix)
                 .containsExactlyInAnyOrderElementsOf(discoveredFeatures);
     }
@@ -220,7 +223,7 @@ class ArchitectureBoundaryTest {
     }
 
     private static void assertNoDependencies(JavaClasses classes, String sourcePackage,
-                                            java.util.function.Predicate<String> forbiddenTarget) {
+                                            Predicate<String> forbiddenTarget) {
         ArchRule rule = com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses()
                 .that().resideInAPackage(sourcePackage)
                 .should().dependOnClassesThat(new DescribedPredicate<JavaClass>("match forbidden dependency") {

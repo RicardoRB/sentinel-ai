@@ -1,5 +1,7 @@
 package dev.sentinel.infrastructure.cli.loop;
 
+
+import dev.sentinel.domain.loop.LoopTerminalState;
 import com.google.inject.Inject;
 import dev.sentinel.application.loop.QualityLoopService;
 import dev.sentinel.domain.config.CommandLineTokenizer;
@@ -42,7 +44,7 @@ public final class LoopCommand implements Callable<Integer> {
         var result = service.run(request);
         PrintWriter out = output();
         out.printf("%s after %d iteration(s): %s%n", result.state(), result.iterations(), result.message());
-        return result.state() == dev.sentinel.domain.loop.LoopTerminalState.PASSED ? ExitCodes.OK : ExitCodes.FAILED;
+        return result.state() == LoopTerminalState.PASSED ? ExitCodes.OK : ExitCodes.FAILED;
     }
 
     private PrintWriter output() {

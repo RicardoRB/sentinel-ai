@@ -1,5 +1,7 @@
 package dev.sentinel.infrastructure.agent;
 
+
+import java.util.Objects;
 import dev.sentinel.domain.agent.IntegrationResult;
 
 import java.io.IOException;
@@ -34,7 +36,7 @@ final class IntegrationArtifacts {
             return new IntegrationResult(IntegrationResult.Status.CONFLICT, List.of(target.toString()),
                     "Existing user-owned integration preserved; resolve the conflict explicitly.");
         }
-        Path parent = java.util.Objects.requireNonNull(target.getParent(), "target must have a parent");
+        Path parent = Objects.requireNonNull(target.getParent(), "target must have a parent");
         Files.createDirectories(parent);
         Files.writeString(target, content, StandardOpenOption.CREATE_NEW);
         return new IntegrationResult(IntegrationResult.Status.CHANGED, List.of(target.toString()), message);

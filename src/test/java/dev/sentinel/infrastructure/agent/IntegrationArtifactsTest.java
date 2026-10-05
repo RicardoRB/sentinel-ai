@@ -1,5 +1,7 @@
 package dev.sentinel.infrastructure.agent;
 
+
+import dev.sentinel.domain.agent.IntegrationResult;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -15,19 +17,19 @@ class IntegrationArtifactsTest {
         Path target = root.resolve("generated");
         assertThat(IntegrationArtifacts.preflight(target, "marker")).isNull();
         assertThat(IntegrationArtifacts.install(target, "marker", "marker\n", "created").status())
-                .isEqualTo(dev.sentinel.domain.agent.IntegrationResult.Status.CHANGED);
+                .isEqualTo(IntegrationResult.Status.CHANGED);
         assertThat(IntegrationArtifacts.install(target, "marker", "new", "created").status())
-                .isEqualTo(dev.sentinel.domain.agent.IntegrationResult.Status.ALREADY_PRESENT);
+                .isEqualTo(IntegrationResult.Status.ALREADY_PRESENT);
         assertThat(IntegrationArtifacts.remove(target, "marker", "removed").status())
-                .isEqualTo(dev.sentinel.domain.agent.IntegrationResult.Status.REMOVED);
+                .isEqualTo(IntegrationResult.Status.REMOVED);
         assertThat(IntegrationArtifacts.remove(target, "marker", "missing").status())
-                .isEqualTo(dev.sentinel.domain.agent.IntegrationResult.Status.NOT_FOUND);
+                .isEqualTo(IntegrationResult.Status.NOT_FOUND);
 
         Files.writeString(target, "user-owned");
         assertThat(IntegrationArtifacts.preflight(target, "marker").status())
-                .isEqualTo(dev.sentinel.domain.agent.IntegrationResult.Status.CONFLICT);
+                .isEqualTo(IntegrationResult.Status.CONFLICT);
         assertThat(IntegrationArtifacts.remove(target, "marker", "removed").status())
-                .isEqualTo(dev.sentinel.domain.agent.IntegrationResult.Status.CONFLICT);
+                .isEqualTo(IntegrationResult.Status.CONFLICT);
         assertThat(target).hasContent("user-owned");
     }
 }

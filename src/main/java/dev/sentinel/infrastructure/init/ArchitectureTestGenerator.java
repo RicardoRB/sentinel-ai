@@ -1,5 +1,7 @@
 package dev.sentinel.infrastructure.init;
 
+
+import java.nio.file.FileAlreadyExistsException;
 import dev.sentinel.domain.config.SentinelException;
 import dev.sentinel.domain.init.ArchitectureTestChange;
 import dev.sentinel.domain.init.ArchitectureTestGeneration;
@@ -29,7 +31,7 @@ public final class ArchitectureTestGenerator implements ArchitectureTestGenerati
             Files.createDirectories(packageDirectory);
             Files.writeString(test, content, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
             return new ArchitectureTestChange(test, true, architecture);
-        } catch (java.nio.file.FileAlreadyExistsException e) {
+        } catch (FileAlreadyExistsException e) {
             return new ArchitectureTestChange(test, false, architecture);
         } catch (IOException e) {
             throw new SentinelException("Could not generate ArchUnit test " + test + ": " + e.getMessage(), e);

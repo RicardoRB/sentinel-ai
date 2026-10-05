@@ -1,5 +1,7 @@
 package dev.sentinel.application.gate;
 
+
+import dev.sentinel.domain.config.GateConfiguration;
 import dev.sentinel.domain.config.SentinelConfiguration;
 import dev.sentinel.domain.config.SentinelConfigurationReader;
 import dev.sentinel.application.project.ProjectDetector;
@@ -51,7 +53,7 @@ public class CheckService {
         if (name == null || name.isBlank()) return configuration;
         var profile = configuration.profiles().get(name);
         if (profile == null) throw new SentinelException("Unknown profile '" + name + "'. Available profiles: " + configuration.profiles().keySet());
-        var selected = new LinkedHashMap<String, dev.sentinel.domain.config.GateConfiguration>();
+        var selected = new LinkedHashMap<String, GateConfiguration>();
         for (String gate : profile.gates()) {
             var config = configuration.gates().get(gate);
             if (config == null) throw new SentinelException("Profile '" + name + "' references unknown gate '" + gate + "'.");

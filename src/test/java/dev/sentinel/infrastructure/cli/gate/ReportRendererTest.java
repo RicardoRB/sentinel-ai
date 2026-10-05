@@ -1,5 +1,7 @@
 package dev.sentinel.infrastructure.cli.gate;
 
+
+import java.util.stream.IntStream;
 import dev.sentinel.domain.gate.CheckReport;
 import dev.sentinel.domain.gate.GateResult;
 import dev.sentinel.domain.gate.GateStatus;
@@ -67,7 +69,7 @@ class ReportRendererTest {
 
     @Test
     void textReportForFailingGateShowsCommandAndOutputTail() {
-        String stdout = String.join("\n", java.util.stream.IntStream.rangeClosed(1, 100)
+        String stdout = String.join("\n", IntStream.rangeClosed(1, 100)
                 .mapToObj(i -> "line " + i).toList());
 
         String text = new TextReportRenderer().render(report(GateStatus.FAILED, stdout, "boom"));

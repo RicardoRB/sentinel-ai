@@ -125,6 +125,7 @@
                 <version>3.6.0</version>
                 <configuration>
                     <configLocation>src/checkstyle/google_checks.xml</configLocation>
+                    <includeTestSourceDirectory>true</includeTestSourceDirectory>
                 </configuration>
             </plugin>
             <plugin>

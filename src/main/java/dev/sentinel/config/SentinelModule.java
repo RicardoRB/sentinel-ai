@@ -1,5 +1,10 @@
 package dev.sentinel.config;
 
+
+import dev.sentinel.application.agent.IntegrationService;
+import dev.sentinel.infrastructure.init.ArchitectureTestGenerator;
+import dev.sentinel.infrastructure.init.FileConfigurationStorage;
+import dev.sentinel.infrastructure.init.PomToolConfigurator;
 import com.google.inject.AbstractModule;
 import com.google.inject.Key;
 import com.google.inject.name.Names;
@@ -54,9 +59,9 @@ public final class SentinelModule extends AbstractModule {
         bind(EnvironmentInspection.class).to(SystemEnvironmentInspection.class);
         bind(GitStateInspection.class).to(GitStateInspector.class);
         bind(AgentRunnerFactory.class).to(ProcessAgentRunnerFactory.class);
-        bind(ConfigurationStorage.class).to(dev.sentinel.infrastructure.init.FileConfigurationStorage.class);
-        bind(BuildToolConfiguration.class).to(dev.sentinel.infrastructure.init.PomToolConfigurator.class);
-        bind(ArchitectureTestGeneration.class).to(dev.sentinel.infrastructure.init.ArchitectureTestGenerator.class);
+        bind(ConfigurationStorage.class).to(FileConfigurationStorage.class);
+        bind(BuildToolConfiguration.class).to(PomToolConfigurator.class);
+        bind(ArchitectureTestGeneration.class).to(ArchitectureTestGenerator.class);
 
         bind(ProjectDetector.class);
         bind(InitSetupCatalog.class);
@@ -65,7 +70,7 @@ public final class SentinelModule extends AbstractModule {
         bind(InitService.class);
         bind(CheckService.class);
         bind(QualityLoopService.class);
-        bind(dev.sentinel.application.agent.IntegrationService.class);
+        bind(IntegrationService.class);
         bind(integrationSetKey()).toInstance(
                 Set.of(new OpenCodeIntegration(), new ClaudeCodeIntegration()));
         bind(DoctorService.class);

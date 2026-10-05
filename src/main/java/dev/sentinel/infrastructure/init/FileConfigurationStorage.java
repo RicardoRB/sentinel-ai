@@ -1,5 +1,7 @@
 package dev.sentinel.infrastructure.init;
 
+
+import java.nio.file.FileAlreadyExistsException;
 import dev.sentinel.domain.config.SentinelException;
 import dev.sentinel.domain.init.ConfigurationStorage;
 
@@ -31,7 +33,7 @@ public final class FileConfigurationStorage implements ConfigurationStorage {
         try {
             Files.writeString(file, content, StandardOpenOption.CREATE_NEW);
             return true;
-        } catch (java.nio.file.FileAlreadyExistsException e) {
+        } catch (FileAlreadyExistsException e) {
             return false;
         } catch (IOException e) {
             throw new SentinelException("Could not write " + file + ": " + e.getMessage(), e);

@@ -1,5 +1,7 @@
 package dev.sentinel.application.agent.fixture;
 
+
+import dev.sentinel.application.gate.internal.HiddenImplementation;
 public final class PrivateImplementationCoupling {
-    public dev.sentinel.application.gate.internal.HiddenImplementation hidden;
+    public HiddenImplementation hidden;
 }

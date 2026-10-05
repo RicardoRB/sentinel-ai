@@ -1,5 +1,8 @@
 package dev.sentinel.application.gate;
 
+
+import dev.sentinel.application.project.ProjectDetector;
+import dev.sentinel.infrastructure.project.FileSystemProjectInspection;
 import dev.sentinel.domain.FakeCommandExecutor;
 import dev.sentinel.domain.config.SentinelException;
 import dev.sentinel.domain.config.GateConfiguration;
@@ -40,7 +43,7 @@ class CheckServiceTest {
             @Override public List<Project> discover(Path ignored) { return List.of(project); }
         };
         FakeCommandExecutor executor = new FakeCommandExecutor(0, "ok", "");
-        CheckService checks = new CheckService(new dev.sentinel.application.project.ProjectDetector(projects),
+        CheckService checks = new CheckService(new ProjectDetector(projects),
                 file -> new SentinelConfiguration(1, Map.of("tests", new GateConfiguration(true,
                         List.of("mvn", "test")))), new QualityGateFactory(executor), new QualityGateRunner());
 
@@ -52,7 +55,7 @@ class CheckServiceTest {
     }
 
     private CheckService service(FakeCommandExecutor executor) {
-        return new CheckService(new dev.sentinel.application.project.ProjectDetector(new dev.sentinel.infrastructure.project.FileSystemProjectInspection()), new TomlConfigurationReader(),
+        return new CheckService(new ProjectDetector(new FileSystemProjectInspection()), new TomlConfigurationReader(),
                 new QualityGateFactory(executor), new QualityGateRunner());
     }
 
@@ -69,7 +72,7 @@ class CheckServiceTest {
         CheckReport report = service(executor).check(dir);
 
         assertThat(report.passed()).isTrue();
-        assertThat(executor.commands).containsExactly(java.util.List.of("make", "verify"));
+        assertThat(executor.commands).containsExactly(List.of("make", "verify"));
     }
 
     @Test

@@ -1,5 +1,7 @@
 package dev.sentinel.infrastructure.agent;
 
+
+import java.util.Objects;
 import dev.sentinel.domain.agent.AgentIntegration;
 import dev.sentinel.domain.agent.IntegrationResult;
 
@@ -63,12 +65,12 @@ public final class OpenCodeIntegration implements AgentIntegration {
 
         List<String> changed = new ArrayList<>();
         if (!Files.exists(command)) {
-            Files.createDirectories(java.util.Objects.requireNonNull(command.getParent()));
+            Files.createDirectories(Objects.requireNonNull(command.getParent()));
             Files.writeString(command, COMMAND);
             changed.add(command.toString());
         }
         if (!Files.exists(plugin)) {
-            Files.createDirectories(java.util.Objects.requireNonNull(plugin.getParent()));
+            Files.createDirectories(Objects.requireNonNull(plugin.getParent()));
             Files.writeString(plugin, PLUGIN);
             changed.add(plugin.toString());
         }

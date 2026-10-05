@@ -1,5 +1,9 @@
 package dev.sentinel.application.init;
 
+
+import dev.sentinel.application.project.ProjectDetector;
+import dev.sentinel.infrastructure.doctor.SystemEnvironmentInspection;
+import dev.sentinel.infrastructure.project.FileSystemProjectInspection;
 import dev.sentinel.application.init.InitSetupCatalog;
 
 import dev.sentinel.TestProjects;
@@ -21,14 +25,14 @@ class InitSetupCatalogTest {
     @Test
     void exposesStableIntegrationAndGateChoices(@TempDir Path dir) throws Exception {
         TestProjects.withPom(dir, TestProjects.PLAIN_POM);
-        InitSetupCatalog catalog = new InitSetupCatalog(new dev.sentinel.infrastructure.doctor.SystemEnvironmentInspection());
+        InitSetupCatalog catalog = new InitSetupCatalog(new SystemEnvironmentInspection());
 
         assertThat(catalog.integrations()).extracting(InitIntegrationOption::id)
                 .containsExactly("none", "opencode", "claude-code");
-        assertThat(catalog.gates(new dev.sentinel.application.project.ProjectDetector(new dev.sentinel.infrastructure.project.FileSystemProjectInspection()).detect(dir).orElseThrow()))
+        assertThat(catalog.gates(new ProjectDetector(new FileSystemProjectInspection()).detect(dir).orElseThrow()))
                 .extracting(InitGateOption::id)
                 .containsExactlyElementsOf(QualityGateFactory.SUPPORTED_GATES);
-        assertThat(catalog.gates(new dev.sentinel.application.project.ProjectDetector(new dev.sentinel.infrastructure.project.FileSystemProjectInspection()).detect(dir).orElseThrow()))
+        assertThat(catalog.gates(new ProjectDetector(new FileSystemProjectInspection()).detect(dir).orElseThrow()))
                 .allSatisfy(gate -> assertThat(gate.description()).isNotBlank());
     }
 
@@ -36,8 +40,8 @@ class InitSetupCatalogTest {
     void prefersWrapperAndReportsMissingSystemMaven(@TempDir Path dir) throws Exception {
         TestProjects.withPom(dir, TestProjects.PLAIN_POM);
         Files.writeString(dir.resolve("mvnw"), "#!/bin/sh\nexit 0\n");
-        InitGateOption option = new InitSetupCatalog(new dev.sentinel.infrastructure.doctor.SystemEnvironmentInspection())
-                .gate(new dev.sentinel.application.project.ProjectDetector(new dev.sentinel.infrastructure.project.FileSystemProjectInspection()).detect(dir).orElseThrow(), "tests");
+        InitGateOption option = new InitSetupCatalog(new SystemEnvironmentInspection())
+                .gate(new ProjectDetector(new FileSystemProjectInspection()).detect(dir).orElseThrow(), "tests");
 
         assertThat(option.command()).containsExactly("./mvnw", "test");
         assertThat(option.available()).isTrue();
@@ -46,8 +50,8 @@ class InitSetupCatalogTest {
     @Test
     void rejectsUnsupportedChoices(@TempDir Path dir) throws Exception {
         TestProjects.withPom(dir, TestProjects.PLAIN_POM);
-        Project project = new dev.sentinel.application.project.ProjectDetector(new dev.sentinel.infrastructure.project.FileSystemProjectInspection()).detect(dir).orElseThrow();
-        InitSetupCatalog catalog = new InitSetupCatalog(new dev.sentinel.infrastructure.doctor.SystemEnvironmentInspection());
+        Project project = new ProjectDetector(new FileSystemProjectInspection()).detect(dir).orElseThrow();
+        InitSetupCatalog catalog = new InitSetupCatalog(new SystemEnvironmentInspection());
 
         assertThatThrownBy(() -> catalog.integration("unknown"))
                 .isInstanceOf(SentinelException.class);
@@ -58,9 +62,9 @@ class InitSetupCatalogTest {
     @Test
     void reportsUnavailableMavenWhenWrapperAndSystemToolAreMissing(@TempDir Path dir) throws Exception {
         TestProjects.withPom(dir, TestProjects.PLAIN_POM);
-        Project project = new dev.sentinel.application.project.ProjectDetector(new dev.sentinel.infrastructure.project.FileSystemProjectInspection()).detect(dir).orElseThrow();
+        Project project = new ProjectDetector(new FileSystemProjectInspection()).detect(dir).orElseThrow();
 
-        InitGateOption option = new InitSetupCatalog(new dev.sentinel.infrastructure.doctor.SystemEnvironmentInspection()).gate(project, "tests");
+        InitGateOption option = new InitSetupCatalog(new SystemEnvironmentInspection()).gate(project, "tests");
 
         assertThat(option.available()).isFalse();
         assertThat(option.availabilityMessage()).contains("Maven is unavailable");

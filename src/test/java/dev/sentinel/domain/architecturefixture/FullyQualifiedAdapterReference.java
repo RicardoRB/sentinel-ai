@@ -1,5 +1,7 @@
 package dev.sentinel.domain.architecturefixture;
 
+
+import dev.sentinel.infrastructure.config.TomlConfigurationReader;
 public final class FullyQualifiedAdapterReference {
-    private dev.sentinel.infrastructure.config.TomlConfigurationReader adapter;
+    private TomlConfigurationReader adapter;
 }

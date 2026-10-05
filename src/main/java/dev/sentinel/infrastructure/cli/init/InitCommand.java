@@ -1,5 +1,7 @@
 package dev.sentinel.infrastructure.cli.init;
 
+
+import dev.sentinel.domain.project.Project;
 import dev.sentinel.domain.init.InitArchitectureOption;
 import dev.sentinel.domain.init.InitGateOption;
 import dev.sentinel.domain.init.InitIntegrationOption;
@@ -186,7 +188,7 @@ public class InitCommand implements Callable<Integer> {
         return result;
     }
 
-    private List<String> selectGates(InitSetupCatalog catalog, dev.sentinel.domain.project.Project project) {
+    private List<String> selectGates(InitSetupCatalog catalog, Project project) {
         PrintWriter out = output();
         List<InitGateOption> choices = catalog.gates(project);
         if (input == System.in && System.console() != null

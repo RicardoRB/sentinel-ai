@@ -1,5 +1,21 @@
 package dev.sentinel.infrastructure.cli;
 
+
+
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Set;
+import dev.sentinel.application.agent.IntegrationService;
+import dev.sentinel.application.init.InitService;
+import dev.sentinel.application.init.InitSetupCatalog;
+import dev.sentinel.application.project.ProjectDetector;
+import dev.sentinel.infrastructure.agent.ClaudeCodeIntegration;
+import dev.sentinel.infrastructure.agent.OpenCodeIntegration;
+import dev.sentinel.infrastructure.doctor.SystemEnvironmentInspection;
+import dev.sentinel.infrastructure.init.ArchitectureTestGenerator;
+import dev.sentinel.infrastructure.init.FileConfigurationStorage;
+import dev.sentinel.infrastructure.init.PomToolConfigurator;
+import dev.sentinel.infrastructure.project.FileSystemProjectInspection;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import dev.sentinel.config.SentinelModule;
@@ -61,10 +77,10 @@ class SentinelCliIntegrationTest {
 
     private int runWithInput(String input, String... args) {
         IntegrateCommand integrate = new IntegrateCommand(
-                new dev.sentinel.application.agent.IntegrationService(new dev.sentinel.application.project.ProjectDetector(new dev.sentinel.infrastructure.project.FileSystemProjectInspection()),
-                        java.util.List.of(new dev.sentinel.infrastructure.agent.OpenCodeIntegration(),
-                                new dev.sentinel.infrastructure.agent.ClaudeCodeIntegration())),
-                new ByteArrayInputStream(input.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+                new IntegrationService(new ProjectDetector(new FileSystemProjectInspection()),
+                        List.of(new OpenCodeIntegration(),
+                                new ClaudeCodeIntegration())),
+                new ByteArrayInputStream(input.getBytes(StandardCharsets.UTF_8)));
         CommandLine cli = new CommandLine(integrate);
         cli.setOut(new PrintWriter(out, true));
         cli.setErr(new PrintWriter(err, true));
@@ -74,14 +90,14 @@ class SentinelCliIntegrationTest {
 
     private int runInitWithInput(String input, String... args) {
         InitCommand init = new InitCommand(
-                new dev.sentinel.application.init.InitService(new dev.sentinel.application.project.ProjectDetector(new dev.sentinel.infrastructure.project.FileSystemProjectInspection()),
-                        java.util.Set.of(new dev.sentinel.infrastructure.agent.OpenCodeIntegration(),
-                                new dev.sentinel.infrastructure.agent.ClaudeCodeIntegration()),
-                        new dev.sentinel.application.init.InitSetupCatalog(new dev.sentinel.infrastructure.doctor.SystemEnvironmentInspection()),
-                        new dev.sentinel.infrastructure.init.PomToolConfigurator(),
-                        new dev.sentinel.infrastructure.init.ArchitectureTestGenerator(),
-                        new dev.sentinel.infrastructure.init.FileConfigurationStorage()),
-                new ByteArrayInputStream(input.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+                new InitService(new ProjectDetector(new FileSystemProjectInspection()),
+                        Set.of(new OpenCodeIntegration(),
+                                new ClaudeCodeIntegration()),
+                        new InitSetupCatalog(new SystemEnvironmentInspection()),
+                        new PomToolConfigurator(),
+                        new ArchitectureTestGenerator(),
+                        new FileConfigurationStorage()),
+                new ByteArrayInputStream(input.getBytes(StandardCharsets.UTF_8)));
         CommandLine cli = new CommandLine(init);
         cli.setOut(new PrintWriter(out, true));
         cli.setErr(new PrintWriter(err, true));
