@@ -13,7 +13,7 @@
 ## Code Style
 
 - Use constructor injection; do not add field injection.
-- No Spotless, Spring/JPA, or code-generation workflow is configured. Preserve the existing style.
+- Spotless with Google Java Format is the Java formatter; run `./mvnw spotless:apply` to format and `./mvnw spotless:check` to verify. Spring/JPA and code-generation workflows are not configured.
 - Commands from `sentinel.toml` run from the project root as argument vectors, never through a shell.
 
 ## Testing
@@ -33,7 +33,7 @@
 ## Verification (non-negotiable)
 
 - Do not modify anything under `/config`.
-- Run `./verify-quality.sh` before finishing. It runs tests, Checkstyle, SpotBugs, JaCoCo, and enforces ≥80% JaCoCo instruction coverage.
+- Run `./verify-quality.sh` before finishing. It runs ArchUnit, tests, Spotless, Checkstyle, SpotBugs, JaCoCo, and enforces ≥80% JaCoCo instruction coverage.
 - Claude Code and OpenCode edit/write hooks must invoke `verify-quality.sh`. The native V2 plugin is `plugins/sentinel-jacoco.ts`, loaded by `opencode.jsonc`.
 - `check --format json` must write only JSON to stdout; diagnostics go to stderr.
 - `./mvnw package` builds `target/sentinel.jar`; native builds require GraalVM 25 and `./mvnw -Pnative -DskipTests native:compile`.

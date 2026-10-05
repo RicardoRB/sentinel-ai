@@ -18,6 +18,7 @@ fi
 "$MVN" -q \
   org.jacoco:jacoco-maven-plugin:prepare-agent \
   test \
+  spotless:check \
   checkstyle:check \
   spotbugs:check \
   org.jacoco:jacoco-maven-plugin:report

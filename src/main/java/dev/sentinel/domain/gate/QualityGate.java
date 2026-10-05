@@ -4,7 +4,7 @@ import dev.sentinel.domain.project.Project;
 
 public interface QualityGate {
 
-    String name();
+  String name();
 
-    GateResult execute(Project project);
+  GateResult execute(Project project);
 }

@@ -6,7 +6,7 @@ import java.util.Optional;
 
 /** Outbound contract for detecting and discovering project roots. */
 public interface ProjectInspection {
-    Optional<Project> detect(Path start);
+  Optional<Project> detect(Path start);
 
-    List<Project> discover(Path start);
+  List<Project> discover(Path start);
 }

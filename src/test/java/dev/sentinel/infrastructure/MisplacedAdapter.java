@@ -1,4 +1,3 @@
 package dev.sentinel.infrastructure;
 
-public final class MisplacedAdapter {
-}
+public final class MisplacedAdapter {}

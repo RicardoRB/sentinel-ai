@@ -1,64 +1,66 @@
 package dev.sentinel.application.init;
 
-
-import dev.sentinel.application.project.ProjectDetector;
-import dev.sentinel.infrastructure.doctor.SystemEnvironmentInspection;
-import dev.sentinel.infrastructure.project.FileSystemProjectInspection;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-import dev.sentinel.domain.init.InitResult;
-import dev.sentinel.application.init.InitService;
-import dev.sentinel.application.init.InitSetupCatalog;
-import dev.sentinel.application.project.ProjectNotFoundException;
-import dev.sentinel.infrastructure.init.ArchitectureTestGenerator;
-import dev.sentinel.infrastructure.init.FileConfigurationStorage;
-import dev.sentinel.infrastructure.init.PomToolConfigurator;
-
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Set;
-
 import static dev.sentinel.TestProjects.PLAIN_POM;
 import static dev.sentinel.TestProjects.withPom;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import dev.sentinel.application.project.ProjectDetector;
+import dev.sentinel.application.project.ProjectNotFoundException;
+import dev.sentinel.domain.init.InitResult;
+import dev.sentinel.infrastructure.doctor.SystemEnvironmentInspection;
+import dev.sentinel.infrastructure.init.ArchitectureTestGenerator;
+import dev.sentinel.infrastructure.init.FileConfigurationStorage;
+import dev.sentinel.infrastructure.init.PomToolConfigurator;
+import dev.sentinel.infrastructure.project.FileSystemProjectInspection;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Set;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
 class InitServiceTest {
 
-    private final InitService service = new InitService(
-            new ProjectDetector(new FileSystemProjectInspection()), Set.of(),
-            new InitSetupCatalog(new SystemEnvironmentInspection()), new PomToolConfigurator(), new ArchitectureTestGenerator(),
-            new FileConfigurationStorage());
+  private final InitService service =
+      new InitService(
+          new ProjectDetector(new FileSystemProjectInspection()),
+          Set.of(),
+          new InitSetupCatalog(new SystemEnvironmentInspection()),
+          new PomToolConfigurator(),
+          new ArchitectureTestGenerator(),
+          new FileConfigurationStorage());
 
-    @Test
-    void createsDefaultConfiguration(@TempDir Path dir) throws Exception {
-        withPom(dir, PLAIN_POM);
+  @Test
+  void createsDefaultConfiguration(@TempDir Path dir) throws Exception {
+    withPom(dir, PLAIN_POM);
 
-        InitResult result = service.init(dir);
+    InitResult result = service.init(dir);
 
-        assertThat(result.created()).isTrue();
-        assertThat(Files.readString(dir.resolve("sentinel.toml"))).isEqualTo("""
+    assertThat(result.created()).isTrue();
+    assertThat(Files.readString(dir.resolve("sentinel.toml")))
+        .isEqualTo(
+            """
                 version = 1
 
                 [quality-gates.tests]
                 enabled = true
                 command = "./mvnw test"
                 """);
-    }
+  }
 
-    @Test
-    void neverOverwritesExistingConfiguration(@TempDir Path dir) throws Exception {
-        withPom(dir, PLAIN_POM);
-        Files.writeString(dir.resolve("sentinel.toml"), "version = 1 # mine\n");
+  @Test
+  void neverOverwritesExistingConfiguration(@TempDir Path dir) throws Exception {
+    withPom(dir, PLAIN_POM);
+    Files.writeString(dir.resolve("sentinel.toml"), "version = 1 # mine\n");
 
-        InitResult result = service.init(dir);
+    InitResult result = service.init(dir);
 
-        assertThat(result.created()).isFalse();
-        assertThat(Files.readString(dir.resolve("sentinel.toml"))).isEqualTo("version = 1 # mine\n");
-    }
+    assertThat(result.created()).isFalse();
+    assertThat(Files.readString(dir.resolve("sentinel.toml"))).isEqualTo("version = 1 # mine\n");
+  }
 
-    @Test
-    void requiresASupportedProject(@TempDir Path dir) {
-        assertThatThrownBy(() -> service.init(dir)).isInstanceOf(ProjectNotFoundException.class);
-    }
+  @Test
+  void requiresASupportedProject(@TempDir Path dir) {
+    assertThatThrownBy(() -> service.init(dir)).isInstanceOf(ProjectNotFoundException.class);
+  }
 }

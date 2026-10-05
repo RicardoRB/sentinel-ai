@@ -30,7 +30,7 @@ Optional native image (GraalVM 25 as `JAVA_HOME`):
 ./mvnw -Pnative -DskipTests native:compile   # produces target/sentinel
 ```
 
-Stack: Java 25, Guice, Picocli, JLine, tomlj, Jackson, ArchUnit (test scope), JUnit 6 + AssertJ. Sentinel has no Spring runtime dependency.
+Stack: Java 25, Guice, Picocli, JLine, tomlj, Jackson, Spotless with Google Java Format, ArchUnit (test scope), JUnit 6 + AssertJ. Sentinel has no Spring runtime dependency.
 
 ## Commands
 

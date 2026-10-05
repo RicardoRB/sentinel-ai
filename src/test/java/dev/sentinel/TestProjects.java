@@ -7,14 +7,16 @@ import java.nio.file.Path;
 
 public final class TestProjects {
 
-    public static final String PLAIN_POM = """
+  public static final String PLAIN_POM =
+      """
             <project>
               <modelVersion>4.0.0</modelVersion>
               <groupId>example</groupId><artifactId>plain</artifactId><version>1</version>
             </project>
             """;
 
-    public static final String SPRING_BOOT_POM = """
+  public static final String SPRING_BOOT_POM =
+      """
             <project>
               <modelVersion>4.0.0</modelVersion>
               <parent>
@@ -26,15 +28,14 @@ public final class TestProjects {
             </project>
             """;
 
-    private TestProjects() {
-    }
+  private TestProjects() {}
 
-    public static Path withPom(Path dir, String pom) {
-        try {
-            Files.writeString(dir.resolve("pom.xml"), pom);
-            return dir;
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
+  public static Path withPom(Path dir, String pom) {
+    try {
+      Files.writeString(dir.resolve("pom.xml"), pom);
+      return dir;
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
     }
+  }
 }

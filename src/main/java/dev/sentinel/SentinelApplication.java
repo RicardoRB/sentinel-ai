@@ -6,9 +6,9 @@ import dev.sentinel.infrastructure.cli.CommandLineRunnerImpl;
 
 public class SentinelApplication {
 
-    public static void main(String[] args) {
-        CommandLineRunnerImpl runner = Guice.createInjector(new SentinelModule())
-                .getInstance(CommandLineRunnerImpl.class);
-        System.exit(runner.run(args));
-    }
+  public static void main(String[] args) {
+    CommandLineRunnerImpl runner =
+        Guice.createInjector(new SentinelModule()).getInstance(CommandLineRunnerImpl.class);
+    System.exit(runner.run(args));
+  }
 }
