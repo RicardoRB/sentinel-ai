@@ -72,7 +72,7 @@ public class InitCommand implements Callable<Integer> {
                     ? selectArchitecture(catalog) : selectedArchitecture;
             catalog.architecture(selectedArchitecture);
         }
-        PrintWriter out = spec.commandLine().getOut();
+        PrintWriter out = output();
         for (String selectedGate : selectedGates) {
             InitSetupCatalog.GateOption gateOption = catalog.gate(project, selectedGate);
             out.printf("Selected quality gate '%s': %s%n", gateOption.id(),
@@ -89,7 +89,7 @@ public class InitCommand implements Callable<Integer> {
                 && !System.getProperty("os.name", "").toLowerCase().contains("win")) {
             return selectIntegrationsWithKeys(catalog);
         }
-        PrintWriter out = spec.commandLine().getOut();
+        PrintWriter out = output();
         List<InitSetupCatalog.IntegrationOption> choices = catalog.integrations();
         out.println("Select agent integrations (enter numbers separated by spaces, then press Enter):");
         for (int i = 0; i < choices.size(); i++) {
@@ -134,7 +134,7 @@ public class InitCommand implements Callable<Integer> {
             if (terminalState != null) {
                 try {
                     setTerminal(terminalState);
-                    spec.commandLine().getOut().println();
+                    output().println();
                 } catch (IOException | InterruptedException ignored) {
                     // Keep the original selection result/error; the terminal is best-effort restored.
                 }
@@ -143,7 +143,7 @@ public class InitCommand implements Callable<Integer> {
     }
 
     private void renderIntegrationChoices(InitSetupCatalog catalog, boolean[] selected, int cursor) {
-        PrintWriter out = spec.commandLine().getOut();
+        PrintWriter out = output();
         out.print("\033[2J\033[H");
         out.println("Select agent integrations (Space toggles, arrows move, Enter confirms):");
         List<InitSetupCatalog.IntegrationOption> choices = catalog.integrations();
@@ -178,7 +178,7 @@ public class InitCommand implements Callable<Integer> {
     }
 
     private List<String> selectGates(InitSetupCatalog catalog, dev.sentinel.domain.project.Project project) {
-        PrintWriter out = spec.commandLine().getOut();
+        PrintWriter out = output();
         List<InitSetupCatalog.GateOption> choices = catalog.gates(project);
         if (input == System.in && System.console() != null
                 && !System.getProperty("os.name", "").toLowerCase().contains("win")) {
@@ -193,7 +193,7 @@ public class InitCommand implements Callable<Integer> {
     }
 
     private String selectArchitecture(InitSetupCatalog catalog) {
-        PrintWriter out = spec.commandLine().getOut();
+        PrintWriter out = output();
         List<InitSetupCatalog.ArchitectureOption> choices = catalog.architectures();
         out.println("Select an architecture style:");
         for (int i = 0; i < choices.size(); i++) {
@@ -224,7 +224,7 @@ public class InitCommand implements Callable<Integer> {
     }
 
     private int readChoice(String prompt, int size) {
-        PrintWriter out = spec.commandLine().getOut();
+        PrintWriter out = output();
         out.print(prompt);
         out.flush();
         try {
@@ -245,7 +245,7 @@ public class InitCommand implements Callable<Integer> {
     }
 
     private List<String> readIntegrationChoices(List<InitSetupCatalog.IntegrationOption> choices) {
-        PrintWriter out = spec.commandLine().getOut();
+        PrintWriter out = output();
         out.print("Toggle integrations with space-separated numbers [1-" + choices.size() + "]: ");
         out.flush();
         try {
@@ -276,7 +276,7 @@ public class InitCommand implements Callable<Integer> {
     }
 
     private List<String> readGateChoices(List<InitSetupCatalog.GateOption> choices) {
-        PrintWriter out = spec.commandLine().getOut();
+        PrintWriter out = output();
         out.print("Toggle quality gates with space-separated numbers [1-" + choices.size() + "]: ");
         out.flush();
         try {
@@ -337,7 +337,7 @@ public class InitCommand implements Callable<Integer> {
             if (terminalState != null) {
                 try {
                     setTerminal(terminalState);
-                    spec.commandLine().getOut().println();
+                    output().println();
                 } catch (IOException | InterruptedException ignored) {
                     // Keep the original selection result/error; the terminal is best-effort restored.
                 }
@@ -346,7 +346,7 @@ public class InitCommand implements Callable<Integer> {
     }
 
     private void renderGateChoices(List<InitSetupCatalog.GateOption> choices, boolean[] selected, int cursor) {
-        PrintWriter out = spec.commandLine().getOut();
+        PrintWriter out = output();
         out.print("\033[2J\033[H");
         out.println("Select quality gates (Space toggles, arrows move, Enter confirms):");
         for (int i = 0; i < choices.size(); i++) {
@@ -365,7 +365,7 @@ public class InitCommand implements Callable<Integer> {
     }
 
     private int printResult(InitService.InitResult result) {
-        PrintWriter out = spec.commandLine().getOut();
+        PrintWriter out = output();
         if (result.created()) {
             out.println("Created " + result.file());
             if (!result.pomChanges().isEmpty()) {
@@ -392,5 +392,11 @@ public class InitCommand implements Callable<Integer> {
             out.println(result.file() + " already exists. Nothing was changed.");
         }
         return ExitCodes.OK;
+    }
+
+    private PrintWriter output() {
+        return spec == null
+                ? new PrintWriter(System.out, true)
+                : spec.commandLine().getOut();
     }
 }
