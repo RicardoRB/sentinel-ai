@@ -110,10 +110,11 @@ enabled = true
 command = "./mvnw test"
 ```
 
-An existing `sentinel.toml` is never overwritten, and initialization does not prompt or change
-integrations in that case. Invalid or incomplete interactive input exits without creating partial
-configuration. Selected integrations use the same ownership markers and conflict protection as
-`sentinel integrate`.
+An existing `sentinel.toml` is not overwritten without confirmation, and initialization does not
+prompt or change integrations in that case unless you confirm the overwrite prompt. Answer `y` to replace it using
+the new selections, or any other answer to preserve it. Automation can use `--overwrite` to skip
+the prompt. Invalid or incomplete interactive input exits without creating partial configuration.
+Selected integrations use the same ownership markers and conflict protection as `sentinel integrate`.
 
 ### Configuration
 

@@ -38,6 +38,8 @@ public class InitCommand implements Callable<Integer> {
     private List<String> gates = new ArrayList<>();
     @Option(names = "--architecture", description = "Architecture style for architecture/ArchUnit tests: layered, hexagonal, or clean.")
     private String architecture;
+    @Option(names = "--overwrite", description = "Overwrite an existing sentinel.toml without prompting.")
+    private boolean overwriteOption;
 
     private final InitService service;
     private final InputStream input;
@@ -59,8 +61,15 @@ public class InitCommand implements Callable<Integer> {
         Path start = options.directory();
         var project = service.project(start);
         Path file = project.root().resolve(SentinelConfiguration.FILE_NAME);
+        boolean overwrite = overwriteOption;
         if (Files.exists(file)) {
-            return printResult(service.init(project.root()));
+            if (!overwrite) {
+                if (input == System.in && System.console() == null) {
+                    return printResult(service.init(project.root()));
+                }
+                if (!confirmOverwrite(file)) return printResult(service.init(project.root()));
+                overwrite = true;
+            }
         }
 
         InitSetupCatalog catalog = service.catalog();
@@ -80,7 +89,7 @@ public class InitCommand implements Callable<Integer> {
             out.println(gateOption.availabilityMessage());
         }
         InitService.InitResult result = service.initialize(project.root(),
-                new InitSelection(selectedIntegrations, selectedGates, selectedArchitecture));
+                new InitSelection(selectedIntegrations, selectedGates, selectedArchitecture), overwrite);
         return printResult(result);
     }
 
@@ -96,6 +105,21 @@ public class InitCommand implements Callable<Integer> {
             out.printf("> [ ] %d) %s%n", i + 1, choices.get(i).label());
         }
         return readIntegrationChoices(choices);
+    }
+
+    private boolean confirmOverwrite(Path file) {
+        PrintWriter out = output();
+        out.print(file + " already exists. Overwrite it? [y/N]: ");
+        out.flush();
+        try {
+            String answer = reader.readLine();
+            boolean overwrite = answer != null && answer.trim().equalsIgnoreCase("y");
+            if (!overwrite) out.println("Keeping existing sentinel.toml. No changes made.");
+            return overwrite;
+        } catch (IOException e) {
+            out.println("Keeping existing sentinel.toml. No changes made.");
+            return false;
+        }
     }
 
     private List<String> selectIntegrationsWithKeys(InitSetupCatalog catalog) {
@@ -368,7 +392,7 @@ public class InitCommand implements Callable<Integer> {
     private int printResult(InitService.InitResult result) {
         PrintWriter out = output();
         if (result.created()) {
-            out.println("Created " + result.file());
+            out.println((result.overwritten() ? "Updated " : "Created ") + result.file());
             if (!result.pomChanges().isEmpty()) {
                 out.println("Updated pom.xml with Maven tools:");
                 result.pomChanges().forEach(tool -> out.println("- " + tool));

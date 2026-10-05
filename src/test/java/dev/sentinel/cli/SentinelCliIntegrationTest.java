@@ -119,6 +119,19 @@ class SentinelCliIntegrationTest {
     }
 
     @Test
+    void initAsksBeforeOverwritingExistingConfiguration() throws IOException {
+        Files.writeString(project.resolve("sentinel.toml"), "version = 1\n\n[quality-gates.compile]\nenabled = true\ncommand = \"old\"\n");
+
+        assertThat(runInitWithInput("n\n", "-C", project.toString())).isZero();
+        assertThat(Files.readString(project.resolve("sentinel.toml"))).contains("command = \"old\"");
+
+        out.getBuffer().setLength(0);
+        assertThat(runInitWithInput("y\n1\n1\n", "-C", project.toString())).isZero();
+        assertThat(Files.readString(project.resolve("sentinel.toml"))).contains("[quality-gates.tests]");
+        assertThat(out.toString()).contains("Overwrite it?", "Updated ");
+    }
+
+    @Test
     void initThenFailingCheckExitsWithOne() throws IOException {
         run("init", "--integration", "none", "--gate", "tests", "-C", project.toString());
         Files.createFile(project.resolve("FAIL"));

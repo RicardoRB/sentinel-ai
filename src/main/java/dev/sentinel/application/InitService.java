@@ -24,21 +24,22 @@ public class InitService {
             command = "./mvnw test"
             """;
 
-    public record InitResult(Path file, boolean created, List<InitSetupCatalog.GateOption> gates,
+    public record InitResult(Path file, boolean created, boolean overwritten,
+                             List<InitSetupCatalog.GateOption> gates,
                              List<IntegrationResult> integrations, List<String> pomChanges,
                              ArchitectureTestGenerator.TestChange architectureTest) {
         public InitResult(Path file, boolean created) {
-            this(file, created, List.of(), List.of(), List.of(), null);
+            this(file, created, false, List.of(), List.of(), List.of(), null);
         }
 
         public InitResult(Path file, boolean created, List<InitSetupCatalog.GateOption> gates,
                           List<IntegrationResult> integrations) {
-            this(file, created, gates, integrations, List.of(), null);
+            this(file, created, false, gates, integrations, List.of(), null);
         }
 
         public InitResult(Path file, boolean created, List<InitSetupCatalog.GateOption> gates,
                           List<IntegrationResult> integrations, List<String> pomChanges) {
-            this(file, created, gates, integrations, pomChanges, null);
+            this(file, created, false, gates, integrations, pomChanges, null);
         }
 
         public InitResult {
@@ -96,20 +97,28 @@ public class InitService {
     }
 
     public InitResult initialize(Path start, InitSelection selection) {
+        return initialize(start, selection, false);
+    }
+
+    public InitResult initialize(Path start, InitSelection selection, boolean overwrite) {
         Project project = project(start);
         validateIntegrations(selection.integrations());
         List<InitSetupCatalog.GateOption> gates = selection.gates().stream()
                 .map(id -> catalog.gate(project, id)).toList();
         if (gates.isEmpty()) throw new SentinelException("Select at least one quality gate.");
         if (selection.architecture() != null) catalog.architecture(selection.architecture());
-        if (Files.exists(project.root().resolve(SentinelConfiguration.FILE_NAME))) {
+        Path configurationFile = project.root().resolve(SentinelConfiguration.FILE_NAME);
+        boolean hadConfiguration = Files.exists(configurationFile);
+        if (hadConfiguration && !overwrite) {
             return new InitResult(project.root().resolve(SentinelConfiguration.FILE_NAME), false, gates, List.of());
         }
 
         List<IntegrationResult> installed = new ArrayList<>();
         PomToolConfigurator.PomChange pomChange = null;
         ArchitectureTestGenerator.TestChange architectureTest = null;
+        String originalConfiguration = null;
         try {
+            if (hadConfiguration) originalConfiguration = readConfiguration(configurationFile);
             for (String integration : selection.integrations()) {
                 if (InitSetupCatalog.NO_INTEGRATION.equals(integration)) continue;
                 IntegrationResult result = installIntegration(project.root(), integration);
@@ -124,7 +133,7 @@ public class InitService {
                 architectureTest = architectureTests.generate(project.root(),
                         selection.architecture() == null ? "layered" : selection.architecture());
             }
-            InitResult result = writeConfiguration(project, gates, installed, pomChange.tools(), architectureTest);
+            InitResult result = writeConfiguration(project, gates, installed, pomChange.tools(), architectureTest, overwrite);
             if (!result.created()) {
                 architectureTests.rollback(architectureTest);
                 pomTools.rollback(pomChange);
@@ -134,6 +143,7 @@ public class InitService {
         } catch (RuntimeException e) {
             architectureTests.rollback(architectureTest);
             pomTools.rollback(pomChange);
+            if (originalConfiguration != null) restoreConfiguration(configurationFile, originalConfiguration);
             rollbackNewIntegrations(project.root(), selection.integrations(), installed);
             throw e;
         }
@@ -141,16 +151,34 @@ public class InitService {
 
     private InitResult writeConfiguration(Project project, List<InitSetupCatalog.GateOption> gates,
                                           List<IntegrationResult> integrations, List<String> pomChanges,
-                                          ArchitectureTestGenerator.TestChange architectureTest) {
+                                          ArchitectureTestGenerator.TestChange architectureTest, boolean overwrite) {
         Path file = project.root().resolve(SentinelConfiguration.FILE_NAME);
         try {
             String content = configuration(gates);
-            Files.writeString(file, content, StandardOpenOption.CREATE_NEW);
-            return new InitResult(file, true, gates, integrations, pomChanges, architectureTest);
+            Files.writeString(file, content, overwrite
+                    ? new StandardOpenOption[]{StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE}
+                    : new StandardOpenOption[]{StandardOpenOption.CREATE_NEW});
+            return new InitResult(file, true, overwrite, gates, integrations, pomChanges, architectureTest);
         } catch (java.nio.file.FileAlreadyExistsException e) {
-            return new InitResult(file, false, gates, integrations, pomChanges, architectureTest);
+            return new InitResult(file, false, false, gates, integrations, pomChanges, architectureTest);
         } catch (IOException e) {
             throw new SentinelException("Could not write " + file + ": " + e.getMessage(), e);
+        }
+    }
+
+    private static void restoreConfiguration(Path file, String content) {
+        try {
+            Files.writeString(file, content, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
+        } catch (IOException ignored) {
+            // Preserve the original setup failure; the restoration failure is not actionable here.
+        }
+    }
+
+    private static String readConfiguration(Path file) {
+        try {
+            return Files.readString(file);
+        } catch (IOException e) {
+            throw new SentinelException("Could not read existing " + file + ": " + e.getMessage(), e);
         }
     }
 
