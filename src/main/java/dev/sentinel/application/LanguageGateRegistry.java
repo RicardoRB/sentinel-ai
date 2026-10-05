@@ -8,7 +8,7 @@ import java.util.Map;
 /** Declarative ecosystem defaults; tools remain external and are never installed by Sentinel. */
 public final class LanguageGateRegistry {
     private static final Map<Language, List<String>> DEFAULTS = Map.of(
-            Language.JAVA, List.of("compile", "tests", "architecture", "checkstyle", "spotbugs", "sonar"),
+            Language.JAVA, List.of("compile", "tests", "archunit", "checkstyle", "spotbugs", "sonar"),
             Language.KOTLIN, List.of("compile", "tests"),
             Language.TYPESCRIPT, List.of("command", "tests"),
             Language.JAVASCRIPT, List.of("command", "tests"),

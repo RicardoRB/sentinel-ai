@@ -240,7 +240,7 @@ class SentinelCliIntegrationTest {
 
     @Test
     void archunitSelectionPromptsForArchitectureAndGeneratesTest() throws IOException {
-        assertThat(runInitWithInput("1\n5\n2\n", "-C", project.toString())).isZero();
+        assertThat(runInitWithInput("1\n4\n2\n", "-C", project.toString())).isZero();
         Path test = project.resolve("src/test/java/com/example/ArchitectureTest.java");
         assertThat(test).exists();
         assertThat(Files.readString(test)).contains("hexagonal", "@AnalyzeClasses(packages = \"com.example\")");
@@ -262,7 +262,7 @@ class SentinelCliIntegrationTest {
         Files.createDirectories(test.getParent());
         Files.writeString(test, "user-owned architecture test\n");
 
-        assertThat(runInitWithInput("1\n5\n1\n", "-C", project.toString())).isZero();
+        assertThat(runInitWithInput("1\n4\n1\n", "-C", project.toString())).isZero();
         assertThat(test).hasContent("user-owned architecture test\n");
         assertThat(out.toString()).contains("Preserved existing ArchUnit test");
     }
@@ -350,13 +350,13 @@ class SentinelCliIntegrationTest {
 
     @Test
     void initRejectsInvalidArchitectureAndEof() {
-        assertThat(runInitWithInput("1\n5\nnope\n", "-C", project.toString())).isEqualTo(ExitCodes.ERROR);
+        assertThat(runInitWithInput("1\n4\nnope\n", "-C", project.toString())).isEqualTo(ExitCodes.ERROR);
         assertThat(err.toString()).contains("Invalid architecture selection");
         err.getBuffer().setLength(0);
-        assertThat(runInitWithInput("1\n5\n9\n", "-C", project.toString())).isEqualTo(ExitCodes.ERROR);
+        assertThat(runInitWithInput("1\n4\n9\n", "-C", project.toString())).isEqualTo(ExitCodes.ERROR);
         assertThat(err.toString()).contains("Invalid architecture selection");
         err.getBuffer().setLength(0);
-        assertThat(runInitWithInput("1\n5\n", "-C", project.toString())).isEqualTo(ExitCodes.ERROR);
+        assertThat(runInitWithInput("1\n4\n", "-C", project.toString())).isEqualTo(ExitCodes.ERROR);
         assertThat(err.toString()).contains("input ended");
     }
 

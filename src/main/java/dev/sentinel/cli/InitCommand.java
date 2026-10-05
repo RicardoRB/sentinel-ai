@@ -220,7 +220,7 @@ public class InitCommand implements Callable<Integer> {
     }
 
     private static boolean requiresArchitectureTest(List<String> selectedGates) {
-        return selectedGates.stream().anyMatch(gate -> gate.equals("architecture") || gate.equals("archunit"));
+        return selectedGates.stream().anyMatch(gate -> gate.equals("archunit"));
     }
 
     private int readChoice(String prompt, int size) {

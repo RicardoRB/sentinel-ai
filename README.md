@@ -72,7 +72,7 @@ Detection looks for a `pom.xml` and marks the project as Spring Boot when the po
 When `sentinel.toml` does not exist, `sentinel init` launches a setup wizard that selects one or
 more agent integrations and one quality gate. The integration choices are `none`, `opencode`, and `claude-code`;
 the gate choices are the supported quality-gate registry entries (`tests`, `compile`,
-`architecture`, `command`, `archunit`, `checkstyle`, `spotbugs`, and `sonar`).
+`command`, `archunit`, `checkstyle`, `spotbugs`, and `sonar`).
 
 For automation, provide both selections explicitly:
 
@@ -80,7 +80,7 @@ For automation, provide both selections explicitly:
 sentinel init --integration none --gate tests
 sentinel init --integration claude-code --gate compile
 sentinel init --integration opencode,claude-code --gate tests,compile
-sentinel init --integration none --gate architecture --architecture hexagonal
+sentinel init --integration none --gate archunit --architecture hexagonal
 ```
 
 In a terminal, both the integration and quality-gate selectors use checkboxes: arrow keys move,
@@ -91,7 +91,8 @@ mutually exclusive with agent integrations.
 Selecting `archunit` also asks for a Layered, Hexagonal, or Clean architecture style and creates a
 minimal `ArchitectureTest.java` when one is missing. Its gate runs only that test with
 `mvn -Dtest=ArchitectureTest test`. Existing architecture tests are preserved and reported
-instead of overwritten. `architecture` remains as a legacy compatibility alias for `archunit`.
+instead of overwritten. Existing `architecture` entries in old configuration files remain readable
+as a legacy compatibility alias.
 
 The wizard detects whether the selected Maven wrapper or system Maven is available and reports
 missing tooling with remediation guidance. It does not install tools or run the gate during init;

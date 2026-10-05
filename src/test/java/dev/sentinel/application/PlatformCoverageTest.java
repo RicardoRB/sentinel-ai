@@ -22,7 +22,7 @@ class PlatformCoverageTest {
 
     @Test void exposesLanguageGateDefaults() {
         var registry = new LanguageGateRegistry();
-        assertThat(registry.defaults(Language.JAVA)).contains("tests", "architecture");
+        assertThat(registry.defaults(Language.JAVA)).contains("tests", "archunit");
         assertThat(registry.defaults(Language.GO)).contains("tests");
     }
 }

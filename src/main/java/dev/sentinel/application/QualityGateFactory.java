@@ -18,7 +18,8 @@ import java.util.Map;
 public class QualityGateFactory {
 
     public static final List<String> SUPPORTED_GATES = List.of(
-            "tests", "compile", "architecture", "command", "archunit", "checkstyle", "spotbugs", "sonar");
+            "tests", "compile", "command", "archunit", "checkstyle", "spotbugs", "sonar");
+    private static final List<String> LEGACY_GATES = List.of("architecture");
 
     private final CommandExecutor executor;
 
@@ -34,7 +35,7 @@ public class QualityGateFactory {
     public List<QualityGate> create(SentinelConfiguration configuration, dev.sentinel.domain.project.Project project) {
         List<QualityGate> gates = new ArrayList<>();
         configuration.gates().keySet().forEach(id -> {
-            if (!SUPPORTED_GATES.contains(id)) {
+            if (!SUPPORTED_GATES.contains(id) && !LEGACY_GATES.contains(id)) {
                 throw new SentinelException("Quality gate '" + id + "' is unknown. Supported gates: " + SUPPORTED_GATES);
             }
         });

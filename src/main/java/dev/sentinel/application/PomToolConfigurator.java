@@ -62,8 +62,7 @@ public final class PomToolConfigurator {
             String original = Files.readString(pom);
             String updated = original;
             List<String> tools = new ArrayList<>();
-            boolean needsArchUnit = gates.stream().anyMatch(gate ->
-                    gate.id().equals("architecture") || gate.id().equals("archunit"));
+            boolean needsArchUnit = gates.stream().anyMatch(gate -> gate.id().equals("archunit"));
             if (gates.stream().anyMatch(gate -> gate.id().equals("checkstyle")) && !containsArtifact(updated, CHECKSTYLE)) {
                 updated = addPlugin(updated, CHECKSTYLE_PLUGIN);
                 tools.add(CHECKSTYLE);

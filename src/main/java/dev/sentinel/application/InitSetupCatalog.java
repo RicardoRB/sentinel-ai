@@ -53,8 +53,6 @@ public final class InitSetupCatalog {
         List<GateOption> options = new ArrayList<>();
         options.add(option("tests", executable, "test", mavenAvailable, availability));
         options.add(option("compile", executable, "compile", mavenAvailable, availability));
-        options.add(option("architecture", executable, "-Dtest=ArchitectureTest", "test", mavenAvailable,
-                availability + " (legacy alias; runs only ArchitectureTest.)"));
         options.add(option("command", executable, "test", mavenAvailable,
                 availability + " (customize the command in sentinel.toml after initialization.)"));
         options.add(option("archunit", executable, "-Dtest=ArchitectureTest", "test", mavenAvailable,

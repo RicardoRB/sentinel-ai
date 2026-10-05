@@ -185,7 +185,7 @@ public class InitService {
     }
 
     private static boolean requiresArchitectureTest(List<InitSetupCatalog.GateOption> gates) {
-        return gates.stream().anyMatch(gate -> gate.id().equals("architecture") || gate.id().equals("archunit"));
+        return gates.stream().anyMatch(gate -> gate.id().equals("archunit"));
     }
 
     private static String configuration(List<InitSetupCatalog.GateOption> gates) {
