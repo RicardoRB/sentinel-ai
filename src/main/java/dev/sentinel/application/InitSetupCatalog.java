@@ -18,9 +18,14 @@ public final class InitSetupCatalog {
     public record IntegrationOption(String id, String label) {
     }
 
-    public record GateOption(String id, List<String> command, boolean available, String availabilityMessage) {
+    public record GateOption(String id, String description, List<String> command,
+                             boolean available, String availabilityMessage) {
         public GateOption {
             command = List.copyOf(command);
+        }
+
+        public GateOption(String id, List<String> command, boolean available, String availabilityMessage) {
+            this(id, id, command, available, availabilityMessage);
         }
     }
 
@@ -51,20 +56,20 @@ public final class InitSetupCatalog {
                 ? "Maven command available: " + executable
                 : "Maven is unavailable; install Maven or add a Maven Wrapper before running this gate.";
         List<GateOption> options = new ArrayList<>();
-        options.add(option("tests", executable, "test", mavenAvailable, availability));
-        options.add(option("compile", executable, "compile", mavenAvailable, availability));
-        options.add(option("coverage", executable, "jacoco:check", mavenAvailable,
+        options.add(option("tests", "Runs the project's tests.", executable, "test", mavenAvailable, availability));
+        options.add(option("compile", "Checks that the project compiles.", executable, "compile", mavenAvailable, availability));
+        options.add(option("coverage", "Enforces minimum test coverage.", executable, "jacoco:check", mavenAvailable,
                 availability + " (minimum coverage is configured in pom.xml.)"));
-        options.add(option("spotbugs", executable, "spotbugs:check", mavenAvailable, availability));
-        options.add(option("checkstyle", executable, "checkstyle:check", mavenAvailable, availability));
-        options.add(option("sonar", executable, "sonar", mavenAvailable, availability));
-        options.add(option("dependency-check", executable, "dependency-check:check", mavenAvailable, availability));
-        options.add(option("archunit", executable, "-Dtest=ArchitectureTest", "test", mavenAvailable,
+        options.add(option("spotbugs", "Finds potential bugs through static analysis.", executable, "spotbugs:check", mavenAvailable, availability));
+        options.add(option("checkstyle", "Checks source style and formatting rules.", executable, "checkstyle:check", mavenAvailable, availability));
+        options.add(option("sonar", "Checks code quality, smells, and duplication.", executable, "sonar", mavenAvailable, availability));
+        options.add(option("dependency-check", "Scans dependencies for known CVEs.", executable, "dependency-check:check", mavenAvailable, availability));
+        options.add(option("archunit", "Checks architecture rules with ArchitectureTest.", executable, "-Dtest=ArchitectureTest", "test", mavenAvailable,
                 availability + " (runs only ArchitectureTest.)"));
-        options.add(option("mutation", executable, "pitest:mutationCoverage", mavenAvailable, availability));
-        options.add(option("compliance", executable, "enforcer:enforce", mavenAvailable,
+        options.add(option("mutation", "Measures test strength with mutation testing.", executable, "pitest:mutationCoverage", mavenAvailable, availability));
+        options.add(option("compliance", "Checks dependency and build compliance rules.", executable, "enforcer:enforce", mavenAvailable,
                 availability + " (dependency and build compliance rules are configured in pom.xml.)"));
-        options.add(option("command", executable, "test", mavenAvailable,
+        options.add(option("command", "Runs a custom command from sentinel.toml.", executable, "test", mavenAvailable,
                 availability + " (customize the command in sentinel.toml after initialization.)"));
         return List.copyOf(options);
     }
@@ -81,14 +86,14 @@ public final class InitSetupCatalog {
                         + "'. Supported gates: " + QualityGateFactory.SUPPORTED_GATES));
     }
 
-    private static GateOption option(String id, String executable, String goal,
+    private static GateOption option(String id, String description, String executable, String goal,
                                      boolean available, String message) {
-        return new GateOption(id, List.of(executable, goal), available, message);
+        return new GateOption(id, description, List.of(executable, goal), available, message);
     }
 
-    private static GateOption option(String id, String executable, String firstGoal, String secondGoal,
+    private static GateOption option(String id, String description, String executable, String firstGoal, String secondGoal,
                                      boolean available, String message) {
-        return new GateOption(id, List.of(executable, firstGoal, secondGoal), available, message);
+        return new GateOption(id, description, List.of(executable, firstGoal, secondGoal), available, message);
     }
 
     private static boolean commandAvailable(String command) {

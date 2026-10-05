@@ -23,6 +23,8 @@ class InitSetupCatalogTest {
         assertThat(catalog.gates(new ProjectDetector().detect(dir).orElseThrow()))
                 .extracting(InitSetupCatalog.GateOption::id)
                 .containsExactlyElementsOf(QualityGateFactory.SUPPORTED_GATES);
+        assertThat(catalog.gates(new ProjectDetector().detect(dir).orElseThrow()))
+                .allSatisfy(gate -> assertThat(gate.description()).isNotBlank());
     }
 
     @Test

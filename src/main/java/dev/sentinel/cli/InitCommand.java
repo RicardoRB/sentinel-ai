@@ -187,7 +187,8 @@ public class InitCommand implements Callable<Integer> {
         out.println("Select quality gates (enter numbers separated by spaces, then press Enter):");
         for (int i = 0; i < choices.size(); i++) {
             InitSetupCatalog.GateOption choice = choices.get(i);
-            out.printf("> [ ] %d) %s [%s]%n", i + 1, choice.id(), choice.available() ? "available" : "unavailable");
+            out.printf("> [ ] %d) %s - %s [%s]%n", i + 1, choice.id(), choice.description(),
+                    choice.available() ? "available" : "unavailable");
         }
         return readGateChoices(choices);
     }
@@ -350,8 +351,8 @@ public class InitCommand implements Callable<Integer> {
         out.print("\033[2J\033[H");
         out.println("Select quality gates (Space toggles, arrows move, Enter confirms):");
         for (int i = 0; i < choices.size(); i++) {
-            out.printf("%s %s %d) %s [%s]%n", i == cursor ? ">" : " ",
-                    selected[i] ? "[x]" : "[ ]", i + 1, choices.get(i).id(),
+            out.printf("%s %s %d) %s - %s [%s]%n", i == cursor ? ">" : " ",
+                    selected[i] ? "[x]" : "[ ]", i + 1, choices.get(i).id(), choices.get(i).description(),
                     choices.get(i).available() ? "available" : "unavailable");
         }
         out.flush();
