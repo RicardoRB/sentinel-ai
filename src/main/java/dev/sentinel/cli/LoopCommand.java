@@ -34,8 +34,12 @@ public final class LoopCommand implements Callable<Integer> {
                 new dev.sentinel.application.QualityGateFactory(new ProcessCommandExecutor()), new dev.sentinel.application.QualityGateRunner());
         var result = new QualityLoopService(service, runner, new GitStateInspector(new ProcessCommandExecutor()))
                 .run(root, task, new LoopConfiguration(maxIterations, timeoutSeconds, allowDirty));
-        PrintWriter out = spec.commandLine().getOut();
+        PrintWriter out = output();
         out.printf("%s after %d iteration(s): %s%n", result.state(), result.iterations(), result.message());
         return result.state() == dev.sentinel.domain.loop.LoopTerminalState.PASSED ? ExitCodes.OK : ExitCodes.FAILED;
+    }
+
+    private PrintWriter output() {
+        return spec == null ? new PrintWriter(System.out, true) : spec.commandLine().getOut();
     }
 }

@@ -30,7 +30,7 @@ public class DetectCommand implements Callable<Integer> {
 
     @Override
     public Integer call() {
-        PrintWriter out = spec.commandLine().getOut();
+        PrintWriter out = output();
         Optional<Project> project = detector.detect(options.directory());
         if (project.isEmpty()) {
             out.println("No supported project detected.");
@@ -44,5 +44,9 @@ public class DetectCommand implements Callable<Integer> {
         out.printf("Framework:    %s%n", p.framework().displayName());
         out.printf("Project root: %s%n", p.root());
         return ExitCodes.OK;
+    }
+
+    private PrintWriter output() {
+        return spec == null ? new PrintWriter(System.out, true) : spec.commandLine().getOut();
     }
 }

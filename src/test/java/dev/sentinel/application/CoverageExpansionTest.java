@@ -291,6 +291,7 @@ class CoverageExpansionTest {
                 new QualityGateFactory(executor), new QualityGateRunner());
         CommandLineRunnerImpl runner = new CommandLineRunnerImpl(checks, new InitService(new ProjectDetector()),
                 new ProjectDetector(), new TextReportRenderer(), new JsonReportRenderer());
+        assertThat(runner.run()).isEqualTo(dev.sentinel.cli.ExitCodes.ERROR);
         assertThat(runner.run("--help")).isZero();
         assertThat(runner.run("detect", "-C", root.toString())).isZero();
         Files.writeString(root.resolve("sentinel.toml"), "version = 1\n\n[quality-gates.tests]\nenabled = true\ncommand = \"echo ok\"\n");

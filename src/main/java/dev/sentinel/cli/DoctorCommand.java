@@ -20,10 +20,14 @@ public final class DoctorCommand implements Callable<Integer> {
     public DoctorCommand(DoctorService service) { this.service = service; }
 
     @Override public Integer call() {
-        PrintWriter out = spec.commandLine().getOut();
+        PrintWriter out = output();
         var findings = service.diagnose(options.directory());
         findings.forEach(f -> out.printf("[%s] %-13s %s%n", f.status(), f.name(), f.message()));
         return findings.stream().anyMatch(f -> f.status() == DoctorService.Status.ERROR)
                 ? ExitCodes.ERROR : ExitCodes.OK;
+    }
+
+    private PrintWriter output() {
+        return spec == null ? new PrintWriter(System.out, true) : spec.commandLine().getOut();
     }
 }

@@ -5,6 +5,7 @@ import picocli.CommandLine.Model.CommandSpec;
 import picocli.CommandLine.Spec;
 
 import java.util.concurrent.Callable;
+import java.io.PrintWriter;
 
 @Command(name = "sentinel",
         description = "Sentinel is a quality gate orchestrator for AI coding agents.",
@@ -19,7 +20,13 @@ public class SentinelCommand implements Callable<Integer> {
 
     @Override
     public Integer call() {
-        spec.commandLine().usage(spec.commandLine().getErr());
+        if (spec == null) {
+            PrintWriter err = new PrintWriter(System.err, true);
+            err.println("Usage: sentinel [COMMAND]");
+            err.println("Use 'sentinel --help' for available commands.");
+        } else {
+            spec.commandLine().usage(spec.commandLine().getErr());
+        }
         return ExitCodes.ERROR;
     }
 }

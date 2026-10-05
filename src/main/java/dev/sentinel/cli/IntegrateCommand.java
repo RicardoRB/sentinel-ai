@@ -42,7 +42,7 @@ public final class IntegrateCommand implements Callable<Integer> {
         try {
             if (agent == null || agent.isBlank()) agent = selectAgent();
             IntegrationResult result = service.integrate(agent, options.directory(), remove);
-            PrintWriter out = spec.commandLine().getOut();
+            PrintWriter out = output();
             out.printf("%s: %s%n", result.status(), result.message());
             result.changed().forEach(path -> out.println(path));
             return result.status() == IntegrationResult.Status.CONFLICT ? ExitCodes.ERROR : ExitCodes.OK;
@@ -52,7 +52,7 @@ public final class IntegrateCommand implements Callable<Integer> {
     }
 
     private String selectAgent() {
-        PrintWriter out = spec.commandLine().getOut();
+        PrintWriter out = output();
         out.println("Select an agent integration:");
         out.println("1) opencode");
         out.println("2) claude-code");
@@ -73,5 +73,9 @@ public final class IntegrateCommand implements Callable<Integer> {
         } catch (IOException e) {
             throw new SentinelException("Could not read agent selection: " + e.getMessage());
         }
+    }
+
+    private PrintWriter output() {
+        return spec == null ? new PrintWriter(System.out, true) : spec.commandLine().getOut();
     }
 }
