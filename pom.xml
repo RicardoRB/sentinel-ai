@@ -124,12 +124,7 @@
                 <artifactId>maven-checkstyle-plugin</artifactId>
                 <version>3.6.0</version>
                 <configuration>
-                    <checkstyleRules>
-                        <module name="Checker">
-                            <module name="FileTabCharacter"/>
-                            <module name="NewlineAtEndOfFile"/>
-                        </module>
-                    </checkstyleRules>
+                    <configLocation>src/checkstyle/google_checks.xml</configLocation>
                 </configuration>
             </plugin>
             <plugin>
