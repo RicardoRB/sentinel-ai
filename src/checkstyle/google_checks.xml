@@ -47,7 +47,9 @@
   </module>
 
   <module name="TreeWalker">
-    <module name="UnusedImports"/>
+    <module name="UnusedImports">
+      <property name="severity" value="error"/>
+    </module>
     <module name="OuterTypeFilename"/>
     <module name="IllegalTokenText">
       <property name="tokens" value="STRING_LITERAL, CHAR_LITERAL"/>

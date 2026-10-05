@@ -4,7 +4,6 @@ import dev.sentinel.domain.config.SentinelConfiguration;
 import dev.sentinel.domain.config.SentinelConfigurationReader;
 import dev.sentinel.application.project.ProjectDetector;
 import dev.sentinel.application.project.ProjectNotFoundException;
-import dev.sentinel.application.project.ProjectDiscovery;
 import dev.sentinel.domain.config.SentinelException;
 import dev.sentinel.domain.gate.CheckReport;
 import dev.sentinel.domain.gate.QualityGate;

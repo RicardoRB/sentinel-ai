@@ -2,7 +2,6 @@ package dev.sentinel.application.init;
 
 import dev.sentinel.domain.agent.IntegrationResult;
 import dev.sentinel.domain.agent.AgentIntegration;
-import dev.sentinel.domain.config.GateConfiguration;
 import dev.sentinel.domain.config.SentinelConfiguration;
 import dev.sentinel.domain.config.SentinelException;
 import dev.sentinel.domain.init.ArchitectureTestChange;
