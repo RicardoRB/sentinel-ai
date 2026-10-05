@@ -30,7 +30,7 @@ Optional native image (GraalVM 25 as `JAVA_HOME`):
 ./mvnw -Pnative -DskipTests native:compile   # produces target/sentinel
 ```
 
-Stack: Java 25, Guice, Picocli, tomlj, Jackson, JUnit 5 + AssertJ. Sentinel has no Spring runtime dependency.
+Stack: Java 25, Guice, Picocli, JLine, tomlj, Jackson, ArchUnit (test scope), JUnit 6 + AssertJ. Sentinel has no Spring runtime dependency.
 
 ## Commands
 
@@ -236,20 +236,27 @@ What Sentinel does to limit the blast radius:
 
 ```text
 dev.sentinel
-├── cli/             Picocli commands, text/JSON renderers, exit codes
-├── application/     ProjectDetector, InitService, CheckService, QualityGateFactory, QualityGateRunner
-├── domain/          Project, QualityGate, MavenTestGate, GateResult, CheckReport,
-│                    SentinelConfiguration, and the ports CommandExecutor / SentinelConfigurationReader
-└── infrastructure/  ProcessCommandExecutor (ProcessBuilder), TomlConfigurationReader (tomlj)
+├── domain/<feature>/         Models, policies, and outbound port contracts
+├── application/<feature>/    Use cases and orchestration
+├── infrastructure/<feature>/ Outbound adapters (filesystem, process, TOML/XML, integrations)
+├── infrastructure/cli/       Inbound Picocli adapters, renderers, terminal I/O, shared CLI plumbing
+├── config/SentinelModule      Explicit Guice composition root
+└── SentinelApplication        Stable executable entry point
 ```
 
-`cli → application → domain`, and `infrastructure` implements the ports defined in `domain`, so the
-domain never touches `ProcessBuilder` or a TOML library. The composition root wires the pieces
-explicitly; the native entry point uses the same constructor graph without reflective startup.
+`infrastructure.cli` is the inbound adapter: commands call application use cases and must not depend
+on concrete outbound adapters or perform filesystem/process work. Interactive raw-key menus use
+JLine; filesystem questions are answered by application use cases through domain ports. Outbound
+adapters in `infrastructure.<feature>` implement domain ports. Application depends inward on domain,
+and domain contains no I/O, framework, Picocli, or parser implementations. ArchitectureBoundaryTest
+enforces these rules against compiled bytecode, including fully qualified dependencies and feature
+cycles. The composition root wires the pieces explicitly; the native entry point uses the same
+constructor graph without reflective startup.
 
-`QualityGate` (`name()`, `execute(Project)`) is the extension point. `QualityGateFactory` maps
-configuration entries to gates; today only `tests` → `MavenTestGate`, whose command always comes
-from the configuration.
+`QualityGate` (`name()`, `execute(Project)`) is the extension point in `domain.gate`. Add gate
+orchestration in `application.gate`, keep the supported configuration identifier in the domain
+gate vocabulary, and update `QualityGateFactory` plus `sentinel.toml` together. External effects
+remain behind domain ports implemented under the matching `infrastructure.<feature>` package.
 
 Tests: unit tests per layer, plus `SentinelCliIntegrationTest`, which runs `init` and `check`
 end to end against a small Maven fixture project (`src/test/resources/fixtures/maven-project`,

@@ -1,48 +1,74 @@
 package dev.sentinel.config;
 
 import com.google.inject.AbstractModule;
+import com.google.inject.Key;
 import com.google.inject.name.Names;
-import dev.sentinel.application.CheckService;
-import dev.sentinel.application.InitService;
-import dev.sentinel.application.ProjectDetector;
-import dev.sentinel.application.QualityGateFactory;
-import dev.sentinel.application.QualityGateRunner;
-import dev.sentinel.cli.CheckCommand;
-import dev.sentinel.cli.CommandLineRunnerImpl;
-import dev.sentinel.cli.DetectCommand;
-import dev.sentinel.cli.InitCommand;
-import dev.sentinel.cli.IntegrateCommand;
-import dev.sentinel.cli.DoctorCommand;
-import dev.sentinel.cli.LoopCommand;
-import dev.sentinel.cli.JsonReportRenderer;
-import dev.sentinel.cli.SentinelCommand;
-import dev.sentinel.cli.TextReportRenderer;
-import dev.sentinel.cli.VersionProvider;
+import com.google.inject.util.Types;
+import dev.sentinel.application.gate.CheckService;
+import dev.sentinel.application.init.InitService;
+import dev.sentinel.application.init.InitSetupCatalog;
+import dev.sentinel.application.doctor.DoctorService;
+import dev.sentinel.application.project.ProjectDetector;
+import dev.sentinel.application.gate.QualityGateFactory;
+import dev.sentinel.application.gate.QualityGateRunner;
+import dev.sentinel.application.loop.QualityLoopService;
+import dev.sentinel.infrastructure.cli.gate.CheckCommand;
+import dev.sentinel.infrastructure.cli.CommandLineRunnerImpl;
+import dev.sentinel.infrastructure.cli.project.DetectCommand;
+import dev.sentinel.infrastructure.cli.init.InitCommand;
+import dev.sentinel.infrastructure.cli.agent.IntegrateCommand;
+import dev.sentinel.infrastructure.cli.doctor.DoctorCommand;
+import dev.sentinel.infrastructure.cli.loop.LoopCommand;
+import dev.sentinel.infrastructure.cli.gate.JsonReportRenderer;
+import dev.sentinel.infrastructure.cli.SentinelCommand;
+import dev.sentinel.infrastructure.cli.gate.TextReportRenderer;
+import dev.sentinel.infrastructure.cli.VersionProvider;
 import dev.sentinel.domain.config.SentinelConfigurationReader;
 import dev.sentinel.domain.process.CommandExecutor;
-import dev.sentinel.infrastructure.ProcessCommandExecutor;
-import dev.sentinel.infrastructure.TomlConfigurationReader;
+import dev.sentinel.domain.project.ProjectInspection;
+import dev.sentinel.domain.init.ArchitectureTestGeneration;
+import dev.sentinel.domain.init.BuildToolConfiguration;
+import dev.sentinel.domain.init.ConfigurationStorage;
+import dev.sentinel.domain.agent.AgentIntegration;
+import dev.sentinel.domain.agent.AgentRunnerFactory;
+import dev.sentinel.domain.doctor.EnvironmentInspection;
+import dev.sentinel.domain.loop.GitStateInspection;
+import dev.sentinel.infrastructure.process.ProcessCommandExecutor;
+import dev.sentinel.infrastructure.config.TomlConfigurationReader;
+import dev.sentinel.infrastructure.project.FileSystemProjectInspection;
+import dev.sentinel.infrastructure.agent.OpenCodeIntegration;
+import dev.sentinel.infrastructure.agent.ClaudeCodeIntegration;
+import dev.sentinel.infrastructure.agent.ProcessAgentRunnerFactory;
+import dev.sentinel.infrastructure.doctor.SystemEnvironmentInspection;
+import dev.sentinel.infrastructure.loop.GitStateInspector;
+
+import java.util.Set;
 
 /** Explicit application wiring for the standalone CLI. */
 public final class SentinelModule extends AbstractModule {
-
     @Override
     protected void configure() {
         bind(CommandExecutor.class).to(ProcessCommandExecutor.class);
         bind(SentinelConfigurationReader.class).to(TomlConfigurationReader.class);
+        bind(ProjectInspection.class).to(FileSystemProjectInspection.class);
+        bind(EnvironmentInspection.class).to(SystemEnvironmentInspection.class);
+        bind(GitStateInspection.class).to(GitStateInspector.class);
+        bind(AgentRunnerFactory.class).to(ProcessAgentRunnerFactory.class);
+        bind(ConfigurationStorage.class).to(dev.sentinel.infrastructure.init.FileConfigurationStorage.class);
+        bind(BuildToolConfiguration.class).to(dev.sentinel.infrastructure.init.PomToolConfigurator.class);
+        bind(ArchitectureTestGeneration.class).to(dev.sentinel.infrastructure.init.ArchitectureTestGenerator.class);
 
         bind(ProjectDetector.class);
-        bind(dev.sentinel.application.InitSetupCatalog.class);
-        bind(dev.sentinel.application.PomToolConfigurator.class);
-        bind(dev.sentinel.application.ArchitectureTestGenerator.class);
+        bind(InitSetupCatalog.class);
         bind(QualityGateFactory.class);
         bind(QualityGateRunner.class);
         bind(InitService.class);
         bind(CheckService.class);
-        bind(dev.sentinel.application.IntegrationService.class);
-        bind(dev.sentinel.application.OpenCodeIntegration.class);
-        bind(dev.sentinel.application.ClaudeCodeIntegration.class);
-        bind(dev.sentinel.application.DoctorService.class);
+        bind(QualityLoopService.class);
+        bind(dev.sentinel.application.agent.IntegrationService.class);
+        bind(integrationSetKey()).toInstance(
+                Set.of(new OpenCodeIntegration(), new ClaudeCodeIntegration()));
+        bind(DoctorService.class);
 
         bind(SentinelCommand.class);
         bind(DetectCommand.class);
@@ -63,5 +89,10 @@ public final class SentinelModule extends AbstractModule {
     private static String resolveVersion() {
         String version = SentinelModule.class.getPackage().getImplementationVersion();
         return version == null || version.isBlank() ? "dev" : version;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Key<Set<AgentIntegration>> integrationSetKey() {
+        return (Key<Set<AgentIntegration>>) (Key<?>) Key.get(Types.setOf(AgentIntegration.class));
     }
 }

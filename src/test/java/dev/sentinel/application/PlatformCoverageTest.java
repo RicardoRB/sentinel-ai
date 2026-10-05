@@ -2,6 +2,7 @@ package dev.sentinel.application;
 
 import dev.sentinel.domain.project.Language;
 import org.junit.jupiter.api.Test;
+import dev.sentinel.application.gate.LanguageGateRegistry;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Files;
@@ -16,8 +17,18 @@ class PlatformCoverageTest {
         Files.writeString(python.resolve("pyproject.toml"), "[tool.poetry]");
         Path rust = Files.createDirectories(root.resolve("rust"));
         Files.writeString(rust.resolve("Cargo.toml"), "[package]");
-        assertThat(new ProjectDiscovery().discover(root).stream().map(project -> project.language()))
+        assertThat(new dev.sentinel.application.project.ProjectDiscovery(new dev.sentinel.infrastructure.project.FileSystemProjectInspection()).discover(root).stream().map(project -> project.language()))
                 .containsExactly(Language.JAVASCRIPT, Language.PYTHON, Language.RUST);
+    }
+
+    @Test void projectDiscoveryCarriesMavenWrapperAvailability(@TempDir Path root) throws Exception {
+        Files.writeString(root.resolve("pom.xml"), "<project/>");
+        Files.writeString(root.resolve("mvnw"), "#!/bin/sh\nexit 0\n");
+
+        var project = new dev.sentinel.application.project.ProjectDiscovery(
+                new dev.sentinel.infrastructure.project.FileSystemProjectInspection()).discover(root).getFirst();
+
+        assertThat(project.mavenWrapperAvailable()).isTrue();
     }
 
     @Test void exposesLanguageGateDefaults() {

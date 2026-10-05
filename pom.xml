@@ -17,6 +17,7 @@
         <jackson.version>3.0.3</jackson.version>
         <junit.version>6.0.3</junit.version>
         <assertj.version>3.27.6</assertj.version>
+        <jline.version>3.30.13</jline.version>
     </properties>
 
     <dependencies>
@@ -29,6 +30,16 @@
             <groupId>info.picocli</groupId>
             <artifactId>picocli</artifactId>
             <version>${picocli.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jline</groupId>
+            <artifactId>jline-terminal</artifactId>
+            <version>${jline.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jline</groupId>
+            <artifactId>jline-terminal-jna</artifactId>
+            <version>${jline.version}</version>
         </dependency>
         <dependency>
             <groupId>org.tomlj</groupId>
@@ -52,6 +63,18 @@
             <artifactId>assertj-core</artifactId>
             <version>${assertj.version}</version>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.tngtech.archunit</groupId>
+            <artifactId>archunit</artifactId>
+            <version>1.4.2</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.github.spotbugs</groupId>
+            <artifactId>spotbugs-annotations</artifactId>
+            <version>4.9.7</version>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 
