@@ -326,4 +326,78 @@ class SentinelCliIntegrationTest {
         assertThat(project.resolve("sentinel.toml")).doesNotExist();
         assertThat(target).hasContent("user-owned\n");
     }
+
+    @Test
+    void initRejectsInvalidAndEmptySelectionsWithoutWriting() {
+        assertThat(runInitWithInput("x\n", "-C", project.toString())).isEqualTo(ExitCodes.ERROR);
+        assertThat(err.toString()).contains("Invalid integration selection");
+        err.getBuffer().setLength(0);
+        assertThat(runInitWithInput("1\nx\n", "-C", project.toString())).isEqualTo(ExitCodes.ERROR);
+        assertThat(err.toString()).contains("Invalid quality-gate selection");
+        err.getBuffer().setLength(0);
+        assertThat(runInitWithInput("1\n\n", "-C", project.toString())).isEqualTo(ExitCodes.ERROR);
+        assertThat(err.toString()).contains("Select at least one quality gate");
+        assertThat(project.resolve("sentinel.toml")).doesNotExist();
+    }
+
+    @Test
+    void initRejectsInvalidArchitectureAndEof() {
+        assertThat(runInitWithInput("1\n5\nnope\n", "-C", project.toString())).isEqualTo(ExitCodes.ERROR);
+        assertThat(err.toString()).contains("Invalid architecture selection");
+        err.getBuffer().setLength(0);
+        assertThat(runInitWithInput("1\n5\n9\n", "-C", project.toString())).isEqualTo(ExitCodes.ERROR);
+        assertThat(err.toString()).contains("Invalid architecture selection");
+        err.getBuffer().setLength(0);
+        assertThat(runInitWithInput("1\n5\n", "-C", project.toString())).isEqualTo(ExitCodes.ERROR);
+        assertThat(err.toString()).contains("input ended");
+    }
+
+    @Test
+    void checkSupportsProfilesAndStrictJson() throws IOException {
+        run("init", "--integration", "none", "--gate", "tests,compile", "-C", project.toString());
+        Files.writeString(project.resolve("sentinel.toml"), """
+                version = 1
+                [quality-gates.tests]
+                command = "./mvnw test"
+                [quality-gates.compile]
+                command = "./mvnw compile"
+                [profiles.strict]
+                gates = ["tests", "compile"]
+                """);
+        out.getBuffer().setLength(0);
+        assertThat(run("check", "--profile", "strict", "--format", "json", "-C", project.toString())).isZero();
+        assertThat(out.toString()).contains("\"policies\"", "\"status\" : \"PASSED\"");
+        out.getBuffer().setLength(0);
+        assertThat(run("check", "--profile", "unknown", "--format", "json", "-C", project.toString()))
+                .isEqualTo(ExitCodes.ERROR);
+        assertThat(out.toString()).contains("\"status\" : \"ERROR\"");
+    }
+
+    @Test
+    void doctorReportsConfigurationAndIntegrationStates() throws IOException {
+        assertThat(run("doctor", "-C", project.toString())).isEqualTo(ExitCodes.ERROR);
+        assertThat(out.toString()).contains("configuration", "ERROR", "integration", "WARNING");
+        out.getBuffer().setLength(0);
+        run("init", "--integration", "opencode", "--gate", "tests", "-C", project.toString());
+        assertThat(run("doctor", "-C", project.toString())).isZero();
+        assertThat(out.toString()).contains("configuration", "OK", "integration", "OK");
+    }
+
+    @Test
+    void directIntegrationHandlesNotFoundAndRemoval() {
+        assertThat(run("integrate", "opencode", "--remove", "-C", project.toString())).isZero();
+        assertThat(out.toString()).contains("NOT_FOUND");
+        out.getBuffer().setLength(0);
+        assertThat(run("integrate", "claude-code", "--remove", "-C", project.toString())).isZero();
+        assertThat(out.toString()).contains("NOT_FOUND");
+    }
+
+    @Test
+    void interactiveIntegrationRejectsInvalidAndEof() {
+        assertThat(runWithInput("9\n", "-C", project.toString())).isEqualTo(ExitCodes.ERROR);
+        assertThat(err.toString()).contains("Invalid agent selection");
+        err.getBuffer().setLength(0);
+        assertThat(runWithInput("", "-C", project.toString())).isEqualTo(ExitCodes.ERROR);
+        assertThat(err.toString()).contains("No agent selected");
+    }
 }
