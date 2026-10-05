@@ -53,13 +53,19 @@ public final class InitSetupCatalog {
         List<GateOption> options = new ArrayList<>();
         options.add(option("tests", executable, "test", mavenAvailable, availability));
         options.add(option("compile", executable, "compile", mavenAvailable, availability));
-        options.add(option("command", executable, "test", mavenAvailable,
-                availability + " (customize the command in sentinel.toml after initialization.)"));
+        options.add(option("coverage", executable, "jacoco:check", mavenAvailable,
+                availability + " (minimum coverage is configured in pom.xml.)"));
+        options.add(option("spotbugs", executable, "spotbugs:check", mavenAvailable, availability));
+        options.add(option("checkstyle", executable, "checkstyle:check", mavenAvailable, availability));
+        options.add(option("sonar", executable, "sonar", mavenAvailable, availability));
+        options.add(option("dependency-check", executable, "dependency-check:check", mavenAvailable, availability));
         options.add(option("archunit", executable, "-Dtest=ArchitectureTest", "test", mavenAvailable,
                 availability + " (runs only ArchitectureTest.)"));
-        options.add(option("checkstyle", executable, "checkstyle:check", mavenAvailable, availability));
-        options.add(option("spotbugs", executable, "spotbugs:check", mavenAvailable, availability));
-        options.add(option("sonar", executable, "sonar", mavenAvailable, availability));
+        options.add(option("mutation", executable, "pitest:mutationCoverage", mavenAvailable, availability));
+        options.add(option("compliance", executable, "enforcer:enforce", mavenAvailable,
+                availability + " (dependency and build compliance rules are configured in pom.xml.)"));
+        options.add(option("command", executable, "test", mavenAvailable,
+                availability + " (customize the command in sentinel.toml after initialization.)"));
         return List.copyOf(options);
     }
 

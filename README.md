@@ -71,8 +71,9 @@ Detection looks for a `pom.xml` and marks the project as Spring Boot when the po
 
 When `sentinel.toml` does not exist, `sentinel init` launches a setup wizard that selects one or
 more agent integrations and one quality gate. The integration choices are `none`, `opencode`, and `claude-code`;
-the gate choices are the supported quality-gate registry entries (`tests`, `compile`,
-`command`, `archunit`, `checkstyle`, `spotbugs`, and `sonar`).
+the gate choices are the supported quality-gate registry entries (`compile`, `tests`, `coverage`,
+`spotbugs`, `checkstyle`, `sonar`, `dependency-check`, `archunit`, `mutation`, `compliance`,
+and `command`).
 
 For automation, provide both selections explicitly:
 

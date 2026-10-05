@@ -123,9 +123,11 @@ class CoverageExpansionTest {
         PomToolConfigurator configurator = new PomToolConfigurator();
         PomToolConfigurator.PomChange change = configurator.configure(root, gates);
         assertThat(change.tools()).containsExactly("maven-checkstyle-plugin", "spotbugs-maven-plugin",
-                "sonar-maven-plugin", "archunit-junit5");
-        assertThat(Files.readString(root.resolve("pom.xml"))).contains("maven-checkstyle-plugin",
-                "spotbugs-maven-plugin", "sonar-maven-plugin", "archunit-junit5");
+                "sonar-maven-plugin", "jacoco-maven-plugin", "dependency-check-maven",
+                "archunit-junit5", "pitest-maven", "maven-enforcer-plugin");
+        assertThat(Files.readString(root.resolve("pom.xml"))).contains("jacoco-maven-plugin",
+                "maven-checkstyle-plugin", "spotbugs-maven-plugin", "sonar-maven-plugin",
+                "dependency-check-maven", "archunit-junit5", "pitest-maven", "maven-enforcer-plugin");
         configurator.rollback(change);
         assertThat(Files.readString(root.resolve("pom.xml"))).isEqualTo(TestProjects.PLAIN_POM);
         configurator.rollback(null);

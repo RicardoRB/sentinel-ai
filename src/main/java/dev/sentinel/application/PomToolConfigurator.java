@@ -15,6 +15,10 @@ public final class PomToolConfigurator {
     private static final String SPOTBUGS = "spotbugs-maven-plugin";
     private static final String SONAR = "sonar-maven-plugin";
     private static final String ARCHUNIT = "archunit-junit5";
+    private static final String JACOCO = "jacoco-maven-plugin";
+    private static final String DEPENDENCY_CHECK = "dependency-check-maven";
+    private static final String PIT = "pitest-maven";
+    private static final String ENFORCER = "maven-enforcer-plugin";
 
     private static final String CHECKSTYLE_PLUGIN = """
               <plugin>
@@ -44,6 +48,64 @@ public final class PomToolConfigurator {
                 <version>1.3.0</version>
                 <scope>test</scope>
               </dependency>
+            """;
+    private static final String JACOCO_PLUGIN = """
+              <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>0.8.13</version>
+                <configuration>
+                  <rules>
+                    <rule>
+                      <element>BUNDLE</element>
+                      <limits>
+                        <limit>
+                          <counter>LINE</counter>
+                          <value>COVEREDRATIO</value>
+                          <minimum>0.80</minimum>
+                        </limit>
+                      </limits>
+                    </rule>
+                  </rules>
+                </configuration>
+              </plugin>
+            """;
+    private static final String DEPENDENCY_CHECK_PLUGIN = """
+              <plugin>
+                <groupId>org.owasp</groupId>
+                <artifactId>dependency-check-maven</artifactId>
+                <version>12.1.0</version>
+                <configuration>
+                  <failBuildOnCVSS>7</failBuildOnCVSS>
+                </configuration>
+              </plugin>
+            """;
+    private static final String PIT_PLUGIN = """
+              <plugin>
+                <groupId>org.pitest</groupId>
+                <artifactId>pitest-maven</artifactId>
+                <version>1.17.4</version>
+                <dependencies>
+                  <dependency>
+                    <groupId>org.pitest</groupId>
+                    <artifactId>pitest-junit5-plugin</artifactId>
+                    <version>1.2.1</version>
+                  </dependency>
+                </dependencies>
+              </plugin>
+            """;
+    private static final String ENFORCER_PLUGIN = """
+              <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>3.5.0</version>
+                <configuration>
+                  <rules>
+                    <dependencyConvergence/>
+                  </rules>
+                  <fail>true</fail>
+                </configuration>
+              </plugin>
             """;
 
     public record PomChange(Path file, String original, List<String> tools) {
@@ -75,9 +137,26 @@ public final class PomToolConfigurator {
                 updated = addPlugin(updated, SONAR_PLUGIN);
                 tools.add(SONAR);
             }
+            if (gates.stream().anyMatch(gate -> gate.id().equals("coverage")) && !containsArtifact(updated, JACOCO)) {
+                updated = addPlugin(updated, JACOCO_PLUGIN);
+                tools.add(JACOCO);
+            }
+            if (gates.stream().anyMatch(gate -> gate.id().equals("dependency-check"))
+                    && !containsArtifact(updated, DEPENDENCY_CHECK)) {
+                updated = addPlugin(updated, DEPENDENCY_CHECK_PLUGIN);
+                tools.add(DEPENDENCY_CHECK);
+            }
             if (needsArchUnit && !containsArtifact(updated, ARCHUNIT)) {
                 updated = addDependency(updated, ARCHUNIT_DEPENDENCY);
                 tools.add(ARCHUNIT);
+            }
+            if (gates.stream().anyMatch(gate -> gate.id().equals("mutation")) && !containsArtifact(updated, PIT)) {
+                updated = addPlugin(updated, PIT_PLUGIN);
+                tools.add(PIT);
+            }
+            if (gates.stream().anyMatch(gate -> gate.id().equals("compliance")) && !containsArtifact(updated, ENFORCER)) {
+                updated = addPlugin(updated, ENFORCER_PLUGIN);
+                tools.add(ENFORCER);
             }
             if (!tools.isEmpty()) {
                 Files.writeString(pom, updated, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);

@@ -18,7 +18,8 @@ import java.util.Map;
 public class QualityGateFactory {
 
     public static final List<String> SUPPORTED_GATES = List.of(
-            "tests", "compile", "command", "archunit", "checkstyle", "spotbugs", "sonar");
+            "tests", "compile", "coverage", "spotbugs", "checkstyle", "sonar",
+            "dependency-check", "archunit", "mutation", "compliance", "command");
     private static final List<String> LEGACY_GATES = List.of("architecture");
 
     private final CommandExecutor executor;
