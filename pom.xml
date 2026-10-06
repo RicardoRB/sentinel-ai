@@ -17,7 +17,6 @@
         <jackson.version>3.0.3</jackson.version>
         <junit.version>6.0.3</junit.version>
         <assertj.version>3.27.6</assertj.version>
-        <jline.version>3.30.13</jline.version>
     </properties>
 
     <dependencies>
@@ -30,16 +29,6 @@
             <groupId>info.picocli</groupId>
             <artifactId>picocli</artifactId>
             <version>${picocli.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.jline</groupId>
-            <artifactId>jline-terminal</artifactId>
-            <version>${jline.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.jline</groupId>
-            <artifactId>jline-terminal-jna</artifactId>
-            <version>${jline.version}</version>
         </dependency>
         <dependency>
             <groupId>org.tomlj</groupId>
@@ -161,6 +150,7 @@
                                     <mainClass>dev.sentinel.SentinelApplication</mainClass>
                                     <manifestEntries>
                                         <Implementation-Version>${project.version}</Implementation-Version>
+                                        <Enable-Native-Access>ALL-UNNAMED</Enable-Native-Access>
                                     </manifestEntries>
                                 </transformer>
                             </transformers>

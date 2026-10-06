@@ -1,4 +1,11 @@
 [
+  { "name": "java.lang.Boolean", "allPublicMethods": true },
+  { "name": "java.lang.Byte", "allPublicMethods": true },
+  { "name": "java.lang.Double", "allPublicMethods": true },
+  { "name": "java.lang.Float", "allPublicMethods": true },
+  { "name": "java.lang.Integer", "allPublicMethods": true },
+  { "name": "java.lang.Long", "allPublicMethods": true },
+  { "name": "java.lang.Short", "allPublicMethods": true },
   { "name": "dev.sentinel.application.agent.IntegrationService", "allDeclaredConstructors": true },
   { "name": "dev.sentinel.application.doctor.DoctorService", "allDeclaredConstructors": true },
   { "name": "dev.sentinel.application.gate.CheckService", "allDeclaredConstructors": true },
@@ -20,6 +27,14 @@
   { "name": "dev.sentinel.infrastructure.process.ProcessCommandExecutor", "allDeclaredConstructors": true },
   { "name": "dev.sentinel.infrastructure.project.FileSystemProjectInspection", "allDeclaredConstructors": true },
   { "name": "dev.sentinel.infrastructure.cli.CommandLineRunnerImpl", "allDeclaredConstructors": true },
+  { "name": "dev.sentinel.infrastructure.cli.SentinelCommand", "allDeclaredConstructors": true },
+  { "name": "dev.sentinel.infrastructure.cli.init.InitCommand", "allDeclaredConstructors": true },
+  { "name": "dev.sentinel.infrastructure.cli.agent.IntegrateCommand", "allDeclaredConstructors": true },
+  { "name": "dev.sentinel.infrastructure.cli.doctor.DoctorCommand", "allDeclaredConstructors": true },
+  { "name": "dev.sentinel.infrastructure.cli.gate.CheckCommand", "allDeclaredConstructors": true },
+  { "name": "dev.sentinel.infrastructure.cli.loop.LoopCommand", "allDeclaredConstructors": true },
+  { "name": "dev.sentinel.infrastructure.cli.project.DetectCommand", "allDeclaredConstructors": true },
+  { "name": "dev.sentinel.infrastructure.terminal.PosixRawTerminal", "allDeclaredConstructors": true },
   { "name": "dev.sentinel.infrastructure.cli.gate.JsonReportRenderer", "allDeclaredConstructors": true },
   { "name": "dev.sentinel.infrastructure.cli.gate.TextReportRenderer", "allDeclaredConstructors": true }
 ]

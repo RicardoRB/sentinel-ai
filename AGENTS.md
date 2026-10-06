@@ -6,7 +6,7 @@
 - CLI commands are inbound adapters under `infrastructure/cli/<feature>`; shared Picocli plumbing lives in `infrastructure/cli`.
 - Dependency direction is `infrastructure.cli → application → domain`; outbound adapters under `infrastructure/<feature>` implement domain ports. CLI adapters must not depend on concrete outbound adapters or perform filesystem/process work.
 - Keep domain models free of I/O and framework implementations; application orchestrates domain contracts without depending on infrastructure. `ArchitectureBoundaryTest` enforces bytecode boundaries, placement, and feature dependencies.
-- Use JLine for raw-key terminal menus; do not launch `stty` or another process from CLI code. Route filesystem checks through application use cases and domain ports.
+- Raw-key terminal input uses the `RawTerminal` port and POSIX adapter; do not launch `stty` or another process from CLI code. Route filesystem checks through application use cases and domain ports.
 - `QualityGate` is the extension point; update `QualityGateFactory` and `sentinel.toml` together when adding a gate.
 - `config/SentinelModule` wires Guice; preserve the explicit constructor graph for native-image compatibility.
 

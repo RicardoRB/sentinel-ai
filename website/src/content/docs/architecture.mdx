@@ -18,7 +18,8 @@ dev.sentinel
 
 CLI adapters must not perform filesystem/process work or depend on concrete outbound adapters.
 Domain models contain no I/O or framework implementations; outbound adapters implement domain
-ports. JLine handles raw-key terminal menus. `ArchitectureBoundaryTest` enforces these rules.
+ports. Raw-key terminal input is isolated behind the `RawTerminal` port and a POSIX adapter;
+`ArchitectureBoundaryTest` enforces these rules.
 
 `QualityGate` is the gate extension point. Gate orchestration belongs in `application.gate`, supported
 IDs in the domain vocabulary, and the registry in `QualityGateFactory`; configuration examples and

@@ -296,6 +296,16 @@ class SentinelCliIntegrationTest {
   }
 
   @Test
+  void initFallsBackToNumberedPromptsWhenRawTerminalIsUnavailable() throws IOException {
+    assertThat(runInitWithInput("1\n1\n", "-C", project.toString())).isZero();
+
+    assertThat(out.toString())
+        .contains(
+            "enter numbers separated by spaces", "Toggle integrations", "Toggle quality gates");
+    assertThat(project.resolve("sentinel.toml")).exists();
+  }
+
+  @Test
   void initInstallsMultipleIntegrationsSelectedWithSpaces() {
     assertThat(runInitWithInput("2 3\n1\n", "-C", project.toString())).isZero();
     assertThat(project.resolve(".opencode/commands/sentinel-check.md")).exists();

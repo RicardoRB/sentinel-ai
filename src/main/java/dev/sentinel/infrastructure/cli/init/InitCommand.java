@@ -10,6 +10,8 @@ import dev.sentinel.domain.init.InitGateOption;
 import dev.sentinel.domain.init.InitIntegrationOption;
 import dev.sentinel.domain.init.InitResult;
 import dev.sentinel.domain.init.InitSelection;
+import dev.sentinel.domain.init.RawTerminal;
+import dev.sentinel.domain.init.RawTerminal.RawSession;
 import dev.sentinel.domain.project.Project;
 import dev.sentinel.infrastructure.cli.ExitCodes;
 import dev.sentinel.infrastructure.cli.ProjectOptions;
@@ -23,10 +25,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.function.Supplier;
-import org.jline.terminal.Terminal;
-import org.jline.terminal.TerminalBuilder;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Model.CommandSpec;
@@ -39,6 +40,7 @@ import picocli.CommandLine.Spec;
     mixinStandardHelpOptions = true,
     versionProvider = VersionProvider.class)
 public class InitCommand implements Callable<Integer> {
+  private static final RawTerminal UNAVAILABLE_TERMINAL = Optional::empty;
 
   @Spec private CommandSpec spec;
   @Mixin private ProjectOptions options = new ProjectOptions();
@@ -70,16 +72,26 @@ public class InitCommand implements Callable<Integer> {
   private final Supplier<InitService> service;
   private final InputStream input;
   private final BufferedReader reader;
+  private final RawTerminal rawTerminal;
 
-  @Inject
   public InitCommand(InitService service) {
-    this(service, System.in);
+    this(service, System.in, UNAVAILABLE_TERMINAL);
   }
 
   public InitCommand(InitService service, InputStream input) {
+    this(service, input, UNAVAILABLE_TERMINAL);
+  }
+
+  @Inject
+  public InitCommand(InitService service, RawTerminal rawTerminal) {
+    this(service, System.in, rawTerminal);
+  }
+
+  public InitCommand(InitService service, InputStream input, RawTerminal rawTerminal) {
     this.service = () -> service;
     this.input = input;
     this.reader = new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8));
+    this.rawTerminal = rawTerminal;
   }
 
   @Override
@@ -128,13 +140,24 @@ public class InitCommand implements Callable<Integer> {
   }
 
   private List<String> selectIntegrations(InitSetupCatalog catalog) {
-    if (input == System.in
-        && System.console() != null
-        && !System.getProperty("os.name", "").toLowerCase().contains("win")) {
-      return selectIntegrationsWithKeys(catalog);
-    }
     PrintWriter out = output();
     List<InitIntegrationOption> choices = catalog.integrations();
+    var raw = openRawTerminal();
+    if (raw.isPresent()) {
+      try (RawSession session = raw.get()) {
+        List<String> labels = choices.stream().map(InitIntegrationOption::label).toList();
+        return new MultiSelectMenu()
+                .select(
+                    "Select agent integrations",
+                    labels,
+                    "Select at least one integration, or choose none.",
+                    session::read,
+                    out)
+                .stream()
+                .map(index -> choices.get(index).id())
+                .toList();
+      }
+    }
     out.println("Select agent integrations (enter numbers separated by spaces, then press Enter):");
     for (int i = 0; i < choices.size(); i++) {
       out.printf("> [ ] %d) %s%n", i + 1, choices.get(i).label());
@@ -157,72 +180,24 @@ public class InitCommand implements Callable<Integer> {
     }
   }
 
-  private List<String> selectIntegrationsWithKeys(InitSetupCatalog catalog) {
-    List<InitIntegrationOption> choices = catalog.integrations();
-    boolean[] selected = new boolean[choices.size()];
-    int cursor = 0;
-    try (Terminal terminal = TerminalBuilder.builder().system(true).build()) {
-      var originalAttributes = terminal.enterRawMode();
-      try {
-        renderIntegrationChoices(catalog, selected, cursor);
-        while (true) {
-          int key = terminal.reader().read();
-          if (key < 0)
-            throw new SentinelException(
-                "Initialization cancelled: input ended before setup completed.");
-          if (key == ' ') {
-            selected[cursor] = !selected[cursor];
-            renderIntegrationChoices(catalog, selected, cursor);
-          } else if (key == '\n' || key == '\r') {
-            return selectedIntegrations(choices, selected);
-          } else if (key == 'q' || key == 'Q' || key == 3) {
-            throw new SentinelException("Initialization cancelled by the user.");
-          } else if (key == 27) {
-            int bracket = terminal.reader().read();
-            int direction = bracket == '[' ? terminal.reader().read() : -1;
-            if (direction == 'A') cursor = (cursor + choices.size() - 1) % choices.size();
-            if (direction == 'B') cursor = (cursor + 1) % choices.size();
-            renderIntegrationChoices(catalog, selected, cursor);
-          }
-        }
-      } finally {
-        terminal.setAttributes(originalAttributes);
-        output().println();
-      }
-    } catch (IOException e) {
-      throw new SentinelException("Could not read initialization selection: " + e.getMessage());
-    }
-  }
-
-  private void renderIntegrationChoices(InitSetupCatalog catalog, boolean[] selected, int cursor) {
-    PrintWriter out = output();
-    out.print("\033[2J\033[H");
-    out.println("Select agent integrations (Space toggles, arrows move, Enter confirms):");
-    List<InitIntegrationOption> choices = catalog.integrations();
-    for (int i = 0; i < choices.size(); i++) {
-      out.printf(
-          "%s %s %d) %s%n",
-          i == cursor ? ">" : " ", selected[i] ? "[x]" : "[ ]", i + 1, choices.get(i).label());
-    }
-    out.flush();
-  }
-
-  private List<String> selectedIntegrations(
-      List<InitIntegrationOption> choices, boolean[] selected) {
-    List<String> result = new ArrayList<>();
-    for (int i = 0; i < selected.length; i++) if (selected[i]) result.add(choices.get(i).id());
-    if (result.isEmpty())
-      throw new SentinelException("Select at least one integration, or choose none.");
-    return result;
-  }
-
   private List<String> selectGates(InitSetupCatalog catalog, Project project) {
     PrintWriter out = output();
     List<InitGateOption> choices = catalog.gates(project);
-    if (input == System.in
-        && System.console() != null
-        && !System.getProperty("os.name", "").toLowerCase().contains("win")) {
-      return selectGatesWithKeys(choices);
+    var raw = openRawTerminal();
+    if (raw.isPresent()) {
+      try (RawSession session = raw.get()) {
+        List<String> labels = choices.stream().map(c -> c.id() + " - " + c.description()).toList();
+        return new MultiSelectMenu()
+                .select(
+                    "Select quality gates",
+                    labels,
+                    "Select at least one quality gate.",
+                    session::read,
+                    out)
+                .stream()
+                .map(index -> choices.get(index).id())
+                .toList();
+      }
     }
     out.println("Select quality gates (enter numbers separated by spaces, then press Enter):");
     for (int i = 0; i < choices.size(); i++) {
@@ -363,64 +338,11 @@ public class InitCommand implements Callable<Integer> {
     }
   }
 
-  private List<String> selectGatesWithKeys(List<InitGateOption> choices) {
-    boolean[] selected = new boolean[choices.size()];
-    int cursor = 0;
-    try (Terminal terminal = TerminalBuilder.builder().system(true).build()) {
-      var originalAttributes = terminal.enterRawMode();
-      try {
-        renderGateChoices(choices, selected, cursor);
-        while (true) {
-          int key = terminal.reader().read();
-          if (key < 0)
-            throw new SentinelException(
-                "Initialization cancelled: input ended before setup completed.");
-          if (key == ' ') {
-            selected[cursor] = !selected[cursor];
-            renderGateChoices(choices, selected, cursor);
-          } else if (key == '\n' || key == '\r') {
-            return selectedGates(choices, selected);
-          } else if (key == 'q' || key == 'Q' || key == 3) {
-            throw new SentinelException("Initialization cancelled by the user.");
-          } else if (key == 27) {
-            int bracket = terminal.reader().read();
-            int direction = bracket == '[' ? terminal.reader().read() : -1;
-            if (direction == 'A') cursor = (cursor + choices.size() - 1) % choices.size();
-            if (direction == 'B') cursor = (cursor + 1) % choices.size();
-            renderGateChoices(choices, selected, cursor);
-          }
-        }
-      } finally {
-        terminal.setAttributes(originalAttributes);
-        output().println();
-      }
-    } catch (IOException e) {
-      throw new SentinelException("Could not read initialization selection: " + e.getMessage());
-    }
-  }
-
-  private void renderGateChoices(List<InitGateOption> choices, boolean[] selected, int cursor) {
-    PrintWriter out = output();
-    out.print("\033[2J\033[H");
-    out.println("Select quality gates (Space toggles, arrows move, Enter confirms):");
-    for (int i = 0; i < choices.size(); i++) {
-      out.printf(
-          "%s %s %d) %s - %s [%s]%n",
-          i == cursor ? ">" : " ",
-          selected[i] ? "[x]" : "[ ]",
-          i + 1,
-          choices.get(i).id(),
-          choices.get(i).description(),
-          choices.get(i).available() ? "available" : "unavailable");
-    }
-    out.flush();
-  }
-
-  private List<String> selectedGates(List<InitGateOption> choices, boolean[] selected) {
-    List<String> result = new ArrayList<>();
-    for (int i = 0; i < selected.length; i++) if (selected[i]) result.add(choices.get(i).id());
-    if (result.isEmpty()) throw new SentinelException("Select at least one quality gate.");
-    return result;
+  private Optional<RawSession> openRawTerminal() {
+    if (input != System.in
+        || System.console() == null
+        || System.getProperty("os.name", "").toLowerCase().contains("win")) return Optional.empty();
+    return rawTerminal.open();
   }
 
   private int printResult(InitResult result) {

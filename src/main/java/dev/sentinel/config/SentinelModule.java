@@ -20,6 +20,7 @@ import dev.sentinel.domain.doctor.EnvironmentInspection;
 import dev.sentinel.domain.init.ArchitectureTestGeneration;
 import dev.sentinel.domain.init.BuildToolConfiguration;
 import dev.sentinel.domain.init.ConfigurationStorage;
+import dev.sentinel.domain.init.RawTerminal;
 import dev.sentinel.domain.loop.GitStateInspection;
 import dev.sentinel.domain.process.CommandExecutor;
 import dev.sentinel.domain.project.ProjectInspection;
@@ -45,6 +46,7 @@ import dev.sentinel.infrastructure.init.PomToolConfigurator;
 import dev.sentinel.infrastructure.loop.GitStateInspector;
 import dev.sentinel.infrastructure.process.ProcessCommandExecutor;
 import dev.sentinel.infrastructure.project.FileSystemProjectInspection;
+import dev.sentinel.infrastructure.terminal.PosixRawTerminal;
 import java.util.Set;
 
 /** Explicit application wiring for the standalone CLI. */
@@ -58,6 +60,7 @@ public final class SentinelModule extends AbstractModule {
     bind(GitStateInspection.class).to(GitStateInspector.class);
     bind(AgentRunnerFactory.class).to(ProcessAgentRunnerFactory.class);
     bind(ConfigurationStorage.class).to(FileConfigurationStorage.class);
+    bind(RawTerminal.class).to(PosixRawTerminal.class);
     bind(BuildToolConfiguration.class).to(PomToolConfigurator.class);
     bind(ArchitectureTestGeneration.class).to(ArchitectureTestGenerator.class);
 
