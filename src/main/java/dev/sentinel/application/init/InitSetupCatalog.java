@@ -131,12 +131,66 @@ public final class InitSetupCatalog {
             availability));
     options.add(
         option(
-            "compliance",
-            "Checks dependency and build compliance rules.",
+            "format",
+            "Checks formatting with Spotless and google-java-format.",
+            executable,
+            "spotless:check",
+            mavenAvailable,
+            availability));
+    options.add(
+        binaryOption(
+            project,
+            "semgrep",
+            "Runs SAST and custom security rules with Semgrep.",
+            List.of("semgrep", "scan", "--config", "p/java", "--error"),
+            "Install Semgrep (needs network access to fetch the p/java ruleset)."));
+    options.add(
+        binaryOption(
+            project,
+            "gitleaks",
+            "Detects committed secrets with Gitleaks.",
+            List.of("gitleaks", "detect", "--no-banner", "--redact"),
+            "Install Gitleaks."));
+    options.add(
+        binaryOption(
+            project,
+            "zap",
+            "Runs an OWASP ZAP baseline DAST scan against a running application.",
+            List.of("zap-baseline.py", "-t", SupportedQualityGates.ZAP_TARGET_PLACEHOLDER),
+            "Install ZAP and replace "
+                + SupportedQualityGates.ZAP_TARGET_PLACEHOLDER
+                + " with a target you are authorized to scan before running."));
+    options.add(
+        binaryOption(
+            project,
+            "trivy",
+            "Scans dependencies, containers, and IaC with Trivy.",
+            List.of("trivy", "fs", "--exit-code", "1", "."),
+            "Install Trivy."));
+    options.add(
+        option(
+            "enforcer",
+            "Enforces dependency and build rules with Maven Enforcer.",
             executable,
             "enforcer:enforce",
             mavenAvailable,
-            availability + " (dependency and build compliance rules are configured in pom.xml.)"));
+            availability + " (dependency and build rules are configured in pom.xml.)"));
+    options.add(
+        option(
+            "license",
+            "Checks dependency license compliance with the License Maven Plugin.",
+            executable,
+            "license:add-third-party",
+            mavenAvailable,
+            availability + " (license policy is configured in pom.xml.)"));
+    options.add(
+        option(
+            "api-compat",
+            "Checks binary/API compatibility between versions with japicmp.",
+            executable,
+            "japicmp:cmp",
+            mavenAvailable,
+            availability + " (the comparison baseline is configured in pom.xml.)"));
     options.add(
         option(
             "command",
@@ -171,6 +225,16 @@ public final class InitSetupCatalog {
                         + id
                         + "'. Supported gates: "
                         + SupportedQualityGates.IDS));
+  }
+
+  private InitGateOption binaryOption(
+      Project project, String id, String description, List<String> command, String hint) {
+    boolean available = environment.inspect(project.root()).hasExecutable(command.getFirst());
+    String message =
+        available
+            ? "Executable available: " + command.getFirst()
+            : command.getFirst() + " is not on the path. " + hint;
+    return new InitGateOption(id, description, command, available, message);
   }
 
   private static InitGateOption option(

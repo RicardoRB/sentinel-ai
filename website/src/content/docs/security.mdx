@@ -12,3 +12,7 @@ Sentinel invokes commands as an argument vector, never through a shell: shell ch
 globbing, and redirection do not occur. This is **not a sandbox**—a wrapper such as `./mvnw` can
 itself execute arbitrary build code. Child processes receive no stdin. Agent hooks and plugins also
 execute repository-local configuration, so install integrations only in trusted projects.
+
+Dynamic scans (`zap`) run only against the target you put in `sentinel.toml`; Sentinel never infers
+or starts one, and you must be authorized to scan it. Secret scanners should run with redaction
+(`gitleaks --redact` is the `init` default) so matched values do not appear in reports or logs.

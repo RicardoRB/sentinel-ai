@@ -11,6 +11,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
 import javax.inject.Inject;
 
 /** Adds only missing, pinned Maven tool declarations required by selected init gates. */
@@ -26,6 +27,59 @@ public final class PomToolConfigurator implements BuildToolConfiguration {
   private static final String DEPENDENCY_CHECK = "dependency-check-maven";
   private static final String PIT = "pitest-maven";
   private static final String ENFORCER = "maven-enforcer-plugin";
+  private static final String SPOTLESS = "spotless-maven-plugin";
+  private static final String LICENSE = "license-maven-plugin";
+  private static final String JAPICMP = "japicmp-maven-plugin";
+
+  private static final String SPOTLESS_PLUGIN =
+      """
+              <plugin>
+                <groupId>com.diffplug.spotless</groupId>
+                <artifactId>spotless-maven-plugin</artifactId>
+                <version>2.44.4</version>
+                <configuration>
+                  <java>
+                    <googleJavaFormat/>
+                  </java>
+                </configuration>
+              </plugin>
+            """;
+  private static final String LICENSE_PLUGIN =
+      """
+              <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>license-maven-plugin</artifactId>
+                <version>2.5.0</version>
+                <configuration>
+                  <failOnBlacklist>true</failOnBlacklist>
+                  <excludedLicenses>
+                    <excludedLicense>GNU General Public License (GPL)</excludedLicense>
+                    <excludedLicense>GNU Affero General Public License (AGPL)</excludedLicense>
+                  </excludedLicenses>
+                </configuration>
+              </plugin>
+            """;
+  private static final String JAPICMP_PLUGIN =
+      """
+              <plugin>
+                <groupId>com.github.siom79.japicmp</groupId>
+                <artifactId>japicmp-maven-plugin</artifactId>
+                <version>0.23.1</version>
+                <configuration>
+                  <oldVersion>
+                    <dependency>
+                      <groupId>${project.groupId}</groupId>
+                      <artifactId>${project.artifactId}</artifactId>
+                      <version>RELEASE</version>
+                      <type>jar</type>
+                    </dependency>
+                  </oldVersion>
+                  <parameter>
+                    <breakBuildOnBinaryIncompatibleModifications>true</breakBuildOnBinaryIncompatibleModifications>
+                  </parameter>
+                </configuration>
+              </plugin>
+            """;
 
   private static final String CHECKSTYLE_PLUGIN =
       """
@@ -165,10 +219,25 @@ public final class PomToolConfigurator implements BuildToolConfiguration {
         updated = addPlugin(updated, PIT_PLUGIN);
         tools.add(PIT);
       }
-      if (gates.stream().anyMatch(gate -> "compliance".equals(gate.id()))
+      if (gates.stream().anyMatch(gate -> "enforcer".equals(gate.id()))
           && !containsArtifact(updated, ENFORCER)) {
         updated = addPlugin(updated, ENFORCER_PLUGIN);
         tools.add(ENFORCER);
+      }
+      if (gates.stream().anyMatch(gate -> "format".equals(gate.id()))
+          && !containsArtifact(updated, SPOTLESS)) {
+        updated = addPlugin(updated, SPOTLESS_PLUGIN);
+        tools.add(SPOTLESS);
+      }
+      if (gates.stream().anyMatch(gate -> "license".equals(gate.id()))
+          && !containsArtifact(updated, LICENSE)) {
+        updated = addPlugin(updated, LICENSE_PLUGIN);
+        tools.add(LICENSE);
+      }
+      if (gates.stream().anyMatch(gate -> "api-compat".equals(gate.id()))
+          && !containsArtifact(updated, JAPICMP)) {
+        updated = addPlugin(updated, JAPICMP_PLUGIN);
+        tools.add(JAPICMP);
       }
       if (!tools.isEmpty()) {
         Files.writeString(
@@ -203,27 +272,33 @@ public final class PomToolConfigurator implements BuildToolConfiguration {
 
   private static String addPlugin(String pom, String plugin) {
     if (pom.contains("</plugins>")) {
-      return pom.replaceFirst("</plugins>", plugin + "  </plugins>");
+      return pom.replaceFirst("</plugins>", Matcher.quoteReplacement(plugin + "  </plugins>"));
     }
     if (pom.contains("</build>")) {
-      return pom.replaceFirst("</build>", "  <plugins>\n" + plugin + "  </plugins>\n</build>");
+      return pom.replaceFirst(
+          "</build>",
+          Matcher.quoteReplacement("  <plugins>\n" + plugin + "  </plugins>\n</build>"));
     }
     if (!pom.contains("</project>")) {
       throw new SentinelException("Cannot safely update pom.xml: missing </project> element.");
     }
     return pom.replaceFirst(
         "</project>",
-        "  <build>\n    <plugins>\n" + plugin + "    </plugins>\n  </build>\n</project>");
+        Matcher.quoteReplacement(
+            "  <build>\n    <plugins>\n" + plugin + "    </plugins>\n  </build>\n</project>"));
   }
 
   private static String addDependency(String pom, String dependency) {
     if (pom.contains("</dependencies>")) {
-      return pom.replaceFirst("</dependencies>", dependency + "  </dependencies>");
+      return pom.replaceFirst(
+          "</dependencies>", Matcher.quoteReplacement(dependency + "  </dependencies>"));
     }
     if (!pom.contains("</project>")) {
       throw new SentinelException("Cannot safely update pom.xml: missing </project> element.");
     }
     return pom.replaceFirst(
-        "</project>", "  <dependencies>\n" + dependency + "  </dependencies>\n</project>");
+        "</project>",
+        Matcher.quoteReplacement(
+            "  <dependencies>\n" + dependency + "  </dependencies>\n</project>"));
   }
 }

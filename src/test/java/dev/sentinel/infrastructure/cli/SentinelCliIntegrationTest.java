@@ -525,6 +525,55 @@ class SentinelCliIntegrationTest {
   }
 
   @Test
+  void checkReportsNewGatesAndMissingToolDoesNotStopOthers() throws IOException {
+    Files.writeString(
+        project.resolve("sentinel.toml"),
+        """
+                version = 1
+                [quality-gates.gitleaks]
+                command = ["./missing-gitleaks", "detect", "--redact"]
+                [quality-gates.format]
+                command = "./mvnw test"
+                [quality-gates.enforcer]
+                command = "./mvnw test"
+                """);
+
+    int exit = run("check", "--format", "json", "-C", project.toString());
+
+    assertThat(exit).isNotZero();
+    JsonNode json = JsonMapper.builder().build().readTree(out.toString());
+    assertThat(json.get("checks")).hasSize(3);
+    assertThat(json.get("checks").get(0).get("name").asString()).isEqualTo("gitleaks");
+    assertThat(json.get("checks").get(0).get("status").asString()).isNotEqualTo("PASSED");
+    assertThat(json.get("checks").get(1).get("name").asString()).isEqualTo("format");
+    assertThat(json.get("checks").get(1).get("status").asString()).isEqualTo("PASSED");
+    assertThat(json.get("checks").get(2).get("name").asString()).isEqualTo("enforcer");
+    assertThat(json.get("checks").get(2).get("status").asString()).isEqualTo("PASSED");
+
+    out.getBuffer().setLength(0);
+    run("check", "-C", project.toString());
+    assertThat(out.toString()).contains("gitleaks", "format", "enforcer");
+  }
+
+  @Test
+  void checkRejectsZapWithoutTargetAsConfigurationError() throws IOException {
+    Files.writeString(
+        project.resolve("sentinel.toml"),
+        """
+                version = 1
+                [quality-gates.zap]
+                command = ["zap-baseline.py", "-t", "<TARGET_URL>"]
+                """);
+
+    int exit = run("check", "--format", "json", "-C", project.toString());
+
+    assertThat(exit).isEqualTo(ExitCodes.ERROR);
+    assertThat(JsonMapper.builder().build().readTree(out.toString()).get("status").asString())
+        .isEqualTo("ERROR");
+    assertThat(err.toString()).contains("requires an explicit target");
+  }
+
+  @Test
   void doctorReportsConfigurationAndIntegrationStates() throws IOException {
     assertThat(run("doctor", "-C", project.toString())).isEqualTo(ExitCodes.ERROR);
     assertThat(out.toString()).contains("configuration", "ERROR", "integration", "WARNING");

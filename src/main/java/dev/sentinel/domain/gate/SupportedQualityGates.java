@@ -15,9 +15,18 @@ public final class SupportedQualityGates {
           "dependency-check",
           "archunit",
           "mutation",
-          "compliance",
+          "format",
+          "semgrep",
+          "gitleaks",
+          "zap",
+          "trivy",
+          "enforcer",
+          "license",
+          "api-compat",
           "command");
-  public static final List<String> LEGACY_IDS = List.of("architecture");
+  public static final List<String> LEGACY_IDS = List.of("architecture", "compliance");
+
+  public static final String ZAP_TARGET_PLACEHOLDER = "<TARGET_URL>";
 
   private SupportedQualityGates() {}
 }

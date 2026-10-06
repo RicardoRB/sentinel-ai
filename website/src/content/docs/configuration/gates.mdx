@@ -7,20 +7,45 @@ Every gate uses `[quality-gates.<id>]` with `command` (string or argument array)
 `enabled` (default `true`) and optional `profiles` (default profile when omitted). The command
 defines the actual tool invocation; Sentinel does not install gate tools.
 
-| ID | Typical purpose |
-|---|---|
-| `tests` | Run the project's automated tests. |
-| `compile` | Compile the project. |
-| `coverage` | Enforce or report test coverage. |
-| `spotbugs` | Run SpotBugs static analysis. |
-| `checkstyle` | Check Java style rules. |
-| `sonar` | Run Sonar analysis. |
-| `dependency-check` | Scan dependencies for known vulnerabilities. |
-| `archunit` | Run architecture rules/tests. |
-| `mutation` | Run mutation testing. |
-| `compliance` | Run project compliance checks. |
-| `command` | Run an arbitrary configured project check. |
+| Category | ID | Tool | Typical purpose |
+|---|---|---|---|
+| Build & Tests | `compile` | Maven Compiler | Compile the project. |
+| | `tests` | JUnit 5 | Run the project's automated tests. |
+| | `coverage` | JaCoCo | Enforce or report test coverage. |
+| | `mutation` | PIT | Run mutation testing. |
+| Code Quality | `checkstyle` | Checkstyle | Check Java style rules. |
+| | `spotbugs` | SpotBugs | Run static analysis for potential bugs. |
+| | `sonar` | SonarQube | Code smells, bugs, duplication, overall quality. |
+| | `format` | Spotless / google-java-format | Check source formatting. |
+| Security | `semgrep` | Semgrep | SAST and custom security rules. |
+| | `gitleaks` | Gitleaks | Detect committed secrets. |
+| | `dependency-check` | OWASP Dependency-Check | Scan dependencies for known CVEs. |
+| | `zap` | OWASP ZAP | DAST against a running application. |
+| | `trivy` | Trivy | Vulnerabilities in dependencies, containers, and IaC. |
+| Architecture | `archunit` | ArchUnit | Run architecture rules/tests. |
+| | `enforcer` | Maven Enforcer | Dependency and build rules. |
+| Dependencies & Compliance | `license` | License Maven Plugin | License compliance. |
+| | `api-compat` | japicmp | Binary/API compatibility between versions. |
+| Custom | `command` | — | Run an arbitrary configured project check. |
 
-The legacy `architecture` identifier remains readable for compatibility; use `archunit` for new
-configuration. Registry identifiers are validated by Sentinel; the configured command is the
+`sentinel init` offers every gate but selects none by default. `zap`, `trivy`, `sonar`,
+`dependency-check`, `api-compat`, and `semgrep` need network access, a running application, or a
+comparison baseline, so enable them deliberately (for example in a CI-only profile with
+`profiles = ["ci"]`).
+
+Standalone tools (`semgrep`, `gitleaks`, `trivy`, `zap-baseline.py`) must already be on the path; a
+missing tool is reported as unavailable with an install link and other gates still run. Sentinel
+never installs tools. For Maven-backed gates, `init` adds the missing plugin to `pom.xml` and can
+roll the change back.
+
+## ZAP target
+
+`zap` requires an explicit target in its command, for example
+`command = ["zap-baseline.py", "-t", "http://localhost:8080"]`. An enabled `zap` gate without
+`-t <url>`, or still containing the `<TARGET_URL>` placeholder written by `init`, is a configuration
+error (exit `2`). Sentinel never infers, starts, or scans a target on its own. You are responsible
+for being authorized to scan the target.
+
+The legacy identifiers `architecture` (use `archunit`) and `compliance` (use `enforcer`; license
+checks now use `license`) remain readable for compatibility. Existing configurations need no change. Registry identifiers are validated by Sentinel; the configured command is the
 gate-specific option and must be supplied. See [configuration syntax](/configuration/sentinel-toml/).

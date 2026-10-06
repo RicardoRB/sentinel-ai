@@ -13,7 +13,9 @@ The gate selector accepts supported [gate IDs](/configuration/gates/). `none` is
 agent integrations. `archunit` prompts for Layered, Hexagonal, or Clean architecture and creates a
 minimal `ArchitectureTest.java` only if one is absent. Existing configurations are preserved unless
 overwrite is confirmed or `--overwrite` is supplied. Initialization does not install tools or run
-gates. `-C <dir>` selects the project directory. Exit codes: `0` success, `2` invalid usage or
+gates. Gates are never pre-selected. `zap` writes a `<TARGET_URL>` placeholder that you must replace
+with an authorized target before `check` will run it. For `format`, `enforcer`, `license`, and
+`api-compat`, missing Maven plugins are added to `pom.xml`. `-C <dir>` selects the project directory. Exit codes: `0` success, `2` invalid usage or
 inability to initialize (including cancelled or invalid selection).
 
 On supported macOS and Linux terminals, use Up/Down to move, Space to toggle, and Enter to confirm.

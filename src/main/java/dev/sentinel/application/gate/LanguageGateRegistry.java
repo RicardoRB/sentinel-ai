@@ -19,14 +19,21 @@ public final class LanguageGateRegistry {
                   "dependency-check",
                   "archunit",
                   "mutation",
-                  "compliance"),
-          Language.KOTLIN, List.of("compile", "tests"),
-          Language.TYPESCRIPT, List.of("command", "tests"),
-          Language.JAVASCRIPT, List.of("command", "tests"),
-          Language.PYTHON, List.of("tests", "command"),
-          Language.GO, List.of("tests", "command"),
-          Language.RUST, List.of("tests", "command"),
-          Language.CSHARP, List.of("compile", "tests"));
+                  "format",
+                  "semgrep",
+                  "gitleaks",
+                  "zap",
+                  "trivy",
+                  "enforcer",
+                  "license",
+                  "api-compat"),
+          Language.KOTLIN, List.of("compile", "tests", "gitleaks", "semgrep", "trivy"),
+          Language.TYPESCRIPT, List.of("command", "tests", "gitleaks", "semgrep", "trivy"),
+          Language.JAVASCRIPT, List.of("command", "tests", "gitleaks", "semgrep", "trivy"),
+          Language.PYTHON, List.of("tests", "command", "gitleaks", "semgrep", "trivy"),
+          Language.GO, List.of("tests", "command", "gitleaks", "semgrep", "trivy"),
+          Language.RUST, List.of("tests", "command", "gitleaks", "semgrep", "trivy"),
+          Language.CSHARP, List.of("compile", "tests", "gitleaks", "semgrep", "trivy"));
 
   public List<String> defaults(Language language) {
     return DEFAULTS.getOrDefault(language, List.of());

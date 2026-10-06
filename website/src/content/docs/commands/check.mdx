@@ -9,7 +9,9 @@ sentinel check [-C <dir>] [--format text|json] [--profile <name>[,...]]
 
 Checks run in configuration declaration order. `default` is selected when no profile is provided;
 repeat `--profile` or provide comma-separated names to select the union. At least one enabled gate
-must match. All selected gates run even when an earlier one fails.
+must match. All selected gates run even when an earlier one fails. A gate whose standalone tool is
+missing (for example `gitleaks`) is reported as unavailable with install guidance; an enabled
+`zap` gate without an explicit `-t <url>` target is a configuration error.
 
 Use `--format json` in scripts; only the JSON report goes to stdout and diagnostics go to stderr.
 See [JSON output](/reference/json-output/) and [exit codes](/reference/exit-codes/). `-C <dir>` runs

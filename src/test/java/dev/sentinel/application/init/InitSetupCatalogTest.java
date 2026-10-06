@@ -76,4 +76,19 @@ class InitSetupCatalogTest {
     assertThat(option.available()).isFalse();
     assertThat(option.availabilityMessage()).contains("Maven is unavailable");
   }
+
+  @Test
+  void offersBinaryGatesWithPlaceholderTargetAndHints(@TempDir Path dir) throws Exception {
+    TestProjects.withPom(dir, TestProjects.PLAIN_POM);
+    Project project =
+        new ProjectDetector(new FileSystemProjectInspection()).detect(dir).orElseThrow();
+    InitSetupCatalog catalog = new InitSetupCatalog(new SystemEnvironmentInspection());
+
+    assertThat(catalog.gate(project, "zap").command()).contains("-t", "<TARGET_URL>");
+    assertThat(catalog.gate(project, "gitleaks").command()).contains("--redact");
+    assertThat(catalog.gate(project, "enforcer").command()).endsWith("enforcer:enforce");
+    assertThat(catalog.gate(project, "format").command()).endsWith("spotless:check");
+    assertThat(catalog.gate(project, "api-compat").command()).endsWith("japicmp:cmp");
+    assertThat(catalog.gate(project, "semgrep").availabilityMessage()).isNotBlank();
+  }
 }

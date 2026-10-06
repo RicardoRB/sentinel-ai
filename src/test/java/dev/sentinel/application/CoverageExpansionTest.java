@@ -181,7 +181,10 @@ class CoverageExpansionTest {
             "dependency-check-maven",
             "archunit-junit5",
             "pitest-maven",
-            "maven-enforcer-plugin");
+            "maven-enforcer-plugin",
+            "spotless-maven-plugin",
+            "license-maven-plugin",
+            "japicmp-maven-plugin");
     assertThat(Files.readString(root.resolve("pom.xml")))
         .contains(
             "jacoco-maven-plugin",

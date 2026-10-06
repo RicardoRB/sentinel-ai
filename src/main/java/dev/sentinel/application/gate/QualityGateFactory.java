@@ -51,6 +51,10 @@ public class QualityGateFactory {
           switch (id) {
             case MavenTestGate.NAME ->
                 new MavenTestGate(executor, testsCommand(entry.getValue().command(), project));
+            case "zap" -> {
+              ZapTargetValidation.require(id, entry.getValue().command());
+              yield new CommandQualityGate(id, executor, entry.getValue().command());
+            }
             default -> new CommandQualityGate(id, executor, entry.getValue().command());
           });
     }
