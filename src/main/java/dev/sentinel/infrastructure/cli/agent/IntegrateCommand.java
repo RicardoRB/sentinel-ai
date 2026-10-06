@@ -1,6 +1,5 @@
 package dev.sentinel.infrastructure.cli.agent;
 
-import com.google.inject.Inject;
 import dev.sentinel.application.agent.IntegrationService;
 import dev.sentinel.domain.agent.IntegrationResult;
 import dev.sentinel.domain.config.SentinelException;
@@ -13,6 +12,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.Callable;
+import javax.inject.Inject;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Model.CommandSpec;

@@ -14,12 +14,16 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import javax.inject.Inject;
 import org.tomlj.Toml;
 import org.tomlj.TomlArray;
 import org.tomlj.TomlParseResult;
 import org.tomlj.TomlTable;
 
 public class TomlConfigurationReader implements SentinelConfigurationReader {
+
+  @Inject
+  public TomlConfigurationReader() {}
 
   private static final String GATES_TABLE = "quality-gates";
 

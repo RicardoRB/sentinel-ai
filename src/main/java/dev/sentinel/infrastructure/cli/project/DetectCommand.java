@@ -1,6 +1,5 @@
 package dev.sentinel.infrastructure.cli.project;
 
-import com.google.inject.Inject;
 import dev.sentinel.application.project.ProjectDetector;
 import dev.sentinel.domain.project.Project;
 import dev.sentinel.infrastructure.cli.ExitCodes;
@@ -10,6 +9,7 @@ import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import java.util.concurrent.Callable;
+import javax.inject.Inject;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Model.CommandSpec;

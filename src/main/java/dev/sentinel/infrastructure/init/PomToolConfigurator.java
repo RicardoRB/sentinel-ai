@@ -11,9 +11,13 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
+import javax.inject.Inject;
 
 /** Adds only missing, pinned Maven tool declarations required by selected init gates. */
 public final class PomToolConfigurator implements BuildToolConfiguration {
+  @Inject
+  public PomToolConfigurator() {}
+
   private static final String CHECKSTYLE = "maven-checkstyle-plugin";
   private static final String SPOTBUGS = "spotbugs-maven-plugin";
   private static final String SONAR = "sonar-maven-plugin";

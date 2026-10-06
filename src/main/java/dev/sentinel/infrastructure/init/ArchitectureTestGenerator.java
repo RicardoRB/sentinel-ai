@@ -12,9 +12,13 @@ import java.nio.file.StandardOpenOption;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
+import javax.inject.Inject;
 
 /** Creates a conservative, user-owned ArchUnit test only when the project has none. */
 public final class ArchitectureTestGenerator implements ArchitectureTestGeneration {
+  @Inject
+  public ArchitectureTestGenerator() {}
+
   private static final Pattern PACKAGE = Pattern.compile("\\bpackage\\s+([A-Za-z_][\\w.]*)\\s*;");
 
   @Override

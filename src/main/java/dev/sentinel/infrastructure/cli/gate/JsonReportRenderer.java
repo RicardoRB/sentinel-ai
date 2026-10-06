@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import javax.inject.Inject;
 import tools.jackson.databind.SerializationFeature;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -16,6 +17,9 @@ import tools.jackson.databind.json.JsonMapper;
  * output shape is explicit and needs no reflection, which keeps it native-image friendly.
  */
 public class JsonReportRenderer {
+
+  @Inject
+  public JsonReportRenderer() {}
 
   private final JsonMapper mapper =
       JsonMapper.builder().enable(SerializationFeature.INDENT_OUTPUT).build();

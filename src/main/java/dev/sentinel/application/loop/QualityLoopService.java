@@ -1,6 +1,5 @@
 package dev.sentinel.application.loop;
 
-import com.google.inject.Inject;
 import dev.sentinel.application.gate.CheckService;
 import dev.sentinel.domain.agent.AgentRequest;
 import dev.sentinel.domain.agent.AgentResult;
@@ -17,6 +16,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
+import javax.inject.Inject;
 
 public final class QualityLoopService {
   private final CheckService checks;

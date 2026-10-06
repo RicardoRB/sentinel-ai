@@ -1,6 +1,5 @@
 package dev.sentinel.infrastructure.cli.init;
 
-import com.google.inject.Inject;
 import dev.sentinel.application.init.InitService;
 import dev.sentinel.application.init.InitSetupCatalog;
 import dev.sentinel.domain.config.SentinelConfiguration;
@@ -29,6 +28,7 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.function.Supplier;
+import javax.inject.Inject;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Model.CommandSpec;

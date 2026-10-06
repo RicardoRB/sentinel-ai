@@ -1,12 +1,12 @@
 package dev.sentinel.application.doctor;
 
-import com.google.inject.Inject;
 import dev.sentinel.application.project.ProjectDetector;
 import dev.sentinel.domain.doctor.EnvironmentFacts;
 import dev.sentinel.domain.doctor.EnvironmentInspection;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import javax.inject.Inject;
 
 public final class DoctorService {
   public enum Status {

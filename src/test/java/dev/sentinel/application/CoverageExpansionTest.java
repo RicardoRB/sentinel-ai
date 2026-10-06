@@ -3,7 +3,6 @@ package dev.sentinel.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.google.inject.Guice;
 import dev.sentinel.TestProjects;
 import dev.sentinel.application.gate.CheckService;
 import dev.sentinel.application.gate.CommandQualityGate;
@@ -14,7 +13,7 @@ import dev.sentinel.application.gate.QualityGateRunner;
 import dev.sentinel.application.init.InitSetupCatalog;
 import dev.sentinel.application.project.ProjectDetector;
 import dev.sentinel.application.project.ProjectDiscovery;
-import dev.sentinel.config.SentinelModule;
+import dev.sentinel.config.DaggerSentinelComponent;
 import dev.sentinel.domain.agent.AgentRequest;
 import dev.sentinel.domain.agent.AgentResult;
 import dev.sentinel.domain.config.CommandLineTokenizer;
@@ -371,8 +370,7 @@ class CoverageExpansionTest {
   void commandLineRunnerWiresCommandsAndHandlesKnownAndUnexpectedFailures(@TempDir Path root)
       throws IOException {
     TestProjects.withPom(root, TestProjects.PLAIN_POM);
-    CommandLineRunnerImpl runner =
-        Guice.createInjector(new SentinelModule()).getInstance(CommandLineRunnerImpl.class);
+    CommandLineRunnerImpl runner = DaggerSentinelComponent.create().commandLineRunner();
     assertThat(runner.run()).isEqualTo(ExitCodes.ERROR);
     assertThat(runner.run("--help")).isZero();
     assertThat(runner.run("detect", "-C", root.toString())).isZero();

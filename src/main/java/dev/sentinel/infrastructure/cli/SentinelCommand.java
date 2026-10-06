@@ -7,6 +7,7 @@ import dev.sentinel.infrastructure.cli.init.InitCommand;
 import dev.sentinel.infrastructure.cli.loop.LoopCommand;
 import dev.sentinel.infrastructure.cli.project.DetectCommand;
 import java.util.concurrent.Callable;
+import javax.inject.Inject;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Model.CommandSpec;
 import picocli.CommandLine.Spec;
@@ -26,6 +27,9 @@ import picocli.CommandLine.Spec;
     },
     footer = {"", "Exit codes: 0 = ok, 1 = failed, 2 = error"})
 public class SentinelCommand implements Callable<Integer> {
+
+  @Inject
+  public SentinelCommand() {}
 
   @Spec private CommandSpec spec;
 

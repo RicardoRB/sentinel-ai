@@ -13,6 +13,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import javax.inject.Inject;
 
 /**
  * Runs commands directly with {@link ProcessBuilder}, without a shell.
@@ -23,6 +24,9 @@ import java.util.concurrent.Future;
  * user's privileges. See "Security" in the README.
  */
 public class ProcessCommandExecutor implements CommandExecutor {
+
+  @Inject
+  public ProcessCommandExecutor() {}
 
   private static final int EXIT_COULD_NOT_START = -1;
   private static final int EXIT_INTERRUPTED = 130;

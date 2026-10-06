@@ -8,9 +8,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Optional;
+import javax.inject.Inject;
 
 /** Filesystem implementation of initialization configuration persistence. */
 public final class FileConfigurationStorage implements ConfigurationStorage {
+  @Inject
+  public FileConfigurationStorage() {}
+
   @Override
   public boolean exists(Path file) {
     return Files.exists(file);

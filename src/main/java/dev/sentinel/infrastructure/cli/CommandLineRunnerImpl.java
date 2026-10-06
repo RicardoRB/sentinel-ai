@@ -1,11 +1,10 @@
 package dev.sentinel.infrastructure.cli;
 
-import com.google.inject.Inject;
-import com.google.inject.Injector;
 import dev.sentinel.domain.config.SentinelException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
+import javax.inject.Inject;
 import picocli.CommandLine;
 
 /**
@@ -14,16 +13,16 @@ import picocli.CommandLine;
 public class CommandLineRunnerImpl {
 
   private final SentinelCommand rootCommand;
-  private final Injector injector;
+  private final DaggerCommandFactory factory;
 
   @Inject
-  public CommandLineRunnerImpl(Injector injector, SentinelCommand rootCommand) {
-    this.injector = injector;
+  public CommandLineRunnerImpl(DaggerCommandFactory factory, SentinelCommand rootCommand) {
+    this.factory = factory;
     this.rootCommand = rootCommand;
   }
 
   public int run(String... args) {
-    CommandLine commandLine = new CommandLine(rootCommand, new GuiceCommandFactory(injector));
+    CommandLine commandLine = new CommandLine(rootCommand, factory);
     commandLine.setOut(
         new PrintWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8), true));
     commandLine.setErr(

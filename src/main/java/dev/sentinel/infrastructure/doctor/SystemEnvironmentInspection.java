@@ -9,9 +9,13 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import javax.inject.Inject;
 
 /** Reads executable availability and prerequisite markers from the current machine. */
 public final class SystemEnvironmentInspection implements EnvironmentInspection {
+  @Inject
+  public SystemEnvironmentInspection() {}
+
   private static final Set<String> PROBED_EXECUTABLES =
       Set.of("mvn", "java", "git", "claude", "opencode");
 

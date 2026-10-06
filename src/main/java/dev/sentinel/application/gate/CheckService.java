@@ -1,6 +1,5 @@
 package dev.sentinel.application.gate;
 
-import com.google.inject.Inject;
 import dev.sentinel.application.project.ProjectDetector;
 import dev.sentinel.application.project.ProjectNotFoundException;
 import dev.sentinel.domain.config.GateConfiguration;
@@ -15,6 +14,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import javax.inject.Inject;
 
 public class CheckService {
 

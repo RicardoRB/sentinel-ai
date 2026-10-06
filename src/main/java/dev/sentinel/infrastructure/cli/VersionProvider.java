@@ -1,7 +1,7 @@
 package dev.sentinel.infrastructure.cli;
 
-import com.google.inject.Inject;
-import com.google.inject.name.Named;
+import javax.inject.Inject;
+import javax.inject.Named;
 import picocli.CommandLine.IVersionProvider;
 
 public class VersionProvider implements IVersionProvider {

@@ -1,6 +1,5 @@
 package dev.sentinel.application.gate;
 
-import com.google.inject.Inject;
 import dev.sentinel.domain.config.GateConfiguration;
 import dev.sentinel.domain.config.SentinelConfiguration;
 import dev.sentinel.domain.config.SentinelException;
@@ -12,6 +11,7 @@ import dev.sentinel.domain.project.Project;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import javax.inject.Inject;
 
 /** Resolves the typed built-in gate registry in stable configuration order. */
 public class QualityGateFactory {

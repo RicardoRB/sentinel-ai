@@ -1,11 +1,11 @@
 package dev.sentinel.infrastructure.loop;
 
-import com.google.inject.Inject;
 import dev.sentinel.domain.loop.GitState;
 import dev.sentinel.domain.loop.GitStateInspection;
 import dev.sentinel.domain.process.CommandExecutor;
 import java.nio.file.Path;
 import java.util.List;
+import javax.inject.Inject;
 
 public final class GitStateInspector implements GitStateInspection {
   private final CommandExecutor executor;

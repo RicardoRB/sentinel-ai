@@ -8,7 +8,7 @@
 - Keep domain models free of I/O and framework implementations; application orchestrates domain contracts without depending on infrastructure. `ArchitectureBoundaryTest` enforces bytecode boundaries, placement, and feature dependencies.
 - Raw-key terminal input uses the `RawTerminal` port and POSIX adapter; do not launch `stty` or another process from CLI code. Route filesystem checks through application use cases and domain ports.
 - `QualityGate` is the extension point; update `QualityGateFactory` and `sentinel.toml` together when adding a gate.
-- `config/SentinelModule` wires Guice; preserve the explicit constructor graph for native-image compatibility.
+- `dev.sentinel.config.SentinelComponent` wires Dagger at compile time; preserve the explicit constructor graph for native-image compatibility.
 
 ## Code Style
 

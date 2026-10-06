@@ -1,10 +1,10 @@
 package dev.sentinel.application.project;
 
-import com.google.inject.Inject;
 import dev.sentinel.domain.project.Project;
 import dev.sentinel.domain.project.ProjectInspection;
 import java.nio.file.Path;
 import java.util.Optional;
+import javax.inject.Inject;
 
 /** Project-detection use case delegated to the project inspection port. */
 public final class ProjectDetector {

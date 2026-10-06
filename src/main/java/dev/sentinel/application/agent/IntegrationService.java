@@ -1,6 +1,5 @@
 package dev.sentinel.application.agent;
 
-import com.google.inject.Inject;
 import dev.sentinel.application.project.ProjectDetector;
 import dev.sentinel.application.project.ProjectNotFoundException;
 import dev.sentinel.domain.agent.AgentIntegration;
@@ -9,6 +8,7 @@ import dev.sentinel.domain.config.SentinelException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
+import javax.inject.Inject;
 
 public final class IntegrationService {
   private final ProjectDetector detector;

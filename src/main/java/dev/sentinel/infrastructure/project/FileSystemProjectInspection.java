@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import javax.inject.Inject;
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -23,6 +24,9 @@ import org.xml.sax.SAXException;
 public final class FileSystemProjectInspection implements ProjectInspection {
   public static final String POM = "pom.xml";
   private static final String SPRING_BOOT_GROUP_ID = "org.springframework.boot";
+
+  @Inject
+  public FileSystemProjectInspection() {}
 
   @Override
   public Optional<Project> detect(Path start) {

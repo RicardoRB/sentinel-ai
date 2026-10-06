@@ -10,12 +10,14 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodType;
 import java.util.Locale;
 import java.util.Optional;
+import javax.inject.Inject;
 
 /** libc-backed raw terminal adapter for macOS and Linux. */
 public final class PosixRawTerminal implements RawTerminal {
   private static final int STDIN = 0;
   private final Layout layout;
 
+  @Inject
   public PosixRawTerminal() {
     this(System.getProperty("os.name", ""));
   }

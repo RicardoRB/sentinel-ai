@@ -14,7 +14,8 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <picocli.version>4.7.7</picocli.version>
         <tomlj.version>2.2.0</tomlj.version>
-        <guice.version>7.0.0</guice.version>
+        <dagger.version>2.56.2</dagger.version>
+        <javax.inject.version>1</javax.inject.version>
         <jackson.version>3.0.3</jackson.version>
         <junit.version>6.0.3</junit.version>
         <assertj.version>3.27.6</assertj.version>
@@ -22,9 +23,14 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.google.inject</groupId>
-            <artifactId>guice</artifactId>
-            <version>${guice.version}</version>
+            <groupId>com.google.dagger</groupId>
+            <artifactId>dagger</artifactId>
+            <version>${dagger.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>javax.inject</groupId>
+            <artifactId>javax.inject</artifactId>
+            <version>${javax.inject.version}</version>
         </dependency>
         <dependency>
             <groupId>info.picocli</groupId>
@@ -105,6 +111,11 @@
                             <artifactId>picocli-codegen</artifactId>
                             <version>${picocli.version}</version>
                         </path>
+                        <path>
+                            <groupId>com.google.dagger</groupId>
+                            <artifactId>dagger-compiler</artifactId>
+                            <version>${dagger.version}</version>
+                        </path>
                     </annotationProcessorPaths>
                 </configuration>
                 <executions>
@@ -120,6 +131,25 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.5.2</version>
+            </plugin>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>0.8.13</version>
+                <configuration>
+                    <excludes>
+                        <exclude>**/Dagger*</exclude>
+                        <exclude>**/*_Factory</exclude>
+                        <exclude>**/*_Factory*</exclude>
+                        <exclude>**/*_*Factory</exclude>
+                        <exclude>**/*Module_*Factory*</exclude>
+                        <exclude>**/*Module_*</exclude>
+                        <exclude>**/*_MembersInjector</exclude>
+                        <exclude>**/*_MembersInjector*</exclude>
+                        <exclude>**/*_Proxy</exclude>
+                        <exclude>**/*_Proxy*</exclude>
+                    </excludes>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>com.diffplug.spotless</groupId>
@@ -148,6 +178,9 @@
                 <artifactId>maven-pmd-plugin</artifactId>
                 <version>3.28.0</version>
                 <configuration>
+                    <excludeRoots>
+                        <excludeRoot>${project.build.directory}/generated-sources/annotations</excludeRoot>
+                    </excludeRoots>
                     <rulesets>
                         <ruleset>config/pmd-ruleset.xml</ruleset>
                     </rulesets>

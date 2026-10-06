@@ -1,12 +1,12 @@
 package dev.sentinel.infrastructure.cli.doctor;
 
-import com.google.inject.Inject;
 import dev.sentinel.application.doctor.DoctorService;
 import dev.sentinel.infrastructure.cli.ExitCodes;
 import dev.sentinel.infrastructure.cli.ProjectOptions;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.Callable;
+import javax.inject.Inject;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Model.CommandSpec;

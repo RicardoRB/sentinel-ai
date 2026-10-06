@@ -79,7 +79,8 @@ class ArchitectureBoundaryTest {
             target.startsWith("dev.sentinel.application.")
                 || target.startsWith("dev.sentinel.infrastructure.")
                 || target.startsWith("dev.sentinel.config.")
-                || target.startsWith("com.google.inject.")
+                || target.startsWith("dagger.")
+                || target.startsWith("javax.inject.")
                 || target.startsWith("picocli.")
                 || target.startsWith("org.springframework.")
                 || isInnerLayerExternalEffectApi(target)
@@ -124,11 +125,11 @@ class ArchitectureBoundaryTest {
   }
 
   @ArchTest
-  static void productionCodeDoesNotUseGuiceFieldInjection(JavaClasses classes) {
+  static void productionCodeDoesNotUseFieldInjection(JavaClasses classes) {
     ArchRule noFieldInjection =
         com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noFields()
             .should()
-            .beAnnotatedWith(com.google.inject.Inject.class);
+            .beAnnotatedWith(javax.inject.Inject.class);
     noFieldInjection.check(classes);
   }
 
@@ -139,7 +140,7 @@ class ArchitectureBoundaryTest {
         Set.of(
             "CommandLineRunnerImpl",
             "ExitCodes",
-            "GuiceCommandFactory",
+            "DaggerCommandFactory",
             "ProjectOptions",
             "SentinelCommand",
             "VersionProvider");
@@ -218,7 +219,7 @@ class ArchitectureBoundaryTest {
         Set.of(
             "CommandLineRunnerImpl",
             "ExitCodes",
-            "GuiceCommandFactory",
+            "DaggerCommandFactory",
             "ProjectOptions",
             "SentinelCommand",
             "VersionProvider");
@@ -293,12 +294,29 @@ class ArchitectureBoundaryTest {
     String packageName = javaClass.getPackageName();
     return switch (packageName) {
       case "dev.sentinel" -> "dev.sentinel.SentinelApplication".equals(name);
-      case "dev.sentinel.config" -> "dev.sentinel.config.SentinelModule".equals(name);
-      case "dev.sentinel.infrastructure.cli" -> commonCliTypes.contains(javaClass.getSimpleName());
+      case "dev.sentinel.config" ->
+          isDaggerGenerated(name)
+              || Set.of(
+                      "dev.sentinel.config.SentinelComponent",
+                      "dev.sentinel.config.PortBindingsModule",
+                      "dev.sentinel.config.CommandBindingsModule",
+                      "dev.sentinel.config.SentinelProvidesModule")
+                  .contains(name);
+      case "dev.sentinel.infrastructure.cli" ->
+          commonCliTypes.contains(javaClass.getSimpleName()) || isDaggerGenerated(name);
       default ->
           packageName.matches("dev\\.sentinel\\.(domain|application)\\.[^.]+(\\..*)?")
               || packageName.matches("dev\\.sentinel\\.infrastructure\\.[^.]+(\\..*)?");
     };
+  }
+
+  private static boolean isDaggerGenerated(String name) {
+    return name.contains(".Dagger")
+        || name.contains("Module_")
+        || name.contains("_Factory")
+        || name.contains("_") && name.endsWith("Factory")
+        || name.contains("_MembersInjector")
+        || name.contains("_Proxy");
   }
 
   private static boolean isInnerLayerExternalEffectApi(String target) {

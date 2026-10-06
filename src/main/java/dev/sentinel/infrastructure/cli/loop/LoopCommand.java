@@ -1,6 +1,5 @@
 package dev.sentinel.infrastructure.cli.loop;
 
-import com.google.inject.Inject;
 import dev.sentinel.application.loop.QualityLoopService;
 import dev.sentinel.domain.config.CommandLineTokenizer;
 import dev.sentinel.domain.loop.LoopConfiguration;
@@ -11,6 +10,7 @@ import dev.sentinel.infrastructure.cli.ProjectOptions;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.Callable;
+import javax.inject.Inject;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Model.CommandSpec;

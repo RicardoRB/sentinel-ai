@@ -5,8 +5,12 @@ import dev.sentinel.domain.gate.GateResult;
 import java.time.Duration;
 import java.util.List;
 import java.util.Locale;
+import javax.inject.Inject;
 
 public class TextReportRenderer {
+
+  @Inject
+  public TextReportRenderer() {}
 
   private static final int OUTPUT_TAIL_LINES = 40;
 

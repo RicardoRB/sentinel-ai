@@ -1,6 +1,5 @@
 package dev.sentinel.application.init;
 
-import com.google.inject.Inject;
 import dev.sentinel.domain.config.SentinelException;
 import dev.sentinel.domain.doctor.EnvironmentInspection;
 import dev.sentinel.domain.gate.SupportedQualityGates;
@@ -10,6 +9,7 @@ import dev.sentinel.domain.init.InitIntegrationOption;
 import dev.sentinel.domain.project.Project;
 import java.util.ArrayList;
 import java.util.List;
+import javax.inject.Inject;
 
 /** Stable choices and project-aware defaults used by the interactive init flow. */
 public final class InitSetupCatalog {

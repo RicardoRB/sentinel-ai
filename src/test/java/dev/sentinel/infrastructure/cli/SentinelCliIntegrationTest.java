@@ -2,13 +2,12 @@ package dev.sentinel.infrastructure.cli;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.google.inject.Guice;
-import com.google.inject.Injector;
 import dev.sentinel.application.agent.IntegrationService;
 import dev.sentinel.application.init.InitService;
 import dev.sentinel.application.init.InitSetupCatalog;
 import dev.sentinel.application.project.ProjectDetector;
-import dev.sentinel.config.SentinelModule;
+import dev.sentinel.config.DaggerSentinelComponent;
+import dev.sentinel.config.SentinelComponent;
 import dev.sentinel.infrastructure.agent.ClaudeCodeIntegration;
 import dev.sentinel.infrastructure.agent.OpenCodeIntegration;
 import dev.sentinel.infrastructure.cli.agent.IntegrateCommand;
@@ -35,14 +34,18 @@ import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.io.TempDir;
 import picocli.CommandLine;
+import picocli.CommandLine.Command;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
-/** End to end: real Guice wiring, real process execution, against a small Maven project fixture. */
+/**
+ * End to end: real Dagger wiring, real process execution, against a small Maven project fixture.
+ */
 @DisabledOnOs(OS.WINDOWS)
 class SentinelCliIntegrationTest {
 
-  private final Injector injector = Guice.createInjector(new SentinelModule());
+  private final SentinelComponent component = DaggerSentinelComponent.create();
+  private final DaggerCommandFactory factory = new DaggerCommandFactory(component.commands());
 
   @TempDir Path project;
 
@@ -65,8 +68,7 @@ class SentinelCliIntegrationTest {
 
   private int run(String... args) {
     CommandLine cli =
-        new CommandLine(
-            injector.getInstance(SentinelCommand.class), new GuiceCommandFactory(injector));
+        new CommandLine(component.commands().get(SentinelCommand.class).get(), factory);
     cli.setOut(new PrintWriter(out, true));
     cli.setErr(new PrintWriter(err, true));
     cli.setExecutionExceptionHandler(CommandLineRunnerImpl::handle);
@@ -85,6 +87,15 @@ class SentinelCliIntegrationTest {
     cli.setErr(new PrintWriter(err, true));
     cli.setExecutionExceptionHandler(CommandLineRunnerImpl::handle);
     return cli.execute(args);
+  }
+
+  @Test
+  void factoryResolvesEverySentinelSubcommand() throws Exception {
+    Class<?>[] subcommands = SentinelCommand.class.getAnnotation(Command.class).subcommands();
+    assertThat(subcommands).isNotEmpty();
+    for (Class<?> subcommand : subcommands) {
+      assertThat(factory.create(subcommand)).isInstanceOf(subcommand);
+    }
   }
 
   private int runInitWithInput(String input, String... args) {
