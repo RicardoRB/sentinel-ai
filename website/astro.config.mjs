@@ -2,7 +2,7 @@ import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 import starlightLinksValidator from 'starlight-links-validator';
 
-const repository = process.env.GITHUB_REPOSITORY ?? 'sentinel-cli/sentinel-cli';
+const repository = process.env.GITHUB_REPOSITORY ?? 'sentinel-ai/sentinel-ai';
 const [owner, repo] = repository.split('/');
 
 export default defineConfig({

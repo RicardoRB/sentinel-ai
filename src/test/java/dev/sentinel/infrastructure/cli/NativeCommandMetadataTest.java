@@ -21,7 +21,7 @@ import picocli.CommandLine.Command;
 class NativeCommandMetadataTest {
   private static final String NATIVE_IMAGE_DIR = "META-INF/native-image/";
   private static final String GENERATED_REFLECT_CONFIG =
-      NATIVE_IMAGE_DIR + "picocli-generated/dev.sentinel/sentinel-cli/reflect-config.json";
+      NATIVE_IMAGE_DIR + "picocli-generated/dev.sentinel/sentinel-ai/reflect-config.json";
 
   @Test
   void generatedReflectionConfigListsEveryCommandClass() throws IOException {
@@ -39,7 +39,7 @@ class NativeCommandMetadataTest {
   @Test
   void handWrittenMetadataDoesNotRelistCommandClasses() throws IOException {
     Enumeration<URL> roots =
-        getClass().getClassLoader().getResources(NATIVE_IMAGE_DIR + "dev.sentinel/sentinel-cli");
+        getClass().getClassLoader().getResources(NATIVE_IMAGE_DIR + "dev.sentinel/sentinel-ai");
     Set<String> commands = commandClasses();
 
     while (roots.hasMoreElements()) {

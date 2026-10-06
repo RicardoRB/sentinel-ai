@@ -4,9 +4,9 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>dev.sentinel</groupId>
-    <artifactId>sentinel-cli</artifactId>
+    <artifactId>sentinel-ai</artifactId>
     <version>0.0.1</version>
-    <name>sentinel-cli</name>
+    <name>sentinel-ai</name>
     <description>Sentinel: a quality gate orchestrator for AI coding agents</description>
 
     <properties>
@@ -102,11 +102,11 @@
                 <configuration>
                     <release>${java.version}</release>
                     <compilerArgs>
-                        <arg>-Aproject=dev.sentinel/sentinel-cli</arg>
+                        <arg>-Aproject=dev.sentinel/sentinel-ai</arg>
                         <arg>-Adisable.proxy.config</arg>
                     </compilerArgs>
                     <annotationProcessorPaths>
-                        <!-- Generates GraalVM reflection config for Picocli commands under META-INF/native-image/dev.sentinel/sentinel-cli -->
+                        <!-- Generates GraalVM reflection config for Picocli commands under META-INF/native-image/dev.sentinel/sentinel-ai -->
                         <path>
                             <groupId>info.picocli</groupId>
                             <artifactId>picocli-codegen</artifactId>

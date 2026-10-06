@@ -10,7 +10,7 @@ integrations for Claude Code and OpenCode.
 
 The full documentation—including installation, commands, configuration, gate references,
 integrations, security, and architecture—is available at the
-[Sentinel documentation site](https://sentinel-cli.github.io/sentinel-cli/).
+[Sentinel documentation site](https://sentinel-ai.github.io/sentinel-ai/).
 
 ## Development
 

@@ -6,8 +6,8 @@ description: Build Sentinel from source and run the CLI.
 Sentinel currently supports Java 25 and Maven projects. Maven is provided by the repository wrapper.
 
 ```bash
-git clone https://github.com/sentinel-cli/sentinel-cli.git
-cd sentinel-cli
+git clone https://github.com/sentinel-ai/sentinel-ai.git
+cd sentinel-ai
 export JAVA_HOME=/path/to/jdk-25
 ./mvnw package
 ```
@@ -22,4 +22,4 @@ binary can optionally be built with GraalVM 25:
 Picocli's annotation processor generates the native reflection metadata during compilation. New CLI
 commands and options are included from their annotations; no manual command metadata entry is needed.
 
-See [quick start](/sentinel-cli/getting-started/quick-start/) to detect a project and run its first check.
+See [quick start](/sentinel-ai/getting-started/quick-start/) to detect a project and run its first check.
