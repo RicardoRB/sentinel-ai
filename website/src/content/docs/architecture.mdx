@@ -24,4 +24,6 @@ ports. Raw-key terminal input is isolated behind the `RawTerminal` port and a PO
 `QualityGate` is the gate extension point. Gate orchestration belongs in `application.gate`, supported
 IDs in the domain vocabulary, and the registry in `QualityGateFactory`; configuration examples and
 the [gate reference](/sentinel-cli/configuration/gates/) must stay in sync. Explicit constructor wiring also
-supports native-image builds.
+supports native-image builds. Picocli command reflection metadata is generated from command annotations
+by `picocli-codegen` at compile time, so adding a command or option does not require a manual metadata
+entry. Hand-written native metadata is reserved for non-Picocli requirements such as FFM downcalls.

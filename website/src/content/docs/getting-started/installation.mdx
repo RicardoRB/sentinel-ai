@@ -19,4 +19,7 @@ binary can optionally be built with GraalVM 25:
 ./mvnw -Pnative -DskipTests native:compile
 ```
 
+Picocli's annotation processor generates the native reflection metadata during compilation. New CLI
+commands and options are included from their annotations; no manual command metadata entry is needed.
+
 See [quick start](/sentinel-cli/getting-started/quick-start/) to detect a project and run its first check.

@@ -102,10 +102,11 @@
                 <configuration>
                     <release>${java.version}</release>
                     <compilerArgs>
+                        <arg>-Aproject=dev.sentinel/sentinel-cli</arg>
                         <arg>-Adisable.proxy.config</arg>
                     </compilerArgs>
                     <annotationProcessorPaths>
-                        <!-- Generates GraalVM reflection config for Picocli commands -->
+                        <!-- Generates GraalVM reflection config for Picocli commands under META-INF/native-image/dev.sentinel/sentinel-cli -->
                         <path>
                             <groupId>info.picocli</groupId>
                             <artifactId>picocli-codegen</artifactId>
