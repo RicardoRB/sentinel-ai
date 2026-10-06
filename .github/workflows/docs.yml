@@ -12,6 +12,10 @@ on:
       - '.github/workflows/docs.yml'
   workflow_dispatch:
 
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
 permissions:
   contents: read
 
@@ -29,6 +33,40 @@ jobs:
         working-directory: website
       - run: npm run build
         working-directory: website
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          SITE_URL: ${{ vars.SITE_URL }}
+          BASE_PATH: ${{ vars.BASE_PATH }}
+      - name: Verify generated base path
+        working-directory: website
+        shell: bash
+        run: |
+          repository_name="${GITHUB_REPOSITORY#*/}"
+          if [[ -n "${BASE_PATH:-}" ]]; then
+            normalized_base="$(printf '%s' "$BASE_PATH" | sed 's#^/*##;s#/*$##')"
+            if [[ -n "$normalized_base" ]]; then
+              expected_base="/${normalized_base}/"
+            else
+              expected_base="/"
+            fi
+          elif [[ "$repository_name" == *".github.io" ]]; then
+            expected_base="/"
+          else
+            expected_base="/${repository_name}/"
+          fi
+          if [[ "$expected_base" == "/" ]]; then
+            grep -Eq '(href|src)="/(_astro/|favicon.svg|sitemap-index.xml)' dist/index.html
+            if grep -Eq "(href|src)=\"/${repository_name}/" dist/index.html; then
+              exit 1
+            fi
+            exit 0
+          else
+            grep -Fq "href=\"${expected_base}" dist/index.html || grep -Fq "src=\"${expected_base}" dist/index.html
+          fi
+      - uses: actions/upload-pages-artifact@v3
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        with:
+          path: website/dist
 
   deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -41,20 +79,6 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: website/.nvmrc
-          cache: npm
-          cache-dependency-path: website/package-lock.json
-      - run: npm ci
-        working-directory: website
-      - run: npm run build
-        working-directory: website
-        env:
-          GITHUB_REPOSITORY: ${{ github.repository }}
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: website/dist
+      - uses: actions/configure-pages@v5
       - id: deployment
         uses: actions/deploy-pages@v4
