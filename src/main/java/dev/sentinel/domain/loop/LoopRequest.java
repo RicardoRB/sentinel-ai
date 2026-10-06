@@ -10,13 +10,18 @@ public record LoopRequest(
     String task,
     LoopConfiguration configuration) {
   public LoopRequest {
-    if (workingDirectory == null)
+    if (workingDirectory == null) {
       throw new IllegalArgumentException("workingDirectory is required");
+    }
     agentCommand = List.copyOf(agentCommand);
-    if (agentCommand.isEmpty())
+    if (agentCommand.isEmpty()) {
       throw new IllegalArgumentException("agentCommand must not be empty");
-    if (task == null || task.isBlank())
+    }
+    if (task == null || task.isBlank()) {
       throw new IllegalArgumentException("task must not be blank");
-    if (configuration == null) throw new IllegalArgumentException("configuration is required");
+    }
+    if (configuration == null) {
+      throw new IllegalArgumentException("configuration is required");
+    }
   }
 }

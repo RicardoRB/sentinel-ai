@@ -54,11 +54,12 @@ public final class IntegrateCommand implements Callable<Integer> {
   @Override
   public Integer call() {
     try {
-      if (agent == null || agent.isBlank()) agent = selectAgent();
+      if (agent == null || agent.isBlank()) {
+        agent = selectAgent();
+      }
       IntegrationResult result = service.integrate(agent, options.directory(), remove);
-      PrintWriter out = output();
-      out.printf("%s: %s%n", result.status(), result.message());
-      result.changed().forEach(path -> out.println(path));
+      output().printf("%s: %s%n", result.status(), result.message());
+      result.changed().forEach(output()::println);
       return result.status() == IntegrationResult.Status.CONFLICT ? ExitCodes.ERROR : ExitCodes.OK;
     } catch (SentinelException e) {
       throw e;
@@ -66,12 +67,11 @@ public final class IntegrateCommand implements Callable<Integer> {
   }
 
   private String selectAgent() {
-    PrintWriter out = output();
-    out.println("Select an agent integration:");
-    out.println("1) opencode");
-    out.println("2) claude-code");
-    out.print("Choose an agent [1-2]: ");
-    out.flush();
+    output().println("Select an agent integration:");
+    output().println("1) opencode");
+    output().println("2) claude-code");
+    output().print("Choose an agent [1-2]: ");
+    output().flush();
     try {
       String selection =
           new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8)).readLine();
@@ -89,7 +89,7 @@ public final class IntegrateCommand implements Callable<Integer> {
                     + "'. Choose 1 for opencode or 2 for claude-code.");
       };
     } catch (IOException e) {
-      throw new SentinelException("Could not read agent selection: " + e.getMessage());
+      throw new SentinelException("Could not read agent selection: " + e.getMessage(), e);
     }
   }
 

@@ -112,10 +112,12 @@ class QualityLoopServiceTest {
             new QualityGateRunner());
     AgentRunner agent =
         new AgentRunner() {
+          @Override
           public String id() {
             return "fake";
           }
 
+          @Override
           public AgentResult run(AgentRequest r) {
             return new AgentResult(true, "done", "");
           }
@@ -146,10 +148,12 @@ class QualityLoopServiceTest {
             new QualityGateRunner());
     AgentRunner agent =
         new AgentRunner() {
+          @Override
           public String id() {
             return "fake";
           }
 
+          @Override
           public AgentResult run(AgentRequest r) {
             return new AgentResult(true, "done", "");
           }
@@ -180,10 +184,12 @@ class QualityLoopServiceTest {
             new QualityGateRunner());
     AgentRunner timeout =
         new AgentRunner() {
+          @Override
           public String id() {
             return "fake";
           }
 
+          @Override
           public AgentResult run(AgentRequest r) {
             try {
               Thread.sleep(1500);
@@ -204,10 +210,12 @@ class QualityLoopServiceTest {
         .isEqualTo(LoopTerminalState.TIMEOUT);
     AgentRunner failure =
         new AgentRunner() {
+          @Override
           public String id() {
             return "fake";
           }
 
+          @Override
           public AgentResult run(AgentRequest r) {
             return new AgentResult(false, "agent failed", "");
           }
@@ -232,8 +240,11 @@ class QualityLoopServiceTest {
     var calls = new int[] {0};
     CommandExecutor executor =
         (command, root) -> {
-          if (command.getFirst().equals("git")) return new CommandResult(1, "", "", Duration.ZERO);
-          return new CommandResult(++calls[0] == 2 ? 0 : 1, "", "failed", Duration.ZERO);
+          if ("git".equals(command.getFirst())) {
+            return new CommandResult(1, "", "", Duration.ZERO);
+          }
+          calls[0]++;
+          return new CommandResult(calls[0] == 2 ? 0 : 1, "", "failed", Duration.ZERO);
         };
     var checks =
         new CheckService(
@@ -244,10 +255,12 @@ class QualityLoopServiceTest {
     var agentCalls = new int[] {0};
     AgentRunner agent =
         new AgentRunner() {
+          @Override
           public String id() {
             return "fake";
           }
 
+          @Override
           public AgentResult run(AgentRequest r) {
             agentCalls[0]++;
             return new AgentResult(true, "done", "");

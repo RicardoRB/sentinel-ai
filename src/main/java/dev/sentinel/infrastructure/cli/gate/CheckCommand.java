@@ -61,7 +61,6 @@ public class CheckCommand implements Callable<Integer> {
 
   @Override
   public Integer call() {
-    PrintWriter out = output();
     CheckReport report;
     try {
       profiles = profiles.stream().map(String::trim).toList();
@@ -69,14 +68,15 @@ public class CheckCommand implements Callable<Integer> {
     } catch (SentinelException e) {
       if (format == Format.json) {
         // stdout stays machine-readable; the human message goes to stderr as well.
-        out.println(jsonRenderer.renderError(e.getMessage()));
+        output().println(jsonRenderer.renderError(e.getMessage()));
       }
       throw e;
     }
-    out.print(
-        format == Format.json
-            ? jsonRenderer.render(report, profiles.contains("strict")) + System.lineSeparator()
-            : textRenderer.render(report));
+    output()
+        .print(
+            format == Format.json
+                ? jsonRenderer.render(report, profiles.contains("strict")) + System.lineSeparator()
+                : textRenderer.render(report));
     return report.passed() ? ExitCodes.OK : ExitCodes.FAILED;
   }
 

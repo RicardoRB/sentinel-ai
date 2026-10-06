@@ -6,8 +6,6 @@ import dev.sentinel.infrastructure.cli.gate.CheckCommand;
 import dev.sentinel.infrastructure.cli.init.InitCommand;
 import dev.sentinel.infrastructure.cli.loop.LoopCommand;
 import dev.sentinel.infrastructure.cli.project.DetectCommand;
-import java.io.PrintWriter;
-import java.nio.charset.StandardCharsets;
 import java.util.concurrent.Callable;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Model.CommandSpec;
@@ -34,9 +32,8 @@ public class SentinelCommand implements Callable<Integer> {
   @Override
   public Integer call() {
     if (spec == null) {
-      PrintWriter err = new PrintWriter(System.err, true, StandardCharsets.UTF_8);
-      err.println("Usage: sentinel [COMMAND]");
-      err.println("Use 'sentinel --help' for available commands.");
+      System.err.println("Usage: sentinel [COMMAND]");
+      System.err.println("Use 'sentinel --help' for available commands.");
     } else {
       spec.commandLine().usage(spec.commandLine().getErr());
     }

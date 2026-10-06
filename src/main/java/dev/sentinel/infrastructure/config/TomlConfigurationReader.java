@@ -70,9 +70,10 @@ public class TomlConfigurationReader implements SentinelConfigurationReader {
         gates.put(name, parseGate(name, gate));
       }
     }
-    if (toml.contains("profiles"))
+    if (toml.contains("profiles")) {
       throw new SentinelException(
           "'[profiles]' is no longer supported; declare 'profiles = [...]' under [quality-gates.<id>] instead");
+    }
     return new SentinelConfiguration((int) (long) version, gates);
   }
 
@@ -97,17 +98,22 @@ public class TomlConfigurationReader implements SentinelConfigurationReader {
   }
 
   private Set<String> parseProfiles(String where, TomlTable gate) {
-    if (!gate.contains("profiles")) return Set.of(SentinelConfiguration.DEFAULT_PROFILE);
+    if (!gate.contains("profiles")) {
+      return Set.of(SentinelConfiguration.DEFAULT_PROFILE);
+    }
     String key = where + ".profiles";
-    if (!gate.isArray("profiles"))
+    if (!gate.isArray("profiles")) {
       throw new SentinelException("'" + key + "' must be a non-empty array of non-blank strings");
+    }
     TomlArray array = gate.getArray("profiles");
-    if (array == null || array.isEmpty())
+    if (array == null || array.isEmpty()) {
       throw new SentinelException("'" + key + "' must not be empty");
+    }
     Set<String> profiles = new LinkedHashSet<>();
     for (int i = 0; i < array.size(); i++) {
-      if (!array.isString(i) || array.getString(i) == null || array.getString(i).isBlank())
+      if (!array.isString(i) || array.getString(i) == null || array.getString(i).isBlank()) {
         throw new SentinelException("'" + key + "' must contain only non-blank strings");
+      }
       profiles.add(array.getString(i).trim());
     }
     return profiles;

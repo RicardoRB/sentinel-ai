@@ -67,9 +67,13 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
 
   private IntegrationResult install(Path settings, Path hook) throws IOException {
     IntegrationResult conflict = IntegrationArtifacts.preflight(settings, SETTINGS_MARKER);
-    if (conflict != null) return conflict;
+    if (conflict != null) {
+      return conflict;
+    }
     conflict = IntegrationArtifacts.preflight(hook, HOOK_MARKER);
-    if (conflict != null) return conflict;
+    if (conflict != null) {
+      return conflict;
+    }
 
     List<String> changed = new ArrayList<>();
     if (!Files.exists(settings)) {
@@ -96,9 +100,13 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
 
   private IntegrationResult remove(Path settings, Path hook) throws IOException {
     IntegrationResult conflict = IntegrationArtifacts.preflight(settings, SETTINGS_MARKER);
-    if (conflict != null) return conflict;
+    if (conflict != null) {
+      return conflict;
+    }
     conflict = IntegrationArtifacts.preflight(hook, HOOK_MARKER);
-    if (conflict != null) return conflict;
+    if (conflict != null) {
+      return conflict;
+    }
     if (!Files.exists(settings) && !Files.exists(hook)) {
       return new IntegrationResult(
           IntegrationResult.Status.NOT_FOUND,
@@ -126,7 +134,9 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
   private static void deleteIfEmpty(Path directory) throws IOException {
     if (directory != null && Files.isDirectory(directory)) {
       try (var entries = Files.list(directory)) {
-        if (entries.findAny().isEmpty()) Files.deleteIfExists(directory);
+        if (entries.findAny().isEmpty()) {
+          Files.deleteIfExists(directory);
+        }
       }
     }
   }

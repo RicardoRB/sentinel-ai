@@ -8,6 +8,7 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodType;
+import java.util.Locale;
 import java.util.Optional;
 
 /** libc-backed raw terminal adapter for macOS and Linux. */
@@ -20,22 +21,27 @@ public final class PosixRawTerminal implements RawTerminal {
   }
 
   PosixRawTerminal(String osName) {
-    String os = osName.toLowerCase();
+    String os = osName.toLowerCase(Locale.ROOT);
     Layout detected =
         os.contains("mac") || os.contains("darwin")
             ? Layout.MAC
             : os.contains("linux") ? Layout.LINUX : null;
-    String architecture = System.getProperty("os.arch", "").toLowerCase();
-    if (!(architecture.equals("x86_64")
-        || architecture.equals("amd64")
-        || architecture.equals("aarch64")
-        || architecture.equals("arm64"))) detected = null;
+    String architecture = System.getProperty("os.arch", "").toLowerCase(Locale.ROOT);
+    if (!("x86_64".equals(architecture)
+        || "amd64".equals(architecture)
+        || "aarch64".equals(architecture)
+        || "arm64".equals(architecture))) {
+      detected = null;
+    }
     layout = detected;
   }
 
   @Override
+  @SuppressWarnings("PMD.AvoidCatchingThrowable")
   public Optional<RawSession> open() {
-    if (layout == null) return Optional.empty();
+    if (layout == null) {
+      return Optional.empty();
+    }
     Arena arena = Arena.ofShared();
     try {
       Linker linker = Linker.nativeLinker();
@@ -87,9 +93,11 @@ public final class PosixRawTerminal implements RawTerminal {
           layout.flagBytes == 4
               ? Integer.toUnsignedLong(raw.get(ValueLayout.JAVA_INT, layout.flagOffset))
               : raw.get(ValueLayout.JAVA_LONG, layout.flagOffset);
-      if (layout.flagBytes == 4)
+      if (layout.flagBytes == 4) {
         raw.set(ValueLayout.JAVA_INT, layout.flagOffset, (int) (flags & ~layout.disableFlags));
-      else raw.set(ValueLayout.JAVA_LONG, layout.flagOffset, flags & ~layout.disableFlags);
+      } else {
+        raw.set(ValueLayout.JAVA_LONG, layout.flagOffset, flags & ~layout.disableFlags);
+      }
       raw.set(ValueLayout.JAVA_BYTE, layout.ccOffset + layout.vmin, (byte) 1);
       raw.set(ValueLayout.JAVA_BYTE, layout.ccOffset + layout.vtime, (byte) 0);
       if ((int) tcsetattr.invokeExact(STDIN, 0, raw) != 0) {
@@ -99,14 +107,19 @@ public final class PosixRawTerminal implements RawTerminal {
       return Optional.of(new Session(arena, saved, read, tcsetattr));
     } catch (Throwable failure) {
       arena.close();
-      return Optional.empty();
+      throw new IllegalStateException("Native terminal initialization failed.", failure);
     }
   }
 
   private static MethodHandle downcall(
       Linker linker, String name, MethodType type, FunctionDescriptor descriptor) {
-    return linker.downcallHandle(
-        Linker.nativeLinker().defaultLookup().find(name).orElseThrow(), descriptor);
+    MethodHandle handle =
+        linker.downcallHandle(
+            Linker.nativeLinker().defaultLookup().find(name).orElseThrow(), descriptor);
+    if (!handle.type().equals(type)) {
+      throw new IllegalArgumentException("Unexpected native signature for " + name);
+    }
+    return handle;
   }
 
   private static final class Session implements RawSession {
@@ -127,25 +140,31 @@ public final class PosixRawTerminal implements RawTerminal {
     }
 
     @Override
+    @SuppressWarnings("PMD.AvoidCatchingThrowable")
     public int read() {
       try {
         long count = (long) read.invokeExact(STDIN, byteBuffer, 1L);
         return count == 1 ? Byte.toUnsignedInt(byteBuffer.get(ValueLayout.JAVA_BYTE, 0)) : -1;
       } catch (Throwable failure) {
-        return -1;
+        throw new IllegalStateException("Native terminal read failed.", failure);
       }
     }
 
     @Override
+    @SuppressWarnings("PMD.AvoidCatchingThrowable")
     public synchronized void close() {
-      if (closed) return;
+      if (closed) {
+        return;
+      }
       closed = true;
       try {
         if ((int) tcsetattr.invokeExact(STDIN, 0, saved) != 0) {
-          // Restoration is best-effort when the operating system rejects it.
+          throw new IllegalStateException("Could not restore terminal attributes.");
         }
       } catch (Throwable ignored) {
-        /* best effort restore */
+        if (ignored instanceof Error error) {
+          throw error;
+        }
       }
       arena.close();
     }

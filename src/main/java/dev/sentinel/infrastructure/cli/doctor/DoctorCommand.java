@@ -28,9 +28,8 @@ public final class DoctorCommand implements Callable<Integer> {
 
   @Override
   public Integer call() {
-    PrintWriter out = output();
     var findings = service.diagnose(options.directory());
-    findings.forEach(f -> out.printf("[%s] %-13s %s%n", f.status(), f.name(), f.message()));
+    findings.forEach(f -> output().printf("[%s] %-13s %s%n", f.status(), f.name(), f.message()));
     return findings.stream().anyMatch(f -> f.status() == DoctorService.Status.ERROR)
         ? ExitCodes.ERROR
         : ExitCodes.OK;

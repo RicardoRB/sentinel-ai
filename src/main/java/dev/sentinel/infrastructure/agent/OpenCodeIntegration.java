@@ -60,9 +60,13 @@ public final class OpenCodeIntegration implements AgentIntegration {
 
   private IntegrationResult install(Path command, Path plugin) throws IOException {
     IntegrationResult conflict = IntegrationArtifacts.preflight(command, MARKER);
-    if (conflict != null) return conflict;
+    if (conflict != null) {
+      return conflict;
+    }
     conflict = IntegrationArtifacts.preflight(plugin, PLUGIN_MARKER);
-    if (conflict != null) return conflict;
+    if (conflict != null) {
+      return conflict;
+    }
 
     List<String> changed = new ArrayList<>();
     if (!Files.exists(command)) {
@@ -88,9 +92,13 @@ public final class OpenCodeIntegration implements AgentIntegration {
 
   private IntegrationResult remove(Path command, Path plugin) throws IOException {
     IntegrationResult conflict = IntegrationArtifacts.preflight(command, MARKER);
-    if (conflict != null) return conflict;
+    if (conflict != null) {
+      return conflict;
+    }
     conflict = IntegrationArtifacts.preflight(plugin, PLUGIN_MARKER);
-    if (conflict != null) return conflict;
+    if (conflict != null) {
+      return conflict;
+    }
     if (!Files.exists(command) && !Files.exists(plugin)) {
       return new IntegrationResult(
           IntegrationResult.Status.NOT_FOUND, List.of(), "No Sentinel OpenCode integration found.");
@@ -114,7 +122,9 @@ public final class OpenCodeIntegration implements AgentIntegration {
   private static void deleteIfEmpty(Path directory) throws IOException {
     if (directory != null && Files.isDirectory(directory)) {
       try (var entries = Files.list(directory)) {
-        if (entries.findAny().isEmpty()) Files.deleteIfExists(directory);
+        if (entries.findAny().isEmpty()) {
+          Files.deleteIfExists(directory);
+        }
       }
     }
   }

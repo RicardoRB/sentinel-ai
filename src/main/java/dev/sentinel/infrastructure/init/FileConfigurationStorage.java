@@ -18,7 +18,9 @@ public final class FileConfigurationStorage implements ConfigurationStorage {
 
   @Override
   public Optional<String> read(Path file) {
-    if (!Files.exists(file)) return Optional.empty();
+    if (!Files.exists(file)) {
+      return Optional.empty();
+    }
     try {
       return Optional.of(Files.readString(file));
     } catch (IOException e) {

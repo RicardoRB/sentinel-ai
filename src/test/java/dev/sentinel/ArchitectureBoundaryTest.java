@@ -205,14 +205,13 @@ class ArchitectureBoundaryTest {
     assertThatThrownBy(() -> assertApplicationEntryPoints(dependencies))
         .isInstanceOf(AssertionError.class);
 
-    JavaClasses cycle = new ClassFileImporter().importClasses(Alpha.class, Beta.class);
     assertThatThrownBy(
             () ->
                 SlicesRuleDefinition.slices()
                     .matching("dev.sentinel.application.(*)..")
                     .should()
                     .beFreeOfCycles()
-                    .check(cycle))
+                    .check(new ClassFileImporter().importClasses(Alpha.class, Beta.class)))
         .isInstanceOf(AssertionError.class);
 
     Set<String> commonCliTypes =
@@ -223,8 +222,11 @@ class ArchitectureBoundaryTest {
             "ProjectOptions",
             "SentinelCommand",
             "VersionProvider");
-    JavaClasses misplaced = new ClassFileImporter().importClasses(MisplacedAdapter.class);
-    assertThat(isAllowedPackage(misplaced.iterator().next(), commonCliTypes)).isFalse();
+    assertThat(
+            isAllowedPackage(
+                new ClassFileImporter().importClasses(MisplacedAdapter.class).iterator().next(),
+                commonCliTypes))
+        .isFalse();
   }
 
   @Test
@@ -238,7 +240,7 @@ class ArchitectureBoundaryTest {
     JavaClasses classes = new ClassFileImporter().importPackages("dev.sentinel.domain");
 
     assertThat(classes)
-        .anyMatch(javaClass -> javaClass.getName().equals("dev.sentinel.domain.project.Project"));
+        .anyMatch(javaClass -> "dev.sentinel.domain.project.Project".equals(javaClass.getName()));
   }
 
   private static void assertDomainFeatureEdges(JavaClasses classes) {
@@ -248,7 +250,9 @@ class ArchitectureBoundaryTest {
                 classes,
                 "dev.sentinel.domain." + sourceFeature + "..",
                 target -> {
-                  if (!target.startsWith("dev.sentinel.domain.")) return false;
+                  if (!target.startsWith("dev.sentinel.domain.")) {
+                    return false;
+                  }
                   String[] parts = target.split("\\.");
                   return parts.length > 3
                       && !parts[3].equals(sourceFeature)
@@ -263,7 +267,9 @@ class ArchitectureBoundaryTest {
                 classes,
                 "dev.sentinel.application." + sourceFeature + "..",
                 target -> {
-                  if (!target.startsWith("dev.sentinel.application.")) return false;
+                  if (!target.startsWith("dev.sentinel.application.")) {
+                    return false;
+                  }
                   String sourcePrefix = "dev.sentinel.application." + sourceFeature + ".";
                   return !target.startsWith(sourcePrefix) && !allowedTargets.contains(target);
                 }));
@@ -286,8 +292,8 @@ class ArchitectureBoundaryTest {
     String name = javaClass.getName();
     String packageName = javaClass.getPackageName();
     return switch (packageName) {
-      case "dev.sentinel" -> name.equals("dev.sentinel.SentinelApplication");
-      case "dev.sentinel.config" -> name.equals("dev.sentinel.config.SentinelModule");
+      case "dev.sentinel" -> "dev.sentinel.SentinelApplication".equals(name);
+      case "dev.sentinel.config" -> "dev.sentinel.config.SentinelModule".equals(name);
       case "dev.sentinel.infrastructure.cli" -> commonCliTypes.contains(javaClass.getSimpleName());
       default ->
           packageName.matches("dev\\.sentinel\\.(domain|application)\\.[^.]+(\\..*)?")

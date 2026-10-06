@@ -65,9 +65,10 @@ public final class QualityLoopService {
               LoopTerminalState.AGENT_ERROR, iteration, history, e.getCause().toString());
         }
       }
-      if (!agentResult.succeeded())
+      if (!agentResult.succeeded()) {
         return new LoopResult(
             LoopTerminalState.AGENT_ERROR, iteration, history, agentResult.summary());
+      }
       CheckReport report;
       try {
         report = checks.check(root);
@@ -75,9 +76,10 @@ public final class QualityLoopService {
         return new LoopResult(LoopTerminalState.GATE_ERROR, iteration, history, e.getMessage());
       }
       history.add(report);
-      if (report.passed())
+      if (report.passed()) {
         return new LoopResult(
             LoopTerminalState.PASSED, iteration, history, "All quality gates passed.");
+      }
       feedback = feedback(report);
     }
     return new LoopResult(

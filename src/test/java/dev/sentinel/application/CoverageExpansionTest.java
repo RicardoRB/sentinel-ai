@@ -221,7 +221,7 @@ class CoverageExpansionTest {
         (CommandExecutor)
             (command, root) ->
                 new CommandResult(
-                    command.getFirst().equals("fail") ? 1 : 0, "out", "err", Duration.ofMillis(2));
+                    "fail".equals(command.getFirst()) ? 1 : 0, "out", "err", Duration.ofMillis(2));
     assertThat(new CommandQualityGate("custom", executor, List.of("ok")).execute(PROJECT).status())
         .isEqualTo(GateStatus.PASSED);
     assertThat(

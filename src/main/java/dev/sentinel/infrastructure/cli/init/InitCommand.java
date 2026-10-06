@@ -25,6 +25,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.function.Supplier;
@@ -101,7 +102,7 @@ public class InitCommand implements Callable<Integer> {
     boolean overwrite = overwriteOption;
     if (service.get().configurationExists(project)) {
       if (!overwrite) {
-        if (input == System.in && System.console() == null) {
+        if (input.equals(System.in) && System.console() == null) {
           return printResult(service.get().init(project.root()));
         }
         if (!confirmOverwrite(project.root().resolve(SentinelConfiguration.FILE_NAME))) {
@@ -121,13 +122,13 @@ public class InitCommand implements Callable<Integer> {
           selectedArchitecture == null ? selectArchitecture(catalog) : selectedArchitecture;
       catalog.architecture(selectedArchitecture);
     }
-    PrintWriter out = output();
     for (String selectedGate : selectedGates) {
       InitGateOption gateOption = catalog.gate(project, selectedGate);
-      out.printf(
-          "Selected quality gate '%s': %s%n",
-          gateOption.id(), gateOption.available() ? "AVAILABLE" : "UNAVAILABLE");
-      out.println(gateOption.availabilityMessage());
+      output()
+          .printf(
+              "Selected quality gate '%s': %s%n",
+              gateOption.id(), gateOption.available() ? "AVAILABLE" : "UNAVAILABLE");
+      output().println(gateOption.availabilityMessage());
     }
     InitResult result =
         service
@@ -140,7 +141,6 @@ public class InitCommand implements Callable<Integer> {
   }
 
   private List<String> selectIntegrations(InitSetupCatalog catalog) {
-    PrintWriter out = output();
     List<InitIntegrationOption> choices = catalog.integrations();
     var raw = openRawTerminal();
     if (raw.isPresent()) {
@@ -152,36 +152,38 @@ public class InitCommand implements Callable<Integer> {
                     labels,
                     "Select at least one integration, or choose none.",
                     session::read,
-                    out)
+                    output())
                 .stream()
                 .map(index -> choices.get(index).id())
                 .toList();
       }
     }
-    out.println("Select agent integrations (enter numbers separated by spaces, then press Enter):");
+    output()
+        .println(
+            "Select agent integrations (enter numbers separated by spaces, then press Enter):");
     for (int i = 0; i < choices.size(); i++) {
-      out.printf("> [ ] %d) %s%n", i + 1, choices.get(i).label());
+      output().printf("> [ ] %d) %s%n", i + 1, choices.get(i).label());
     }
     return readIntegrationChoices(choices);
   }
 
   private boolean confirmOverwrite(Path file) {
-    PrintWriter out = output();
-    out.print(file + " already exists. Overwrite it? [y/N]: ");
-    out.flush();
+    output().print(file + " already exists. Overwrite it? [y/N]: ");
+    output().flush();
     try {
       String answer = reader.readLine();
-      boolean overwrite = answer != null && answer.trim().equalsIgnoreCase("y");
-      if (!overwrite) out.println("Keeping existing sentinel.toml. No changes made.");
+      boolean overwrite = answer != null && "y".equalsIgnoreCase(answer.trim());
+      if (!overwrite) {
+        output().println("Keeping existing sentinel.toml. No changes made.");
+      }
       return overwrite;
     } catch (IOException e) {
-      out.println("Keeping existing sentinel.toml. No changes made.");
+      output().println("Keeping existing sentinel.toml. No changes made.");
       return false;
     }
   }
 
   private List<String> selectGates(InitSetupCatalog catalog, Project project) {
-    PrintWriter out = output();
     List<InitGateOption> choices = catalog.gates(project);
     var raw = openRawTerminal();
     if (raw.isPresent()) {
@@ -193,44 +195,45 @@ public class InitCommand implements Callable<Integer> {
                     labels,
                     "Select at least one quality gate.",
                     session::read,
-                    out)
+                    output())
                 .stream()
                 .map(index -> choices.get(index).id())
                 .toList();
       }
     }
-    out.println("Select quality gates (enter numbers separated by spaces, then press Enter):");
+    output().println("Select quality gates (enter numbers separated by spaces, then press Enter):");
     for (int i = 0; i < choices.size(); i++) {
       InitGateOption choice = choices.get(i);
-      out.printf(
-          "> [ ] %d) %s - %s [%s]%n",
-          i + 1,
-          choice.id(),
-          choice.description(),
-          choice.available() ? "available" : "unavailable");
+      output()
+          .printf(
+              "> [ ] %d) %s - %s [%s]%n",
+              i + 1,
+              choice.id(),
+              choice.description(),
+              choice.available() ? "available" : "unavailable");
     }
     return readGateChoices(choices);
   }
 
   private String selectArchitecture(InitSetupCatalog catalog) {
-    PrintWriter out = output();
     List<InitArchitectureOption> choices = catalog.architectures();
-    out.println("Select an architecture style:");
+    output().println("Select an architecture style:");
     for (int i = 0; i < choices.size(); i++) {
-      out.printf("> %d) %s%n", i + 1, choices.get(i).label());
+      output().printf("> %d) %s%n", i + 1, choices.get(i).label());
     }
-    out.print("Choose an architecture [1-" + choices.size() + "]: ");
-    out.flush();
+    output().print("Choose an architecture [1-" + choices.size() + "]: ");
+    output().flush();
     try {
       String value = reader.readLine();
-      if (value == null)
+      if (value == null) {
         throw new SentinelException(
             "Initialization cancelled: input ended before setup completed.");
+      }
       int choice;
       try {
         choice = Integer.parseInt(value.trim());
       } catch (NumberFormatException e) {
-        throw new SentinelException("Invalid architecture selection '" + value + "'.");
+        throw new SentinelException("Invalid architecture selection '" + value + "'.", e);
       }
       if (choice < 1 || choice > choices.size()) {
         throw new SentinelException(
@@ -238,41 +241,17 @@ public class InitCommand implements Callable<Integer> {
       }
       return choices.get(choice - 1).id();
     } catch (IOException e) {
-      throw new SentinelException("Could not read architecture selection: " + e.getMessage());
+      throw new SentinelException("Could not read architecture selection: " + e.getMessage(), e);
     }
   }
 
   private static boolean requiresArchitectureTest(List<String> selectedGates) {
-    return selectedGates.stream().anyMatch(gate -> gate.equals("archunit"));
-  }
-
-  private int readChoice(String prompt, int size) {
-    PrintWriter out = output();
-    out.print(prompt);
-    out.flush();
-    try {
-      String value = reader.readLine();
-      if (value == null) {
-        throw new SentinelException(
-            "Initialization cancelled: input ended before setup completed.");
-      }
-      try {
-        int choice = Integer.parseInt(value.trim());
-        if (choice < 1 || choice > size) throw new NumberFormatException();
-        return choice - 1;
-      } catch (NumberFormatException e) {
-        throw new SentinelException(
-            "Invalid selection '" + value + "'. Choose a number from 1 to " + size + ".");
-      }
-    } catch (IOException e) {
-      throw new SentinelException("Could not read initialization selection: " + e.getMessage());
-    }
+    return selectedGates.stream().anyMatch("archunit"::equals);
   }
 
   private List<String> readIntegrationChoices(List<InitIntegrationOption> choices) {
-    PrintWriter out = output();
-    out.print("Toggle integrations with space-separated numbers [1-" + choices.size() + "]: ");
-    out.flush();
+    output().print("Toggle integrations with space-separated numbers [1-" + choices.size() + "]: ");
+    output().flush();
     try {
       String value = reader.readLine();
       if (value == null) {
@@ -281,19 +260,26 @@ public class InitCommand implements Callable<Integer> {
       }
       List<String> selected = new ArrayList<>();
       for (String token : value.trim().split("[ ,]+")) {
-        if (token.isBlank()) continue;
+        if (token.isBlank()) {
+          continue;
+        }
         try {
           int choice = Integer.parseInt(token);
-          if (choice < 1 || choice > choices.size()) throw new NumberFormatException();
+          if (choice < 1 || choice > choices.size()) {
+            throw new NumberFormatException();
+          }
           String id = choices.get(choice - 1).id();
-          if (!selected.contains(id)) selected.add(id);
+          if (!selected.contains(id)) {
+            selected.add(id);
+          }
         } catch (NumberFormatException e) {
           throw new SentinelException(
               "Invalid integration selection '"
                   + token
                   + "'. Choose numbers from 1 to "
                   + choices.size()
-                  + ".");
+                  + ".",
+              e);
         }
       }
       if (selected.isEmpty()) {
@@ -301,79 +287,91 @@ public class InitCommand implements Callable<Integer> {
       }
       return selected;
     } catch (IOException e) {
-      throw new SentinelException("Could not read initialization selection: " + e.getMessage());
+      throw new SentinelException("Could not read initialization selection: " + e.getMessage(), e);
     }
   }
 
   private List<String> readGateChoices(List<InitGateOption> choices) {
-    PrintWriter out = output();
-    out.print("Toggle quality gates with space-separated numbers [1-" + choices.size() + "]: ");
-    out.flush();
+    output()
+        .print("Toggle quality gates with space-separated numbers [1-" + choices.size() + "]: ");
+    output().flush();
     try {
       String value = reader.readLine();
-      if (value == null)
+      if (value == null) {
         throw new SentinelException(
             "Initialization cancelled: input ended before setup completed.");
+      }
       List<String> selected = new ArrayList<>();
       for (String token : value.trim().split("[ ,]+")) {
-        if (token.isBlank()) continue;
+        if (token.isBlank()) {
+          continue;
+        }
         try {
           int choice = Integer.parseInt(token);
-          if (choice < 1 || choice > choices.size()) throw new NumberFormatException();
+          if (choice < 1 || choice > choices.size()) {
+            throw new NumberFormatException();
+          }
           String id = choices.get(choice - 1).id();
-          if (!selected.contains(id)) selected.add(id);
+          if (!selected.contains(id)) {
+            selected.add(id);
+          }
         } catch (NumberFormatException e) {
           throw new SentinelException(
               "Invalid quality-gate selection '"
                   + token
                   + "'. Choose numbers from 1 to "
                   + choices.size()
-                  + ".");
+                  + ".",
+              e);
         }
       }
-      if (selected.isEmpty()) throw new SentinelException("Select at least one quality gate.");
+      if (selected.isEmpty()) {
+        throw new SentinelException("Select at least one quality gate.");
+      }
       return selected;
     } catch (IOException e) {
-      throw new SentinelException("Could not read initialization selection: " + e.getMessage());
+      throw new SentinelException("Could not read initialization selection: " + e.getMessage(), e);
     }
   }
 
   private Optional<RawSession> openRawTerminal() {
-    if (input != System.in
+    if (!input.equals(System.in)
         || System.console() == null
-        || System.getProperty("os.name", "").toLowerCase().contains("win")) return Optional.empty();
+        || System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("win")) {
+      return Optional.empty();
+    }
     return rawTerminal.open();
   }
 
   private int printResult(InitResult result) {
-    PrintWriter out = output();
     if (result.created()) {
-      out.println((result.overwritten() ? "Updated " : "Created ") + result.file());
+      output().println((result.overwritten() ? "Updated " : "Created ") + result.file());
       if (!result.pomChanges().isEmpty()) {
-        out.println("Updated pom.xml with Maven tools:");
-        result.pomChanges().forEach(tool -> out.println("- " + tool));
+        output().println("Updated pom.xml with Maven tools:");
+        result.pomChanges().forEach(tool -> output().println("- " + tool));
       }
       if (result.architectureTest() != null) {
         if (result.architectureTest().created()) {
-          out.println(
-              "Generated "
-                  + result.architectureTest().architecture()
-                  + " ArchUnit test: "
-                  + result.architectureTest().file());
+          output()
+              .println(
+                  "Generated "
+                      + result.architectureTest().architecture()
+                      + " ArchUnit test: "
+                      + result.architectureTest().file());
         } else {
-          out.println("Preserved existing ArchUnit test: " + result.architectureTest().file());
+          output().println("Preserved existing ArchUnit test: " + result.architectureTest().file());
         }
       }
       if (result.integrations().isEmpty()) {
-        out.println("No agent integration installed.");
+        output().println("No agent integration installed.");
       } else {
         for (var integration : result.integrations()) {
-          out.printf("Integration: %s%n", integration.message());
-          integration.changed().forEach(out::println);
+          output().printf("Integration: %s%n", integration.message());
+          integration.changed().forEach(output()::println);
         }
       }
     } else {
-      out.println(result.file() + " already exists. Nothing was changed.");
+      output().println(result.file() + " already exists. Nothing was changed.");
     }
     return ExitCodes.OK;
   }

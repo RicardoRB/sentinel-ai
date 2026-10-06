@@ -119,34 +119,35 @@ public final class PomToolConfigurator implements BuildToolConfiguration {
               </plugin>
             """;
 
+  @Override
   public PomChange apply(Project project, List<InitGateOption> gates) {
     Path pom = project.root().resolve("pom.xml");
     try {
       String original = Files.readString(pom);
       String updated = original;
       List<String> tools = new ArrayList<>();
-      boolean needsArchUnit = gates.stream().anyMatch(gate -> gate.id().equals("archunit"));
-      if (gates.stream().anyMatch(gate -> gate.id().equals("checkstyle"))
+      boolean needsArchUnit = gates.stream().anyMatch(gate -> "archunit".equals(gate.id()));
+      if (gates.stream().anyMatch(gate -> "checkstyle".equals(gate.id()))
           && !containsArtifact(updated, CHECKSTYLE)) {
         updated = addPlugin(updated, CHECKSTYLE_PLUGIN);
         tools.add(CHECKSTYLE);
       }
-      if (gates.stream().anyMatch(gate -> gate.id().equals("spotbugs"))
+      if (gates.stream().anyMatch(gate -> "spotbugs".equals(gate.id()))
           && !containsArtifact(updated, SPOTBUGS)) {
         updated = addPlugin(updated, SPOTBUGS_PLUGIN);
         tools.add(SPOTBUGS);
       }
-      if (gates.stream().anyMatch(gate -> gate.id().equals("sonar"))
+      if (gates.stream().anyMatch(gate -> "sonar".equals(gate.id()))
           && !containsArtifact(updated, SONAR)) {
         updated = addPlugin(updated, SONAR_PLUGIN);
         tools.add(SONAR);
       }
-      if (gates.stream().anyMatch(gate -> gate.id().equals("coverage"))
+      if (gates.stream().anyMatch(gate -> "coverage".equals(gate.id()))
           && !containsArtifact(updated, JACOCO)) {
         updated = addPlugin(updated, JACOCO_PLUGIN);
         tools.add(JACOCO);
       }
-      if (gates.stream().anyMatch(gate -> gate.id().equals("dependency-check"))
+      if (gates.stream().anyMatch(gate -> "dependency-check".equals(gate.id()))
           && !containsArtifact(updated, DEPENDENCY_CHECK)) {
         updated = addPlugin(updated, DEPENDENCY_CHECK_PLUGIN);
         tools.add(DEPENDENCY_CHECK);
@@ -155,12 +156,12 @@ public final class PomToolConfigurator implements BuildToolConfiguration {
         updated = addDependency(updated, ARCHUNIT_DEPENDENCY);
         tools.add(ARCHUNIT);
       }
-      if (gates.stream().anyMatch(gate -> gate.id().equals("mutation"))
+      if (gates.stream().anyMatch(gate -> "mutation".equals(gate.id()))
           && !containsArtifact(updated, PIT)) {
         updated = addPlugin(updated, PIT_PLUGIN);
         tools.add(PIT);
       }
-      if (gates.stream().anyMatch(gate -> gate.id().equals("compliance"))
+      if (gates.stream().anyMatch(gate -> "compliance".equals(gate.id()))
           && !containsArtifact(updated, ENFORCER)) {
         updated = addPlugin(updated, ENFORCER_PLUGIN);
         tools.add(ENFORCER);
@@ -178,7 +179,9 @@ public final class PomToolConfigurator implements BuildToolConfiguration {
 
   @Override
   public void rollback(PomChange change) {
-    if (change == null || !change.changed()) return;
+    if (change == null || !change.changed()) {
+      return;
+    }
     try {
       Files.writeString(
           change.file(),
@@ -195,7 +198,9 @@ public final class PomToolConfigurator implements BuildToolConfiguration {
   }
 
   private static String addPlugin(String pom, String plugin) {
-    if (pom.contains("</plugins>")) return pom.replaceFirst("</plugins>", plugin + "  </plugins>");
+    if (pom.contains("</plugins>")) {
+      return pom.replaceFirst("</plugins>", plugin + "  </plugins>");
+    }
     if (pom.contains("</build>")) {
       return pom.replaceFirst("</build>", "  <plugins>\n" + plugin + "  </plugins>\n</build>");
     }
@@ -208,8 +213,9 @@ public final class PomToolConfigurator implements BuildToolConfiguration {
   }
 
   private static String addDependency(String pom, String dependency) {
-    if (pom.contains("</dependencies>"))
+    if (pom.contains("</dependencies>")) {
       return pom.replaceFirst("</dependencies>", dependency + "  </dependencies>");
+    }
     if (!pom.contains("</project>")) {
       throw new SentinelException("Cannot safely update pom.xml: missing </project> element.");
     }

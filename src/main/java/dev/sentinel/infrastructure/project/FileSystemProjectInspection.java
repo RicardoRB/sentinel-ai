@@ -51,8 +51,9 @@ public final class FileSystemProjectInspection implements ProjectInspection {
         && !Files.exists(candidate.resolve(POM))) {
       candidate = parent;
     }
-    if (Files.exists(candidate.resolve(".git")) || Files.exists(candidate.resolve(POM)))
+    if (Files.exists(candidate.resolve(".git")) || Files.exists(candidate.resolve(POM))) {
       root = candidate;
+    }
     List<Project> projects = new ArrayList<>();
     try (var paths = Files.walk(root, 4)) {
       paths.filter(Files::isDirectory).forEach(dir -> addMarkers(dir, projects));
@@ -106,15 +107,19 @@ public final class FileSystemProjectInspection implements ProjectInspection {
         if (files.anyMatch(path -> path.getFileName().toString().endsWith(".csproj"))) {
           projects.add(new Project(dir, Language.CSHARP, BuildTool.DOTNET, Framework.NONE));
         }
-      } catch (IOException ignored) {
-        // An unreadable directory contributes no project marker.
+      } catch (IOException e) {
+        throw new IllegalStateException("Could not inspect project directory " + dir, e);
       }
     }
   }
 
   private static BuildTool tool(Path dir) {
-    if (Files.isRegularFile(dir.resolve("pnpm-lock.yaml"))) return BuildTool.PNPM;
-    if (Files.isRegularFile(dir.resolve("yarn.lock"))) return BuildTool.YARN;
+    if (Files.isRegularFile(dir.resolve("pnpm-lock.yaml"))) {
+      return BuildTool.PNPM;
+    }
+    if (Files.isRegularFile(dir.resolve("yarn.lock"))) {
+      return BuildTool.YARN;
+    }
     return BuildTool.NPM;
   }
 
@@ -136,6 +141,7 @@ public final class FileSystemProjectInspection implements ProjectInspection {
       }
     } catch (javax.xml.parsers.ParserConfigurationException | SAXException | IOException e) {
       // A POM remains a Maven marker even when its framework cannot be identified.
+      return Framework.NONE;
     }
     return Framework.NONE;
   }

@@ -60,8 +60,8 @@ public class QualityGateFactory {
   private static List<String> testsCommand(List<String> configured, Project project) {
     if (project != null
         && !project.mavenWrapperAvailable()
-        && configured.size() >= 1
-        && (configured.getFirst().equals("./mvnw") || configured.getFirst().equals("mvnw"))) {
+        && !configured.isEmpty()
+        && ("./mvnw".equals(configured.getFirst()) || "mvnw".equals(configured.getFirst()))) {
       List<String> fallback = new ArrayList<>(configured);
       fallback.set(0, "mvn");
       return fallback;

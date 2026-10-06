@@ -34,19 +34,18 @@ public class DetectCommand implements Callable<Integer> {
 
   @Override
   public Integer call() {
-    PrintWriter out = output();
     Optional<Project> project = detector.detect(options.directory());
     if (project.isEmpty()) {
-      out.println("No supported project detected.");
+      output().println("No supported project detected.");
       return ExitCodes.FAILED;
     }
     Project p = project.get();
-    out.println("Project detected");
-    out.println();
-    out.printf("Language:     %s%n", p.language().displayName());
-    out.printf("Build tool:   %s%n", p.buildTool().displayName());
-    out.printf("Framework:    %s%n", p.framework().displayName());
-    out.printf("Project root: %s%n", p.root());
+    output().println("Project detected");
+    output().println();
+    output().printf("Language:     %s%n", p.language().displayName());
+    output().printf("Build tool:   %s%n", p.buildTool().displayName());
+    output().printf("Framework:    %s%n", p.framework().displayName());
+    output().printf("Project root: %s%n", p.root());
     return ExitCodes.OK;
   }
 

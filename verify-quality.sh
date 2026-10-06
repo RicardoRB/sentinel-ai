@@ -20,6 +20,7 @@ fi
   test \
   spotless:check \
   checkstyle:check \
+  pmd:check \
   spotbugs:check \
   org.jacoco:jacoco-maven-plugin:report
 

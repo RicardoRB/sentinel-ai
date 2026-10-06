@@ -4,7 +4,8 @@ import com.google.inject.Guice;
 import dev.sentinel.config.SentinelModule;
 import dev.sentinel.infrastructure.cli.CommandLineRunnerImpl;
 
-public class SentinelApplication {
+public final class SentinelApplication {
+  private SentinelApplication() {}
 
   public static void main(String[] args) {
     CommandLineRunnerImpl runner =

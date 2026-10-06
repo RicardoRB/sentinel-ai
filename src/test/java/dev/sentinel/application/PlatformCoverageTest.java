@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import dev.sentinel.application.gate.LanguageGateRegistry;
 import dev.sentinel.application.project.ProjectDiscovery;
 import dev.sentinel.domain.project.Language;
+import dev.sentinel.domain.project.Project;
 import dev.sentinel.infrastructure.project.FileSystemProjectInspection;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -21,7 +22,7 @@ class PlatformCoverageTest {
     Files.writeString(rust.resolve("Cargo.toml"), "[package]");
     assertThat(
             new ProjectDiscovery(new FileSystemProjectInspection())
-                .discover(root).stream().map(project -> project.language()))
+                .discover(root).stream().map(Project::language))
         .containsExactly(Language.JAVASCRIPT, Language.PYTHON, Language.RUST);
   }
 

@@ -87,8 +87,12 @@ public class InitService {
     validateIntegrations(selection.integrations());
     List<InitGateOption> gates =
         selection.gates().stream().map(id -> catalog.gate(project, id)).toList();
-    if (gates.isEmpty()) throw new SentinelException("Select at least one quality gate.");
-    if (selection.architecture() != null) catalog.architecture(selection.architecture());
+    if (gates.isEmpty()) {
+      throw new SentinelException("Select at least one quality gate.");
+    }
+    if (selection.architecture() != null) {
+      catalog.architecture(selection.architecture());
+    }
     Path configurationFile = project.root().resolve(SentinelConfiguration.FILE_NAME);
     String originalConfiguration = configurationStorage.read(configurationFile).orElse(null);
     boolean hadConfiguration = originalConfiguration != null;
@@ -102,7 +106,9 @@ public class InitService {
     ArchitectureTestChange architectureTest = null;
     try {
       for (String integration : selection.integrations()) {
-        if (InitSetupCatalog.NO_INTEGRATION.equals(integration)) continue;
+        if (InitSetupCatalog.NO_INTEGRATION.equals(integration)) {
+          continue;
+        }
         IntegrationResult result = installIntegration(project.root(), integration);
         installed.add(result);
         if (result.status() == IntegrationResult.Status.CONFLICT) {
@@ -169,7 +175,9 @@ public class InitService {
   private void rollbackNewIntegrations(
       Path root, List<String> ids, List<IntegrationResult> results) {
     for (int i = 0; i < Math.min(ids.size(), results.size()); i++) {
-      if (results.get(i).status() != IntegrationResult.Status.CHANGED) continue;
+      if (results.get(i).status() != IntegrationResult.Status.CHANGED) {
+        continue;
+      }
       try {
         integration(ids.get(i)).integrate(root, true);
       } catch (RuntimeException ignored) {
@@ -201,7 +209,7 @@ public class InitService {
   }
 
   private static boolean requiresArchitectureTest(List<InitGateOption> gates) {
-    return gates.stream().anyMatch(gate -> gate.id().equals("archunit"));
+    return gates.stream().anyMatch(gate -> "archunit".equals(gate.id()));
   }
 
   private static String configuration(List<InitGateOption> gates) {

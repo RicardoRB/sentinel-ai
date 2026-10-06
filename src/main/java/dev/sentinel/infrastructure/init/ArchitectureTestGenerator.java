@@ -17,13 +17,16 @@ import java.util.stream.Stream;
 public final class ArchitectureTestGenerator implements ArchitectureTestGeneration {
   private static final Pattern PACKAGE = Pattern.compile("\\bpackage\\s+([A-Za-z_][\\w.]*)\\s*;");
 
+  @Override
   public ArchitectureTestChange apply(Project project, String architecture) {
     Path projectRoot = project.root();
     String basePackage = detectBasePackage(projectRoot);
     Path packageDirectory =
         projectRoot.resolve("src/test/java").resolve(basePackage.replace('.', '/'));
     Path test = packageDirectory.resolve("ArchitectureTest.java");
-    if (Files.exists(test)) return new ArchitectureTestChange(test, false, architecture);
+    if (Files.exists(test)) {
+      return new ArchitectureTestChange(test, false, architecture);
+    }
     String content = testSource(basePackage, architecture);
     try {
       Files.createDirectories(packageDirectory);
@@ -39,7 +42,9 @@ public final class ArchitectureTestGenerator implements ArchitectureTestGenerati
 
   @Override
   public void rollback(ArchitectureTestChange change) {
-    if (change == null || !change.created()) return;
+    if (change == null || !change.created()) {
+      return;
+    }
     try {
       Files.deleteIfExists(change.file());
     } catch (IOException e) {
@@ -54,7 +59,9 @@ public final class ArchitectureTestGenerator implements ArchitectureTestGenerati
       try (Stream<Path> files = Files.walk(source)) {
         for (Path file : files.filter(path -> path.toString().endsWith(".java")).toList()) {
           Matcher matcher = PACKAGE.matcher(Files.readString(file));
-          if (matcher.find()) return matcher.group(1);
+          if (matcher.find()) {
+            return matcher.group(1);
+          }
         }
       } catch (IOException e) {
         throw new SentinelException("Could not inspect Java packages: " + e.getMessage(), e);

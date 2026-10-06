@@ -61,9 +61,10 @@ public final class LoopCommand implements Callable<Integer> {
             task,
             new LoopConfiguration(maxIterations, timeoutSeconds, allowDirty));
     var result = service.run(request);
-    PrintWriter out = output();
-    out.printf(
-        "%s after %d iteration(s): %s%n", result.state(), result.iterations(), result.message());
+    output()
+        .printf(
+            "%s after %d iteration(s): %s%n",
+            result.state(), result.iterations(), result.message());
     return result.state() == LoopTerminalState.PASSED ? ExitCodes.OK : ExitCodes.FAILED;
   }
 
