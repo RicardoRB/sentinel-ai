@@ -64,7 +64,13 @@ public class CheckCommand implements Callable<Integer> {
     CheckReport report;
     try {
       profiles = profiles.stream().map(String::trim).toList();
-      report = service.check(options.directory(), profiles);
+      if (format == Format.text) {
+        textRenderer.begin(output());
+        report = service.check(options.directory(), profiles, textRenderer);
+        textRenderer.summary(report);
+      } else {
+        report = service.check(options.directory(), profiles);
+      }
     } catch (SentinelException e) {
       if (format == Format.json) {
         // stdout stays machine-readable; the human message goes to stderr as well.
@@ -72,11 +78,9 @@ public class CheckCommand implements Callable<Integer> {
       }
       throw e;
     }
-    output()
-        .print(
-            format == Format.json
-                ? jsonRenderer.render(report, profiles.contains("strict")) + System.lineSeparator()
-                : textRenderer.render(report));
+    if (format == Format.json) {
+      output().println(jsonRenderer.render(report, profiles.contains("strict")));
+    }
     return report.passed() ? ExitCodes.OK : ExitCodes.FAILED;
   }
 

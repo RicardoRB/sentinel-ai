@@ -1,69 +1,206 @@
 package dev.sentinel.infrastructure.cli.gate;
 
+import dev.sentinel.application.gate.CheckProgressListener;
 import dev.sentinel.domain.gate.CheckReport;
 import dev.sentinel.domain.gate.GateResult;
-import java.time.Duration;
+import dev.sentinel.domain.gate.GateStatus;
+import dev.sentinel.domain.terminal.TerminalCapabilities;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import javax.inject.Inject;
+import javax.inject.Named;
 
-public class TextReportRenderer {
+public class TextReportRenderer implements CheckProgressListener {
+  private static final int OUTPUT_TAIL_LINES = 40;
+  private static final Map<String, String> DISPLAY_NAMES =
+      Map.ofEntries(
+          Map.entry("checkstyle", "Checkstyle"),
+          Map.entry("pmd", "PMD"),
+          Map.entry("spotbugs", "SpotBugs"),
+          Map.entry("owasp", "OWASP Dependency-Check"),
+          Map.entry("dependency-check", "OWASP Dependency-Check"),
+          Map.entry("gitleaks", "Gitleaks"));
+
+  private final TerminalCapabilities terminal;
+  private final String version;
+  private PrintWriter writer;
 
   @Inject
-  public TextReportRenderer() {}
-
-  private static final int OUTPUT_TAIL_LINES = 40;
-
-  public String render(CheckReport report) {
-    String nl = System.lineSeparator();
-    StringBuilder sb = new StringBuilder();
-    sb.append("Sentinel").append(nl).append(nl);
-    for (GateResult result : report.results()) {
-      sb.append(
-          String.format(
-              Locale.ROOT,
-              "%s %-12s %-9s %s%n",
-              result.passed() ? "✓" : "✗",
-              result.name(),
-              result.status(),
-              seconds(result.duration())));
-    }
-    sb.append(nl).append("Quality gate: ").append(report.status()).append(nl);
-
-    for (GateResult result : report.results()) {
-      if (result.passed()) {
-        continue;
-      }
-      sb.append(nl)
-          .append("Command:")
-          .append(nl)
-          .append(String.join(" ", result.command()))
-          .append(nl);
-      appendTail(sb, "stdout", result.stdout());
-      appendTail(sb, "stderr", result.stderr());
-    }
-    return sb.toString();
+  public TextReportRenderer(
+      TerminalCapabilities terminal, @Named("sentinel.version") String version) {
+    this.terminal = terminal;
+    this.version = version;
   }
 
-  private static void appendTail(StringBuilder sb, String label, String output) {
-    if (output.isBlank()) {
+  public TextReportRenderer() {
+    this(
+        new TerminalCapabilities() {
+          @Override
+          public boolean interactive() {
+            return false;
+          }
+
+          @Override
+          public boolean colorEnabled() {
+            return false;
+          }
+        },
+        "dev");
+  }
+
+  @SuppressFBWarnings(
+      value = "EI_EXPOSE_REP2",
+      justification =
+          "The renderer writes to the command-owned output stream during one invocation.")
+  public void begin(PrintWriter output) {
+    writer = output;
+    writer.println("Sentinel " + version);
+    writer.println();
+    writer.flush();
+  }
+
+  @Override
+  public void gateStarted(String name) {
+    if (terminal.interactive()) {
+      writer.print("… " + displayName(name));
+      writer.flush();
+    }
+  }
+
+  @Override
+  public void gateFinished(GateResult result) {
+    if (terminal.interactive()) {
+      writer.print("\r\033[2K");
+    }
+    writer.println(gateLine(result));
+    writer.flush();
+  }
+
+  public void summary(CheckReport report) {
+    writer.println();
+    writer.println("Quality Gate: " + report.status());
+    String tally =
+        report.passedCount()
+            + " passed · "
+            + report.failedCount()
+            + " failed · "
+            + report.skippedCount()
+            + " skipped";
+    if (report.totalErrors().isPresent() || report.totalWarnings().isPresent()) {
+      tally +=
+          " ("
+              + report.totalErrors().orElse(0)
+              + " errors · "
+              + report.totalWarnings().orElse(0)
+              + " warnings)";
+    }
+    writer.println(tally);
+    for (GateResult result : report.results()) {
+      if (result.status() != GateStatus.PASSED && result.status() != GateStatus.SKIPPED) {
+        appendFailure(writer, result);
+      }
+    }
+    writer.flush();
+  }
+
+  public String render(CheckReport report) {
+    StringBuilder output = new StringBuilder();
+    output
+        .append("Sentinel ")
+        .append(version)
+        .append(System.lineSeparator())
+        .append(System.lineSeparator());
+    for (GateResult result : report.results()) {
+      output.append(gateLine(result)).append(System.lineSeparator());
+    }
+    output
+        .append(System.lineSeparator())
+        .append("Quality Gate: ")
+        .append(report.status())
+        .append(System.lineSeparator());
+    String tally =
+        report.passedCount()
+            + " passed · "
+            + report.failedCount()
+            + " failed · "
+            + report.skippedCount()
+            + " skipped";
+    if (report.totalErrors().isPresent() || report.totalWarnings().isPresent()) {
+      tally +=
+          " ("
+              + report.totalErrors().orElse(0)
+              + " errors · "
+              + report.totalWarnings().orElse(0)
+              + " warnings)";
+    }
+    output.append(tally).append(System.lineSeparator());
+    for (GateResult result : report.results()) {
+      if (result.status() != GateStatus.PASSED && result.status() != GateStatus.SKIPPED) {
+        appendFailure(output, result);
+      }
+    }
+    return output.toString();
+  }
+
+  private static String gateLine(GateResult result) {
+    String marker =
+        switch (result.status()) {
+          case PASSED -> "✓";
+          case SKIPPED -> "–";
+          default -> "✗";
+        };
+    String line = marker + " " + displayName(result.name());
+    if (result.status() == GateStatus.UNAVAILABLE) {
+      return line + " — unavailable";
+    }
+    if (result.status() == GateStatus.EXECUTION_ERROR) {
+      return line + " — error";
+    }
+    if (result.status() == GateStatus.FAILED && result.errors() != null) {
+      return line + " — " + result.errors() + " errors";
+    }
+    return line;
+  }
+
+  private static String displayName(String id) {
+    return DISPLAY_NAMES.getOrDefault(id.toLowerCase(Locale.ROOT), id);
+  }
+
+  private static void appendFailure(Appendable output, GateResult result) {
+    try {
+      output
+          .append(System.lineSeparator())
+          .append("Command:")
+          .append(System.lineSeparator())
+          .append(String.join(" ", result.command()))
+          .append(System.lineSeparator());
+      appendTail(output, "stdout", result.stdout());
+      appendTail(output, "stderr", result.stderr());
+    } catch (IOException exception) {
+      throw new IllegalStateException(exception);
+    }
+  }
+
+  private static void appendTail(Appendable output, String label, String text) throws IOException {
+    if (text.isBlank()) {
       return;
     }
-    List<String> lines = output.stripTrailing().lines().toList();
+    List<String> lines = text.stripTrailing().lines().toList();
     int from = Math.max(0, lines.size() - OUTPUT_TAIL_LINES);
-    sb.append(System.lineSeparator())
+    output
+        .append(System.lineSeparator())
         .append("Last ")
-        .append(lines.size() - from)
+        .append(String.valueOf(lines.size() - from))
         .append(" lines of ")
         .append(label)
         .append(':')
         .append(System.lineSeparator());
-    lines
-        .subList(from, lines.size())
-        .forEach(line -> sb.append(line).append(System.lineSeparator()));
-  }
-
-  private static String seconds(Duration duration) {
-    return String.format(Locale.ROOT, "%.2fs", duration.toMillis() / 1000.0);
+    for (String line : lines.subList(from, lines.size())) {
+      output.append(line).append(System.lineSeparator());
+    }
   }
 }

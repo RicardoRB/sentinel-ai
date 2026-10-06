@@ -69,15 +69,8 @@ class ReportRendererTest {
     String text = new TextReportRenderer().render(report(GateStatus.PASSED, "ok", ""));
 
     assertThat(text)
-        .isEqualTo(
-            String.join(
-                System.lineSeparator(),
-                "Sentinel",
-                "",
-                "✓ tests        PASSED    3.85s",
-                "",
-                "Quality gate: PASSED",
-                ""));
+        .contains(
+            "Sentinel dev", "✓ tests", "Quality Gate: PASSED", "1 passed · 0 failed · 0 skipped");
   }
 
   @Test
@@ -89,11 +82,56 @@ class ReportRendererTest {
 
     assertThat(text)
         .contains(
-            "✗ tests        FAILED    3.85s",
-            "Quality gate: FAILED",
+            "✗ tests",
+            "Quality Gate: FAILED",
+            "0 passed · 1 failed · 0 skipped",
             "Command:" + System.lineSeparator() + "./mvnw test",
             "line 100",
             "boom")
         .doesNotContain("line 60" + System.lineSeparator());
+  }
+
+  @Test
+  void textReportExplainsSkippedAndUnavailableAndDoesNotEmitAnsi() {
+    CheckReport report =
+        new CheckReport(
+            project,
+            List.of(
+                new GateResult(
+                    "customGate", GateStatus.SKIPPED, List.of(), 0, Duration.ZERO, "", ""),
+                new GateResult(
+                    "gitleaks",
+                    GateStatus.UNAVAILABLE,
+                    List.of("gitleaks"),
+                    -1,
+                    Duration.ZERO,
+                    "",
+                    "missing")));
+
+    String text = new TextReportRenderer().render(report);
+
+    assertThat(text)
+        .contains("– customGate", "✗ Gitleaks — unavailable", "0 passed · 1 failed · 1 skipped")
+        .doesNotContain("\u001b", "3 errors", "0 errors");
+  }
+
+  @Test
+  void textReportShowsReportedFindingCountsOnly() {
+    GateResult counted =
+        new GateResult(
+            "checkstyle",
+            GateStatus.FAILED,
+            List.of("checkstyle"),
+            1,
+            Duration.ZERO,
+            "",
+            "",
+            null,
+            3,
+            7);
+    CheckReport report = new CheckReport(project, List.of(counted));
+
+    assertThat(new TextReportRenderer().render(report))
+        .contains("✗ Checkstyle — 3 errors", "3 errors · 7 warnings");
   }
 }

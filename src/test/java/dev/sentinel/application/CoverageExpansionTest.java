@@ -310,7 +310,7 @@ class CoverageExpansionTest {
             "stderr");
     CheckReport report = new CheckReport(PROJECT, List.of(passed, failed));
     assertThat(new TextReportRenderer().render(report))
-        .contains("Sentinel", "Quality gate: FAILED", "Command:", "line 1");
+        .contains("Sentinel", "Quality Gate: FAILED", "Command:", "line 1");
     assertThat(new JsonReportRenderer().render(report))
         .contains("schemaVersion", "FAILED", "lint", "stderr");
     assertThat(new JsonReportRenderer().renderError("broken")).contains("ERROR", "broken");

@@ -137,7 +137,20 @@ class SentinelCliIntegrationTest {
 
     out.getBuffer().setLength(0);
     assertThat(run("check", "-C", project.toString())).isEqualTo(ExitCodes.OK);
-    assertThat(out.toString()).contains("Sentinel", "✓ tests", "PASSED", "Quality gate: PASSED");
+    assertThat(out.toString())
+        .contains("Sentinel dev", "✓ tests", "PASSED", "Quality Gate: PASSED");
+  }
+
+  @Test
+  void checkJsonWritesOnlyJsonToStdout() {
+    assertThat(run("init", "--integration", "none", "--gate", "tests", "-C", project.toString()))
+        .isZero();
+    out.getBuffer().setLength(0);
+
+    assertThat(run("check", "--format", "json", "-C", project.toString())).isZero();
+    assertThat(JsonMapper.builder().build().readTree(out.toString()).get("status").asString())
+        .isEqualTo("PASSED");
+    assertThat(out.toString()).doesNotContain("Sentinel", "✓", "…", "\\u001b");
   }
 
   @Test
@@ -202,7 +215,7 @@ class SentinelCliIntegrationTest {
         .contains(
             "✗ tests",
             "FAILED",
-            "Quality gate: FAILED",
+            "Quality Gate: FAILED",
             "Command:",
             "./mvnw test",
             "BUILD FAILURE");

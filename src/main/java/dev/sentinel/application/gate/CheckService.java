@@ -40,6 +40,11 @@ public class CheckService {
   }
 
   public CheckReport check(Path start, List<String> requestedProfiles) {
+    return check(start, requestedProfiles, CheckProgressListener.NO_OP);
+  }
+
+  public CheckReport check(
+      Path start, List<String> requestedProfiles, CheckProgressListener listener) {
     Project project = detector.detect(start).orElseThrow(ProjectNotFoundException::new);
     SentinelConfiguration configuration =
         configurationReader.read(project.root().resolve(SentinelConfiguration.FILE_NAME));
@@ -51,7 +56,7 @@ public class CheckService {
               + SentinelConfiguration.FILE_NAME
               + "; refusing to report a pass without checking anything.");
     }
-    return runner.run(project, gates);
+    return runner.run(project, gates, listener);
   }
 
   private static SentinelConfiguration selectProfiles(

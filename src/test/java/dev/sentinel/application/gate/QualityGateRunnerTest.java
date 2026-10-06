@@ -2,6 +2,7 @@ package dev.sentinel.application.gate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import dev.sentinel.domain.FakeCommandExecutor;
 import dev.sentinel.domain.gate.CheckReport;
 import dev.sentinel.domain.gate.GateResult;
 import dev.sentinel.domain.gate.GateStatus;
@@ -12,6 +13,7 @@ import dev.sentinel.domain.project.Language;
 import dev.sentinel.domain.project.Project;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -58,5 +60,29 @@ class QualityGateRunnerTest {
 
     assertThat(report.status()).isEqualTo(GateStatus.FAILED);
     assertThat(report.results()).extracting(GateResult::name).containsExactly("a", "b");
+  }
+
+  @Test
+  void reportsStartAndFinishInGateOrderDespiteFailure() {
+    List<String> events = new ArrayList<>();
+    FakeCommandExecutor executor = new FakeCommandExecutor(1, "", "failure");
+    runner.run(
+        project,
+        List.of(
+            new CommandQualityGate("a", executor, List.of("first")),
+            new CommandQualityGate("b", executor, List.of("second"))),
+        new CheckProgressListener() {
+          @Override
+          public void gateStarted(String name) {
+            events.add("start:" + name);
+          }
+
+          @Override
+          public void gateFinished(GateResult result) {
+            events.add("finish:" + result.name());
+          }
+        });
+    assertThat(events).containsExactly("start:a", "finish:a", "start:b", "finish:b");
+    assertThat(executor.commands).containsExactly(List.of("first"), List.of("second"));
   }
 }

@@ -12,6 +12,7 @@ import dev.sentinel.domain.init.RawTerminal;
 import dev.sentinel.domain.loop.GitStateInspection;
 import dev.sentinel.domain.process.CommandExecutor;
 import dev.sentinel.domain.project.ProjectInspection;
+import dev.sentinel.domain.terminal.TerminalCapabilities;
 import dev.sentinel.infrastructure.agent.ProcessAgentRunnerFactory;
 import dev.sentinel.infrastructure.config.TomlConfigurationReader;
 import dev.sentinel.infrastructure.doctor.SystemEnvironmentInspection;
@@ -21,6 +22,7 @@ import dev.sentinel.infrastructure.init.PomToolConfigurator;
 import dev.sentinel.infrastructure.loop.GitStateInspector;
 import dev.sentinel.infrastructure.process.ProcessCommandExecutor;
 import dev.sentinel.infrastructure.project.FileSystemProjectInspection;
+import dev.sentinel.infrastructure.terminal.JdkTerminalCapabilities;
 import dev.sentinel.infrastructure.terminal.PosixRawTerminal;
 
 @Module
@@ -48,6 +50,9 @@ interface PortBindingsModule {
 
   @Binds
   RawTerminal rawTerminal(PosixRawTerminal implementation);
+
+  @Binds
+  TerminalCapabilities terminalCapabilities(JdkTerminalCapabilities implementation);
 
   @Binds
   BuildToolConfiguration buildToolConfiguration(PomToolConfigurator implementation);

@@ -12,10 +12,24 @@ public record GateResult(
     Duration duration,
     String stdout,
     String stderr,
-    String summary) {
+    String summary,
+    Integer errors,
+    Integer warnings) {
 
   public GateResult {
     command = List.copyOf(command);
+  }
+
+  public GateResult(
+      String name,
+      GateStatus status,
+      List<String> command,
+      int exitCode,
+      Duration duration,
+      String stdout,
+      String stderr,
+      String summary) {
+    this(name, status, command, exitCode, duration, stdout, stderr, summary, null, null);
   }
 
   public GateResult(

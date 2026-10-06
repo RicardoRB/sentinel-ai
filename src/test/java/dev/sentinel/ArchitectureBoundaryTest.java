@@ -49,26 +49,31 @@ class ArchitectureBoundaryTest {
           Set.of("gate"),
           "process",
           Set.of(),
+          "terminal",
+          Set.of(),
           "project",
           Set.of());
   private static final Map<String, Set<String>> APPLICATION_ENTRY_POINTS =
       Map.of(
-          "loop", Set.of("dev.sentinel.application.gate.CheckService"),
+          "loop",
+          Set.of("dev.sentinel.application.gate.CheckService"),
           "gate",
-              Set.of(
-                  "dev.sentinel.application.project.ProjectDetector",
-                  "dev.sentinel.application.project.ProjectDiscovery",
-                  "dev.sentinel.application.project.ProjectNotFoundException"),
+          Set.of(
+              "dev.sentinel.application.project.ProjectDetector",
+              "dev.sentinel.application.project.ProjectDiscovery",
+              "dev.sentinel.application.project.ProjectNotFoundException"),
           "init",
-              Set.of(
-                  "dev.sentinel.application.project.ProjectDetector",
-                  "dev.sentinel.application.project.ProjectNotFoundException"),
+          Set.of(
+              "dev.sentinel.application.project.ProjectDetector",
+              "dev.sentinel.application.project.ProjectNotFoundException"),
           "agent",
-              Set.of(
-                  "dev.sentinel.application.project.ProjectDetector",
-                  "dev.sentinel.application.project.ProjectNotFoundException"),
-          "doctor", Set.of("dev.sentinel.application.project.ProjectDetector"),
-          "project", Set.of());
+          Set.of(
+              "dev.sentinel.application.project.ProjectDetector",
+              "dev.sentinel.application.project.ProjectNotFoundException"),
+          "doctor",
+          Set.of("dev.sentinel.application.project.ProjectDetector"),
+          "project",
+          Set.of());
 
   @ArchTest
   static void domainDoesNotDependOnOuterLayersOrExternalEffectImplementations(JavaClasses classes) {

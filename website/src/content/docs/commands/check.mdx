@@ -13,6 +13,21 @@ must match. All selected gates run even when an earlier one fails. A gate whose 
 missing (for example `gitleaks`) is reported as unavailable with install guidance; an enabled
 `zap` gate without an explicit `-t <url>` target is a configuration error.
 
+Text output starts with the Sentinel version, then reports each gate as it completes, followed by a
+summary. On an interactive terminal, the running gate line is replaced in place by its final status.
+When output is redirected, `NO_COLOR` is set, or `TERM=dumb`, each gate is printed once on completion
+without ANSI cursor-control sequences. Failed gates include their command and captured output tail.
+
+```text
+Sentinel 1.2.3
+
+✓ Checkstyle
+✗ SpotBugs
+
+Quality Gate: FAILED
+1 passed · 1 failed · 0 skipped
+```
+
 Use `--format json` in scripts; only the JSON report goes to stdout and diagnostics go to stderr.
 See [JSON output](/reference/json-output/) and [exit codes](/reference/exit-codes/). `-C <dir>` runs
 against a project directory other than the current one. Exit `0` means all gates passed, `1` means

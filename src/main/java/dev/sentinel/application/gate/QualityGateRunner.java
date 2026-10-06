@@ -17,9 +17,16 @@ public class QualityGateRunner {
   public QualityGateRunner() {}
 
   public CheckReport run(Project project, List<QualityGate> gates) {
+    return run(project, gates, CheckProgressListener.NO_OP);
+  }
+
+  public CheckReport run(Project project, List<QualityGate> gates, CheckProgressListener listener) {
     List<GateResult> results = new ArrayList<>();
     for (QualityGate gate : gates) {
-      results.add(gate.execute(project));
+      listener.gateStarted(gate.name());
+      GateResult result = gate.execute(project);
+      results.add(result);
+      listener.gateFinished(result);
     }
     return new CheckReport(project, results);
   }
