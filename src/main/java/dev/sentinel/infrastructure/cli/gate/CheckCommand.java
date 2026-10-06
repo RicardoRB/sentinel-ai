@@ -9,6 +9,8 @@ import dev.sentinel.infrastructure.cli.ProjectOptions;
 import dev.sentinel.infrastructure.cli.VersionProvider;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Callable;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
@@ -39,8 +41,11 @@ public class CheckCommand implements Callable<Integer> {
       description = "Output format: ${COMPLETION-CANDIDATES} (default: ${DEFAULT-VALUE}).")
   private Format format;
 
-  @Option(names = "--profile", description = "Named gate profile from sentinel.toml.")
-  private String profile;
+  @Option(
+      names = "--profile",
+      split = ",",
+      description = "Gate profile(s), comma-separated or repeated (default: default).")
+  private List<String> profiles = new ArrayList<>();
 
   private final CheckService service;
   private final TextReportRenderer textRenderer;
@@ -59,7 +64,8 @@ public class CheckCommand implements Callable<Integer> {
     PrintWriter out = output();
     CheckReport report;
     try {
-      report = service.check(options.directory(), profile);
+      profiles = profiles.stream().map(String::trim).toList();
+      report = service.check(options.directory(), profiles);
     } catch (SentinelException e) {
       if (format == Format.json) {
         // stdout stays machine-readable; the human message goes to stderr as well.
@@ -69,7 +75,7 @@ public class CheckCommand implements Callable<Integer> {
     }
     out.print(
         format == Format.json
-            ? jsonRenderer.render(report, "strict".equals(profile)) + System.lineSeparator()
+            ? jsonRenderer.render(report, profiles.contains("strict")) + System.lineSeparator()
             : textRenderer.render(report));
     return report.passed() ? ExitCodes.OK : ExitCodes.FAILED;
   }

@@ -129,4 +129,23 @@ class TomlConfigurationReaderTest {
             () -> read("version = 1\n[quality-gates.tests]\nenabled = \"yes\"\ncommand = \"x\""))
         .hasMessageContaining("true or false");
   }
+
+  @Test
+  void parsesGateProfilesAndRejectsInvalidOrLegacyProfiles() throws Exception {
+    var defaults = read("version = 1\n[quality-gates.a]\ncommand = 'x'");
+    assertThat(defaults.gates().get("a").profiles()).containsExactly("default");
+    var configured =
+        read("version = 1\n[quality-gates.a]\nprofiles = [' ci ', 'fast']\nenabled = false");
+    assertThat(configured.gates().get("a").profiles()).containsExactly("ci", "fast");
+    for (String value : List.of("[]", "[1]", "['  ']", "'not-an-array'")) {
+      assertThatThrownBy(
+              () ->
+                  read("version = 1\n[quality-gates.a]\nprofiles = " + value + "\nenabled = false"))
+          .isInstanceOf(SentinelException.class)
+          .hasMessageContaining("quality-gates.a.profiles");
+    }
+    assertThatThrownBy(() -> read("version = 1\n[profiles.old]\ngates = ['a']"))
+        .hasMessageContaining("no longer supported")
+        .hasMessageContaining("quality-gates");
+  }
 }

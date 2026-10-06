@@ -19,7 +19,6 @@ import dev.sentinel.domain.agent.AgentRequest;
 import dev.sentinel.domain.agent.AgentResult;
 import dev.sentinel.domain.config.CommandLineTokenizer;
 import dev.sentinel.domain.config.GateConfiguration;
-import dev.sentinel.domain.config.Profile;
 import dev.sentinel.domain.config.SentinelConfiguration;
 import dev.sentinel.domain.config.SentinelException;
 import dev.sentinel.domain.gate.CheckReport;
@@ -249,15 +248,14 @@ class CoverageExpansionTest {
                 version = 1
                 [quality-gates.tests]
                 enabled = false
+                profiles = ["fast"]
                 [quality-gates.compile]
                 command = ["mvn", "compile"]
-                [profiles.fast]
-                gates = ["tests", "compile"]
+                profiles = ["fast"]
                 """);
     SentinelConfiguration configuration = new TomlConfigurationReader().read(file);
     assertThat(configuration.gates()).containsOnlyKeys("tests", "compile");
-    assertThat(configuration.profiles().get("fast"))
-        .isEqualTo(new Profile("fast", List.of("tests", "compile")));
+    assertThat(configuration.profileNames()).containsExactly("fast");
     assertThat(configuration.enabledGates()).containsOnlyKeys("compile");
     assertThatThrownBy(() -> new TomlConfigurationReader().read(root.resolve("missing.toml")))
         .isInstanceOf(SentinelException.class);
@@ -286,7 +284,7 @@ class CoverageExpansionTest {
         .isInstanceOf(IllegalArgumentException.class);
     assertThat(new LoopConfiguration(2, 3, true).allowDirty()).isTrue();
     assertThat(new GateConfiguration(true, List.of("test")).command()).containsExactly("test");
-    assertThat(new SentinelConfiguration(1, Map.of(), Map.of()).enabledGates()).isEmpty();
+    assertThat(new SentinelConfiguration(1, Map.of()).enabledGates()).isEmpty();
     assertThat(new AgentResult(true, "done", "").succeeded()).isTrue();
     assertThat(
             new InitResult(Path.of("/tmp/sentinel.toml"), true, false, null, null, null, null)
@@ -344,12 +342,11 @@ class CoverageExpansionTest {
         root.resolve("sentinel.toml"),
         """
                 version = 1
-                [quality-gates.tests]
-                command = "test"
-                [quality-gates.compile]
-                command = "compile"
-                [profiles.tests-only]
-                gates = ["tests"]
+                 [quality-gates.tests]
+                 command = "test"
+                 profiles = ["tests-only"]
+                 [quality-gates.compile]
+                 command = "compile"
                 """);
     var executor =
         (CommandExecutor) (command, path) -> new CommandResult(0, "ok", "", Duration.ZERO);
@@ -359,11 +356,15 @@ class CoverageExpansionTest {
             new TomlConfigurationReader(),
             new QualityGateFactory(executor),
             new QualityGateRunner());
-    assertThat(service.check(root, "tests-only").results()).hasSize(1);
-    assertThatThrownBy(() -> service.check(root, "missing")).isInstanceOf(SentinelException.class);
+    assertThat(service.check(root, List.of("tests-only")).results()).hasSize(1);
+    assertThatThrownBy(() -> service.check(root, List.of("missing")))
+        .isInstanceOf(SentinelException.class);
     Files.writeString(
-        root.resolve("sentinel.toml"), "version = 1\n[profiles.bad]\ngates = [\"missing\"]\n");
-    assertThatThrownBy(() -> service.check(root, "bad")).isInstanceOf(SentinelException.class);
+        root.resolve("sentinel.toml"),
+        "version = 1\n[quality-gates.tests]\ncommand='test'\nprofiles=['bad']\n");
+    assertThatThrownBy(() -> service.check(root))
+        .isInstanceOf(SentinelException.class)
+        .hasMessageContaining("--profile");
   }
 
   @Test

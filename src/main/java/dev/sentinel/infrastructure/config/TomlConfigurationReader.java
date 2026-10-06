@@ -2,7 +2,6 @@ package dev.sentinel.infrastructure.config;
 
 import dev.sentinel.domain.config.CommandLineTokenizer;
 import dev.sentinel.domain.config.GateConfiguration;
-import dev.sentinel.domain.config.Profile;
 import dev.sentinel.domain.config.SentinelConfiguration;
 import dev.sentinel.domain.config.SentinelConfigurationReader;
 import dev.sentinel.domain.config.SentinelException;
@@ -11,9 +10,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+import java.util.Set;
 import org.tomlj.Toml;
 import org.tomlj.TomlArray;
 import org.tomlj.TomlParseResult;
@@ -22,7 +22,6 @@ import org.tomlj.TomlTable;
 public class TomlConfigurationReader implements SentinelConfigurationReader {
 
   private static final String GATES_TABLE = "quality-gates";
-  private static final String PROFILES_TABLE = "profiles";
 
   @Override
   public SentinelConfiguration read(Path file) {
@@ -71,29 +70,15 @@ public class TomlConfigurationReader implements SentinelConfigurationReader {
         gates.put(name, parseGate(name, gate));
       }
     }
-    Map<String, Profile> profiles = new LinkedHashMap<>();
-    if (toml.contains(PROFILES_TABLE)) {
-      TomlTable table = toml.getTable(PROFILES_TABLE);
-      if (table == null) throw new SentinelException("'profiles' must be a table");
-      for (String name : table.keySet()) {
-        TomlTable profile = table.getTable(List.of(name));
-        if (profile == null || !profile.isArray("gates"))
-          throw new SentinelException("'profiles." + name + ".gates' must be an array of strings");
-        TomlArray array = Objects.requireNonNull(profile.getArray("gates"));
-        List<String> names = new ArrayList<>();
-        for (int i = 0; i < array.size(); i++) {
-          if (!array.isString(i))
-            throw new SentinelException("'profiles." + name + ".gates' must contain only strings");
-          names.add(array.getString(i));
-        }
-        profiles.put(name, new Profile(name, names));
-      }
-    }
-    return new SentinelConfiguration((int) (long) version, gates, profiles);
+    if (toml.contains("profiles"))
+      throw new SentinelException(
+          "'[profiles]' is no longer supported; declare 'profiles = [...]' under [quality-gates.<id>] instead");
+    return new SentinelConfiguration((int) (long) version, gates);
   }
 
   private GateConfiguration parseGate(String name, TomlTable gate) {
     String where = GATES_TABLE + "." + name;
+    Set<String> profiles = parseProfiles(where, gate);
     boolean enabled = true;
     if (gate.contains("enabled")) {
       Boolean value = gate.isBoolean("enabled") ? gate.getBoolean("enabled") : null;
@@ -106,9 +91,26 @@ public class TomlConfigurationReader implements SentinelConfigurationReader {
       if (enabled) {
         throw new SentinelException("'" + where + ".command' is required for an enabled gate");
       }
-      return new GateConfiguration(false, List.of());
+      return new GateConfiguration(false, List.of(), profiles);
     }
-    return new GateConfiguration(enabled, parseCommand(where, gate));
+    return new GateConfiguration(enabled, parseCommand(where, gate), profiles);
+  }
+
+  private Set<String> parseProfiles(String where, TomlTable gate) {
+    if (!gate.contains("profiles")) return Set.of(SentinelConfiguration.DEFAULT_PROFILE);
+    String key = where + ".profiles";
+    if (!gate.isArray("profiles"))
+      throw new SentinelException("'" + key + "' must be a non-empty array of non-blank strings");
+    TomlArray array = gate.getArray("profiles");
+    if (array == null || array.isEmpty())
+      throw new SentinelException("'" + key + "' must not be empty");
+    Set<String> profiles = new LinkedHashSet<>();
+    for (int i = 0; i < array.size(); i++) {
+      if (!array.isString(i) || array.getString(i) == null || array.getString(i).isBlank())
+        throw new SentinelException("'" + key + "' must contain only non-blank strings");
+      profiles.add(array.getString(i).trim());
+    }
+    return profiles;
   }
 
   private List<String> parseCommand(String where, TomlTable gate) {

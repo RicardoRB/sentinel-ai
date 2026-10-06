@@ -12,7 +12,9 @@ import dev.sentinel.domain.gate.QualityGate;
 import dev.sentinel.domain.project.Project;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 public class CheckService {
 
@@ -34,14 +36,14 @@ public class CheckService {
   }
 
   public CheckReport check(Path start) {
-    return check(start, null);
+    return check(start, List.of());
   }
 
-  public CheckReport check(Path start, String profileName) {
+  public CheckReport check(Path start, List<String> requestedProfiles) {
     Project project = detector.detect(start).orElseThrow(ProjectNotFoundException::new);
     SentinelConfiguration configuration =
         configurationReader.read(project.root().resolve(SentinelConfiguration.FILE_NAME));
-    SentinelConfiguration selected = selectProfile(configuration, profileName);
+    SentinelConfiguration selected = selectProfiles(configuration, requestedProfiles);
     List<QualityGate> gates = gateFactory.create(selected, project);
     if (selected.enabledGates().isEmpty()) {
       throw new SentinelException(
@@ -52,24 +54,32 @@ public class CheckService {
     return runner.run(project, gates);
   }
 
-  private static SentinelConfiguration selectProfile(
-      SentinelConfiguration configuration, String name) {
-    if (name == null || name.isBlank()) return configuration;
-    var profile = configuration.profiles().get(name);
-    if (profile == null)
+  private static SentinelConfiguration selectProfiles(
+      SentinelConfiguration configuration, List<String> requested) {
+    List<String> names =
+        requested == null || requested.isEmpty()
+            ? List.of(SentinelConfiguration.DEFAULT_PROFILE)
+            : requested;
+    if (names.stream().anyMatch(name -> name == null || name.isBlank()))
+      throw new SentinelException("Profile names must not be blank.");
+    Set<String> selectedNames = new LinkedHashSet<>(names);
+    if (selectedNames.contains(SentinelConfiguration.DEFAULT_PROFILE)
+        && !configuration.profileNames().contains(SentinelConfiguration.DEFAULT_PROFILE))
       throw new SentinelException(
-          "Unknown profile '"
-              + name
-              + "'. Available profiles: "
-              + configuration.profiles().keySet());
+          "Nothing belongs to the default profile; pass --profile or add default to a gate's profiles.");
+    Set<String> unknown = new LinkedHashSet<>(selectedNames);
+    unknown.removeAll(configuration.profileNames());
+    if (!unknown.isEmpty())
+      throw new SentinelException(
+          "Unknown profiles " + unknown + ". Available profiles: " + configuration.profileNames());
     var selected = new LinkedHashMap<String, GateConfiguration>();
-    for (String gate : profile.gates()) {
-      var config = configuration.gates().get(gate);
-      if (config == null)
-        throw new SentinelException(
-            "Profile '" + name + "' references unknown gate '" + gate + "'.");
-      selected.put(gate, config);
-    }
-    return new SentinelConfiguration(configuration.version(), selected, configuration.profiles());
+    configuration
+        .gates()
+        .forEach(
+            (gate, config) -> {
+              if (config.profiles().stream().anyMatch(selectedNames::contains))
+                selected.put(gate, config);
+            });
+    return new SentinelConfiguration(configuration.version(), selected);
   }
 }

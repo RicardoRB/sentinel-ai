@@ -118,7 +118,10 @@ Selected integrations use the same ownership markers and conflict protection as 
 
 ### Configuration
 
-Each gate lives under `[quality-gates.<name>]` with `enabled` (default `true`) and `command`.
+Each gate lives under `[quality-gates.<name>]` with `enabled` (default `true`), `command`, and optional `profiles`.
+Gates without `profiles` belong to `default`. Select profiles with comma-separated or repeated
+`--profile` options; selected gates run once in declaration order. The legacy top-level `[profiles]`
+tables are no longer supported.
 `command` is either a string or an array of strings. Repository-defined commands are trusted code
 execution: they run with the current user's privileges in the project root, directly as an argument
 list and never through a shell:
@@ -126,7 +129,15 @@ list and never through a shell:
 ```toml
 command = "./mvnw test"
 command = ["./mvnw", "test", "-Dtest=A, B"]   # exact arguments, no splitting
+
+[quality-gates.integration]
+command = "./mvnw verify"
+profiles = ["ci", "strict"]
 ```
+
+`sentinel check` selects `default`; for example, `sentinel check --profile ci,strict` or
+`sentinel check --profile ci --profile strict` runs the union of those profiles. A bare check
+requires at least one gate in `default`.
 
 The quality-gate registry accepts the listed gate IDs. Gate execution still depends on the
 project's configured command and installed tools; enabling an unknown gate is an error rather than

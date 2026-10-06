@@ -12,6 +12,8 @@ import dev.sentinel.domain.config.GateConfiguration;
 import dev.sentinel.domain.config.SentinelConfiguration;
 import dev.sentinel.domain.config.SentinelException;
 import dev.sentinel.domain.gate.CheckReport;
+import dev.sentinel.domain.process.CommandExecutor;
+import dev.sentinel.domain.process.CommandResult;
 import dev.sentinel.domain.project.BuildTool;
 import dev.sentinel.domain.project.Framework;
 import dev.sentinel.domain.project.Language;
@@ -21,6 +23,8 @@ import dev.sentinel.infrastructure.config.TomlConfigurationReader;
 import dev.sentinel.infrastructure.project.FileSystemProjectInspection;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -140,5 +144,63 @@ class CheckServiceTest {
     withPom(dir, PLAIN_POM);
     assertThatThrownBy(() -> service(new FakeCommandExecutor(0, "", "")).check(dir))
         .hasMessageContaining("sentinel init");
+  }
+
+  @Test
+  void selectsUnionOnceInDeclarationOrderAndDefaultsToDefault(@TempDir Path dir) throws Exception {
+    withPom(dir, PLAIN_POM);
+    Files.writeString(
+        dir.resolve("sentinel.toml"),
+        """
+            version = 1
+            [quality-gates.tests]
+            command = "first"
+            profiles = ["a", "b"]
+            [quality-gates.coverage]
+            command = "defaulted"
+            [quality-gates.compile]
+            command = "second"
+            profiles = ["b"]
+            """);
+    List<String> executed = new ArrayList<>();
+    var executor =
+        (CommandExecutor)
+            (command, root) -> {
+              executed.add(command.getFirst());
+              return new CommandResult(0, "", "", Duration.ZERO);
+            };
+    CheckService checks =
+        new CheckService(
+            new ProjectDetector(new FileSystemProjectInspection()),
+            new TomlConfigurationReader(),
+            new QualityGateFactory(executor),
+            new QualityGateRunner());
+
+    checks.check(dir, List.of("a", "b"));
+    assertThat(executed).containsExactly("first", "second");
+    executed.clear();
+    checks.check(dir);
+    assertThat(executed).containsExactly("defaulted");
+    executed.clear();
+    checks.check(dir, List.of());
+    assertThat(executed).containsExactly("defaulted");
+    executed.clear();
+    checks.check(dir, null);
+    assertThat(executed).containsExactly("defaulted");
+    assertThatThrownBy(() -> checks.check(dir, List.of("missing", "unknown")))
+        .isInstanceOf(SentinelException.class)
+        .hasMessageContaining("missing")
+        .hasMessageContaining("unknown");
+    assertThatThrownBy(() -> checks.check(dir, List.of("a", " ")))
+        .isInstanceOf(SentinelException.class)
+        .hasMessageContaining("must not be blank");
+    Files.writeString(
+        dir.resolve("sentinel.toml"),
+        "version = 1\n[quality-gates.compile]\nenabled = false\ncommand = 'unused'\nprofiles = ['disabled']\n");
+    executed.clear();
+    assertThatThrownBy(() -> checks.check(dir, List.of("disabled")))
+        .isInstanceOf(SentinelException.class)
+        .hasMessageContaining("No quality gates are enabled");
+    assertThat(executed).isEmpty();
   }
 }

@@ -474,17 +474,29 @@ class SentinelCliIntegrationTest {
         project.resolve("sentinel.toml"),
         """
                 version = 1
-                [quality-gates.tests]
-                command = "./mvnw test"
-                [quality-gates.compile]
-                command = "./mvnw compile"
-                [profiles.strict]
-                gates = ["tests", "compile"]
+                 [quality-gates.tests]
+                 command = "./mvnw test"
+                 profiles = ["strict", "fast"]
+                 [quality-gates.compile]
+                 command = "./mvnw compile"
+                 profiles = ["strict"]
                 """);
     out.getBuffer().setLength(0);
     assertThat(run("check", "--profile", "strict", "--format", "json", "-C", project.toString()))
         .isZero();
     assertThat(out.toString()).contains("\"policies\"", "\"status\" : \"PASSED\"");
+    out.getBuffer().setLength(0);
+    assertThat(
+            run("check", "--profile", "fast,strict", "--format", "json", "-C", project.toString()))
+        .isZero();
+    assertThat(out.toString()).contains("\"policies\"");
+    out.getBuffer().setLength(0);
+    assertThat(run("check", "--profile", "fast", "--profile", "strict", "-C", project.toString()))
+        .isZero();
+    out.getBuffer().setLength(0);
+    assertThat(run("check", "--format", "json", "-C", project.toString()))
+        .isEqualTo(ExitCodes.ERROR);
+    assertThat(out.toString()).contains("\"status\" : \"ERROR\"").doesNotContain("Unknown");
     out.getBuffer().setLength(0);
     assertThat(run("check", "--profile", "unknown", "--format", "json", "-C", project.toString()))
         .isEqualTo(ExitCodes.ERROR);
