@@ -1,0 +1,14 @@
+---
+title: Security
+description: Understand the trust boundary when running Sentinel.
+---
+
+`sentinel.toml` is executable trusted code. `sentinel check` runs its configured command with your
+user's privileges in the project root. A malicious repository or pull request can therefore run
+arbitrary programs. Only check repositories you trust, and treat configuration changes like build
+scripts or CI pipelines. Do not run checks on untrusted pull requests outside a sandbox.
+
+Sentinel invokes commands as an argument vector, never through a shell: shell chaining, expansion,
+globbing, and redirection do not occur. This is **not a sandbox**—a wrapper such as `./mvnw` can
+itself execute arbitrary build code. Child processes receive no stdin. Agent hooks and plugins also
+execute repository-local configuration, so install integrations only in trusted projects.

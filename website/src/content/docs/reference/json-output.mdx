@@ -1,0 +1,25 @@
+---
+title: JSON output
+description: The check command's machine-readable result format.
+---
+
+`sentinel check --format json` emits schema version `1`. It writes **only JSON to stdout**;
+diagnostics go to stderr. Consumers should inspect `schemaVersion` and may ignore fields added in
+later compatible versions; existing fields keep their meaning within a schema version.
+
+```json
+{
+  "schemaVersion": 1,
+  "status": "PASSED|FAILED|ERROR",
+  "project": { "root": "string", "language": "string", "buildTool": "string", "framework": "string" },
+  "checks": [{
+    "name": "string", "status": "PASSED|FAILED|SKIPPED|UNAVAILABLE|EXECUTION_ERROR",
+    "command": "string", "exitCode": "number", "durationMs": "number",
+    "stdout": "string", "stderr": "string", "summary": "string", "output": "string"
+  }],
+  "policies": [{ "name": "string", "passed": "boolean", "message": "string" }]
+}
+```
+
+When Sentinel cannot run at all, the report has status `ERROR` and an `error` message. Gate
+commands are direct argument vectors, not shell expressions. See [exit codes](/sentinel-cli/reference/exit-codes/).

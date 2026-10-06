@@ -1,0 +1,29 @@
+---
+title: sentinel.toml
+description: Configure quality gates and profiles.
+---
+
+Configuration uses TOML version 1. Each gate is declared in `[quality-gates.<id>]` and must have a
+`command`:
+
+```toml
+version = 1
+
+[quality-gates.tests]
+enabled = true # default: true
+command = "./mvnw test"
+
+[quality-gates.integration]
+command = ["./mvnw", "verify"]
+profiles = ["ci", "strict"]
+```
+
+`command` accepts a string or an array of strings. Arrays preserve exact argument boundaries. A
+string is parsed into arguments; neither form is executed through a shell. Gates without `profiles`
+belong to `default`. Select other profiles using `sentinel check --profile ci,strict`. Legacy
+top-level `[profiles]` tables are unsupported. Unknown gate IDs and checks with no enabled matching
+gates are errors.
+
+**Security:** commands are trusted executable code and run with the current user's privileges in
+the project root. Review `sentinel.toml` as carefully as a build script; do not run checks on
+untrusted repositories outside a sandbox. See [security](/sentinel-cli/security/).

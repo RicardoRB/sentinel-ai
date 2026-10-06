@@ -1,0 +1,13 @@
+{
+  "name": "sentinel-docs",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22.19.0 <23" },
+  "scripts": { "build": "astro build", "dev": "astro dev", "preview": "astro preview" },
+  "dependencies": {
+    "@astrojs/starlight": "^0.37.6",
+    "astro": "^5.7.13",
+    "starlight-links-validator": "^0.15.1"
+  }
+}

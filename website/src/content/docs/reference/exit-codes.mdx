@@ -1,0 +1,13 @@
+---
+title: Exit codes
+description: Sentinel process exit status meanings.
+---
+
+| Code | Meaning |
+|---|---|
+| `0` | Command succeeded; all selected quality gates passed. |
+| `1` | A quality gate failed, or `detect` found no supported project. |
+| `2` | Sentinel could not run: bad usage, missing/invalid configuration, no project, or no enabled gates. |
+
+For scripts, combine the exit status with `check --format json` to inspect individual results.
+JSON mode keeps stdout machine-readable; diagnostics are written to stderr.

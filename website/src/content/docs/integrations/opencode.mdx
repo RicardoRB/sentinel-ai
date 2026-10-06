@@ -1,0 +1,14 @@
+---
+title: OpenCode
+description: Install Sentinel's OpenCode edit/write plugin.
+---
+
+Install with `sentinel integrate opencode`. Sentinel retains the
+`.opencode/commands/sentinel-check.md` command and creates
+`.opencode/plugins/sentinel-edit-write.js`. The plugin's `tool.execute.after` handler checks `edit`
+and `write`; a failed or unavailable check is returned as a non-success result with Sentinel output.
+
+Generated files contain ownership markers. User-owned targets are never overwritten and a
+conflict does not enable a partial integration. Remove with
+`sentinel integrate opencode --remove`; only Sentinel-owned generated files are deleted. Hooks
+execute trusted repository configuration with your privileges.

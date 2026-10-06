@@ -1,0 +1,22 @@
+---
+title: Installation
+description: Build Sentinel from source and run the CLI.
+---
+
+Sentinel currently supports Java 25 and Maven projects. Maven is provided by the repository wrapper.
+
+```bash
+git clone https://github.com/sentinel-cli/sentinel-cli.git
+cd sentinel-cli
+export JAVA_HOME=/path/to/jdk-25
+./mvnw package
+```
+
+The executable jar is `target/sentinel.jar`; use `bin/sentinel` as the repository launcher. A native
+binary can optionally be built with GraalVM 25:
+
+```bash
+./mvnw -Pnative -DskipTests native:compile
+```
+
+See [quick start](/sentinel-cli/getting-started/quick-start/) to detect a project and run its first check.

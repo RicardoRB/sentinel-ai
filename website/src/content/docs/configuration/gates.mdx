@@ -1,0 +1,26 @@
+---
+title: Quality gates
+description: Supported quality gate identifiers and configuration.
+---
+
+Every gate uses `[quality-gates.<id>]` with `command` (string or argument array), optional
+`enabled` (default `true`) and optional `profiles` (default profile when omitted). The command
+defines the actual tool invocation; Sentinel does not install gate tools.
+
+| ID | Typical purpose |
+|---|---|
+| `tests` | Run the project's automated tests. |
+| `compile` | Compile the project. |
+| `coverage` | Enforce or report test coverage. |
+| `spotbugs` | Run SpotBugs static analysis. |
+| `checkstyle` | Check Java style rules. |
+| `sonar` | Run Sonar analysis. |
+| `dependency-check` | Scan dependencies for known vulnerabilities. |
+| `archunit` | Run architecture rules/tests. |
+| `mutation` | Run mutation testing. |
+| `compliance` | Run project compliance checks. |
+| `command` | Run an arbitrary configured project check. |
+
+The legacy `architecture` identifier remains readable for compatibility; use `archunit` for new
+configuration. Registry identifiers are validated by Sentinel; the configured command is the
+gate-specific option and must be supplied. See [configuration syntax](/sentinel-cli/configuration/sentinel-toml/).

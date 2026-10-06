@@ -1,0 +1,17 @@
+---
+title: init
+description: Create sentinel.toml and select integrations.
+---
+
+`sentinel init` creates `sentinel.toml` using an interactive wizard or explicit options.
+
+```sh
+sentinel init [-C <dir>] [--integration <none|opencode|claude-code>[,...]] [--gate <id>[,...]] [--architecture <style>] [--overwrite]
+```
+
+The gate selector accepts supported [gate IDs](/sentinel-cli/configuration/gates/). `none` is exclusive with
+agent integrations. `archunit` prompts for Layered, Hexagonal, or Clean architecture and creates a
+minimal `ArchitectureTest.java` only if one is absent. Existing configurations are preserved unless
+overwrite is confirmed or `--overwrite` is supplied. Initialization does not install tools or run
+gates. `-C <dir>` selects the project directory. Exit codes: `0` success, `2` invalid usage or
+inability to initialize (including cancelled or invalid selection).

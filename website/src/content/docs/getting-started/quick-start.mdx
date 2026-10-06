@@ -1,0 +1,21 @@
+---
+title: Quick start
+description: Configure and run your first Sentinel check.
+---
+
+From a supported Maven project, run the setup wizard:
+
+```bash
+sentinel detect
+sentinel init
+sentinel check
+```
+
+For non-interactive setup, specify both selections, for example:
+
+```bash
+sentinel init --integration none --gate tests
+```
+
+Use `sentinel check --format json` for automation. The JSON contract guarantees that stdout contains
+only JSON; diagnostics go to stderr. See [commands](/sentinel-cli/commands/check/) and [exit codes](/sentinel-cli/reference/exit-codes/).

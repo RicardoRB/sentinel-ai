@@ -1,0 +1,17 @@
+---
+title: check
+description: Run configured quality gates.
+---
+
+```sh
+sentinel check [-C <dir>] [--format text|json] [--profile <name>[,...]]
+```
+
+Checks run in configuration declaration order. `default` is selected when no profile is provided;
+repeat `--profile` or provide comma-separated names to select the union. At least one enabled gate
+must match. All selected gates run even when an earlier one fails.
+
+Use `--format json` in scripts; only the JSON report goes to stdout and diagnostics go to stderr.
+See [JSON output](/sentinel-cli/reference/json-output/) and [exit codes](/sentinel-cli/reference/exit-codes/). `-C <dir>` runs
+against a project directory other than the current one. Exit `0` means all gates passed, `1` means
+at least one gate failed, and `2` means Sentinel could not run (for example, invalid configuration).

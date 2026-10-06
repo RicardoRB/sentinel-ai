@@ -1,0 +1,26 @@
+---
+title: Architecture
+description: Sentinel's layered Java architecture and extension points.
+---
+
+Sentinel follows a dependency direction of infrastructure adapters → application use cases → domain
+contracts and models:
+
+```text
+dev.sentinel
+├── domain/<feature>/          Models, policies, outbound port contracts
+├── application/<feature>/     Use cases and orchestration
+├── infrastructure/<feature>/  Outbound adapters
+├── infrastructure/cli/       Picocli inbound adapters and terminal I/O
+├── config/SentinelModule       Explicit Guice composition root
+└── SentinelApplication         Executable entry point
+```
+
+CLI adapters must not perform filesystem/process work or depend on concrete outbound adapters.
+Domain models contain no I/O or framework implementations; outbound adapters implement domain
+ports. JLine handles raw-key terminal menus. `ArchitectureBoundaryTest` enforces these rules.
+
+`QualityGate` is the gate extension point. Gate orchestration belongs in `application.gate`, supported
+IDs in the domain vocabulary, and the registry in `QualityGateFactory`; configuration examples and
+the [gate reference](/sentinel-cli/configuration/gates/) must stay in sync. Explicit constructor wiring also
+supports native-image builds.

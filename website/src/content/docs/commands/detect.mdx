@@ -1,0 +1,15 @@
+---
+title: detect
+description: Detect a supported project.
+---
+
+`sentinel detect` detects the Maven/Java project in the selected directory or nearest parent. It
+reports language, build tool, framework, and project root. Spring Boot is recognised when the pom
+references `org.springframework.boot`.
+
+```sh
+sentinel detect [-C <dir>]
+```
+
+`-C <dir>` / `--directory <dir>` runs as if Sentinel were started in that directory. Exit `0` means
+detection succeeded; `1` means no supported project was detected; `2` means Sentinel could not run.
