@@ -42,7 +42,7 @@ public final class PosixRawTerminal implements RawTerminal {
     if (layout == null) {
       return Optional.empty();
     }
-    Arena arena = Arena.ofShared();
+    Arena arena = Arena.ofConfined();
     try {
       Linker linker = Linker.nativeLinker();
       MethodHandle isatty =
@@ -104,7 +104,7 @@ public final class PosixRawTerminal implements RawTerminal {
         arena.close();
         return Optional.empty();
       }
-      return Optional.of(new Session(arena, saved, read, tcsetattr));
+      return Optional.of(new Session(arena, saved.toArray(ValueLayout.JAVA_BYTE), read, tcsetattr));
     } catch (Throwable failure) {
       arena.close();
       throw new IllegalStateException("Native terminal initialization failed.", failure);
@@ -124,19 +124,19 @@ public final class PosixRawTerminal implements RawTerminal {
 
   private static final class Session implements RawSession {
     private final Arena arena;
-    private final MemorySegment saved;
+    private final byte[] savedAttributes;
     private final MethodHandle read;
     private final MethodHandle tcsetattr;
     private final MemorySegment byteBuffer;
     private boolean closed;
 
-    Session(Arena arena, MemorySegment saved, MethodHandle read, MethodHandle tcsetattr) {
+    Session(Arena arena, byte[] savedAttributes, MethodHandle read, MethodHandle tcsetattr) {
       this.arena = arena;
-      this.saved = saved;
+      this.savedAttributes = savedAttributes;
       this.read = read;
       this.tcsetattr = tcsetattr;
       byteBuffer = arena.allocate(1);
-      Runtime.getRuntime().addShutdownHook(new Thread(this::close));
+      Runtime.getRuntime().addShutdownHook(new Thread(this::restoreOnShutdown));
     }
 
     @Override
@@ -158,15 +158,35 @@ public final class PosixRawTerminal implements RawTerminal {
       }
       closed = true;
       try {
+        restoreAttributes(arena, savedAttributes, tcsetattr);
+      } finally {
+        arena.close();
+      }
+    }
+
+    @SuppressWarnings("PMD.AvoidCatchingThrowable")
+    private synchronized void restoreOnShutdown() {
+      if (closed) {
+        return;
+      }
+      closed = true;
+      try (Arena shutdownArena = Arena.ofConfined()) {
+        restoreAttributes(shutdownArena, savedAttributes, tcsetattr);
+      }
+    }
+
+    @SuppressWarnings("PMD.AvoidCatchingThrowable")
+    private static void restoreAttributes(
+        Arena targetArena, byte[] savedAttributes, MethodHandle tcsetattr) {
+      MemorySegment saved = targetArena.allocate(savedAttributes.length);
+      saved.copyFrom(MemorySegment.ofArray(savedAttributes));
+      try {
         if ((int) tcsetattr.invokeExact(STDIN, 0, saved) != 0) {
           throw new IllegalStateException("Could not restore terminal attributes.");
         }
-      } catch (Throwable ignored) {
-        if (ignored instanceof Error error) {
-          throw error;
-        }
+      } catch (Throwable failure) {
+        throw new IllegalStateException("Native terminal restoration failed.", failure);
       }
-      arena.close();
     }
   }
 
