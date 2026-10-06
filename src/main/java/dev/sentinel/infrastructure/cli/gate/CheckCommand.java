@@ -47,6 +47,9 @@ public class CheckCommand implements Callable<Integer> {
       description = "Gate profile(s), comma-separated or repeated (default: default).")
   private List<String> profiles = new ArrayList<>();
 
+  @Option(names = "--fail-fast", description = "Stop after the first gate that does not pass.")
+  private boolean failFast;
+
   private final CheckService service;
   private final TextReportRenderer textRenderer;
   private final JsonReportRenderer jsonRenderer;
@@ -66,10 +69,10 @@ public class CheckCommand implements Callable<Integer> {
       profiles = profiles.stream().map(String::trim).toList();
       if (format == Format.text) {
         textRenderer.begin(output());
-        report = service.check(options.directory(), profiles, textRenderer);
+        report = service.check(options.directory(), profiles, textRenderer, failFast);
         textRenderer.summary(report);
       } else {
-        report = service.check(options.directory(), profiles);
+        report = service.check(options.directory(), profiles, failFast);
       }
     } catch (SentinelException e) {
       if (format == Format.json) {
@@ -79,7 +82,7 @@ public class CheckCommand implements Callable<Integer> {
       throw e;
     }
     if (format == Format.json) {
-      output().println(jsonRenderer.render(report, profiles.contains("strict")));
+      output().println(jsonRenderer.render(report, profiles.contains("strict"), failFast));
     }
     return report.passed() ? ExitCodes.OK : ExitCodes.FAILED;
   }

@@ -29,9 +29,14 @@ public class JsonReportRenderer {
   }
 
   public String render(CheckReport report, boolean strict) {
+    return render(report, strict, false);
+  }
+
+  public String render(CheckReport report, boolean strict, boolean failFast) {
     Map<String, Object> root = new LinkedHashMap<>();
     root.put("schemaVersion", 1);
     root.put("status", report.status().name());
+    root.put("failFast", failFast);
     root.put("project", project(report.project()));
     List<Object> checks = new ArrayList<>();
     for (GateResult result : report.results()) {

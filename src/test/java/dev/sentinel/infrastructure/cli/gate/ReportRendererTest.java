@@ -116,6 +116,26 @@ class ReportRendererTest {
   }
 
   @Test
+  void skippedFailFastLineExplainsWhyGateDidNotRun() {
+    CheckReport report =
+        new CheckReport(
+            project,
+            List.of(
+                new GateResult(
+                    "compile",
+                    GateStatus.SKIPPED,
+                    List.of(),
+                    0,
+                    Duration.ZERO,
+                    "",
+                    "",
+                    "not run (fail-fast)")));
+
+    assertThat(new TextReportRenderer().render(report))
+        .contains("– compile — not run (fail-fast)", "0 passed · 0 failed · 1 skipped");
+  }
+
+  @Test
   void textReportShowsReportedFindingCountsOnly() {
     GateResult counted =
         new GateResult(

@@ -160,6 +160,9 @@ public class TextReportRenderer implements CheckProgressListener {
     if (result.status() == GateStatus.EXECUTION_ERROR) {
       return line + " — error";
     }
+    if (result.status() == GateStatus.SKIPPED && result.summary() != null) {
+      return line + " — " + result.summary();
+    }
     if (result.status() == GateStatus.FAILED && result.errors() != null) {
       return line + " — " + result.errors() + " errors";
     }

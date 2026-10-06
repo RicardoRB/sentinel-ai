@@ -4,7 +4,7 @@ description: Run configured quality gates.
 ---
 
 ```sh
-sentinel check [-C <dir>] [--format text|json] [--profile <name>[,...]]
+sentinel check [-C <dir>] [--format text|json] [--profile <name>[,...]] [--fail-fast]
 ```
 
 Checks run in configuration declaration order. `default` is selected when no profile is provided;
@@ -12,6 +12,9 @@ repeat `--profile` or provide comma-separated names to select the union. At leas
 must match. All selected gates run even when an earlier one fails. A gate whose standalone tool is
 missing (for example `gitleaks`) is reported as unavailable with install guidance; an enabled
 `zap` gate without an explicit `-t <url>` target is a configuration error.
+Use `--fail-fast` to stop after the first gate that fails, is unavailable, or encounters an execution
+error. Later selected gates are listed as skipped (`not run (fail-fast)`). Without the option, all
+selected gates run as usual.
 
 Text output starts with the Sentinel version, then reports each gate as it completes, followed by a
 summary. On an interactive terminal, the running gate line is replaced in place by its final status.

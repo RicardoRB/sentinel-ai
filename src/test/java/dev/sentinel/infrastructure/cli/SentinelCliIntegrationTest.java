@@ -569,6 +569,41 @@ class SentinelCliIntegrationTest {
   }
 
   @Test
+  void failFastReportsSkippedGatesAndJsonFlag() throws IOException {
+    Files.createFile(project.resolve("FAIL"));
+    Files.writeString(
+        project.resolve("sentinel.toml"),
+        """
+            version = 1
+            [quality-gates.tests]
+            command = "./mvnw test"
+            [quality-gates.compile]
+            command = "./mvnw compile"
+            """);
+
+    assertThat(run("check", "--fail-fast", "-C", project.toString())).isEqualTo(ExitCodes.FAILED);
+    assertThat(out.toString())
+        .contains("✗ tests", "– compile — not run (fail-fast)", "0 passed · 1 failed · 1 skipped");
+
+    out.getBuffer().setLength(0);
+    assertThat(run("check", "--fail-fast", "--format", "json", "-C", project.toString()))
+        .isEqualTo(ExitCodes.FAILED);
+    JsonNode json = JsonMapper.builder().build().readTree(out.toString());
+    assertThat(json.get("failFast").asBoolean()).isTrue();
+    assertThat(json.get("checks").get(1).get("status").asString()).isEqualTo("SKIPPED");
+    assertThat(json.get("checks").get(1).get("command").asString()).isEmpty();
+    assertThat(json.get("checks").get(1).get("output").asString()).isEmpty();
+    assertThat(out.toString()).doesNotContain("Sentinel", "✓", "…");
+
+    out.getBuffer().setLength(0);
+    assertThat(run("check", "--format", "json", "-C", project.toString()))
+        .isEqualTo(ExitCodes.FAILED);
+    json = JsonMapper.builder().build().readTree(out.toString());
+    assertThat(json.get("failFast").asBoolean()).isFalse();
+    assertThat(json.get("checks").get(1).get("status").asString()).isEqualTo("FAILED");
+  }
+
+  @Test
   void checkRejectsZapWithoutTargetAsConfigurationError() throws IOException {
     Files.writeString(
         project.resolve("sentinel.toml"),
