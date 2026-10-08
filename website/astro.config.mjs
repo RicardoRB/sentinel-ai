@@ -40,8 +40,9 @@ export default defineConfig({
       plugins: [starlightLinksValidator()],
       sidebar: [
         { label: 'Start here', items: [{ label: 'Overview', link: '/' }, { label: 'Installation', link: '/getting-started/installation/' }, { label: 'Quick start', link: '/getting-started/quick-start/' }] },
-        { label: 'Commands', items: [{ label: 'detect', link: '/commands/detect/' }, { label: 'init', link: '/commands/init/' }, { label: 'check', link: '/commands/check/' }, { label: 'integrate', link: '/commands/integrate/' }] },
+        { label: 'Commands', items: [{ label: 'detect', link: '/commands/detect/' }, { label: 'init', link: '/commands/init/' }, { label: 'check', link: '/commands/check/' }, { label: 'integrate', link: '/commands/integrate/' }, { label: 'doctor', link: '/commands/doctor/' }, { label: 'loop', link: '/commands/loop/' }, { label: 'hook', link: '/commands/hook/' }] },
         { label: 'Configuration', items: [{ label: 'sentinel.toml', link: '/configuration/sentinel-toml/' }, { label: 'Quality gates', link: '/configuration/gates/' }, { label: 'Learning', link: '/configuration/learning/' }] },
+        { label: 'Guides', items: [{ label: 'CI/CD', link: '/guides/ci-cd/' }] },
         { label: 'Reference', items: [{ label: 'JSON output', link: '/reference/json-output/' }, { label: 'Exit codes', link: '/reference/exit-codes/' }] },
         { label: 'Integrations', items: [{ label: 'Claude Code', link: '/integrations/claude-code/' }, { label: 'OpenCode', link: '/integrations/opencode/' }] },
         { label: 'Project', items: [{ label: 'Security', link: '/security/' }, { label: 'Architecture', link: '/architecture/' }] },

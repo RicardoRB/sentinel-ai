@@ -6,8 +6,18 @@ description: Sentinel process exit status meanings.
 | Code | Meaning |
 |---|---|
 | `0` | Command succeeded; all selected quality gates passed. |
-| `1` | A quality gate failed, or `detect` found no supported project. |
-| `2` | Sentinel could not run: bad usage, missing/invalid configuration, no project, or no enabled gates. |
+| `1` | A quality gate failed, `detect` found no supported project, or `loop` ended without passing. |
+| `2` | Sentinel could not run: bad usage, missing/invalid configuration, no project, no enabled gates, an integration conflict, or a `doctor` error. |
+
+| Command | `0` | `1` | `2` |
+|---|---|---|---|
+| `check` | All selected gates passed | At least one gate failed | Could not run |
+| `detect` | Project detected | No supported project | Could not run |
+| `init` | Configuration created | — | Invalid usage, cancelled, or could not initialize |
+| `integrate` | Installed or removed | — | Conflict or invalid usage |
+| `doctor` | No `ERROR` findings | — | At least one `ERROR` finding |
+| `loop` | `PASSED` | Any other terminal state | Invalid usage |
+| `hook claude-code` | Gates passed | — | Gates failed or could not run (reported to the agent on stderr) |
 
 For scripts, combine the exit status with `check --format json` to inspect individual results.
 JSON mode keeps stdout machine-readable; diagnostics are written to stderr.

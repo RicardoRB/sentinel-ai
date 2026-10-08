@@ -1,0 +1,18 @@
+---
+title: hook
+description: Agent hook adapters invoked by generated integrations.
+---
+
+```sh
+sentinel hook claude-code [-C <dir>] [--learn-after <n>]
+```
+
+`sentinel hook` contains the adapters that generated agent integrations call. You normally do not run
+it yourself: `sentinel integrate claude-code` creates `.claude/hooks/sentinel-edit-write`, which invokes
+`sentinel hook claude-code --learn-after 3` after Claude Code's `Edit` and `Write` tools.
+
+The adapter runs the `default` profile gates. When they pass, it returns any learning prompts to Claude Code
+as `PostToolUse` context. When they fail, or Sentinel cannot run, it writes the failures to stderr and exits `2`, which
+Claude Code shows to the agent so it can fix them.
+
+See [Claude Code](/integrations/claude-code/) and [learning](/configuration/learning/).

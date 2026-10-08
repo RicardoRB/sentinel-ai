@@ -375,10 +375,10 @@ sentinel loop "Fix the failing tests" --agent-command "claude -p" --max-iteratio
 | Getting started | [Installation](https://ricardorb.github.io/sentinel-ai/getting-started/installation/) · [Quick start](https://ricardorb.github.io/sentinel-ai/getting-started/quick-start/) |
 | Configuration | [`sentinel.toml`](https://ricardorb.github.io/sentinel-ai/configuration/sentinel-toml/) · [Learning](https://ricardorb.github.io/sentinel-ai/configuration/learning/) |
 | Rules | [Quality gates](https://ricardorb.github.io/sentinel-ai/configuration/gates/) |
-| CI/CD | [CI/CD](#-cicd) · [JSON output](https://ricardorb.github.io/sentinel-ai/reference/json-output/) · [Exit codes](https://ricardorb.github.io/sentinel-ai/reference/exit-codes/) |
+| CI/CD | [CI/CD guide](https://ricardorb.github.io/sentinel-ai/guides/ci-cd/) · [JSON output](https://ricardorb.github.io/sentinel-ai/reference/json-output/) · [Exit codes](https://ricardorb.github.io/sentinel-ai/reference/exit-codes/) |
 | Architecture | [Architecture](https://ricardorb.github.io/sentinel-ai/architecture/) |
-| Troubleshooting | Run `sentinel doctor`; see [Security](https://ricardorb.github.io/sentinel-ai/security/) and [Issues](https://github.com/RicardoRB/sentinel-ai/issues) |
-| CLI reference | [`detect`](https://ricardorb.github.io/sentinel-ai/commands/detect/) · [`init`](https://ricardorb.github.io/sentinel-ai/commands/init/) · [`check`](https://ricardorb.github.io/sentinel-ai/commands/check/) · [`integrate`](https://ricardorb.github.io/sentinel-ai/commands/integrate/) · `doctor` · `loop` (`sentinel <command> --help`) |
+| Troubleshooting | Run [`sentinel doctor`](https://ricardorb.github.io/sentinel-ai/commands/doctor/); see [Security](https://ricardorb.github.io/sentinel-ai/security/) and [Issues](https://github.com/RicardoRB/sentinel-ai/issues) |
+| CLI reference | [`detect`](https://ricardorb.github.io/sentinel-ai/commands/detect/) · [`init`](https://ricardorb.github.io/sentinel-ai/commands/init/) · [`check`](https://ricardorb.github.io/sentinel-ai/commands/check/) · [`integrate`](https://ricardorb.github.io/sentinel-ai/commands/integrate/) · [`doctor`](https://ricardorb.github.io/sentinel-ai/commands/doctor/) · [`loop`](https://ricardorb.github.io/sentinel-ai/commands/loop/) · [`hook`](https://ricardorb.github.io/sentinel-ai/commands/hook/) |
 
 ## 🛠️ Development
 

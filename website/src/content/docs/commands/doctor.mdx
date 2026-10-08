@@ -1,0 +1,30 @@
+---
+title: doctor
+description: Diagnose project and integration prerequisites.
+---
+
+```sh
+sentinel doctor [-C <dir>]
+```
+
+`sentinel doctor` inspects the selected directory (or its nearest supported parent project) and prints
+one line per check:
+
+```text
+[OK] project       /path/to/project
+[OK] maven         Maven Wrapper available.
+[OK] configuration Configuration is present.
+[WARNING] integration   OpenCode integration not configured.
+[OK] native        Native executable present.
+```
+
+| Check | Status | Meaning |
+|---|---|---|
+| `project` | `OK` / `ERROR` | A supported Maven project was detected. When none is found, no other check runs. |
+| `maven` | `OK` / `ERROR` | An executable `mvnw` exists in the project root, or `mvn` is on `PATH`. |
+| `configuration` | `OK` / `ERROR` | `sentinel.toml` exists in the project root; otherwise run `sentinel init`. |
+| `integration` | `OK` / `WARNING` | The OpenCode command `.opencode/commands/sentinel-check.md` exists. The Claude Code integration is not checked yet. |
+| `native` | `OK` / `WARNING` | `target/sentinel` exists in the current directory. This is a development check for the Sentinel repository. |
+
+Warnings do not affect the result. Exit `0` means no check reported `ERROR`; exit `2` means at least
+one did.

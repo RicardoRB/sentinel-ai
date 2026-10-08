@@ -1,0 +1,59 @@
+---
+title: CI/CD
+description: Run Sentinel quality gates in continuous integration.
+---
+
+Sentinel is a single binary with deterministic [exit codes](/reference/exit-codes/), so any CI system
+can use it as a quality gate: a non-zero exit fails the job.
+
+## GitHub Actions
+
+```yaml
+name: Quality gate
+on: [pull_request, push]
+
+jobs:
+  sentinel:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21' # your project's JDK; the native binary needs none
+          cache: maven
+      - name: Install Sentinel
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/RicardoRB/sentinel-ai/main/install.sh | sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Run quality gates
+        run: sentinel check --profile default,ci --format json > sentinel-report.json
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sentinel-report
+          path: sentinel-report.json
+```
+
+Pin a release with `SENTINEL_VERSION=v0.0.1` for reproducible builds.
+
+## Behavior in CI
+
+- **Profiles:** keep fast offline gates in `default` and put networked or slow gates (`zap`, `trivy`,
+  `sonar`, `dependency-check`, `api-compat`, `semgrep`) in a `ci` profile. Select both with
+  `--profile default,ci`.
+- **Gate evaluation:** all selected gates run and the job gets one verdict. Add `--fail-fast` to stop
+  at the first failure.
+- **Exit codes:** `1` means a gate failed and `2` means Sentinel could not run, for example because
+  of invalid configuration. Both fail the step.
+- **Reports:** `--format json` writes only the [JSON report](/reference/json-output/) to stdout, so it
+  can be redirected to a file. Diagnostics go to stderr and remain visible in the job log.
+- **Pull requests:** make the job a required status check in branch protection to block merging
+  until the gates pass.
+- **Tools:** Sentinel never installs gate tools. Install standalone tools such as `gitleaks` or
+  `trivy` in an earlier step; a missing tool is reported as `UNAVAILABLE`.
+
+SARIF output is not supported yet.
+
+Do not run Sentinel on untrusted pull requests, such as those from forks, without isolation:
+`sentinel.toml` is executable code. See [security](/security/).

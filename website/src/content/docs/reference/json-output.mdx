@@ -10,8 +10,9 @@ later compatible versions; existing fields keep their meaning within a schema ve
 ```json
 {
   "schemaVersion": 1,
-  "status": "PASSED|FAILED|ERROR",
-  "project": { "root": "string", "language": "string", "buildTool": "string", "framework": "string" },
+  "status": "PASSED|FAILED",
+  "failFast": "boolean",
+  "project": { "language": "string", "buildTool": "string", "framework": "string", "root": "string" },
   "checks": [{
     "name": "string", "status": "PASSED|FAILED|SKIPPED|UNAVAILABLE|EXECUTION_ERROR",
     "command": "string", "exitCode": "number", "durationMs": "number",
@@ -20,6 +21,10 @@ later compatible versions; existing fields keep their meaning within a schema ve
   "policies": [{ "name": "string", "passed": "boolean", "message": "string" }]
 }
 ```
+
+`failFast` is `true` when the run used `--fail-fast`; gates that did not run are listed with status
+`SKIPPED` and summary `not run (fail-fast)`. `output` is `stdout`, or `stderr` when stdout is empty.
+Project values are enum names such as `JAVA`, `MAVEN`, and `SPRING_BOOT`.
 
 When learning is enabled with `--learn-after <n>`, the additive `learning` object is present:
 
@@ -31,5 +36,10 @@ When learning is enabled with `--learn-after <n>`, the additive `learning` objec
 ```
 It is omitted when learning is disabled. `schemaVersion` remains `1`.
 
-When Sentinel cannot run at all, the report has status `ERROR` and an `error` message. Gate
-commands are direct argument vectors, not shell expressions. See [exit codes](/reference/exit-codes/).
+When Sentinel cannot run at all (exit `2`), it emits a short error report without `schemaVersion`:
+
+```json
+{ "status": "ERROR", "error": "Unknown profiles [nope]. Available profiles: [default]" }
+```
+
+Gate commands are direct argument vectors, not shell expressions. See [exit codes](/reference/exit-codes/).
