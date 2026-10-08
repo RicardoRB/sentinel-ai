@@ -9,6 +9,7 @@ import dev.sentinel.domain.project.BuildTool;
 import dev.sentinel.domain.project.Framework;
 import dev.sentinel.domain.project.Language;
 import dev.sentinel.domain.project.Project;
+import dev.sentinel.infrastructure.json.ForyJsonCodec;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
@@ -38,7 +39,9 @@ class ReportRendererTest {
 
   @Test
   void jsonReportHasDocumentedShape() {
-    String json = new JsonReportRenderer().render(report(GateStatus.FAILED, "line \"1\"\n", "err"));
+    String json =
+        new JsonReportRenderer(new ForyJsonCodec())
+            .render(report(GateStatus.FAILED, "line \"1\"\n", "err"));
 
     JsonNode root = JsonMapper.builder().build().readTree(json);
     assertThat(root.get("status").asString()).isEqualTo("FAILED");
@@ -58,7 +61,9 @@ class ReportRendererTest {
   @Test
   void jsonErrorDocument() {
     JsonNode root =
-        JsonMapper.builder().build().readTree(new JsonReportRenderer().renderError("nope"));
+        JsonMapper.builder()
+            .build()
+            .readTree(new JsonReportRenderer(new ForyJsonCodec()).renderError("nope"));
 
     assertThat(root.get("status").asString()).isEqualTo("ERROR");
     assertThat(root.get("error").asString()).isEqualTo("nope");

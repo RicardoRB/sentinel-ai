@@ -5,6 +5,8 @@ import dagger.Module;
 import dagger.multibindings.ClassKey;
 import dagger.multibindings.IntoMap;
 import dev.sentinel.infrastructure.cli.SentinelCommand;
+import dev.sentinel.infrastructure.cli.agent.ClaudeCodeHookCommand;
+import dev.sentinel.infrastructure.cli.agent.HookCommand;
 import dev.sentinel.infrastructure.cli.agent.IntegrateCommand;
 import dev.sentinel.infrastructure.cli.doctor.DoctorCommand;
 import dev.sentinel.infrastructure.cli.gate.CheckCommand;
@@ -38,6 +40,16 @@ interface CommandBindingsModule {
   @IntoMap
   @ClassKey(IntegrateCommand.class)
   Object integrateCommand(IntegrateCommand command);
+
+  @Binds
+  @IntoMap
+  @ClassKey(HookCommand.class)
+  Object hookCommand(HookCommand command);
+
+  @Binds
+  @IntoMap
+  @ClassKey(ClaudeCodeHookCommand.class)
+  Object claudeCodeHookCommand(ClaudeCodeHookCommand command);
 
   @Binds
   @IntoMap

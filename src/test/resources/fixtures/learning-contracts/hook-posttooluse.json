@@ -1,0 +1,1 @@
+{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"Sentinel: the `tests` gate failed in 2 separate occurrences and is now passing. Add a concise preventive instruction to AGENTS.md describing what you changed to fix it, so the error does not recur. Do not duplicate an existing rule."}}

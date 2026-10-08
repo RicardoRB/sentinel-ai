@@ -21,7 +21,8 @@ class ClaudeCodeIntegrationTest {
     assertThat(Files.readString(settings))
         .contains("PostToolUse", "^(Edit|Write|MultiEdit)$", ClaudeCodeIntegration.SETTINGS_MARKER);
     assertThat(Files.readString(hook))
-        .contains(ClaudeCodeIntegration.HOOK_MARKER, "./verify-quality.sh");
+        .contains(
+            ClaudeCodeIntegration.HOOK_MARKER, "sentinel hook claude-code", "--learn-after 3");
     assertThat(integration.integrate(root, false).status())
         .isEqualTo(IntegrationResult.Status.ALREADY_PRESENT);
     assertThat(integration.integrate(root, true).status())
@@ -41,5 +42,32 @@ class ClaudeCodeIntegrationTest {
     assertThat(result.status()).isEqualTo(IntegrationResult.Status.CONFLICT);
     assertThat(settings).hasContent("{\"hooks\":{}}\n");
     assertThat(root.resolve(".claude/hooks/sentinel-edit-write")).doesNotExist();
+  }
+
+  @Test
+  void upgradesOutdatedOwnedHookAndReportsItChanged() throws Exception {
+    Path root = Files.createTempDirectory("sentinel-claude-upgrade");
+    Path settings = root.resolve(".claude/settings.json");
+    Path hook = root.resolve(".claude/hooks/sentinel-edit-write");
+    Files.createDirectories(hook.getParent());
+    Files.writeString(settings, ClaudeCodeIntegration.SETTINGS_MARKER + "\nold settings\n");
+    Files.writeString(
+        hook,
+        "#!/bin/sh\n"
+            + "# "
+            + ClaudeCodeIntegration.HOOK_MARKER
+            + "\n"
+            + "exec ./verify-quality.sh\n");
+
+    IntegrationResult result = new ClaudeCodeIntegration().integrate(root, false);
+
+    assertThat(result.status()).isEqualTo(IntegrationResult.Status.CHANGED);
+    assertThat(result.changed()).contains(settings.toString(), hook.toString());
+    assertThat(Files.readString(hook))
+        .contains(ClaudeCodeIntegration.HOOK_MARKER, "sentinel hook claude-code", "--learn-after 3")
+        .doesNotContain("./verify-quality.sh");
+    assertThat(Files.readString(settings)).contains("PostToolUse");
+    assertThat(new ClaudeCodeIntegration().integrate(root, false).status())
+        .isEqualTo(IntegrationResult.Status.ALREADY_PRESENT);
   }
 }

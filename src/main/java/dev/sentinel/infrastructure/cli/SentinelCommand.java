@@ -1,5 +1,6 @@
 package dev.sentinel.infrastructure.cli;
 
+import dev.sentinel.infrastructure.cli.agent.HookCommand;
 import dev.sentinel.infrastructure.cli.agent.IntegrateCommand;
 import dev.sentinel.infrastructure.cli.doctor.DoctorCommand;
 import dev.sentinel.infrastructure.cli.gate.CheckCommand;
@@ -22,6 +23,7 @@ import picocli.CommandLine.Spec;
       InitCommand.class,
       CheckCommand.class,
       IntegrateCommand.class,
+      HookCommand.class,
       DoctorCommand.class,
       LoopCommand.class
     },

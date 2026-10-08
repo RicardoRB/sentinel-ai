@@ -6,9 +6,13 @@ description: Install Sentinel's Claude Code edit/write hook.
 Install with `sentinel integrate claude-code`. Sentinel creates `.claude/settings.json` and the
 executable `.claude/hooks/sentinel-edit-write`. Its `PostToolUse` hook matches `Edit` and `Write`
 tools and runs `sentinel check --format json` after the operation.
+The generated hook invokes `sentinel hook claude-code --learn-after 3`; ensure `sentinel` is on
+`PATH`. Passing checks with learning prompts return Claude Code `PostToolUse` context, while
+failures are written to stderr with exit code `2`.
 
 Generated files contain Sentinel ownership markers. Existing user-owned targets are never
 overwritten; a conflict prevents partial integration. Remove using
 `sentinel integrate claude-code --remove`; only Sentinel-owned generated files are removed and
 unrelated configuration is preserved. The hook executes repository configuration with your user
 privileges. Enable it only in repositories you trust.
+Re-run `sentinel integrate claude-code` to refresh an outdated Sentinel-owned hook.

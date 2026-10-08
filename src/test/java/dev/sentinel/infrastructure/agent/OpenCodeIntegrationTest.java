@@ -19,7 +19,8 @@ class OpenCodeIntegrationTest {
         .contains(
             OpenCodeIntegration.PLUGIN_MARKER,
             "tool.execute.after",
-            "verify-quality.sh",
+            "sentinel",
+            "--learn-after",
             "multiedit",
             "patch");
     assertThat(integration.integrate(root, false).status())

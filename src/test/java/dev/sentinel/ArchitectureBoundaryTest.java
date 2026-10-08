@@ -32,48 +32,41 @@ import org.junit.jupiter.api.Test;
 @AnalyzeClasses(packages = "dev.sentinel", importOptions = ImportOption.DoNotIncludeTests.class)
 class ArchitectureBoundaryTest {
   private static final Map<String, Set<String>> DOMAIN_FEATURE_EDGES =
-      Map.of(
-          "agent",
-          Set.of(),
-          "config",
-          Set.of(),
-          "doctor",
-          Set.of(),
-          "gate",
-          Set.of("project", "process"),
-          "init",
-          Set.of("agent", "project"),
-          "loop",
-          Set.of("gate"),
-          "policy",
-          Set.of("gate"),
-          "process",
-          Set.of(),
-          "terminal",
-          Set.of(),
-          "project",
-          Set.of());
+      Map.ofEntries(
+          Map.entry("agent", Set.of()),
+          Map.entry("config", Set.of()),
+          Map.entry("doctor", Set.of()),
+          Map.entry("gate", Set.of("project", "process")),
+          Map.entry("init", Set.of("agent", "project")),
+          Map.entry("loop", Set.of("gate")),
+          Map.entry("policy", Set.of("gate")),
+          Map.entry("process", Set.of()),
+          Map.entry("terminal", Set.of()),
+          Map.entry("project", Set.of()),
+          Map.entry("json", Set.of()),
+          Map.entry("learning", Set.of("gate")));
   private static final Map<String, Set<String>> APPLICATION_ENTRY_POINTS =
-      Map.of(
-          "loop",
-          Set.of("dev.sentinel.application.gate.CheckService"),
-          "gate",
-          Set.of(
-              "dev.sentinel.application.project.ProjectDetector",
-              "dev.sentinel.application.project.ProjectDiscovery",
-              "dev.sentinel.application.project.ProjectNotFoundException"),
-          "init",
-          Set.of(
-              "dev.sentinel.application.project.ProjectDetector",
-              "dev.sentinel.application.project.ProjectNotFoundException"),
-          "agent",
-          Set.of(
-              "dev.sentinel.application.project.ProjectDetector",
-              "dev.sentinel.application.project.ProjectNotFoundException"),
-          "doctor",
-          Set.of("dev.sentinel.application.project.ProjectDetector"),
-          "project",
-          Set.of());
+      Map.ofEntries(
+          Map.entry("loop", Set.of("dev.sentinel.application.gate.CheckService")),
+          Map.entry(
+              "gate",
+              Set.of(
+                  "dev.sentinel.application.project.ProjectDetector",
+                  "dev.sentinel.application.project.ProjectDiscovery",
+                  "dev.sentinel.application.project.ProjectNotFoundException")),
+          Map.entry(
+              "init",
+              Set.of(
+                  "dev.sentinel.application.project.ProjectDetector",
+                  "dev.sentinel.application.project.ProjectNotFoundException")),
+          Map.entry(
+              "agent",
+              Set.of(
+                  "dev.sentinel.application.project.ProjectDetector",
+                  "dev.sentinel.application.project.ProjectNotFoundException")),
+          Map.entry("doctor", Set.of("dev.sentinel.application.project.ProjectDetector")),
+          Map.entry("project", Set.of()),
+          Map.entry("learning", Set.of()));
 
   @ArchTest
   static void domainDoesNotDependOnOuterLayersOrExternalEffectImplementations(JavaClasses classes) {

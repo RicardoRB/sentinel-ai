@@ -2,86 +2,166 @@ package dev.sentinel.infrastructure.cli.gate;
 
 import dev.sentinel.domain.gate.CheckReport;
 import dev.sentinel.domain.gate.GateResult;
+import dev.sentinel.domain.json.JsonCodec;
+import dev.sentinel.domain.learning.LearningOutcome;
+import dev.sentinel.domain.learning.LearningPrompt;
 import dev.sentinel.domain.policy.PolicyEvaluator;
 import dev.sentinel.domain.project.Project;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import javax.inject.Inject;
-import tools.jackson.databind.SerializationFeature;
-import tools.jackson.databind.json.JsonMapper;
+import org.apache.fory.json.annotation.JsonType;
 
-/**
- * Builds the JSON document from plain maps/lists (rather than serializing domain records) so the
- * output shape is explicit and needs no reflection, which keeps it native-image friendly.
- */
 public class JsonReportRenderer {
+  private final JsonCodec codec;
 
   @Inject
-  public JsonReportRenderer() {}
-
-  private final JsonMapper mapper =
-      JsonMapper.builder().enable(SerializationFeature.INDENT_OUTPUT).build();
+  public JsonReportRenderer(JsonCodec codec) {
+    this.codec = codec;
+  }
 
   public String render(CheckReport report) {
-    return render(report, false);
+    return render(report, false, false, null);
   }
 
   public String render(CheckReport report, boolean strict) {
-    return render(report, strict, false);
+    return render(report, strict, false, null);
   }
 
   public String render(CheckReport report, boolean strict, boolean failFast) {
-    Map<String, Object> root = new LinkedHashMap<>();
-    root.put("schemaVersion", 1);
-    root.put("status", report.status().name());
-    root.put("failFast", failFast);
-    root.put("project", project(report.project()));
-    List<Object> checks = new ArrayList<>();
+    return render(report, strict, failFast, null);
+  }
+
+  public String render(
+      CheckReport report, boolean strict, boolean failFast, LearningOutcome learning) {
+    return render(report, strict, failFast, learning, null);
+  }
+
+  public String render(
+      CheckReport report,
+      boolean strict,
+      boolean failFast,
+      LearningOutcome learning,
+      Integer threshold) {
+    ReportDto root = new ReportDto();
+    root.schemaVersion = 1;
+    root.status = report.status().name();
+    root.failFast = failFast;
+    root.project = ProjectDto.from(report.project());
+    root.checks = new ArrayList<>();
     for (GateResult result : report.results()) {
-      Map<String, Object> check = new LinkedHashMap<>();
-      check.put("name", result.name());
-      check.put("status", result.status().name());
-      check.put("command", String.join(" ", result.command()));
-      check.put("exitCode", result.exitCode());
-      check.put("durationMs", result.duration().toMillis());
-      check.put("stdout", result.stdout());
-      check.put("stderr", result.stderr());
-      check.put("summary", result.summary() == null ? result.status().name() : result.summary());
-      check.put("output", result.stdout().isBlank() ? result.stderr() : result.stdout());
-      checks.add(check);
+      root.checks.add(CheckDto.from(result));
     }
-    root.put("checks", checks);
-    List<Object> policies = new ArrayList<>();
+    root.policies = new ArrayList<>();
     new PolicyEvaluator()
         .evaluate(report, strict)
         .forEach(
-            policy -> {
-              Map<String, Object> value = new LinkedHashMap<>();
-              value.put("name", policy.name());
-              value.put("passed", policy.passed());
-              value.put("message", policy.message());
-              policies.add(value);
-            });
-    root.put("policies", policies);
-    return mapper.writeValueAsString(root);
+            policy ->
+                root.policies.add(new PolicyDto(policy.name(), policy.passed(), policy.message())));
+    if (learning != null) {
+      root.learning = LearningDto.from(learning, threshold == null ? 0 : threshold);
+    }
+    return codec.toPrettyJson(root);
   }
 
-  /** Emitted instead of a report when Sentinel could not run the checks at all (exit code 2). */
   public String renderError(String message) {
-    Map<String, Object> root = new LinkedHashMap<>();
-    root.put("status", "ERROR");
-    root.put("error", message);
-    return mapper.writeValueAsString(root);
+    ErrorDto error = new ErrorDto();
+    error.status = "ERROR";
+    error.error = message;
+    return codec.toPrettyJson(error);
   }
 
-  private static Map<String, Object> project(Project project) {
-    Map<String, Object> map = new LinkedHashMap<>();
-    map.put("language", project.language().name());
-    map.put("buildTool", project.buildTool().name());
-    map.put("framework", project.framework().name());
-    map.put("root", project.root().toString());
-    return map;
+  @JsonType
+  public static final class ReportDto {
+    public int schemaVersion;
+    public String status;
+    public boolean failFast;
+    public ProjectDto project;
+    public List<CheckDto> checks;
+    public List<PolicyDto> policies;
+    public LearningDto learning;
+  }
+
+  @JsonType
+  public static final class ProjectDto {
+    public String language;
+    public String buildTool;
+    public String framework;
+    public String root;
+
+    static ProjectDto from(Project project) {
+      ProjectDto dto = new ProjectDto();
+      dto.language = project.language().name();
+      dto.buildTool = project.buildTool().name();
+      dto.framework = project.framework().name();
+      dto.root = project.root().toString();
+      return dto;
+    }
+  }
+
+  @JsonType
+  public static final class CheckDto {
+    public String name;
+    public String status;
+    public String command;
+    public int exitCode;
+    public long durationMs;
+    public String stdout;
+    public String stderr;
+    public String summary;
+    public String output;
+    public Integer errors;
+    public Integer warnings;
+
+    static CheckDto from(GateResult result) {
+      CheckDto dto = new CheckDto();
+      dto.name = result.name();
+      dto.status = result.status().name();
+      dto.command = String.join(" ", result.command());
+      dto.exitCode = result.exitCode();
+      dto.durationMs = result.duration().toMillis();
+      dto.stdout = result.stdout();
+      dto.stderr = result.stderr();
+      dto.summary = result.summary() == null ? result.status().name() : result.summary();
+      dto.output = result.stdout().isBlank() ? result.stderr() : result.stdout();
+      dto.errors = result.errors();
+      dto.warnings = result.warnings();
+      return dto;
+    }
+  }
+
+  @JsonType
+  public record PolicyDto(String name, boolean passed, String message) {}
+
+  @JsonType
+  public static final class LearningDto {
+    public int threshold;
+    public List<PromptDto> prompts;
+
+    static LearningDto from(LearningOutcome outcome, int threshold) {
+      LearningDto dto = new LearningDto();
+      dto.threshold = threshold;
+      dto.prompts = outcome.prompts().stream().map(PromptDto::from).toList();
+      return dto;
+    }
+  }
+
+  @JsonType
+  public record PromptDto(
+      String key, String gate, int occurrences, String summary, String instruction) {
+    static PromptDto from(LearningPrompt prompt) {
+      return new PromptDto(
+          prompt.key(),
+          prompt.gate(),
+          prompt.occurrences(),
+          prompt.summary(),
+          prompt.instruction());
+    }
+  }
+
+  @JsonType
+  public static final class ErrorDto {
+    public String status;
+    public String error;
   }
 }

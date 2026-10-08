@@ -4,7 +4,7 @@ description: Run configured quality gates.
 ---
 
 ```sh
-sentinel check [-C <dir>] [--format text|json] [--profile <name>[,...]] [--fail-fast]
+sentinel check [-C <dir>] [--format text|json] [--profile <name>[,...]] [--fail-fast] [--learn-after <n>]
 ```
 
 Checks run in configuration declaration order. `default` is selected when no profile is provided;
@@ -32,6 +32,10 @@ Quality Gate: FAILED
 ```
 
 Use `--format json` in scripts; only the JSON report goes to stdout and diagnostics go to stderr.
+Learning is opt-in: `--learn-after <n>` records recurring gate failures in `.sentinel/learning.json`.
+A failure is counted once per failing episode; when a recurring failure later passes, the text report
+adds a `Learning` section asking the agent to add a preventive rule to `AGENTS.md`. Sentinel never
+edits that file, and learning prompts do not change the gate exit code.
 See [JSON output](/reference/json-output/) and [exit codes](/reference/exit-codes/). `-C <dir>` runs
 against a project directory other than the current one. Exit `0` means all gates passed, `1` means
 at least one gate failed, and `2` means Sentinel could not run (for example, invalid configuration).

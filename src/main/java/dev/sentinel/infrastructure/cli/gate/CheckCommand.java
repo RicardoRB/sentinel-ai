@@ -1,8 +1,10 @@
 package dev.sentinel.infrastructure.cli.gate;
 
 import dev.sentinel.application.gate.CheckService;
+import dev.sentinel.application.learning.LearningService;
 import dev.sentinel.domain.config.SentinelException;
 import dev.sentinel.domain.gate.CheckReport;
+import dev.sentinel.domain.learning.LearningOutcome;
 import dev.sentinel.infrastructure.cli.ExitCodes;
 import dev.sentinel.infrastructure.cli.ProjectOptions;
 import dev.sentinel.infrastructure.cli.VersionProvider;
@@ -50,27 +52,42 @@ public class CheckCommand implements Callable<Integer> {
   @Option(names = "--fail-fast", description = "Stop after the first gate that does not pass.")
   private boolean failFast;
 
+  @Option(
+      names = "--learn-after",
+      paramLabel = "<n>",
+      description = "Learn recurring failures after n occurrences.")
+  private Integer learnAfter;
+
   private final CheckService service;
   private final TextReportRenderer textRenderer;
   private final JsonReportRenderer jsonRenderer;
+  private final LearningService learningService;
 
   @Inject
   public CheckCommand(
-      CheckService service, TextReportRenderer textRenderer, JsonReportRenderer jsonRenderer) {
+      CheckService service,
+      TextReportRenderer textRenderer,
+      JsonReportRenderer jsonRenderer,
+      LearningService learningService) {
     this.service = service;
     this.textRenderer = textRenderer;
     this.jsonRenderer = jsonRenderer;
+    this.learningService = learningService;
   }
 
   @Override
   public Integer call() {
     CheckReport report;
     try {
+      if (learnAfter != null && learnAfter < 1) {
+        throw new picocli.CommandLine.ParameterException(
+            spec.commandLine(), "--learn-after must be at least 1");
+      }
       profiles = profiles.stream().map(String::trim).toList();
       if (format == Format.text) {
         textRenderer.begin(output());
         report = service.check(options.directory(), profiles, textRenderer, failFast);
-        textRenderer.summary(report);
+        // Render the summary after learning so prompts can be placed before diagnostics.
       } else {
         report = service.check(options.directory(), profiles, failFast);
       }
@@ -81,8 +98,18 @@ public class CheckCommand implements Callable<Integer> {
       }
       throw e;
     }
+    LearningOutcome learning =
+        learnAfter == null ? null : learningService.learn(report, learnAfter);
+    if (learning != null) {
+      learning.warnings().forEach(warning -> error().println(warning));
+    }
     if (format == Format.json) {
-      output().println(jsonRenderer.render(report, profiles.contains("strict"), failFast));
+      output()
+          .println(
+              jsonRenderer.render(
+                  report, profiles.contains("strict"), failFast, learning, learnAfter));
+    } else {
+      textRenderer.summary(report, learning);
     }
     return report.passed() ? ExitCodes.OK : ExitCodes.FAILED;
   }
@@ -91,5 +118,11 @@ public class CheckCommand implements Callable<Integer> {
     return spec == null
         ? new PrintWriter(System.out, true, StandardCharsets.UTF_8)
         : spec.commandLine().getOut();
+  }
+
+  private PrintWriter error() {
+    return spec == null
+        ? new PrintWriter(System.err, true, StandardCharsets.UTF_8)
+        : spec.commandLine().getErr();
   }
 }

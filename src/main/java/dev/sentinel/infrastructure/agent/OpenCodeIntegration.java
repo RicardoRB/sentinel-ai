@@ -7,7 +7,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 /** Safe, ownership-marked integration for OpenCode command discovery and edit/write events. */
 public final class OpenCodeIntegration implements AgentIntegration {
@@ -17,7 +16,7 @@ public final class OpenCodeIntegration implements AgentIntegration {
   private static final String PLUGIN_FILE = ".opencode/plugins/sentinel-edit-write.js";
 
   private static final String COMMAND =
-      MARKER + "\n\nRun `sentinel check --format json` and return the result.\n";
+      MARKER + "\n\nRun `sentinel check --format json --learn-after 3` and return the result.\n";
   private static final String PLUGIN =
       """
             // %s
@@ -26,16 +25,20 @@ public final class OpenCodeIntegration implements AgentIntegration {
               "tool.execute.after": async (input, output) => {
                 const tool = String(input?.tool ?? input?.name ?? "").toLowerCase();
                 if (tool !== "edit" && tool !== "write" && tool !== "multiedit" && tool !== "patch") return;
-                const result = Bun.spawnSync(["./verify-quality.sh"], {
+                 const result = Bun.spawnSync(["sentinel", "check", "--format", "json", "--learn-after", "3"], {
                   cwd: directory,
                   stdout: "pipe",
                   stderr: "pipe"
                 });
-                const text = new TextDecoder().decode(result.stdout || new Uint8Array());
-                if (result.exitCode !== 0) {
-                  output.error = text || new TextDecoder().decode(result.stderr || new Uint8Array());
-                  throw new Error(output.error || "Sentinel quality check failed");
-                }
+                 const text = new TextDecoder().decode(result.stdout || new Uint8Array());
+                 let report;
+                 try { report = JSON.parse(text); } catch { report = null; }
+                 const prompts = report?.learning?.prompts?.map((prompt) => prompt.instruction).join("\\n") || "";
+                 if (result.exitCode !== 0) {
+                   output.error = (text || new TextDecoder().decode(result.stderr || new Uint8Array())) + (prompts ? "\\n" + prompts : "");
+                   throw new Error(output.error || "Sentinel quality check failed");
+                 }
+                 if (prompts) output.output = (output.output || "") + "\\n" + prompts;
               }
             });
             """
@@ -69,25 +72,32 @@ public final class OpenCodeIntegration implements AgentIntegration {
     }
 
     List<String> changed = new ArrayList<>();
-    if (!Files.exists(command)) {
-      Files.createDirectories(Objects.requireNonNull(command.getParent()));
-      Files.writeString(command, COMMAND);
+    IntegrationResult commandResult =
+        IntegrationArtifacts.installOrRefresh(
+            command, MARKER, COMMAND, "Updated Sentinel OpenCode integration.");
+    if (commandResult.status() == IntegrationResult.Status.CONFLICT) {
+      return commandResult;
+    }
+    IntegrationResult pluginResult =
+        IntegrationArtifacts.installOrRefresh(
+            plugin, PLUGIN_MARKER, PLUGIN, "Updated Sentinel OpenCode integration.");
+    if (pluginResult.status() == IntegrationResult.Status.CONFLICT) {
+      return pluginResult;
+    }
+    if (commandResult.status() == IntegrationResult.Status.CHANGED) {
       changed.add(command.toString());
     }
-    if (!Files.exists(plugin)) {
-      Files.createDirectories(Objects.requireNonNull(plugin.getParent()));
-      Files.writeString(plugin, PLUGIN);
+    if (pluginResult.status() == IntegrationResult.Status.CHANGED) {
       changed.add(plugin.toString());
     }
-    return changed.isEmpty()
-        ? new IntegrationResult(
-            IntegrationResult.Status.ALREADY_PRESENT,
-            List.of(),
-            "Sentinel OpenCode integration is already present.")
-        : new IntegrationResult(
-            IntegrationResult.Status.CHANGED,
-            changed,
-            "Created Sentinel-owned OpenCode command and edit/write integration.");
+    return new IntegrationResult(
+        changed.isEmpty()
+            ? IntegrationResult.Status.ALREADY_PRESENT
+            : IntegrationResult.Status.CHANGED,
+        changed,
+        changed.isEmpty()
+            ? "Sentinel OpenCode integration is already present."
+            : "Created Sentinel-owned OpenCode command and edit/write integration (or refreshed it).");
   }
 
   private IntegrationResult remove(Path command, Path plugin) throws IOException {

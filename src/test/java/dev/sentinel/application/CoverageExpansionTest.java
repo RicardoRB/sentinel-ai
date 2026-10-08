@@ -46,6 +46,7 @@ import dev.sentinel.infrastructure.config.TomlConfigurationReader;
 import dev.sentinel.infrastructure.doctor.SystemEnvironmentInspection;
 import dev.sentinel.infrastructure.init.ArchitectureTestGenerator;
 import dev.sentinel.infrastructure.init.PomToolConfigurator;
+import dev.sentinel.infrastructure.json.ForyJsonCodec;
 import dev.sentinel.infrastructure.project.FileSystemProjectInspection;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -311,9 +312,10 @@ class CoverageExpansionTest {
     CheckReport report = new CheckReport(PROJECT, List.of(passed, failed));
     assertThat(new TextReportRenderer().render(report))
         .contains("Sentinel", "Quality Gate: FAILED", "Command:", "line 1");
-    assertThat(new JsonReportRenderer().render(report))
+    assertThat(new JsonReportRenderer(new ForyJsonCodec()).render(report))
         .contains("schemaVersion", "FAILED", "lint", "stderr");
-    assertThat(new JsonReportRenderer().renderError("broken")).contains("ERROR", "broken");
+    assertThat(new JsonReportRenderer(new ForyJsonCodec()).renderError("broken"))
+        .contains("ERROR", "broken");
   }
 
   @Test

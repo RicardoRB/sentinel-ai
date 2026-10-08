@@ -7,6 +7,9 @@ Install with `sentinel integrate opencode`. Sentinel retains the
 `.opencode/commands/sentinel-check.md` command and creates
 `.opencode/plugins/sentinel-edit-write.js`. The plugin's `tool.execute.after` handler checks `edit`
 and `write`; a failed or unavailable check is returned as a non-success result with Sentinel output.
+It runs `sentinel check --format json --learn-after 3` from the project directory and appends
+learning prompts to the tool result. Ensure `sentinel` is on `PATH` and re-run integration to
+refresh an outdated Sentinel-owned plugin.
 
 Generated files contain ownership markers. User-owned targets are never overwritten and a
 conflict does not enable a partial integration. Remove with

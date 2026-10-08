@@ -9,7 +9,6 @@ import java.nio.file.attribute.PosixFilePermission;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 
 /** Ownership-safe Claude Code project hook integration. */
@@ -44,8 +43,8 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
       """
             #!/bin/sh
             # %s
-            # Event payload is intentionally ignored; verify-quality checks the current project state.
-            exec ./verify-quality.sh
+            # Event payload is intentionally ignored; Sentinel checks the current project state.
+            exec sentinel hook claude-code --learn-after 3
             """
           .replace("%s", HOOK_MARKER);
 
@@ -76,26 +75,35 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
     }
 
     List<String> changed = new ArrayList<>();
-    if (!Files.exists(settings)) {
-      Files.createDirectories(Objects.requireNonNull(settings.getParent()));
-      Files.writeString(settings, SETTINGS);
+    IntegrationResult settingsResult =
+        IntegrationArtifacts.installOrRefresh(
+            settings, SETTINGS_MARKER, SETTINGS, "Updated Sentinel Claude Code integration.");
+    if (settingsResult.status() == IntegrationResult.Status.CONFLICT) {
+      return settingsResult;
+    }
+    IntegrationResult hookResult =
+        IntegrationArtifacts.installOrRefresh(
+            hook, HOOK_MARKER, HOOK, "Updated Sentinel Claude Code integration.");
+    if (hookResult.status() == IntegrationResult.Status.CONFLICT) {
+      return hookResult;
+    }
+    if (Files.exists(hook)) {
+      makeExecutable(hook);
+    }
+    if (settingsResult.status() == IntegrationResult.Status.CHANGED) {
       changed.add(settings.toString());
     }
-    if (!Files.exists(hook)) {
-      Files.createDirectories(Objects.requireNonNull(hook.getParent()));
-      Files.writeString(hook, HOOK);
-      makeExecutable(hook);
+    if (hookResult.status() == IntegrationResult.Status.CHANGED) {
       changed.add(hook.toString());
     }
-    return changed.isEmpty()
-        ? new IntegrationResult(
-            IntegrationResult.Status.ALREADY_PRESENT,
-            List.of(),
-            "Sentinel Claude Code integration is already present.")
-        : new IntegrationResult(
-            IntegrationResult.Status.CHANGED,
-            changed,
-            "Created Sentinel-owned Claude Code edit/write integration.");
+    return new IntegrationResult(
+        changed.isEmpty()
+            ? IntegrationResult.Status.ALREADY_PRESENT
+            : IntegrationResult.Status.CHANGED,
+        changed,
+        changed.isEmpty()
+            ? "Sentinel Claude Code integration is already present."
+            : "Created Sentinel-owned Claude Code edit/write integration (or refreshed it).");
   }
 
   private IntegrationResult remove(Path settings, Path hook) throws IOException {

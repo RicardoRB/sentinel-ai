@@ -1,0 +1,18 @@
+---
+title: Learning
+description: Track recurring quality-gate failures.
+---
+
+Learning is opt-in with `sentinel check --learn-after <n>`. Sentinel stores compact metadata in
+`.sentinel/learning.json`: the gate and status, a summary of at most 200 characters, occurrence
+count, state, timestamps, and whether a prompt has been issued. Full stdout and stderr are never
+stored.
+
+An occurrence starts when a gate begins failing and is counted again only after that gate passes.
+Skipped or unevaluated gates do not change their records. Once a recurring failure is resolved,
+Sentinel asks the agent to add a preventive instruction to `AGENTS.md`; Sentinel never edits that
+file. Prompts are issued at most once per record.
+
+To reset learning, delete `.sentinel/learning.json` (or remove the individual record). Decide
+whether to commit the file with your project or ignore `.sentinel/` according to your team's
+workflow; Sentinel does not modify `.gitignore`.

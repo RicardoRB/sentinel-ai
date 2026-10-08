@@ -4,6 +4,7 @@ import dev.sentinel.application.gate.CheckProgressListener;
 import dev.sentinel.domain.gate.CheckReport;
 import dev.sentinel.domain.gate.GateResult;
 import dev.sentinel.domain.gate.GateStatus;
+import dev.sentinel.domain.learning.LearningOutcome;
 import dev.sentinel.domain.terminal.TerminalCapabilities;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
@@ -81,6 +82,10 @@ public class TextReportRenderer implements CheckProgressListener {
   }
 
   public void summary(CheckReport report) {
+    summary(report, null);
+  }
+
+  public void summary(CheckReport report, LearningOutcome learning) {
     writer.println();
     writer.println("Quality Gate: " + report.status());
     String tally =
@@ -99,6 +104,7 @@ public class TextReportRenderer implements CheckProgressListener {
               + " warnings)";
     }
     writer.println(tally);
+    appendLearning(writer, learning);
     for (GateResult result : report.results()) {
       if (result.status() != GateStatus.PASSED && result.status() != GateStatus.SKIPPED) {
         appendFailure(writer, result);
@@ -108,6 +114,10 @@ public class TextReportRenderer implements CheckProgressListener {
   }
 
   public String render(CheckReport report) {
+    return render(report, null);
+  }
+
+  public String render(CheckReport report, LearningOutcome learning) {
     StringBuilder output = new StringBuilder();
     output
         .append("Sentinel ")
@@ -138,12 +148,32 @@ public class TextReportRenderer implements CheckProgressListener {
               + " warnings)";
     }
     output.append(tally).append(System.lineSeparator());
+    appendLearning(output, learning);
     for (GateResult result : report.results()) {
       if (result.status() != GateStatus.PASSED && result.status() != GateStatus.SKIPPED) {
         appendFailure(output, result);
       }
     }
     return output.toString();
+  }
+
+  private static void appendLearning(Appendable output, LearningOutcome learning) {
+    if (learning == null || learning.prompts().isEmpty()) {
+      return;
+    }
+    try {
+      output.append(System.lineSeparator()).append("Learning").append(System.lineSeparator());
+      for (var prompt : learning.prompts()) {
+        output
+            .append("• ")
+            .append(displayName(prompt.gate()))
+            .append(" (" + prompt.occurrences() + " occurrences): ")
+            .append(prompt.instruction())
+            .append(System.lineSeparator());
+      }
+    } catch (IOException exception) {
+      throw new IllegalStateException(exception);
+    }
   }
 
   private static String gateLine(GateResult result) {

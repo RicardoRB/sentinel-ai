@@ -21,5 +21,15 @@ later compatible versions; existing fields keep their meaning within a schema ve
 }
 ```
 
+When learning is enabled with `--learn-after <n>`, the additive `learning` object is present:
+
+```json
+{ "learning": { "threshold": 3, "prompts": [{
+  "key": "checkstyle:FAILED", "gate": "checkstyle", "occurrences": 3,
+  "summary": "string", "instruction": "Add a preventive instruction to AGENTS.md..."
+}] } }
+```
+It is omitted when learning is disabled. `schemaVersion` remains `1`.
+
 When Sentinel cannot run at all, the report has status `ERROR` and an `error` message. Gate
 commands are direct argument vectors, not shell expressions. See [exit codes](/reference/exit-codes/).

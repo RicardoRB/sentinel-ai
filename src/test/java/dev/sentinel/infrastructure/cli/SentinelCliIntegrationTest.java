@@ -648,4 +648,157 @@ class SentinelCliIntegrationTest {
     assertThat(runWithInput("", "-C", project.toString())).isEqualTo(ExitCodes.ERROR);
     assertThat(err.toString()).contains("No agent selected");
   }
+
+  @Test
+  void checkWithoutLearnAfterCreatesNoSentinelDirectory() {
+    run("init", "--integration", "none", "--gate", "tests", "-C", project.toString());
+    out.getBuffer().setLength(0);
+
+    assertThat(run("check", "-C", project.toString())).isEqualTo(ExitCodes.OK);
+    assertThat(project.resolve(".sentinel")).doesNotExist();
+  }
+
+  @Test
+  void learnAfterBelowOneIsAUsageError() {
+    run("init", "--integration", "none", "--gate", "tests", "-C", project.toString());
+    out.getBuffer().setLength(0);
+
+    assertThat(run("check", "--learn-after", "0", "-C", project.toString()))
+        .isEqualTo(ExitCodes.ERROR);
+    assertThat(err.toString()).contains("--learn-after must be at least 1");
+    assertThat(project.resolve(".sentinel")).doesNotExist();
+  }
+
+  @Test
+  void learningPromptEmittedAfterFailPassFailPassInJson() throws IOException {
+    run("init", "--integration", "none", "--gate", "tests", "-C", project.toString());
+
+    fail();
+    out.getBuffer().setLength(0);
+    assertThat(run("check", "--format", "json", "--learn-after", "2", "-C", project.toString()))
+        .isEqualTo(ExitCodes.FAILED);
+
+    pass();
+    out.getBuffer().setLength(0);
+    assertThat(run("check", "--format", "json", "--learn-after", "2", "-C", project.toString()))
+        .isEqualTo(ExitCodes.OK);
+    assertThat(JsonMapper.builder().build().readTree(out.toString()).get("learning").get("prompts"))
+        .isEmpty();
+
+    fail();
+    out.getBuffer().setLength(0);
+    assertThat(run("check", "--format", "json", "--learn-after", "2", "-C", project.toString()))
+        .isEqualTo(ExitCodes.FAILED);
+
+    pass();
+    out.getBuffer().setLength(0);
+    assertThat(run("check", "--format", "json", "--learn-after", "2", "-C", project.toString()))
+        .isEqualTo(ExitCodes.OK);
+    JsonNode root = JsonMapper.builder().build().readTree(out.toString());
+    assertThat(root.get("status").asString()).isEqualTo("PASSED");
+    JsonNode prompt = root.get("learning").get("prompts");
+    assertThat(prompt).hasSize(1);
+    assertThat(prompt.get(0).get("gate").asString()).isEqualTo("tests");
+    assertThat(prompt.get(0).get("occurrences").asInt()).isEqualTo(2);
+    assertThat(prompt.get(0).get("instruction").asString()).contains("AGENTS.md");
+
+    JsonNode ledger =
+        JsonMapper.builder()
+            .build()
+            .readTree(Files.readString(project.resolve(".sentinel/learning.json")));
+    assertThat(ledger.get("formatVersion").asInt()).isEqualTo(1);
+    assertThat(ledger.get("records").get("tests:FAILED").get("occurrences").asInt()).isEqualTo(2);
+    assertThat(ledger.get("records").get("tests:FAILED").get("prompted").asBoolean()).isTrue();
+    assertThat(out.toString()).doesNotContain("✓", "\u001b");
+  }
+
+  @Test
+  void learningTextReportShowsSectionAndLeavesAgentsMdUntouched() throws IOException {
+    run("init", "--integration", "none", "--gate", "tests", "-C", project.toString());
+    Path agents = project.resolve("AGENTS.md");
+    Files.writeString(agents, "project contract\n");
+
+    fail();
+    assertThat(run("check", "--learn-after", "2", "-C", project.toString()))
+        .isEqualTo(ExitCodes.FAILED);
+    pass();
+    assertThat(run("check", "--learn-after", "2", "-C", project.toString()))
+        .isEqualTo(ExitCodes.OK);
+    fail();
+    assertThat(run("check", "--learn-after", "2", "-C", project.toString()))
+        .isEqualTo(ExitCodes.FAILED);
+    out.getBuffer().setLength(0);
+    pass();
+    assertThat(run("check", "--learn-after", "2", "-C", project.toString()))
+        .isEqualTo(ExitCodes.OK);
+
+    String text = out.toString();
+    assertThat(text)
+        .contains("Learning", "tests (2 occurrences):", "AGENTS.md", "Quality Gate: PASSED");
+    assertThat(text.indexOf("Learning")).isGreaterThan(text.indexOf("Quality Gate"));
+    assertThat(agents).hasContent("project contract\n");
+  }
+
+  @Test
+  void hookFailingCheckExitsTwoAndWritesFailureToStderr() throws IOException {
+    run("init", "--integration", "none", "--gate", "tests", "-C", project.toString());
+    fail();
+    out.getBuffer().setLength(0);
+    err.getBuffer().setLength(0);
+
+    assertThat(run("hook", "claude-code", "--learn-after", "1", "-C", project.toString()))
+        .isEqualTo(ExitCodes.ERROR);
+    assertThat(err.toString()).contains("tests: FAILED");
+    assertThat(out.toString()).isEmpty();
+  }
+
+  @Test
+  void hookPassingWithPromptsEmitsPostToolUseJson() throws IOException {
+    run("init", "--integration", "none", "--gate", "tests", "-C", project.toString());
+    fail();
+    assertThat(run("hook", "claude-code", "--learn-after", "1", "-C", project.toString()))
+        .isEqualTo(ExitCodes.ERROR);
+    pass();
+    out.getBuffer().setLength(0);
+    err.getBuffer().setLength(0);
+
+    assertThat(run("hook", "claude-code", "--learn-after", "1", "-C", project.toString()))
+        .isEqualTo(ExitCodes.OK);
+    JsonNode hook = JsonMapper.builder().build().readTree(out.toString());
+    assertThat(hook.get("hookSpecificOutput").get("hookEventName").asString())
+        .isEqualTo("PostToolUse");
+    String context = hook.get("hookSpecificOutput").get("additionalContext").asString();
+    assertThat(context).contains("AGENTS.md", "tests");
+    assertThat(out.toString()).doesNotContain("\u001b");
+  }
+
+  @Test
+  void hookPassingWithoutPromptsEmitsNothing() throws IOException {
+    run("init", "--integration", "none", "--gate", "tests", "-C", project.toString());
+    out.getBuffer().setLength(0);
+    err.getBuffer().setLength(0);
+
+    assertThat(run("hook", "claude-code", "--learn-after", "1", "-C", project.toString()))
+        .isEqualTo(ExitCodes.OK);
+    assertThat(out.toString()).isEmpty();
+    assertThat(err.toString()).isEmpty();
+  }
+
+  @Test
+  void hookOnProjectWithoutConfigurationExitsTwo() {
+    out.getBuffer().setLength(0);
+    err.getBuffer().setLength(0);
+
+    assertThat(run("hook", "claude-code", "-C", project.toString())).isEqualTo(ExitCodes.ERROR);
+    assertThat(err.toString()).contains("sentinel:", "sentinel init");
+    assertThat(out.toString()).isEmpty();
+  }
+
+  private void fail() throws IOException {
+    Files.createFile(project.resolve("FAIL"));
+  }
+
+  private void pass() throws IOException {
+    Files.deleteIfExists(project.resolve("FAIL"));
+  }
 }

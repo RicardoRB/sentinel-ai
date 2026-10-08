@@ -1,0 +1,43 @@
+{
+  "schemaVersion" : 1,
+  "status" : "PASSED",
+  "failFast" : false,
+  "project" : {
+    "language" : "JAVA",
+    "buildTool" : "MAVEN",
+    "framework" : "SPRING_BOOT",
+    "root" : "/project"
+  },
+  "checks" : [
+    {
+      "name" : "tests",
+      "status" : "PASSED",
+      "command" : "./mvnw test",
+      "exitCode" : 0,
+      "durationMs" : 3847,
+      "stdout" : "ok\n",
+      "stderr" : "",
+      "summary" : "PASSED",
+      "output" : "ok\n"
+    }
+  ],
+  "policies" : [
+    {
+      "name" : "all-gates-pass",
+      "passed" : true,
+      "message" : "Policy passed."
+    }
+  ],
+  "learning" : {
+    "threshold" : 2,
+    "prompts" : [
+      {
+        "key" : "tests:FAILED",
+        "gate" : "tests",
+        "occurrences" : 2,
+        "summary" : "BUILD FAILURE",
+        "instruction" : "Sentinel: the `tests` gate failed in 2 separate occurrences and is now passing. Add a concise preventive instruction to AGENTS.md describing what you changed to fix it, so the error does not recur. Do not duplicate an existing rule."
+      }
+    ]
+  }
+}

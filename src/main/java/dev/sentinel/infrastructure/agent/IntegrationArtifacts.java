@@ -47,6 +47,28 @@ final class IntegrationArtifacts {
         IntegrationResult.Status.CHANGED, List.of(target.toString()), message);
   }
 
+  static IntegrationResult installOrRefresh(
+      Path target, String marker, String content, String message) throws IOException {
+    if (Files.exists(target)) {
+      if (!owned(target, marker)) {
+        return new IntegrationResult(
+            IntegrationResult.Status.CONFLICT,
+            List.of(target.toString()),
+            "Existing user-owned integration preserved; resolve the conflict explicitly.");
+      }
+      if (Objects.equals(Files.readString(target), content)) {
+        return new IntegrationResult(
+            IntegrationResult.Status.ALREADY_PRESENT,
+            List.of(),
+            "Sentinel integration is already present.");
+      }
+      Files.writeString(target, content, StandardOpenOption.TRUNCATE_EXISTING);
+      return new IntegrationResult(
+          IntegrationResult.Status.CHANGED, List.of(target.toString()), message);
+    }
+    return install(target, marker, content, message);
+  }
+
   static IntegrationResult remove(Path target, String marker, String message) throws IOException {
     if (!Files.exists(target)) {
       return new IntegrationResult(IntegrationResult.Status.NOT_FOUND, List.of(), message);
