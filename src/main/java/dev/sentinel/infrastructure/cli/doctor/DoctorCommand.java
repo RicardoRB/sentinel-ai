@@ -1,10 +1,12 @@
 package dev.sentinel.infrastructure.cli.doctor;
 
 import dev.sentinel.application.doctor.DoctorService;
+import dev.sentinel.application.doctor.DoctorService.Finding;
 import dev.sentinel.infrastructure.cli.ExitCodes;
 import dev.sentinel.infrastructure.cli.ProjectOptions;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.concurrent.Callable;
 import javax.inject.Inject;
 import picocli.CommandLine.Command;
@@ -28,7 +30,7 @@ public final class DoctorCommand implements Callable<Integer> {
 
   @Override
   public Integer call() {
-    final var findings = service.diagnose(options.directory());
+    final List<Finding> findings = service.diagnose(options.directory());
     findings.forEach(f -> output().printf("[%s] %-13s %s%n", f.status(), f.name(), f.message()));
     return findings.stream().anyMatch(f -> f.status() == DoctorService.Status.ERROR)
         ? ExitCodes.ERROR

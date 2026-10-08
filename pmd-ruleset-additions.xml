@@ -5,4 +5,5 @@
     xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0 https://pmd.sourceforge.io/ruleset_2_0_0.xsd">
     <description>Additional PMD rules for Sentinel.</description>
     <rule ref="category/java/codestyle.xml/LocalVariableCouldBeFinal" />
+    <rule ref="category/java/codestyle.xml/UseExplicitTypes" />
 </ruleset>

@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Stream;
 
 /** Ownership-safe Claude Code project hook integration. */
 public final class ClaudeCodeIntegration implements AgentIntegration {
@@ -141,7 +142,7 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
 
   private static void deleteIfEmpty(Path directory) throws IOException {
     if (directory != null && Files.isDirectory(directory)) {
-      try (var entries = Files.list(directory)) {
+      try (Stream<Path> entries = Files.list(directory)) {
         if (entries.findAny().isEmpty()) {
           Files.deleteIfExists(directory);
         }

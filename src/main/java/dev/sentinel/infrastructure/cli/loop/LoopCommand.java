@@ -4,11 +4,13 @@ import dev.sentinel.application.loop.QualityLoopService;
 import dev.sentinel.domain.config.CommandLineTokenizer;
 import dev.sentinel.domain.loop.LoopConfiguration;
 import dev.sentinel.domain.loop.LoopRequest;
+import dev.sentinel.domain.loop.LoopResult;
 import dev.sentinel.domain.loop.LoopTerminalState;
 import dev.sentinel.infrastructure.cli.ExitCodes;
 import dev.sentinel.infrastructure.cli.ProjectOptions;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.concurrent.Callable;
 import javax.inject.Inject;
 import picocli.CommandLine.Command;
@@ -53,14 +55,14 @@ public final class LoopCommand implements Callable<Integer> {
 
   @Override
   public Integer call() {
-    final var root = options.directory().toAbsolutePath().normalize();
-    final var request =
+    final Path root = options.directory().toAbsolutePath().normalize();
+    final LoopRequest request =
         new LoopRequest(
             root,
             CommandLineTokenizer.tokenize(agentCommand),
             task,
             new LoopConfiguration(maxIterations, timeoutSeconds, allowDirty));
-    final var result = service.run(request);
+    final LoopResult result = service.run(request);
     output()
         .printf(
             "%s after %d iteration(s): %s%n",

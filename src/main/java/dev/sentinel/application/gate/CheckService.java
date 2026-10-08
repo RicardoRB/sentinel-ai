@@ -13,6 +13,7 @@ import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import javax.inject.Inject;
 
@@ -96,7 +97,7 @@ public class CheckService {
       throw new SentinelException(
           "Unknown profiles " + unknown + ". Available profiles: " + configuration.profileNames());
     }
-    final var selected = new LinkedHashMap<String, GateConfiguration>();
+    final Map<String, GateConfiguration> selected = new LinkedHashMap<String, GateConfiguration>();
     configuration
         .gates()
         .forEach(

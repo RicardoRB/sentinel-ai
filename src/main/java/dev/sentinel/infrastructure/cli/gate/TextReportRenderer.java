@@ -5,6 +5,7 @@ import dev.sentinel.domain.gate.CheckReport;
 import dev.sentinel.domain.gate.GateResult;
 import dev.sentinel.domain.gate.GateStatus;
 import dev.sentinel.domain.learning.LearningOutcome;
+import dev.sentinel.domain.learning.LearningPrompt;
 import dev.sentinel.domain.terminal.TerminalCapabilities;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
@@ -163,7 +164,7 @@ public class TextReportRenderer implements CheckProgressListener {
     }
     try {
       output.append(System.lineSeparator()).append("Learning").append(System.lineSeparator());
-      for (final var prompt : learning.prompts()) {
+      for (final LearningPrompt prompt : learning.prompts()) {
         output
             .append("• ")
             .append(displayName(prompt.gate()))

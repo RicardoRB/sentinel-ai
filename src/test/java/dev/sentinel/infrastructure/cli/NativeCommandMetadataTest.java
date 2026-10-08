@@ -15,6 +15,7 @@ import java.nio.file.Path;
 import java.util.Enumeration;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import picocli.CommandLine.Command;
 
@@ -44,7 +45,7 @@ class NativeCommandMetadataTest {
 
     while (roots.hasMoreElements()) {
       final Path directory = Path.of(URI.create(roots.nextElement().toString()));
-      try (var files = Files.list(directory)) {
+      try (Stream<Path> files = Files.list(directory)) {
         for (final Path file : files.filter(Files::isRegularFile).toList()) {
           final String content = Files.readString(file, StandardCharsets.UTF_8);
           assertThat(commands)

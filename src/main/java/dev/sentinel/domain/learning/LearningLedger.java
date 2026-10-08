@@ -12,7 +12,7 @@ public record LearningLedger(int formatVersion, Map<String, LearningRecord> reco
       throw new IllegalArgumentException("Unsupported learning format version: " + formatVersion);
     }
     Objects.requireNonNull(records);
-    final var copy = new LinkedHashMap<String, LearningRecord>();
+    final Map<String, LearningRecord> copy = new LinkedHashMap<String, LearningRecord>();
     records.forEach(
         (key, value) -> {
           if (!key.equals(value.key())) {

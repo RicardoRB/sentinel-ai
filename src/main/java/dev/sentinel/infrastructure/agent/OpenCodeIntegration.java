@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Stream;
 
 /** Safe, ownership-marked integration for OpenCode command discovery and edit/write events. */
 public final class OpenCodeIntegration implements AgentIntegration {
@@ -131,7 +132,7 @@ public final class OpenCodeIntegration implements AgentIntegration {
 
   private static void deleteIfEmpty(Path directory) throws IOException {
     if (directory != null && Files.isDirectory(directory)) {
-      try (var entries = Files.list(directory)) {
+      try (Stream<Path> entries = Files.list(directory)) {
         if (entries.findAny().isEmpty()) {
           Files.deleteIfExists(directory);
         }

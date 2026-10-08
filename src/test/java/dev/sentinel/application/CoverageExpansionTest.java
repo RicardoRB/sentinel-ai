@@ -220,7 +220,7 @@ class CoverageExpansionTest {
 
   @Test
   void gateDomainCoversPassFailureSkippedAndExecutionError() {
-    final var executor =
+    final CommandExecutor executor =
         (CommandExecutor)
             (command, root) ->
                 new CommandResult(
@@ -320,7 +320,7 @@ class CoverageExpansionTest {
 
   @Test
   void processAgentRunnerAddsTaskAndReportsSuccessOrFailure() {
-    final var executor =
+    final CommandExecutor executor =
         (CommandExecutor)
             (command, root) ->
                 new CommandResult(command.contains("fail") ? 1 : 0, "out", "err", Duration.ZERO);
@@ -354,7 +354,7 @@ class CoverageExpansionTest {
                  [quality-gates.compile]
                  command = "compile"
                 """);
-    final var executor =
+    final CommandExecutor executor =
         (CommandExecutor) (command, path) -> new CommandResult(0, "ok", "", Duration.ZERO);
     final CheckService service =
         new CheckService(

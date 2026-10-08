@@ -4,6 +4,7 @@ import dev.sentinel.domain.agent.AgentRequest;
 import dev.sentinel.domain.agent.AgentResult;
 import dev.sentinel.domain.agent.AgentRunner;
 import dev.sentinel.domain.process.CommandExecutor;
+import dev.sentinel.domain.process.CommandResult;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,7 +30,7 @@ public final class ProcessAgentRunner implements AgentRunner {
   public AgentResult run(AgentRequest request) {
     final List<String> args = new ArrayList<>(command);
     args.add(request.task());
-    final var result = executor.execute(args, root);
+    final CommandResult result = executor.execute(args, root);
     return new AgentResult(
         result.succeeded(),
         result.succeeded() ? "Agent completed." : "Agent failed.",

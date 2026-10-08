@@ -12,6 +12,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Map;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -114,7 +115,7 @@ class JsonLearningStoreTest {
         .get()
         .extracting(LearningLedger::records)
         .satisfies(records -> assertThat(records.get("tests:FAILED")).isEqualTo(second));
-    try (var entries = Files.list(root.resolve(".sentinel"))) {
+    try (Stream<Path> entries = Files.list(root.resolve(".sentinel"))) {
       assertThat(entries.map(p -> p.getFileName().toString()).toList())
           .containsExactly("learning.json");
     }
@@ -127,7 +128,7 @@ class JsonLearningStoreTest {
     Files.writeString(file, "{not json}");
     assertThatThrownBy(() -> new JsonLearningStore(new ForyJsonCodec()).load(root))
         .isInstanceOf(LearningStoreException.class);
-    try (var entries = Files.list(root.resolve(".sentinel"))) {
+    try (Stream<Path> entries = Files.list(root.resolve(".sentinel"))) {
       assertThat(entries.map(p -> p.getFileName().toString()).toList())
           .containsExactly("learning.json");
     }

@@ -3,6 +3,7 @@ package dev.sentinel.infrastructure.loop;
 import dev.sentinel.domain.loop.GitState;
 import dev.sentinel.domain.loop.GitStateInspection;
 import dev.sentinel.domain.process.CommandExecutor;
+import dev.sentinel.domain.process.CommandResult;
 import java.nio.file.Path;
 import java.util.List;
 import javax.inject.Inject;
@@ -17,13 +18,13 @@ public final class GitStateInspector implements GitStateInspection {
 
   @Override
   public GitState inspect(Path root) {
-    final var repository =
+    final CommandResult repository =
         executor.execute(List.of("git", "rev-parse", "--is-inside-work-tree"), root);
     if (!repository.succeeded()) {
       return new GitState(false, "", false, "Not a Git repository.");
     }
-    final var branch = executor.execute(List.of("git", "branch", "--show-current"), root);
-    final var status = executor.execute(List.of("git", "status", "--porcelain"), root);
+    final CommandResult branch = executor.execute(List.of("git", "branch", "--show-current"), root);
+    final CommandResult status = executor.execute(List.of("git", "status", "--porcelain"), root);
     return new GitState(
         true,
         branch.stdout().trim(),

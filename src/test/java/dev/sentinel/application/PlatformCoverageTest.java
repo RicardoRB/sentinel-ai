@@ -31,7 +31,7 @@ class PlatformCoverageTest {
     Files.writeString(root.resolve("pom.xml"), "<project/>");
     Files.writeString(root.resolve("mvnw"), "#!/bin/sh\nexit 0\n");
 
-    final var project =
+    final Project project =
         new ProjectDiscovery(new FileSystemProjectInspection()).discover(root).getFirst();
 
     assertThat(project.mavenWrapperAvailable()).isTrue();
@@ -39,7 +39,7 @@ class PlatformCoverageTest {
 
   @Test
   void exposesLanguageGateDefaults() {
-    final var registry = new LanguageGateRegistry();
+    final LanguageGateRegistry registry = new LanguageGateRegistry();
     assertThat(registry.defaults(Language.JAVA)).contains("tests", "archunit");
     assertThat(registry.defaults(Language.GO)).contains("tests");
   }

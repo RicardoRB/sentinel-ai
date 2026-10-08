@@ -3,9 +3,11 @@ package dev.sentinel.application.doctor;
 import dev.sentinel.application.project.ProjectDetector;
 import dev.sentinel.domain.doctor.EnvironmentFacts;
 import dev.sentinel.domain.doctor.EnvironmentInspection;
+import dev.sentinel.domain.project.Project;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import javax.inject.Inject;
 
 public final class DoctorService {
@@ -28,7 +30,7 @@ public final class DoctorService {
 
   public List<Finding> diagnose(Path start) {
     final List<Finding> findings = new ArrayList<>();
-    final var project = detector.detect(start);
+    final Optional<Project> project = detector.detect(start);
     if (project.isEmpty()) {
       findings.add(new Finding("project", Status.ERROR, "No supported project detected."));
       return findings;

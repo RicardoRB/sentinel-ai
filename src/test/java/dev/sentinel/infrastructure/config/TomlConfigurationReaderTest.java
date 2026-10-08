@@ -132,9 +132,9 @@ class TomlConfigurationReaderTest {
 
   @Test
   void parsesGateProfilesAndRejectsInvalidOrLegacyProfiles() throws Exception {
-    final var defaults = read("version = 1\n[quality-gates.a]\ncommand = 'x'");
+    final SentinelConfiguration defaults = read("version = 1\n[quality-gates.a]\ncommand = 'x'");
     assertThat(defaults.gates().get("a").profiles()).containsExactly("default");
-    final var configured =
+    final SentinelConfiguration configured =
         read("version = 1\n[quality-gates.a]\nprofiles = [' ci ', 'fast']\nenabled = false");
     assertThat(configured.gates().get("a").profiles()).containsExactly("ci", "fast");
     for (final String value : List.of("[]", "[1]", "['  ']", "'not-an-array'")) {

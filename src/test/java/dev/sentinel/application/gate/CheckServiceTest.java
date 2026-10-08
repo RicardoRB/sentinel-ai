@@ -163,7 +163,7 @@ class CheckServiceTest {
             profiles = ["b"]
             """);
     final List<String> executed = new ArrayList<>();
-    final var executor =
+    final CommandExecutor executor =
         (CommandExecutor)
             (command, root) -> {
               executed.add(command.getFirst());

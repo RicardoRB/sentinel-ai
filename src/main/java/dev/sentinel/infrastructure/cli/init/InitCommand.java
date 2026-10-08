@@ -2,6 +2,7 @@ package dev.sentinel.infrastructure.cli.init;
 
 import dev.sentinel.application.init.InitService;
 import dev.sentinel.application.init.InitSetupCatalog;
+import dev.sentinel.domain.agent.IntegrationResult;
 import dev.sentinel.domain.config.SentinelConfiguration;
 import dev.sentinel.domain.config.SentinelException;
 import dev.sentinel.domain.init.InitArchitectureOption;
@@ -98,7 +99,7 @@ public class InitCommand implements Callable<Integer> {
   @Override
   public Integer call() {
     final Path start = options.directory();
-    final var project = service.get().project(start);
+    final Project project = service.get().project(start);
     boolean overwrite = overwriteOption;
     if (service.get().configurationExists(project)) {
       if (!overwrite) {
@@ -142,7 +143,7 @@ public class InitCommand implements Callable<Integer> {
 
   private List<String> selectIntegrations(InitSetupCatalog catalog) {
     final List<InitIntegrationOption> choices = catalog.integrations();
-    final var raw = openRawTerminal();
+    final Optional<RawSession> raw = openRawTerminal();
     if (raw.isPresent()) {
       try (RawSession session = raw.get()) {
         final List<String> labels = choices.stream().map(InitIntegrationOption::label).toList();
@@ -185,7 +186,7 @@ public class InitCommand implements Callable<Integer> {
 
   private List<String> selectGates(InitSetupCatalog catalog, Project project) {
     final List<InitGateOption> choices = catalog.gates(project);
-    final var raw = openRawTerminal();
+    final Optional<RawSession> raw = openRawTerminal();
     if (raw.isPresent()) {
       try (RawSession session = raw.get()) {
         final List<String> labels =
@@ -366,7 +367,7 @@ public class InitCommand implements Callable<Integer> {
       if (result.integrations().isEmpty()) {
         output().println("No agent integration installed.");
       } else {
-        for (final var integration : result.integrations()) {
+        for (final IntegrationResult integration : result.integrations()) {
           output().printf("Integration: %s%n", integration.message());
           integration.changed().forEach(output()::println);
         }

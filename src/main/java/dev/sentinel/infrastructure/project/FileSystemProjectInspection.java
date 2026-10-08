@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 import javax.inject.Inject;
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
@@ -59,7 +60,7 @@ public final class FileSystemProjectInspection implements ProjectInspection {
       root = candidate;
     }
     final List<Project> projects = new ArrayList<>();
-    try (var paths = Files.walk(root, 4)) {
+    try (Stream<Path> paths = Files.walk(root, 4)) {
       paths.filter(Files::isDirectory).forEach(dir -> addMarkers(dir, projects));
     } catch (IOException e) {
       throw new IllegalStateException("Could not scan project roots: " + e.getMessage(), e);
@@ -107,7 +108,7 @@ public final class FileSystemProjectInspection implements ProjectInspection {
     } else if (Files.isRegularFile(dir.resolve("Cargo.toml"))) {
       projects.add(new Project(dir, Language.RUST, BuildTool.CARGO, Framework.NONE));
     } else {
-      try (var files = Files.list(dir)) {
+      try (Stream<Path> files = Files.list(dir)) {
         if (files.anyMatch(path -> path.getFileName().toString().endsWith(".csproj"))) {
           projects.add(new Project(dir, Language.CSHARP, BuildTool.DOTNET, Framework.NONE));
         }
