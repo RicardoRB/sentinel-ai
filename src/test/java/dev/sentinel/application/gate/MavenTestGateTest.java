@@ -21,10 +21,10 @@ class MavenTestGateTest {
 
   @Test
   void passesWhenCommandExitsZero() {
-    FakeCommandExecutor executor = new FakeCommandExecutor(0, "BUILD SUCCESS", "");
-    MavenTestGate gate = new MavenTestGate(executor, List.of("./mvnw", "test"));
+    final FakeCommandExecutor executor = new FakeCommandExecutor(0, "BUILD SUCCESS", "");
+    final MavenTestGate gate = new MavenTestGate(executor, List.of("./mvnw", "test"));
 
-    GateResult result = gate.execute(project);
+    final GateResult result = gate.execute(project);
 
     assertThat(gate.name()).isEqualTo("tests");
     assertThat(result.status()).isEqualTo(GateStatus.PASSED);
@@ -37,10 +37,10 @@ class MavenTestGateTest {
 
   @Test
   void failsWhenCommandExitsNonZero() {
-    MavenTestGate gate =
+    final MavenTestGate gate =
         new MavenTestGate(new FakeCommandExecutor(1, "out", "boom"), List.of("./mvnw", "test"));
 
-    GateResult result = gate.execute(project);
+    final GateResult result = gate.execute(project);
 
     assertThat(result.status()).isEqualTo(GateStatus.FAILED);
     assertThat(result.exitCode()).isEqualTo(1);

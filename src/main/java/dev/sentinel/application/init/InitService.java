@@ -61,8 +61,8 @@ public class InitService {
   }
 
   public InitResult init(Path start) {
-    Project project = project(start);
-    Path file = project.root().resolve(SentinelConfiguration.FILE_NAME);
+    final Project project = project(start);
+    final Path file = project.root().resolve(SentinelConfiguration.FILE_NAME);
     return new InitResult(file, configurationStorage.create(file, DEFAULT_CONFIGURATION));
   }
 
@@ -83,9 +83,9 @@ public class InitService {
   }
 
   public InitResult initialize(Path start, InitSelection selection, boolean overwrite) {
-    Project project = project(start);
+    final Project project = project(start);
     validateIntegrations(selection.integrations());
-    List<InitGateOption> gates =
+    final List<InitGateOption> gates =
         selection.gates().stream().map(id -> catalog.gate(project, id)).toList();
     if (gates.isEmpty()) {
       throw new SentinelException("Select at least one quality gate.");
@@ -93,23 +93,23 @@ public class InitService {
     if (selection.architecture() != null) {
       catalog.architecture(selection.architecture());
     }
-    Path configurationFile = project.root().resolve(SentinelConfiguration.FILE_NAME);
-    String originalConfiguration = configurationStorage.read(configurationFile).orElse(null);
-    boolean hadConfiguration = originalConfiguration != null;
+    final Path configurationFile = project.root().resolve(SentinelConfiguration.FILE_NAME);
+    final String originalConfiguration = configurationStorage.read(configurationFile).orElse(null);
+    final boolean hadConfiguration = originalConfiguration != null;
     if (hadConfiguration && !overwrite) {
       return new InitResult(
           project.root().resolve(SentinelConfiguration.FILE_NAME), false, gates, List.of());
     }
 
-    List<IntegrationResult> installed = new ArrayList<>();
+    final List<IntegrationResult> installed = new ArrayList<>();
     PomChange pomChange = null;
     ArchitectureTestChange architectureTest = null;
     try {
-      for (String integration : selection.integrations()) {
+      for (final String integration : selection.integrations()) {
         if (InitSetupCatalog.NO_INTEGRATION.equals(integration)) {
           continue;
         }
-        IntegrationResult result = installIntegration(project.root(), integration);
+        final IntegrationResult result = installIntegration(project.root(), integration);
         installed.add(result);
         if (result.status() == IntegrationResult.Status.CONFLICT) {
           throw new SentinelException(
@@ -124,7 +124,7 @@ public class InitService {
             architectureTests.apply(
                 project, selection.architecture() == null ? "layered" : selection.architecture());
       }
-      InitResult result =
+      final InitResult result =
           writeConfiguration(
               project, gates, installed, pomChange.tools(), architectureTest, overwrite);
       if (!result.created()) {
@@ -155,13 +155,13 @@ public class InitService {
       List<String> pomChanges,
       ArchitectureTestChange architectureTest,
       boolean overwrite) {
-    Path file = project.root().resolve(SentinelConfiguration.FILE_NAME);
-    String content = configuration(gates);
+    final Path file = project.root().resolve(SentinelConfiguration.FILE_NAME);
+    final String content = configuration(gates);
     if (overwrite) {
       configurationStorage.replace(file, content);
       return new InitResult(file, true, true, gates, integrations, pomChanges, architectureTest);
     }
-    boolean created = configurationStorage.create(file, content);
+    final boolean created = configurationStorage.create(file, content);
     return new InitResult(file, created, false, gates, integrations, pomChanges, architectureTest);
   }
 
@@ -200,7 +200,7 @@ public class InitService {
     if (ids.isEmpty()) {
       throw new SentinelException("Select at least one integration, or choose none.");
     }
-    boolean noIntegration = ids.contains(InitSetupCatalog.NO_INTEGRATION);
+    final boolean noIntegration = ids.contains(InitSetupCatalog.NO_INTEGRATION);
     if (noIntegration && ids.size() > 1) {
       throw new SentinelException(
           "The no-integration choice cannot be combined with another integration.");
@@ -213,10 +213,11 @@ public class InitService {
   }
 
   private static String configuration(List<InitGateOption> gates) {
-    StringBuilder content = new StringBuilder("version = 1\n");
-    for (InitGateOption gate : gates) {
-      String executable = gate.command().getFirst().replace("\\", "\\\\").replace("\"", "\\\"");
-      String goal =
+    final StringBuilder content = new StringBuilder("version = 1\n");
+    for (final InitGateOption gate : gates) {
+      final String executable =
+          gate.command().getFirst().replace("\\", "\\\\").replace("\"", "\\\"");
+      final String goal =
           gate.command().size() > 1
               ? gate.command().subList(1, gate.command().size()).stream()
                   .map(value -> value.replace("\\", "\\\\").replace("\"", "\\\""))

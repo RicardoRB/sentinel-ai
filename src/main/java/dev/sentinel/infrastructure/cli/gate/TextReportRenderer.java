@@ -105,7 +105,7 @@ public class TextReportRenderer implements CheckProgressListener {
     }
     writer.println(tally);
     appendLearning(writer, learning);
-    for (GateResult result : report.results()) {
+    for (final GateResult result : report.results()) {
       if (result.status() != GateStatus.PASSED && result.status() != GateStatus.SKIPPED) {
         appendFailure(writer, result);
       }
@@ -118,13 +118,13 @@ public class TextReportRenderer implements CheckProgressListener {
   }
 
   public String render(CheckReport report, LearningOutcome learning) {
-    StringBuilder output = new StringBuilder();
+    final StringBuilder output = new StringBuilder();
     output
         .append("Sentinel ")
         .append(version)
         .append(System.lineSeparator())
         .append(System.lineSeparator());
-    for (GateResult result : report.results()) {
+    for (final GateResult result : report.results()) {
       output.append(gateLine(result)).append(System.lineSeparator());
     }
     output
@@ -149,7 +149,7 @@ public class TextReportRenderer implements CheckProgressListener {
     }
     output.append(tally).append(System.lineSeparator());
     appendLearning(output, learning);
-    for (GateResult result : report.results()) {
+    for (final GateResult result : report.results()) {
       if (result.status() != GateStatus.PASSED && result.status() != GateStatus.SKIPPED) {
         appendFailure(output, result);
       }
@@ -163,7 +163,7 @@ public class TextReportRenderer implements CheckProgressListener {
     }
     try {
       output.append(System.lineSeparator()).append("Learning").append(System.lineSeparator());
-      for (var prompt : learning.prompts()) {
+      for (final var prompt : learning.prompts()) {
         output
             .append("• ")
             .append(displayName(prompt.gate()))
@@ -177,13 +177,13 @@ public class TextReportRenderer implements CheckProgressListener {
   }
 
   private static String gateLine(GateResult result) {
-    String marker =
+    final String marker =
         switch (result.status()) {
           case PASSED -> "✓";
           case SKIPPED -> "–";
           default -> "✗";
         };
-    String line = marker + " " + displayName(result.name());
+    final String line = marker + " " + displayName(result.name());
     if (result.status() == GateStatus.UNAVAILABLE) {
       return line + " — unavailable";
     }
@@ -222,8 +222,8 @@ public class TextReportRenderer implements CheckProgressListener {
     if (text.isBlank()) {
       return;
     }
-    List<String> lines = text.stripTrailing().lines().toList();
-    int from = Math.max(0, lines.size() - OUTPUT_TAIL_LINES);
+    final List<String> lines = text.stripTrailing().lines().toList();
+    final int from = Math.max(0, lines.size() - OUTPUT_TAIL_LINES);
     output
         .append(System.lineSeparator())
         .append("Last ")
@@ -232,7 +232,7 @@ public class TextReportRenderer implements CheckProgressListener {
         .append(label)
         .append(':')
         .append(System.lineSeparator());
-    for (String line : lines.subList(from, lines.size())) {
+    for (final String line : lines.subList(from, lines.size())) {
       output.append(line).append(System.lineSeparator());
     }
   }

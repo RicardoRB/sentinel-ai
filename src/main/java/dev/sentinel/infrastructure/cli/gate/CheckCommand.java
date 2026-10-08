@@ -77,7 +77,7 @@ public class CheckCommand implements Callable<Integer> {
 
   @Override
   public Integer call() {
-    CheckReport report;
+    final CheckReport report;
     try {
       if (learnAfter != null && learnAfter < 1) {
         throw new picocli.CommandLine.ParameterException(
@@ -98,7 +98,7 @@ public class CheckCommand implements Callable<Integer> {
       }
       throw e;
     }
-    LearningOutcome learning =
+    final LearningOutcome learning =
         learnAfter == null ? null : learningService.learn(report, learnAfter);
     if (learning != null) {
       learning.warnings().forEach(warning -> error().println(warning));

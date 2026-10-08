@@ -124,7 +124,7 @@ class ArchitectureBoundaryTest {
 
   @ArchTest
   static void productionCodeDoesNotUseFieldInjection(JavaClasses classes) {
-    ArchRule noFieldInjection =
+    final ArchRule noFieldInjection =
         com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noFields()
             .should()
             .beAnnotatedWith(javax.inject.Inject.class);
@@ -134,7 +134,7 @@ class ArchitectureBoundaryTest {
   @ArchTest
   static void productionClassesFollowLayerFeaturePackagesAndExplicitRootExceptions(
       JavaClasses classes) {
-    Set<String> commonCliTypes =
+    final Set<String> commonCliTypes =
         Set.of(
             "CommandLineRunnerImpl",
             "ExitCodes",
@@ -179,7 +179,7 @@ class ArchitectureBoundaryTest {
 
   @Test
   void architectureRulesRejectForbiddenDependencyPlacementAndCycleFixtures() {
-    JavaClasses dependencies =
+    final JavaClasses dependencies =
         new ClassFileImporter()
             .importClasses(
                 FullyQualifiedAdapterReference.class,
@@ -213,7 +213,7 @@ class ArchitectureBoundaryTest {
                     .check(new ClassFileImporter().importClasses(Alpha.class, Beta.class)))
         .isInstanceOf(AssertionError.class);
 
-    Set<String> commonCliTypes =
+    final Set<String> commonCliTypes =
         Set.of(
             "CommandLineRunnerImpl",
             "ExitCodes",
@@ -230,13 +230,13 @@ class ArchitectureBoundaryTest {
 
   @Test
   void pomDoesNotDeclareSpring() throws IOException {
-    String pom = Files.readString(Path.of("pom.xml"));
+    final String pom = Files.readString(Path.of("pom.xml"));
     assertThat(pom).doesNotContain("spring-boot").doesNotContain("org.springframework");
   }
 
   @Test
   void archUnitImportsCompiledProjectClasses() {
-    JavaClasses classes = new ClassFileImporter().importPackages("dev.sentinel.domain");
+    final JavaClasses classes = new ClassFileImporter().importPackages("dev.sentinel.domain");
 
     assertThat(classes)
         .anyMatch(javaClass -> "dev.sentinel.domain.project.Project".equals(javaClass.getName()));
@@ -252,7 +252,7 @@ class ArchitectureBoundaryTest {
                   if (!target.startsWith("dev.sentinel.domain.")) {
                     return false;
                   }
-                  String[] parts = target.split("\\.");
+                  final String[] parts = target.split("\\.");
                   return parts.length > 3
                       && !parts[3].equals(sourceFeature)
                       && !allowedTargets.contains(parts[3]);
@@ -269,14 +269,14 @@ class ArchitectureBoundaryTest {
                   if (!target.startsWith("dev.sentinel.application.")) {
                     return false;
                   }
-                  String sourcePrefix = "dev.sentinel.application." + sourceFeature + ".";
+                  final String sourcePrefix = "dev.sentinel.application." + sourceFeature + ".";
                   return !target.startsWith(sourcePrefix) && !allowedTargets.contains(target);
                 }));
   }
 
   private static void assertFeatureAllowlistCoverage(
       JavaClasses classes, String layerPrefix, Set<String> declaredFeatures) {
-    Set<String> discoveredFeatures =
+    final Set<String> discoveredFeatures =
         classes.stream()
             .map(JavaClass::getPackageName)
             .filter(packageName -> packageName.startsWith(layerPrefix))
@@ -288,8 +288,8 @@ class ArchitectureBoundaryTest {
   }
 
   private static boolean isAllowedPackage(JavaClass javaClass, Set<String> commonCliTypes) {
-    String name = javaClass.getName();
-    String packageName = javaClass.getPackageName();
+    final String name = javaClass.getName();
+    final String packageName = javaClass.getPackageName();
     return switch (packageName) {
       case "dev.sentinel" -> "dev.sentinel.SentinelApplication".equals(name);
       case "dev.sentinel.config" ->
@@ -352,7 +352,7 @@ class ArchitectureBoundaryTest {
 
   private static void assertNoDependencies(
       JavaClasses classes, String sourcePackage, Predicate<String> forbiddenTarget) {
-    ArchRule rule =
+    final ArchRule rule =
         com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses()
             .that()
             .resideInAPackage(sourcePackage)

@@ -22,13 +22,13 @@ public class CommandLineRunnerImpl {
   }
 
   public int run(String... args) {
-    CommandLine commandLine = new CommandLine(rootCommand, factory);
+    final CommandLine commandLine = new CommandLine(rootCommand, factory);
     commandLine.setOut(
         new PrintWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8), true));
     commandLine.setErr(
         new PrintWriter(new OutputStreamWriter(System.err, StandardCharsets.UTF_8), true));
     commandLine.setExecutionExceptionHandler(CommandLineRunnerImpl::handle);
-    int exitCode = commandLine.execute(args);
+    final int exitCode = commandLine.execute(args);
     commandLine.getOut().flush();
     commandLine.getErr().flush();
     return exitCode;

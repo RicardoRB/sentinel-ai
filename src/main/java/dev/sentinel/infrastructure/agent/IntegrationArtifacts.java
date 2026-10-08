@@ -40,7 +40,7 @@ final class IntegrationArtifacts {
           List.of(target.toString()),
           "Existing user-owned integration preserved; resolve the conflict explicitly.");
     }
-    Path parent = Objects.requireNonNull(target.getParent(), "target must have a parent");
+    final Path parent = Objects.requireNonNull(target.getParent(), "target must have a parent");
     Files.createDirectories(parent);
     Files.writeString(target, content, StandardOpenOption.CREATE_NEW);
     return new IntegrationResult(

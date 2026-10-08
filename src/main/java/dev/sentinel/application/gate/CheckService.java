@@ -61,11 +61,11 @@ public class CheckService {
       List<String> requestedProfiles,
       CheckProgressListener listener,
       boolean failFast) {
-    Project project = detector.detect(start).orElseThrow(ProjectNotFoundException::new);
-    SentinelConfiguration configuration =
+    final Project project = detector.detect(start).orElseThrow(ProjectNotFoundException::new);
+    final SentinelConfiguration configuration =
         configurationReader.read(project.root().resolve(SentinelConfiguration.FILE_NAME));
-    SentinelConfiguration selected = selectProfiles(configuration, requestedProfiles);
-    List<QualityGate> gates = gateFactory.create(selected, project);
+    final SentinelConfiguration selected = selectProfiles(configuration, requestedProfiles);
+    final List<QualityGate> gates = gateFactory.create(selected, project);
     if (selected.enabledGates().isEmpty()) {
       throw new SentinelException(
           "No quality gates are enabled in "
@@ -77,26 +77,26 @@ public class CheckService {
 
   private static SentinelConfiguration selectProfiles(
       SentinelConfiguration configuration, List<String> requested) {
-    List<String> names =
+    final List<String> names =
         requested == null || requested.isEmpty()
             ? List.of(SentinelConfiguration.DEFAULT_PROFILE)
             : requested;
     if (names.stream().anyMatch(name -> name == null || name.isBlank())) {
       throw new SentinelException("Profile names must not be blank.");
     }
-    Set<String> selectedNames = new LinkedHashSet<>(names);
+    final Set<String> selectedNames = new LinkedHashSet<>(names);
     if (selectedNames.contains(SentinelConfiguration.DEFAULT_PROFILE)
         && !configuration.profileNames().contains(SentinelConfiguration.DEFAULT_PROFILE)) {
       throw new SentinelException(
           "Nothing belongs to the default profile; pass --profile or add default to a gate's profiles.");
     }
-    Set<String> unknown = new LinkedHashSet<>(selectedNames);
+    final Set<String> unknown = new LinkedHashSet<>(selectedNames);
     unknown.removeAll(configuration.profileNames());
     if (!unknown.isEmpty()) {
       throw new SentinelException(
           "Unknown profiles " + unknown + ". Available profiles: " + configuration.profileNames());
     }
-    var selected = new LinkedHashMap<String, GateConfiguration>();
+    final var selected = new LinkedHashMap<String, GateConfiguration>();
     configuration
         .gates()
         .forEach(

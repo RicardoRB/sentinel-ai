@@ -15,11 +15,11 @@ public final class CommandLineTokenizer {
   private CommandLineTokenizer() {}
 
   public static List<String> tokenize(String commandLine) {
-    List<String> tokens = new ArrayList<>();
-    StringBuilder current = new StringBuilder();
+    final List<String> tokens = new ArrayList<>();
+    final StringBuilder current = new StringBuilder();
     boolean inToken = false;
     char quote = 0;
-    for (char c : commandLine.toCharArray()) {
+    for (final char c : commandLine.toCharArray()) {
       if (quote != 0) {
         if (c == quote) {
           quote = 0;

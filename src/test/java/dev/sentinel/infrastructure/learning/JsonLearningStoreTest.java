@@ -18,10 +18,10 @@ import org.junit.jupiter.api.io.TempDir;
 class JsonLearningStoreTest {
   @Test
   void missingFileAndRoundTrip(@TempDir Path root) throws Exception {
-    JsonLearningStore store = new JsonLearningStore(new ForyJsonCodec());
+    final JsonLearningStore store = new JsonLearningStore(new ForyJsonCodec());
     assertThat(store.load(root)).isEmpty();
-    Instant time = Instant.parse("2026-01-01T00:00:00Z");
-    LearningRecord record =
+    final Instant time = Instant.parse("2026-01-01T00:00:00Z");
+    final LearningRecord record =
         new LearningRecord(
             "tests:FAILED",
             "tests",
@@ -45,7 +45,7 @@ class JsonLearningStoreTest {
 
   @Test
   void rejectsCorruptAndUnsupportedDataWithoutReplacingFile(@TempDir Path root) throws Exception {
-    Path file = root.resolve(".sentinel/learning.json");
+    final Path file = root.resolve(".sentinel/learning.json");
     Files.createDirectories(file.getParent());
     Files.writeString(file, "{not json}");
     assertThatThrownBy(() -> new JsonLearningStore(new ForyJsonCodec()).load(root))
@@ -59,16 +59,16 @@ class JsonLearningStoreTest {
 
   @Test
   void rejectsInvalidRecordsWithoutReplacingFile(@TempDir Path root) throws Exception {
-    Path file = root.resolve(".sentinel/learning.json");
+    final Path file = root.resolve(".sentinel/learning.json");
     Files.createDirectories(file.getParent());
 
-    String nullRecord = "{\"formatVersion\":1,\"records\":{\"tests:FAILED\":null}}";
+    final String nullRecord = "{\"formatVersion\":1,\"records\":{\"tests:FAILED\":null}}";
     Files.writeString(file, nullRecord);
     assertThatThrownBy(() -> new JsonLearningStore(new ForyJsonCodec()).load(root))
         .isInstanceOf(LearningStoreException.class);
     assertThat(file).hasContent(nullRecord);
 
-    String badState =
+    final String badState =
         "{\"formatVersion\":1,\"records\":{\"tests:FAILED\":{\"key\":\"tests:FAILED\","
             + "\"gate\":\"tests\",\"status\":\"FAILED\",\"summary\":\"boom\",\"occurrences\":1,"
             + "\"state\":\"BOGUS\",\"firstSeen\":\"2026-01-01T00:00:00Z\","
@@ -78,7 +78,7 @@ class JsonLearningStoreTest {
         .isInstanceOf(LearningStoreException.class);
     assertThat(file).hasContent(badState);
 
-    String mismatchedKey =
+    final String mismatchedKey =
         "{\"formatVersion\":1,\"records\":{\"other:FAILED\":{\"key\":\"tests:FAILED\","
             + "\"gate\":\"tests\",\"status\":\"FAILED\",\"summary\":\"boom\",\"occurrences\":1,"
             + "\"state\":\"FAILING\",\"firstSeen\":\"2026-01-01T00:00:00Z\","
@@ -90,14 +90,14 @@ class JsonLearningStoreTest {
 
   @Test
   void saveOverwritesAtomicallyAndLeavesNoTemporaryFiles(@TempDir Path root) throws Exception {
-    JsonLearningStore store = new JsonLearningStore(new ForyJsonCodec());
-    Instant time = Instant.parse("2026-01-01T00:00:00Z");
-    LearningRecord first =
+    final JsonLearningStore store = new JsonLearningStore(new ForyJsonCodec());
+    final Instant time = Instant.parse("2026-01-01T00:00:00Z");
+    final LearningRecord first =
         new LearningRecord(
             "tests:FAILED", "tests", "FAILED", "one", 1, LearningState.FAILING, time, time, false);
     store.save(root, new LearningLedger(1, Map.of(first.key(), first)));
 
-    LearningRecord second =
+    final LearningRecord second =
         new LearningRecord(
             "tests:FAILED",
             "tests",
@@ -122,7 +122,7 @@ class JsonLearningStoreTest {
 
   @Test
   void corruptLoadPerformsNoWritesUnderSentinelDirectory(@TempDir Path root) throws Exception {
-    Path file = root.resolve(".sentinel/learning.json");
+    final Path file = root.resolve(".sentinel/learning.json");
     Files.createDirectories(file.getParent());
     Files.writeString(file, "{not json}");
     assertThatThrownBy(() -> new JsonLearningStore(new ForyJsonCodec()).load(root))

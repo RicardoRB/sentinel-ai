@@ -55,8 +55,8 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
 
   @Override
   public IntegrationResult integrate(Path projectRoot, boolean remove) {
-    Path settings = projectRoot.toAbsolutePath().normalize().resolve(SETTINGS_FILE);
-    Path hook = projectRoot.toAbsolutePath().normalize().resolve(HOOK_FILE);
+    final Path settings = projectRoot.toAbsolutePath().normalize().resolve(SETTINGS_FILE);
+    final Path hook = projectRoot.toAbsolutePath().normalize().resolve(HOOK_FILE);
     try {
       return remove ? remove(settings, hook) : install(settings, hook);
     } catch (IOException e) {
@@ -74,14 +74,14 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
       return conflict;
     }
 
-    List<String> changed = new ArrayList<>();
-    IntegrationResult settingsResult =
+    final List<String> changed = new ArrayList<>();
+    final IntegrationResult settingsResult =
         IntegrationArtifacts.installOrRefresh(
             settings, SETTINGS_MARKER, SETTINGS, "Updated Sentinel Claude Code integration.");
     if (settingsResult.status() == IntegrationResult.Status.CONFLICT) {
       return settingsResult;
     }
-    IntegrationResult hookResult =
+    final IntegrationResult hookResult =
         IntegrationArtifacts.installOrRefresh(
             hook, HOOK_MARKER, HOOK, "Updated Sentinel Claude Code integration.");
     if (hookResult.status() == IntegrationResult.Status.CONFLICT) {
@@ -122,7 +122,7 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
           "No Sentinel Claude Code integration found.");
     }
 
-    List<String> removed = new ArrayList<>();
+    final List<String> removed = new ArrayList<>();
     if (Files.exists(settings)) {
       Files.delete(settings);
       removed.add(settings.toString());
@@ -151,7 +151,7 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
 
   private static void makeExecutable(Path file) throws IOException {
     try {
-      Set<PosixFilePermission> permissions =
+      final Set<PosixFilePermission> permissions =
           EnumSet.of(
               PosixFilePermission.OWNER_READ,
               PosixFilePermission.OWNER_WRITE,

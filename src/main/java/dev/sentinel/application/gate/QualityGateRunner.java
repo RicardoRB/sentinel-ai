@@ -32,16 +32,16 @@ public class QualityGateRunner {
 
   public CheckReport run(
       Project project, List<QualityGate> gates, CheckProgressListener listener, boolean failFast) {
-    List<GateResult> results = new ArrayList<>();
+    final List<GateResult> results = new ArrayList<>();
     for (int i = 0; i < gates.size(); i++) {
-      QualityGate gate = gates.get(i);
+      final QualityGate gate = gates.get(i);
       listener.gateStarted(gate.name());
-      GateResult result = gate.execute(project);
+      final GateResult result = gate.execute(project);
       results.add(result);
       listener.gateFinished(result);
       if (failFast && result.status() != GateStatus.PASSED) {
-        for (QualityGate skipped : gates.subList(i + 1, gates.size())) {
-          GateResult skippedResult =
+        for (final QualityGate skipped : gates.subList(i + 1, gates.size())) {
+          final GateResult skippedResult =
               new GateResult(
                   skipped.name(),
                   GateStatus.SKIPPED,

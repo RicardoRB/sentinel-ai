@@ -21,8 +21,8 @@ public final class SystemEnvironmentInspection implements EnvironmentInspection 
 
   @Override
   public EnvironmentFacts inspect(Path projectRoot) {
-    Set<String> available = new HashSet<>();
-    String path = System.getenv("PATH");
+    final Set<String> available = new HashSet<>();
+    final String path = System.getenv("PATH");
     if (path != null) {
       Arrays.stream(path.split(File.pathSeparator))
           .map(Path::of)
@@ -32,7 +32,7 @@ public final class SystemEnvironmentInspection implements EnvironmentInspection 
                       .filter(name -> Files.isExecutable(directory.resolve(name)))
                       .forEach(available::add));
     }
-    Map<String, String> values =
+    final Map<String, String> values =
         Map.of(
             "mavenWrapperAvailable",
                 Boolean.toString(Files.isExecutable(projectRoot.resolve("mvnw"))),

@@ -38,16 +38,16 @@ class ReportRendererTest {
 
   @Test
   void jsonReportHasDocumentedShape() {
-    String json =
+    final String json =
         new JsonReportRenderer(new ForyJsonCodec())
             .render(report(GateStatus.FAILED, "line \"1\"\n", "err"));
 
-    JsonTree root = JsonTree.parse(json);
+    final JsonTree root = JsonTree.parse(json);
     assertThat(root.get("status").asString()).isEqualTo("FAILED");
     assertThat(root.get("project").get("language").asString()).isEqualTo("JAVA");
     assertThat(root.get("project").get("buildTool").asString()).isEqualTo("MAVEN");
     assertThat(root.get("project").get("framework").asString()).isEqualTo("SPRING_BOOT");
-    JsonTree check = root.get("checks").get(0);
+    final JsonTree check = root.get("checks").get(0);
     assertThat(check.get("name").asString()).isEqualTo("tests");
     assertThat(check.get("status").asString()).isEqualTo("FAILED");
     assertThat(check.get("command").asString()).isEqualTo("./mvnw test");
@@ -59,7 +59,8 @@ class ReportRendererTest {
 
   @Test
   void jsonErrorDocument() {
-    JsonTree root = JsonTree.parse(new JsonReportRenderer(new ForyJsonCodec()).renderError("nope"));
+    final JsonTree root =
+        JsonTree.parse(new JsonReportRenderer(new ForyJsonCodec()).renderError("nope"));
 
     assertThat(root.get("status").asString()).isEqualTo("ERROR");
     assertThat(root.get("error").asString()).isEqualTo("nope");
@@ -67,7 +68,7 @@ class ReportRendererTest {
 
   @Test
   void textReportForPassingGate() {
-    String text = new TextReportRenderer().render(report(GateStatus.PASSED, "ok", ""));
+    final String text = new TextReportRenderer().render(report(GateStatus.PASSED, "ok", ""));
 
     assertThat(text)
         .contains(
@@ -76,10 +77,10 @@ class ReportRendererTest {
 
   @Test
   void textReportForFailingGateShowsCommandAndOutputTail() {
-    String stdout =
+    final String stdout =
         String.join("\n", IntStream.rangeClosed(1, 100).mapToObj(i -> "line " + i).toList());
 
-    String text = new TextReportRenderer().render(report(GateStatus.FAILED, stdout, "boom"));
+    final String text = new TextReportRenderer().render(report(GateStatus.FAILED, stdout, "boom"));
 
     assertThat(text)
         .contains(
@@ -94,7 +95,7 @@ class ReportRendererTest {
 
   @Test
   void textReportExplainsSkippedAndUnavailableAndDoesNotEmitAnsi() {
-    CheckReport report =
+    final CheckReport report =
         new CheckReport(
             project,
             List.of(
@@ -109,7 +110,7 @@ class ReportRendererTest {
                     "",
                     "missing")));
 
-    String text = new TextReportRenderer().render(report);
+    final String text = new TextReportRenderer().render(report);
 
     assertThat(text)
         .contains("– customGate", "✗ Gitleaks — unavailable", "0 passed · 1 failed · 1 skipped")
@@ -118,7 +119,7 @@ class ReportRendererTest {
 
   @Test
   void skippedFailFastLineExplainsWhyGateDidNotRun() {
-    CheckReport report =
+    final CheckReport report =
         new CheckReport(
             project,
             List.of(
@@ -138,7 +139,7 @@ class ReportRendererTest {
 
   @Test
   void textReportShowsReportedFindingCountsOnly() {
-    GateResult counted =
+    final GateResult counted =
         new GateResult(
             "checkstyle",
             GateStatus.FAILED,
@@ -150,7 +151,7 @@ class ReportRendererTest {
             null,
             3,
             7);
-    CheckReport report = new CheckReport(project, List.of(counted));
+    final CheckReport report = new CheckReport(project, List.of(counted));
 
     assertThat(new TextReportRenderer().render(report))
         .contains("✗ Checkstyle — 3 errors", "3 errors · 7 warnings");

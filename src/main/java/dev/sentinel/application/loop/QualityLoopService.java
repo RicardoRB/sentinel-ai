@@ -32,11 +32,11 @@ public final class QualityLoopService {
   }
 
   public LoopResult run(LoopRequest request) {
-    Path root = request.workingDirectory();
-    String task = request.task();
-    LoopConfiguration config = request.configuration();
-    AgentRunner agent = agents.create(root, request.agentCommand());
-    GitState state = git.inspect(root);
+    final Path root = request.workingDirectory();
+    final String task = request.task();
+    final LoopConfiguration config = request.configuration();
+    final AgentRunner agent = agents.create(root, request.agentCommand());
+    final GitState state = git.inspect(root);
     if (state.dirty() && !config.allowDirty()) {
       return new LoopResult(
           LoopTerminalState.GATE_ERROR,
@@ -44,13 +44,13 @@ public final class QualityLoopService {
           List.of(),
           "Refusing to start with a dirty working tree.");
     }
-    List<CheckReport> history = new ArrayList<>();
+    final List<CheckReport> history = new ArrayList<>();
     String feedback = task;
     for (int iteration = 1; iteration <= config.maxIterations(); iteration++) {
-      AgentResult agentResult;
+      final AgentResult agentResult;
       try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
-        String agentTask = feedback;
-        Future<AgentResult> future =
+        final String agentTask = feedback;
+        final Future<AgentResult> future =
             executor.submit(() -> agent.run(new AgentRequest(agentTask, config.timeoutSeconds())));
         try {
           agentResult = future.get(config.timeoutSeconds(), TimeUnit.SECONDS);
@@ -69,7 +69,7 @@ public final class QualityLoopService {
         return new LoopResult(
             LoopTerminalState.AGENT_ERROR, iteration, history, agentResult.summary());
       }
-      CheckReport report;
+      final CheckReport report;
       try {
         report = checks.check(root);
       } catch (RuntimeException e) {

@@ -31,7 +31,7 @@ public final class FileSystemProjectInspection implements ProjectInspection {
   @Override
   public Optional<Project> detect(Path start) {
     for (Path dir = start.toAbsolutePath().normalize(); dir != null; dir = dir.getParent()) {
-      Path pom = dir.resolve(POM);
+      final Path pom = dir.resolve(POM);
       if (Files.isRegularFile(pom)) {
         return Optional.of(
             new Project(
@@ -58,7 +58,7 @@ public final class FileSystemProjectInspection implements ProjectInspection {
     if (Files.exists(candidate.resolve(".git")) || Files.exists(candidate.resolve(POM))) {
       root = candidate;
     }
-    List<Project> projects = new ArrayList<>();
+    final List<Project> projects = new ArrayList<>();
     try (var paths = Files.walk(root, 4)) {
       paths.filter(Files::isDirectory).forEach(dir -> addMarkers(dir, projects));
     } catch (IOException e) {
@@ -130,14 +130,14 @@ public final class FileSystemProjectInspection implements ProjectInspection {
   /** Spring Boot is detected when the POM references any org.springframework.boot groupId. */
   private static Framework detectFramework(Path pom) {
     try {
-      DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+      final DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
       factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
       factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
       factory.setNamespaceAware(false);
-      DocumentBuilder builder = factory.newDocumentBuilder();
+      final DocumentBuilder builder = factory.newDocumentBuilder();
       builder.setErrorHandler(null);
-      Document document = builder.parse(pom.toFile());
-      NodeList groupIds = document.getElementsByTagName("groupId");
+      final Document document = builder.parse(pom.toFile());
+      final NodeList groupIds = document.getElementsByTagName("groupId");
       for (int i = 0; i < groupIds.getLength(); i++) {
         if (SPRING_BOOT_GROUP_ID.equals(groupIds.item(i).getTextContent().trim())) {
           return Framework.SPRING_BOOT;

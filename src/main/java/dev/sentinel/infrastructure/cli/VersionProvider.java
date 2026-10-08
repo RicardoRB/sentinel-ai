@@ -9,7 +9,7 @@ public class VersionProvider implements IVersionProvider {
   private final String version;
 
   public VersionProvider() {
-    String implementation = VersionProvider.class.getPackage().getImplementationVersion();
+    final String implementation = VersionProvider.class.getPackage().getImplementationVersion();
     this.version = implementation == null || implementation.isBlank() ? "dev" : implementation;
   }
 

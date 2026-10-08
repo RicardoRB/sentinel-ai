@@ -25,7 +25,7 @@ public final class IntegrationService {
   }
 
   public IntegrationResult integrate(String agent, Path start, boolean remove) {
-    AgentIntegration adapter =
+    final AgentIntegration adapter =
         integrations.stream()
             .filter(candidate -> candidate.id().equals(agent))
             .findFirst()
@@ -33,7 +33,7 @@ public final class IntegrationService {
                 () ->
                     new SentinelException(
                         "Unknown agent '" + agent + "'. Supported agents: opencode, claude-code"));
-    Path root = detector.detect(start).orElseThrow(ProjectNotFoundException::new).root();
+    final Path root = detector.detect(start).orElseThrow(ProjectNotFoundException::new).root();
     return adapter.integrate(root, remove);
   }
 }

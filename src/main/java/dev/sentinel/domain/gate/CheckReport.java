@@ -47,7 +47,7 @@ public record CheckReport(Project project, List<GateResult> results) {
   }
 
   private OptionalInt total(Function<GateResult, Integer> count) {
-    List<GateResult> reported =
+    final List<GateResult> reported =
         results.stream().filter(result -> count.apply(result) != null).toList();
     return reported.isEmpty()
         ? OptionalInt.empty()

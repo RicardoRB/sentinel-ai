@@ -16,9 +16,9 @@ class PlatformCoverageTest {
   @Test
   void discoversMixedRepositoryRoots(@TempDir Path root) throws Exception {
     Files.writeString(root.resolve("package.json"), "{}");
-    Path python = Files.createDirectories(root.resolve("python"));
+    final Path python = Files.createDirectories(root.resolve("python"));
     Files.writeString(python.resolve("pyproject.toml"), "[tool.poetry]");
-    Path rust = Files.createDirectories(root.resolve("rust"));
+    final Path rust = Files.createDirectories(root.resolve("rust"));
     Files.writeString(rust.resolve("Cargo.toml"), "[package]");
     assertThat(
             new ProjectDiscovery(new FileSystemProjectInspection())
@@ -31,14 +31,15 @@ class PlatformCoverageTest {
     Files.writeString(root.resolve("pom.xml"), "<project/>");
     Files.writeString(root.resolve("mvnw"), "#!/bin/sh\nexit 0\n");
 
-    var project = new ProjectDiscovery(new FileSystemProjectInspection()).discover(root).getFirst();
+    final var project =
+        new ProjectDiscovery(new FileSystemProjectInspection()).discover(root).getFirst();
 
     assertThat(project.mavenWrapperAvailable()).isTrue();
   }
 
   @Test
   void exposesLanguageGateDefaults() {
-    var registry = new LanguageGateRegistry();
+    final var registry = new LanguageGateRegistry();
     assertThat(registry.defaults(Language.JAVA)).contains("tests", "archunit");
     assertThat(registry.defaults(Language.GO)).contains("tests");
   }

@@ -10,9 +10,9 @@ import org.junit.jupiter.api.Test;
 class OpenCodeIntegrationTest {
   @Test
   void integratesAndRemovesOnlyOwnedContent() throws Exception {
-    Path root = Files.createTempDirectory("sentinel-opencode");
-    OpenCodeIntegration integration = new OpenCodeIntegration();
-    IntegrationResult created = integration.integrate(root, false);
+    final Path root = Files.createTempDirectory("sentinel-opencode");
+    final OpenCodeIntegration integration = new OpenCodeIntegration();
+    final IntegrationResult created = integration.integrate(root, false);
     assertThat(created.status()).isEqualTo(IntegrationResult.Status.CHANGED);
     assertThat(Files.exists(root.resolve(".opencode/commands/sentinel-check.md"))).isTrue();
     assertThat(Files.readString(root.resolve(".opencode/plugins/sentinel-edit-write.js")))
@@ -33,7 +33,7 @@ class OpenCodeIntegrationTest {
 
   @Test
   void refusesToOverwriteUnownedCommand() throws Exception {
-    Path target =
+    final Path target =
         Files.createTempDirectory("sentinel-opencode")
             .resolve(".opencode/commands/sentinel-check.md");
     Files.createDirectories(target.getParent());
@@ -47,12 +47,12 @@ class OpenCodeIntegrationTest {
 
   @Test
   void refusesToInstallPluginWhenItConflictsWithoutTouchingCommand() throws Exception {
-    Path root = Files.createTempDirectory("sentinel-opencode-plugin-conflict");
-    Path plugin = root.resolve(".opencode/plugins/sentinel-edit-write.js");
+    final Path root = Files.createTempDirectory("sentinel-opencode-plugin-conflict");
+    final Path plugin = root.resolve(".opencode/plugins/sentinel-edit-write.js");
     Files.createDirectories(plugin.getParent());
     Files.writeString(plugin, "user-owned");
 
-    IntegrationResult result = new OpenCodeIntegration().integrate(root, false);
+    final IntegrationResult result = new OpenCodeIntegration().integrate(root, false);
     assertThat(result.status()).isEqualTo(IntegrationResult.Status.CONFLICT);
     assertThat(root.resolve(".opencode/commands/sentinel-check.md")).doesNotExist();
     assertThat(plugin).hasContent("user-owned");

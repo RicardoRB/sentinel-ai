@@ -43,13 +43,13 @@ public class JsonReportRenderer {
       boolean failFast,
       LearningOutcome learning,
       Integer threshold) {
-    ReportDto root = new ReportDto();
+    final ReportDto root = new ReportDto();
     root.schemaVersion = 1;
     root.status = report.status().name();
     root.failFast = failFast;
     root.project = ProjectDto.from(report.project());
     root.checks = new ArrayList<>();
-    for (GateResult result : report.results()) {
+    for (final GateResult result : report.results()) {
       root.checks.add(CheckDto.from(result));
     }
     root.policies = new ArrayList<>();
@@ -65,7 +65,7 @@ public class JsonReportRenderer {
   }
 
   public String renderError(String message) {
-    ErrorDto error = new ErrorDto();
+    final ErrorDto error = new ErrorDto();
     error.status = "ERROR";
     error.error = message;
     return codec.toPrettyJson(error);
@@ -90,7 +90,7 @@ public class JsonReportRenderer {
     public String root;
 
     static ProjectDto from(Project project) {
-      ProjectDto dto = new ProjectDto();
+      final ProjectDto dto = new ProjectDto();
       dto.language = project.language().name();
       dto.buildTool = project.buildTool().name();
       dto.framework = project.framework().name();
@@ -114,7 +114,7 @@ public class JsonReportRenderer {
     public Integer warnings;
 
     static CheckDto from(GateResult result) {
-      CheckDto dto = new CheckDto();
+      final CheckDto dto = new CheckDto();
       dto.name = result.name();
       dto.status = result.status().name();
       dto.command = String.join(" ", result.command());
@@ -139,7 +139,7 @@ public class JsonReportRenderer {
     public List<PromptDto> prompts;
 
     static LearningDto from(LearningOutcome outcome, int threshold) {
-      LearningDto dto = new LearningDto();
+      final LearningDto dto = new LearningDto();
       dto.threshold = threshold;
       dto.prompts = outcome.prompts().stream().map(PromptDto::from).toList();
       return dto;

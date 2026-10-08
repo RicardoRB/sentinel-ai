@@ -34,7 +34,7 @@ class InitServiceTest {
   void createsDefaultConfiguration(@TempDir Path dir) throws Exception {
     withPom(dir, PLAIN_POM);
 
-    InitResult result = service.init(dir);
+    final InitResult result = service.init(dir);
 
     assertThat(result.created()).isTrue();
     assertThat(Files.readString(dir.resolve("sentinel.toml")))
@@ -53,7 +53,7 @@ class InitServiceTest {
     withPom(dir, PLAIN_POM);
     Files.writeString(dir.resolve("sentinel.toml"), "version = 1 # mine\n");
 
-    InitResult result = service.init(dir);
+    final InitResult result = service.init(dir);
 
     assertThat(result.created()).isFalse();
     assertThat(Files.readString(dir.resolve("sentinel.toml"))).isEqualTo("version = 1 # mine\n");

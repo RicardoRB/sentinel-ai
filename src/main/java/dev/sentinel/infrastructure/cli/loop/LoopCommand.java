@@ -53,14 +53,14 @@ public final class LoopCommand implements Callable<Integer> {
 
   @Override
   public Integer call() {
-    var root = options.directory().toAbsolutePath().normalize();
-    var request =
+    final var root = options.directory().toAbsolutePath().normalize();
+    final var request =
         new LoopRequest(
             root,
             CommandLineTokenizer.tokenize(agentCommand),
             task,
             new LoopConfiguration(maxIterations, timeoutSeconds, allowDirty));
-    var result = service.run(request);
+    final var result = service.run(request);
     output()
         .printf(
             "%s after %d iteration(s): %s%n",

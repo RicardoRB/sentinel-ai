@@ -25,9 +25,9 @@ class NativeCommandMetadataTest {
 
   @Test
   void generatedReflectionConfigListsEveryCommandClass() throws IOException {
-    String config = readResource(GENERATED_REFLECT_CONFIG);
+    final String config = readResource(GENERATED_REFLECT_CONFIG);
 
-    Set<String> missing =
+    final Set<String> missing =
         commandClasses().stream()
             .filter(name -> !config.contains("\"name\" : \"" + name + "\""))
             .collect(Collectors.toSet());
@@ -38,15 +38,15 @@ class NativeCommandMetadataTest {
 
   @Test
   void handWrittenMetadataDoesNotRelistCommandClasses() throws IOException {
-    Enumeration<URL> roots =
+    final Enumeration<URL> roots =
         getClass().getClassLoader().getResources(NATIVE_IMAGE_DIR + "dev.sentinel/sentinel-ai");
-    Set<String> commands = commandClasses();
+    final Set<String> commands = commandClasses();
 
     while (roots.hasMoreElements()) {
-      Path directory = Path.of(URI.create(roots.nextElement().toString()));
+      final Path directory = Path.of(URI.create(roots.nextElement().toString()));
       try (var files = Files.list(directory)) {
-        for (Path file : files.filter(Files::isRegularFile).toList()) {
-          String content = Files.readString(file, StandardCharsets.UTF_8);
+        for (final Path file : files.filter(Files::isRegularFile).toList()) {
+          final String content = Files.readString(file, StandardCharsets.UTF_8);
           assertThat(commands)
               .as("%s must not re-list generated Picocli commands", file.getFileName())
               .noneMatch(content::contains);

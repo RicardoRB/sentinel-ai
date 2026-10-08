@@ -9,7 +9,7 @@ class JsonTreeTest {
 
   @Test
   void navigatesObjectsArraysAndScalars() {
-    JsonTree root = JsonTree.parse("{\"a\":[{\"n\":2,\"ok\":true,\"s\":\"x\"}]}");
+    final JsonTree root = JsonTree.parse("{\"a\":[{\"n\":2,\"ok\":true,\"s\":\"x\"}]}");
 
     assertThat(root.get("a").size()).isEqualTo(1);
     assertThat(root.get("a").get(0).get("n").asInt()).isEqualTo(2);

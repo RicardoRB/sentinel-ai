@@ -19,14 +19,14 @@ class TomlConfigurationReaderTest {
   @TempDir Path dir;
 
   private SentinelConfiguration read(String toml) throws Exception {
-    Path file = dir.resolve("sentinel.toml");
+    final Path file = dir.resolve("sentinel.toml");
     Files.writeString(file, toml);
     return reader.read(file);
   }
 
   @Test
   void parsesDefaultConfiguration() throws Exception {
-    SentinelConfiguration config =
+    final SentinelConfiguration config =
         read(
             """
                 version = 1
@@ -44,7 +44,7 @@ class TomlConfigurationReaderTest {
 
   @Test
   void parsesMultipleGatesAndOnlyReturnsEnabledOnes() throws Exception {
-    SentinelConfiguration config =
+    final SentinelConfiguration config =
         read(
             """
                 version = 1
@@ -70,7 +70,7 @@ class TomlConfigurationReaderTest {
 
   @Test
   void acceptsCommandAsArray() throws Exception {
-    SentinelConfiguration config =
+    final SentinelConfiguration config =
         read(
             """
                 version = 1
@@ -132,12 +132,12 @@ class TomlConfigurationReaderTest {
 
   @Test
   void parsesGateProfilesAndRejectsInvalidOrLegacyProfiles() throws Exception {
-    var defaults = read("version = 1\n[quality-gates.a]\ncommand = 'x'");
+    final var defaults = read("version = 1\n[quality-gates.a]\ncommand = 'x'");
     assertThat(defaults.gates().get("a").profiles()).containsExactly("default");
-    var configured =
+    final var configured =
         read("version = 1\n[quality-gates.a]\nprofiles = [' ci ', 'fast']\nenabled = false");
     assertThat(configured.gates().get("a").profiles()).containsExactly("ci", "fast");
-    for (String value : List.of("[]", "[1]", "['  ']", "'not-an-array'")) {
+    for (final String value : List.of("[]", "[1]", "['  ']", "'not-an-array'")) {
       assertThatThrownBy(
               () ->
                   read("version = 1\n[quality-gates.a]\nprofiles = " + value + "\nenabled = false"))

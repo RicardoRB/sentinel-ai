@@ -128,16 +128,16 @@ class CoverageExpansionTest {
     Files.createDirectories(root.resolve("src/main/java/com/acme"));
     Files.writeString(
         root.resolve("src/main/java/com/acme/App.java"), "package com.acme; class App {}");
-    ArchitectureTestGenerator generator = new ArchitectureTestGenerator();
-    for (String style : List.of("layered", "hexagonal", "clean")) {
-      ArchitectureTestChange change =
+    final ArchitectureTestGenerator generator = new ArchitectureTestGenerator();
+    for (final String style : List.of("layered", "hexagonal", "clean")) {
+      final ArchitectureTestChange change =
           generator.apply(new Project(root, Language.JAVA, BuildTool.MAVEN, Framework.NONE), style);
       assertThat(change.created()).isTrue();
       assertThat(Files.readString(change.file())).contains("package com.acme;", style);
       generator.rollback(change);
     }
-    Project project = new Project(root, Language.JAVA, BuildTool.MAVEN, Framework.NONE);
-    ArchitectureTestChange existing = generator.apply(project, "layered");
+    final Project project = new Project(root, Language.JAVA, BuildTool.MAVEN, Framework.NONE);
+    final ArchitectureTestChange existing = generator.apply(project, "layered");
     assertThat(generator.apply(project, "clean").created()).isFalse();
     generator.rollback(existing);
   }
@@ -145,8 +145,8 @@ class CoverageExpansionTest {
   @Test
   void architectureGeneratorDefaultsPackageAndPreservesExisting(@TempDir Path root)
       throws IOException {
-    ArchitectureTestGenerator generator = new ArchitectureTestGenerator();
-    ArchitectureTestChange change =
+    final ArchitectureTestGenerator generator = new ArchitectureTestGenerator();
+    final ArchitectureTestChange change =
         generator.apply(
             new Project(root, Language.JAVA, BuildTool.MAVEN, Framework.NONE), "layered");
     assertThat(change.file())
@@ -166,11 +166,11 @@ class CoverageExpansionTest {
   @Test
   void pomConfiguratorAddsAndRollsBackAllTools(@TempDir Path root) throws IOException {
     TestProjects.withPom(root, TestProjects.PLAIN_POM);
-    InitSetupCatalog catalog = new InitSetupCatalog(new FakeEnvironmentInspection());
-    List<InitGateOption> gates =
+    final InitSetupCatalog catalog = new InitSetupCatalog(new FakeEnvironmentInspection());
+    final List<InitGateOption> gates =
         catalog.gates(new Project(root, Language.JAVA, BuildTool.MAVEN, Framework.NONE));
-    PomToolConfigurator configurator = new PomToolConfigurator();
-    PomChange change =
+    final PomToolConfigurator configurator = new PomToolConfigurator();
+    final PomChange change =
         configurator.apply(
             new Project(root, Language.JAVA, BuildTool.MAVEN, Framework.NONE), gates);
     assertThat(change.tools())
@@ -204,12 +204,12 @@ class CoverageExpansionTest {
 
   @Test
   void pomConfiguratorHandlesExistingBuildSections(@TempDir Path root) throws IOException {
-    String pom =
+    final String pom =
         "<project><build><plugins></plugins></build><dependencies></dependencies></project>";
     Files.writeString(root.resolve("pom.xml"), pom);
-    InitSetupCatalog catalog = new InitSetupCatalog(new FakeEnvironmentInspection());
-    Project project = new Project(root, Language.JAVA, BuildTool.MAVEN, Framework.NONE);
-    PomChange change =
+    final InitSetupCatalog catalog = new InitSetupCatalog(new FakeEnvironmentInspection());
+    final Project project = new Project(root, Language.JAVA, BuildTool.MAVEN, Framework.NONE);
+    final PomChange change =
         new PomToolConfigurator()
             .apply(
                 project,
@@ -220,7 +220,7 @@ class CoverageExpansionTest {
 
   @Test
   void gateDomainCoversPassFailureSkippedAndExecutionError() {
-    var executor =
+    final var executor =
         (CommandExecutor)
             (command, root) ->
                 new CommandResult(
@@ -244,7 +244,7 @@ class CoverageExpansionTest {
         .containsExactly("java", "-Dname=hello world", "app");
     assertThatThrownBy(() -> CommandLineTokenizer.tokenize("'unterminated"))
         .isInstanceOf(SentinelException.class);
-    Path file = root.resolve("sentinel.toml");
+    final Path file = root.resolve("sentinel.toml");
     Files.writeString(
         file,
         """
@@ -256,7 +256,7 @@ class CoverageExpansionTest {
                 command = ["mvn", "compile"]
                 profiles = ["fast"]
                 """);
-    SentinelConfiguration configuration = new TomlConfigurationReader().read(file);
+    final SentinelConfiguration configuration = new TomlConfigurationReader().read(file);
     assertThat(configuration.gates()).containsOnlyKeys("tests", "compile");
     assertThat(configuration.profileNames()).containsExactly("fast");
     assertThat(configuration.enabledGates()).containsOnlyKeys("compile");
@@ -266,12 +266,12 @@ class CoverageExpansionTest {
 
   @Test
   void reportAndPolicyModelsCoverStrictAndNonStrictResults() {
-    GateResult passed =
+    final GateResult passed =
         new GateResult("tests", GateStatus.PASSED, List.of("test"), 0, Duration.ZERO, "ok", "");
-    GateResult failed =
+    final GateResult failed =
         new GateResult(
             "checkstyle", GateStatus.FAILED, List.of("check"), 1, Duration.ZERO, "", "bad");
-    CheckReport report = new CheckReport(PROJECT, List.of(passed, failed));
+    final CheckReport report = new CheckReport(PROJECT, List.of(passed, failed));
     assertThat(report.passed()).isFalse();
     assertThat(report.status()).isEqualTo(GateStatus.FAILED);
     assertThat(new PolicyEvaluator().evaluate(report, false)).isNotEmpty();
@@ -297,10 +297,10 @@ class CoverageExpansionTest {
 
   @Test
   void rendersTextAndJsonReportsIncludingFailureOutput() {
-    GateResult passed =
+    final GateResult passed =
         new GateResult(
             "tests", GateStatus.PASSED, List.of("test"), 0, Duration.ofMillis(1500), "ok", "");
-    GateResult failed =
+    final GateResult failed =
         new GateResult(
             "lint",
             GateStatus.FAILED,
@@ -309,7 +309,7 @@ class CoverageExpansionTest {
             Duration.ofMillis(1),
             "line 1\nline 2",
             "stderr");
-    CheckReport report = new CheckReport(PROJECT, List.of(passed, failed));
+    final CheckReport report = new CheckReport(PROJECT, List.of(passed, failed));
     assertThat(new TextReportRenderer().render(report))
         .contains("Sentinel", "Quality Gate: FAILED", "Command:", "line 1");
     assertThat(new JsonReportRenderer(new ForyJsonCodec()).render(report))
@@ -320,21 +320,23 @@ class CoverageExpansionTest {
 
   @Test
   void processAgentRunnerAddsTaskAndReportsSuccessOrFailure() {
-    var executor =
+    final var executor =
         (CommandExecutor)
             (command, root) ->
                 new CommandResult(command.contains("fail") ? 1 : 0, "out", "err", Duration.ZERO);
-    ProcessAgentRunner runner = new ProcessAgentRunner(executor, Path.of("/tmp"), List.of("agent"));
+    final ProcessAgentRunner runner =
+        new ProcessAgentRunner(executor, Path.of("/tmp"), List.of("agent"));
     assertThat(runner.id()).isEqualTo("external");
     assertThat(runner.run(new AgentRequest("fix", 2)).succeeded()).isTrue();
-    ProcessAgentRunner failing = new ProcessAgentRunner(executor, Path.of("/tmp"), List.of("fail"));
+    final ProcessAgentRunner failing =
+        new ProcessAgentRunner(executor, Path.of("/tmp"), List.of("fail"));
     assertThat(failing.run(new AgentRequest("fix", 2)).summary()).isEqualTo("Agent failed.");
   }
 
   @Test
   void languageRegistryHasDefaultsForEveryLanguage() {
-    LanguageGateRegistry registry = new LanguageGateRegistry();
-    for (Language language : Language.values()) {
+    final LanguageGateRegistry registry = new LanguageGateRegistry();
+    for (final Language language : Language.values()) {
       assertThat(registry.defaults(language)).isNotEmpty();
     }
   }
@@ -352,9 +354,9 @@ class CoverageExpansionTest {
                  [quality-gates.compile]
                  command = "compile"
                 """);
-    var executor =
+    final var executor =
         (CommandExecutor) (command, path) -> new CommandResult(0, "ok", "", Duration.ZERO);
-    CheckService service =
+    final CheckService service =
         new CheckService(
             new ProjectDetector(new FileSystemProjectInspection()),
             new TomlConfigurationReader(),
@@ -375,7 +377,7 @@ class CoverageExpansionTest {
   void commandLineRunnerWiresCommandsAndHandlesKnownAndUnexpectedFailures(@TempDir Path root)
       throws IOException {
     TestProjects.withPom(root, TestProjects.PLAIN_POM);
-    CommandLineRunnerImpl runner = DaggerSentinelComponent.create().commandLineRunner();
+    final CommandLineRunnerImpl runner = DaggerSentinelComponent.create().commandLineRunner();
     assertThat(runner.run()).isEqualTo(ExitCodes.ERROR);
     assertThat(runner.run("--help")).isZero();
     assertThat(runner.run("detect", "-C", root.toString())).isZero();
@@ -394,7 +396,7 @@ class CoverageExpansionTest {
 
   @Test
   void validatesProcessAndAgentResults() {
-    CommandResult success = new CommandResult(0, "out", "err", Duration.ZERO);
+    final CommandResult success = new CommandResult(0, "out", "err", Duration.ZERO);
     assertThat(success.succeeded()).isTrue();
     assertThat(success.hasExecutionError()).isFalse();
     assertThat(new CommandResult(1, "", "", Duration.ZERO, "failed").hasExecutionError()).isTrue();

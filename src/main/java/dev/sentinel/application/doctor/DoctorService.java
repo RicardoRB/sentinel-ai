@@ -27,16 +27,16 @@ public final class DoctorService {
   }
 
   public List<Finding> diagnose(Path start) {
-    List<Finding> findings = new ArrayList<>();
-    var project = detector.detect(start);
+    final List<Finding> findings = new ArrayList<>();
+    final var project = detector.detect(start);
     if (project.isEmpty()) {
       findings.add(new Finding("project", Status.ERROR, "No supported project detected."));
       return findings;
     }
-    Path root = project.get().root();
-    EnvironmentFacts facts = environment.inspect(root);
+    final Path root = project.get().root();
+    final EnvironmentFacts facts = environment.inspect(root);
     findings.add(new Finding("project", Status.OK, root.toString()));
-    boolean mavenAvailable =
+    final boolean mavenAvailable =
         Boolean.parseBoolean(facts.values().get("mavenWrapperAvailable"))
             || facts.hasExecutable("mvn");
     findings.add(
@@ -46,19 +46,21 @@ public final class DoctorService {
             project.get().mavenWrapperAvailable()
                 ? "Maven Wrapper available."
                 : "System Maven is required."));
-    boolean configPresent = Boolean.parseBoolean(facts.values().get("configurationPresent"));
+    final boolean configPresent = Boolean.parseBoolean(facts.values().get("configurationPresent"));
     findings.add(
         new Finding(
             "configuration",
             configPresent ? Status.OK : Status.ERROR,
             configPresent ? "Configuration is present." : "Run 'sentinel init'."));
-    boolean integrationPresent = Boolean.parseBoolean(facts.values().get("openCodeCommandPresent"));
+    final boolean integrationPresent =
+        Boolean.parseBoolean(facts.values().get("openCodeCommandPresent"));
     findings.add(
         new Finding(
             "integration",
             integrationPresent ? Status.OK : Status.WARNING,
             "OpenCode integration " + (integrationPresent ? "present." : "not configured.")));
-    boolean nativePresent = Boolean.parseBoolean(facts.values().get("nativeExecutablePresent"));
+    final boolean nativePresent =
+        Boolean.parseBoolean(facts.values().get("nativeExecutablePresent"));
     findings.add(
         new Finding(
             "native",

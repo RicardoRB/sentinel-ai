@@ -57,7 +57,7 @@ public final class IntegrateCommand implements Callable<Integer> {
       if (agent == null || agent.isBlank()) {
         agent = selectAgent();
       }
-      IntegrationResult result = service.integrate(agent, options.directory(), remove);
+      final IntegrationResult result = service.integrate(agent, options.directory(), remove);
       output().printf("%s: %s%n", result.status(), result.message());
       result.changed().forEach(output()::println);
       return result.status() == IntegrationResult.Status.CONFLICT ? ExitCodes.ERROR : ExitCodes.OK;
@@ -73,7 +73,7 @@ public final class IntegrateCommand implements Callable<Integer> {
     output().print("Choose an agent [1-2]: ");
     output().flush();
     try {
-      String selection =
+      final String selection =
           new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8)).readLine();
       if (selection == null) {
         throw new SentinelException(

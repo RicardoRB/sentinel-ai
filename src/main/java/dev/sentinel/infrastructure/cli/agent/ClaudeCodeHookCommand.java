@@ -48,8 +48,8 @@ public final class ClaudeCodeHookCommand implements Callable<Integer> {
       return ExitCodes.ERROR;
     }
     try {
-      CheckReport report = checkService.check(options.directory());
-      LearningOutcome learning = learningService.learn(report, threshold);
+      final CheckReport report = checkService.check(options.directory());
+      final LearningOutcome learning = learningService.learn(report, threshold);
       if (!report.passed()) {
         error().println(failureSummary(report));
         learning.prompts().forEach(prompt -> error().println(prompt.instruction()));
@@ -57,7 +57,7 @@ public final class ClaudeCodeHookCommand implements Callable<Integer> {
         return ExitCodes.ERROR;
       }
       if (!learning.prompts().isEmpty()) {
-        HookOutput output = new HookOutput();
+        final HookOutput output = new HookOutput();
         output.hookSpecificOutput = new HookSpecificOutput();
         output.hookSpecificOutput.hookEventName = "PostToolUse";
         output.hookSpecificOutput.additionalContext =

@@ -17,12 +17,13 @@ public final class GitStateInspector implements GitStateInspection {
 
   @Override
   public GitState inspect(Path root) {
-    var repository = executor.execute(List.of("git", "rev-parse", "--is-inside-work-tree"), root);
+    final var repository =
+        executor.execute(List.of("git", "rev-parse", "--is-inside-work-tree"), root);
     if (!repository.succeeded()) {
       return new GitState(false, "", false, "Not a Git repository.");
     }
-    var branch = executor.execute(List.of("git", "branch", "--show-current"), root);
-    var status = executor.execute(List.of("git", "status", "--porcelain"), root);
+    final var branch = executor.execute(List.of("git", "branch", "--show-current"), root);
+    final var status = executor.execute(List.of("git", "status", "--porcelain"), root);
     return new GitState(
         true,
         branch.stdout().trim(),

@@ -44,9 +44,9 @@ import org.junit.jupiter.api.io.TempDir;
 class QualityLoopServiceTest {
   @Test
   void orchestratesFromRequestUsingFakePortsWithoutFilesystemAdapters() {
-    Path root = Path.of("memory-project");
-    Project project = new Project(root, Language.JAVA, BuildTool.MAVEN, Framework.NONE);
-    ProjectInspection projects =
+    final Path root = Path.of("memory-project");
+    final Project project = new Project(root, Language.JAVA, BuildTool.MAVEN, Framework.NONE);
+    final ProjectInspection projects =
         new ProjectInspection() {
           @Override
           public Optional<Project> detect(Path ignored) {
@@ -58,8 +58,8 @@ class QualityLoopServiceTest {
             return List.of(project);
           }
         };
-    FakeCommandExecutor commands = new FakeCommandExecutor(0, "ok", "");
-    var checks =
+    final FakeCommandExecutor commands = new FakeCommandExecutor(0, "ok", "");
+    final var checks =
         new CheckService(
             new ProjectDetector(projects),
             ignored ->
@@ -67,8 +67,8 @@ class QualityLoopServiceTest {
                     1, Map.of("tests", new GateConfiguration(true, List.of("mvn", "test")))),
             new QualityGateFactory(commands),
             new QualityGateRunner());
-    var requested = new ArrayList<String>();
-    AgentRunnerFactory agents =
+    final var requested = new ArrayList<String>();
+    final AgentRunnerFactory agents =
         (workingDirectory, arguments) -> {
           assertThat(workingDirectory).isEqualTo(root);
           requested.addAll(arguments);
@@ -84,11 +84,11 @@ class QualityLoopServiceTest {
             }
           };
         };
-    var loop =
+    final var loop =
         new QualityLoopService(
             checks, agents, ignored -> new GitState(true, "main", false, "Working tree clean."));
 
-    var result =
+    final var result =
         loop.run(
             new LoopRequest(
                 root, List.of("agent", "--safe"), "fix it", new LoopConfiguration(1, 5, false)));
@@ -103,14 +103,14 @@ class QualityLoopServiceTest {
     withPom(dir, PLAIN_POM);
     Files.writeString(
         dir.resolve("sentinel.toml"), "version = 1\n[quality-gates.tests]\ncommand = \"verify\"\n");
-    var executor = new FakeCommandExecutor(0, "", "");
-    var checks =
+    final var executor = new FakeCommandExecutor(0, "", "");
+    final var checks =
         new CheckService(
             new ProjectDetector(new FileSystemProjectInspection()),
             new TomlConfigurationReader(),
             new QualityGateFactory(executor),
             new QualityGateRunner());
-    AgentRunner agent =
+    final AgentRunner agent =
         new AgentRunner() {
           @Override
           public String id() {
@@ -122,7 +122,7 @@ class QualityLoopServiceTest {
             return new AgentResult(true, "done", "");
           }
         };
-    var result =
+    final var result =
         run(
             checks,
             agent,
@@ -139,14 +139,14 @@ class QualityLoopServiceTest {
     withPom(dir, PLAIN_POM);
     Files.writeString(
         dir.resolve("sentinel.toml"), "version = 1\n[quality-gates.tests]\ncommand = \"verify\"\n");
-    var executor = new FakeCommandExecutor(1, "failure", "");
-    var checks =
+    final var executor = new FakeCommandExecutor(1, "failure", "");
+    final var checks =
         new CheckService(
             new ProjectDetector(new FileSystemProjectInspection()),
             new TomlConfigurationReader(),
             new QualityGateFactory(executor),
             new QualityGateRunner());
-    AgentRunner agent =
+    final AgentRunner agent =
         new AgentRunner() {
           @Override
           public String id() {
@@ -158,7 +158,7 @@ class QualityLoopServiceTest {
             return new AgentResult(true, "done", "");
           }
         };
-    var result =
+    final var result =
         run(
             checks,
             agent,
@@ -175,14 +175,14 @@ class QualityLoopServiceTest {
     withPom(dir, PLAIN_POM);
     Files.writeString(
         dir.resolve("sentinel.toml"), "version = 1\n[quality-gates.tests]\ncommand = \"verify\"\n");
-    var executor = new FakeCommandExecutor(0, "", "");
-    var checks =
+    final var executor = new FakeCommandExecutor(0, "", "");
+    final var checks =
         new CheckService(
             new ProjectDetector(new FileSystemProjectInspection()),
             new TomlConfigurationReader(),
             new QualityGateFactory(executor),
             new QualityGateRunner());
-    AgentRunner timeout =
+    final AgentRunner timeout =
         new AgentRunner() {
           @Override
           public String id() {
@@ -208,7 +208,7 @@ class QualityLoopServiceTest {
                     new LoopConfiguration(1, 1, true))
                 .state())
         .isEqualTo(LoopTerminalState.TIMEOUT);
-    AgentRunner failure =
+    final AgentRunner failure =
         new AgentRunner() {
           @Override
           public String id() {
@@ -237,8 +237,8 @@ class QualityLoopServiceTest {
     withPom(dir, PLAIN_POM);
     Files.writeString(
         dir.resolve("sentinel.toml"), "version = 1\n[quality-gates.tests]\ncommand = \"verify\"\n");
-    var calls = new int[] {0};
-    CommandExecutor executor =
+    final var calls = new int[] {0};
+    final CommandExecutor executor =
         (command, root) -> {
           if ("git".equals(command.getFirst())) {
             return new CommandResult(1, "", "", Duration.ZERO);
@@ -246,14 +246,14 @@ class QualityLoopServiceTest {
           calls[0]++;
           return new CommandResult(calls[0] == 2 ? 0 : 1, "", "failed", Duration.ZERO);
         };
-    var checks =
+    final var checks =
         new CheckService(
             new ProjectDetector(new FileSystemProjectInspection()),
             new TomlConfigurationReader(),
             new QualityGateFactory(executor),
             new QualityGateRunner());
-    var agentCalls = new int[] {0};
-    AgentRunner agent =
+    final var agentCalls = new int[] {0};
+    final AgentRunner agent =
         new AgentRunner() {
           @Override
           public String id() {
@@ -266,7 +266,7 @@ class QualityLoopServiceTest {
             return new AgentResult(true, "done", "");
           }
         };
-    var result =
+    final var result =
         run(
             checks,
             agent,
@@ -285,7 +285,7 @@ class QualityLoopServiceTest {
       Path root,
       String task,
       LoopConfiguration configuration) {
-    QualityLoopService service =
+    final QualityLoopService service =
         new QualityLoopService(checks, (directory, arguments) -> agent, git);
     return service.run(new LoopRequest(root, List.of("fake"), task, configuration));
   }

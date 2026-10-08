@@ -97,8 +97,8 @@ public class InitCommand implements Callable<Integer> {
 
   @Override
   public Integer call() {
-    Path start = options.directory();
-    var project = service.get().project(start);
+    final Path start = options.directory();
+    final var project = service.get().project(start);
     boolean overwrite = overwriteOption;
     if (service.get().configurationExists(project)) {
       if (!overwrite) {
@@ -112,25 +112,25 @@ public class InitCommand implements Callable<Integer> {
       }
     }
 
-    InitSetupCatalog catalog = service.get().catalog();
-    List<String> selectedIntegrations =
+    final InitSetupCatalog catalog = service.get().catalog();
+    final List<String> selectedIntegrations =
         integrations.isEmpty() ? selectIntegrations(catalog) : integrations;
-    List<String> selectedGates = gates.isEmpty() ? selectGates(catalog, project) : gates;
+    final List<String> selectedGates = gates.isEmpty() ? selectGates(catalog, project) : gates;
     String selectedArchitecture = architecture;
     if (requiresArchitectureTest(selectedGates)) {
       selectedArchitecture =
           selectedArchitecture == null ? selectArchitecture(catalog) : selectedArchitecture;
       catalog.architecture(selectedArchitecture);
     }
-    for (String selectedGate : selectedGates) {
-      InitGateOption gateOption = catalog.gate(project, selectedGate);
+    for (final String selectedGate : selectedGates) {
+      final InitGateOption gateOption = catalog.gate(project, selectedGate);
       output()
           .printf(
               "Selected quality gate '%s': %s%n",
               gateOption.id(), gateOption.available() ? "AVAILABLE" : "UNAVAILABLE");
       output().println(gateOption.availabilityMessage());
     }
-    InitResult result =
+    final InitResult result =
         service
             .get()
             .initialize(
@@ -141,11 +141,11 @@ public class InitCommand implements Callable<Integer> {
   }
 
   private List<String> selectIntegrations(InitSetupCatalog catalog) {
-    List<InitIntegrationOption> choices = catalog.integrations();
-    var raw = openRawTerminal();
+    final List<InitIntegrationOption> choices = catalog.integrations();
+    final var raw = openRawTerminal();
     if (raw.isPresent()) {
       try (RawSession session = raw.get()) {
-        List<String> labels = choices.stream().map(InitIntegrationOption::label).toList();
+        final List<String> labels = choices.stream().map(InitIntegrationOption::label).toList();
         return new MultiSelectMenu()
                 .select(
                     "Select agent integrations",
@@ -171,8 +171,8 @@ public class InitCommand implements Callable<Integer> {
     output().print(file + " already exists. Overwrite it? [y/N]: ");
     output().flush();
     try {
-      String answer = reader.readLine();
-      boolean overwrite = answer != null && "y".equalsIgnoreCase(answer.trim());
+      final String answer = reader.readLine();
+      final boolean overwrite = answer != null && "y".equalsIgnoreCase(answer.trim());
       if (!overwrite) {
         output().println("Keeping existing sentinel.toml. No changes made.");
       }
@@ -184,11 +184,12 @@ public class InitCommand implements Callable<Integer> {
   }
 
   private List<String> selectGates(InitSetupCatalog catalog, Project project) {
-    List<InitGateOption> choices = catalog.gates(project);
-    var raw = openRawTerminal();
+    final List<InitGateOption> choices = catalog.gates(project);
+    final var raw = openRawTerminal();
     if (raw.isPresent()) {
       try (RawSession session = raw.get()) {
-        List<String> labels = choices.stream().map(c -> c.id() + " - " + c.description()).toList();
+        final List<String> labels =
+            choices.stream().map(c -> c.id() + " - " + c.description()).toList();
         return new MultiSelectMenu()
                 .select(
                     "Select quality gates",
@@ -203,7 +204,7 @@ public class InitCommand implements Callable<Integer> {
     }
     output().println("Select quality gates (enter numbers separated by spaces, then press Enter):");
     for (int i = 0; i < choices.size(); i++) {
-      InitGateOption choice = choices.get(i);
+      final InitGateOption choice = choices.get(i);
       output()
           .printf(
               "> [ ] %d) %s - %s [%s]%n",
@@ -216,7 +217,7 @@ public class InitCommand implements Callable<Integer> {
   }
 
   private String selectArchitecture(InitSetupCatalog catalog) {
-    List<InitArchitectureOption> choices = catalog.architectures();
+    final List<InitArchitectureOption> choices = catalog.architectures();
     output().println("Select an architecture style:");
     for (int i = 0; i < choices.size(); i++) {
       output().printf("> %d) %s%n", i + 1, choices.get(i).label());
@@ -224,12 +225,12 @@ public class InitCommand implements Callable<Integer> {
     output().print("Choose an architecture [1-" + choices.size() + "]: ");
     output().flush();
     try {
-      String value = reader.readLine();
+      final String value = reader.readLine();
       if (value == null) {
         throw new SentinelException(
             "Initialization cancelled: input ended before setup completed.");
       }
-      int choice;
+      final int choice;
       try {
         choice = Integer.parseInt(value.trim());
       } catch (NumberFormatException e) {
@@ -253,22 +254,22 @@ public class InitCommand implements Callable<Integer> {
     output().print("Toggle integrations with space-separated numbers [1-" + choices.size() + "]: ");
     output().flush();
     try {
-      String value = reader.readLine();
+      final String value = reader.readLine();
       if (value == null) {
         throw new SentinelException(
             "Initialization cancelled: input ended before setup completed.");
       }
-      List<String> selected = new ArrayList<>();
-      for (String token : value.trim().split("[ ,]+")) {
+      final List<String> selected = new ArrayList<>();
+      for (final String token : value.trim().split("[ ,]+")) {
         if (token.isBlank()) {
           continue;
         }
         try {
-          int choice = Integer.parseInt(token);
+          final int choice = Integer.parseInt(token);
           if (choice < 1 || choice > choices.size()) {
             throw new NumberFormatException();
           }
-          String id = choices.get(choice - 1).id();
+          final String id = choices.get(choice - 1).id();
           if (!selected.contains(id)) {
             selected.add(id);
           }
@@ -296,22 +297,22 @@ public class InitCommand implements Callable<Integer> {
         .print("Toggle quality gates with space-separated numbers [1-" + choices.size() + "]: ");
     output().flush();
     try {
-      String value = reader.readLine();
+      final String value = reader.readLine();
       if (value == null) {
         throw new SentinelException(
             "Initialization cancelled: input ended before setup completed.");
       }
-      List<String> selected = new ArrayList<>();
-      for (String token : value.trim().split("[ ,]+")) {
+      final List<String> selected = new ArrayList<>();
+      for (final String token : value.trim().split("[ ,]+")) {
         if (token.isBlank()) {
           continue;
         }
         try {
-          int choice = Integer.parseInt(token);
+          final int choice = Integer.parseInt(token);
           if (choice < 1 || choice > choices.size()) {
             throw new NumberFormatException();
           }
-          String id = choices.get(choice - 1).id();
+          final String id = choices.get(choice - 1).id();
           if (!selected.contains(id)) {
             selected.add(id);
           }
@@ -365,7 +366,7 @@ public class InitCommand implements Callable<Integer> {
       if (result.integrations().isEmpty()) {
         output().println("No agent integration installed.");
       } else {
-        for (var integration : result.integrations()) {
+        for (final var integration : result.integrations()) {
           output().printf("Integration: %s%n", integration.message());
           integration.changed().forEach(output()::println);
         }

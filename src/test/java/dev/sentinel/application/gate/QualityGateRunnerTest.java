@@ -46,7 +46,7 @@ class QualityGateRunnerTest {
 
   @Test
   void allPassedAggregatesToPassed() {
-    CheckReport report =
+    final CheckReport report =
         runner.run(project, List.of(gate("a", GateStatus.PASSED), gate("b", GateStatus.PASSED)));
 
     assertThat(report.status()).isEqualTo(GateStatus.PASSED);
@@ -55,7 +55,7 @@ class QualityGateRunnerTest {
 
   @Test
   void oneFailureAggregatesToFailedAndOtherGatesStillRun() {
-    CheckReport report =
+    final CheckReport report =
         runner.run(project, List.of(gate("a", GateStatus.FAILED), gate("b", GateStatus.PASSED)));
 
     assertThat(report.status()).isEqualTo(GateStatus.FAILED);
@@ -64,8 +64,8 @@ class QualityGateRunnerTest {
 
   @Test
   void reportsStartAndFinishInGateOrderDespiteFailure() {
-    List<String> events = new ArrayList<>();
-    FakeCommandExecutor executor = new FakeCommandExecutor(1, "", "failure");
+    final List<String> events = new ArrayList<>();
+    final FakeCommandExecutor executor = new FakeCommandExecutor(1, "", "failure");
     runner.run(
         project,
         List.of(
@@ -88,10 +88,10 @@ class QualityGateRunnerTest {
 
   @Test
   void failFastStopsAndReportsRemainingGatesAsSkipped() {
-    List<String> executed = new ArrayList<>();
-    List<String> events = new ArrayList<>();
-    QualityGate failure = recordingGate("b", GateStatus.UNAVAILABLE, executed);
-    CheckReport report =
+    final List<String> executed = new ArrayList<>();
+    final List<String> events = new ArrayList<>();
+    final QualityGate failure = recordingGate("b", GateStatus.UNAVAILABLE, executed);
+    final CheckReport report =
         runner.run(
             project,
             List.of(
@@ -117,7 +117,7 @@ class QualityGateRunnerTest {
 
   @Test
   void failFastRunsEveryGateWhenAllPass() {
-    List<String> executed = new ArrayList<>();
+    final List<String> executed = new ArrayList<>();
     runner.run(
         project,
         List.of(
@@ -129,8 +129,8 @@ class QualityGateRunnerTest {
 
   @Test
   void failFastStopsOnExecutionError() {
-    List<String> executed = new ArrayList<>();
-    CheckReport report =
+    final List<String> executed = new ArrayList<>();
+    final CheckReport report =
         runner.run(
             project,
             List.of(

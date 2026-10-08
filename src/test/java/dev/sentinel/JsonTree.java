@@ -21,7 +21,7 @@ public final class JsonTree {
   }
 
   public JsonTree get(String field) {
-    Map<?, ?> object = as(Map.class);
+    final Map<?, ?> object = as(Map.class);
     if (!object.containsKey(field)) {
       throw new AssertionError("Missing JSON field '" + field + "' in " + value);
     }

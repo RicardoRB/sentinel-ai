@@ -29,15 +29,15 @@ class ExtendedGatesTest {
       new Project(Path.of("/p"), Language.JAVA, BuildTool.MAVEN, Framework.NONE);
 
   private static SentinelConfiguration config(String id, List<String> command) {
-    Map<String, GateConfiguration> gates = new LinkedHashMap<>();
+    final Map<String, GateConfiguration> gates = new LinkedHashMap<>();
     gates.put(id, new GateConfiguration(true, command));
     return new SentinelConfiguration(1, gates);
   }
 
   @Test
   void acceptsEveryNewAndLegacyIdentifierInConfigurationOrder() {
-    Map<String, GateConfiguration> gates = new LinkedHashMap<>();
-    for (String id :
+    final Map<String, GateConfiguration> gates = new LinkedHashMap<>();
+    for (final String id :
         List.of(
             "format",
             "semgrep",
@@ -50,7 +50,7 @@ class ExtendedGatesTest {
             "architecture")) {
       gates.put(id, new GateConfiguration(true, List.of("tool")));
     }
-    List<QualityGate> created =
+    final List<QualityGate> created =
         new QualityGateFactory(new FakeCommandExecutor(0, "", ""))
             .create(new SentinelConfiguration(1, gates));
 
@@ -59,7 +59,7 @@ class ExtendedGatesTest {
 
   @Test
   void unknownGateErrorListsNewIdentifiers() {
-    QualityGateFactory factory = new QualityGateFactory(new FakeCommandExecutor(0, "", ""));
+    final QualityGateFactory factory = new QualityGateFactory(new FakeCommandExecutor(0, "", ""));
 
     assertThatThrownBy(() -> factory.create(config("nope", List.of("x"))))
         .isInstanceOf(SentinelException.class)
@@ -68,7 +68,7 @@ class ExtendedGatesTest {
 
   @Test
   void zapRequiresExplicitTarget() {
-    QualityGateFactory factory = new QualityGateFactory(new FakeCommandExecutor(0, "", ""));
+    final QualityGateFactory factory = new QualityGateFactory(new FakeCommandExecutor(0, "", ""));
 
     assertThatThrownBy(() -> factory.create(config("zap", List.of("zap-baseline.py"))))
         .isInstanceOf(SentinelException.class)
@@ -90,7 +90,7 @@ class ExtendedGatesTest {
 
   @Test
   void disabledZapWithoutTargetIsSkippedNotRejected() {
-    Map<String, GateConfiguration> gates =
+    final Map<String, GateConfiguration> gates =
         Map.of("zap", new GateConfiguration(false, List.of("z")));
 
     assertThat(
@@ -101,10 +101,10 @@ class ExtendedGatesTest {
 
   @Test
   void missingBinaryReportsInstallHint() {
-    CommandExecutor missing =
+    final CommandExecutor missing =
         (command, dir) ->
             new CommandResult(-1, "", "", Duration.ZERO, "Could not start [gitleaks]: not found");
-    GateResult result =
+    final GateResult result =
         new CommandQualityGate("gitleaks", missing, List.of("gitleaks", "detect")).execute(PROJECT);
 
     assertThat(result.status()).isEqualTo(GateStatus.UNAVAILABLE);
@@ -113,8 +113,8 @@ class ExtendedGatesTest {
 
   @Test
   void failedSecretScanDoesNotAddMatchedValuesToSummary() {
-    FakeCommandExecutor executor = new FakeCommandExecutor(1, "", "leaks found: 1");
-    GateResult result =
+    final FakeCommandExecutor executor = new FakeCommandExecutor(1, "", "leaks found: 1");
+    final GateResult result =
         new CommandQualityGate("gitleaks", executor, List.of("gitleaks", "detect", "--redact"))
             .execute(PROJECT);
 

@@ -33,18 +33,18 @@ public class ProcessCommandExecutor implements CommandExecutor {
 
   @Override
   public CommandResult execute(List<String> command, Path workingDirectory) {
-    long start = System.nanoTime();
+    final long start = System.nanoTime();
     try {
-      ProcessBuilder builder =
+      final ProcessBuilder builder =
           new ProcessBuilder(resolveExecutable(command, workingDirectory))
               .directory(workingDirectory.toFile());
-      Process process = builder.start();
+      final Process process = builder.start();
       process.getOutputStream().close(); // the command gets no stdin
       try (ExecutorService readers = Executors.newVirtualThreadPerTaskExecutor()) {
-        Future<String> stdout = readers.submit(() -> read(process.getInputStream()));
-        Future<String> stderr = readers.submit(() -> read(process.getErrorStream()));
+        final Future<String> stdout = readers.submit(() -> read(process.getInputStream()));
+        final Future<String> stderr = readers.submit(() -> read(process.getErrorStream()));
         try {
-          int exitCode = process.waitFor();
+          final int exitCode = process.waitFor();
           return new CommandResult(exitCode, stdout.get(), stderr.get(), since(start));
         } catch (InterruptedException e) {
           process.destroyForcibly();
@@ -73,8 +73,8 @@ public class ProcessCommandExecutor implements CommandExecutor {
    * the working directory, so behaviour does not depend on the JVM's own directory.
    */
   private static List<String> resolveExecutable(List<String> command, Path workingDirectory) {
-    List<String> resolved = new ArrayList<>(command);
-    String executable = resolved.getFirst();
+    final List<String> resolved = new ArrayList<>(command);
+    final String executable = resolved.getFirst();
     if (executable.contains("/") && !Path.of(executable).isAbsolute()) {
       resolved.set(0, workingDirectory.resolve(executable).normalize().toString());
     }

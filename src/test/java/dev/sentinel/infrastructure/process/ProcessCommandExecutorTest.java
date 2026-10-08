@@ -18,7 +18,7 @@ class ProcessCommandExecutorTest {
 
   @Test
   void capturesStdoutStderrExitCodeAndDuration(@TempDir Path dir) {
-    CommandResult result =
+    final CommandResult result =
         executor.execute(List.of("sh", "-c", "echo out; echo err >&2; exit 3"), dir);
 
     assertThat(result.exitCode()).isEqualTo(3);
@@ -30,7 +30,8 @@ class ProcessCommandExecutorTest {
 
   @Test
   void doesNotInterpretShellMetacharacters(@TempDir Path dir) {
-    CommandResult result = executor.execute(List.of("echo", "a;", "echo", "b", "&&", "$HOME"), dir);
+    final CommandResult result =
+        executor.execute(List.of("echo", "a;", "echo", "b", "&&", "$HOME"), dir);
 
     assertThat(result.stdout()).isEqualTo("a; echo b && $HOME\n");
   }
@@ -38,11 +39,11 @@ class ProcessCommandExecutorTest {
   @Test
   void runsInWorkingDirectoryAndResolvesRelativeExecutableAgainstIt(@TempDir Path dir)
       throws Exception {
-    Path script = dir.resolve("run.sh");
+    final Path script = dir.resolve("run.sh");
     Files.writeString(script, "#!/bin/sh\npwd -P\n");
     script.toFile().setExecutable(true);
 
-    CommandResult result = executor.execute(List.of("./run.sh"), dir);
+    final CommandResult result = executor.execute(List.of("./run.sh"), dir);
 
     assertThat(result.exitCode()).isZero();
     assertThat(result.stdout().trim()).isEqualTo(dir.toRealPath().toString());
@@ -50,7 +51,7 @@ class ProcessCommandExecutorTest {
 
   @Test
   void reportsFailureToStartInsteadOfThrowing(@TempDir Path dir) {
-    CommandResult result = executor.execute(List.of("./does-not-exist"), dir);
+    final CommandResult result = executor.execute(List.of("./does-not-exist"), dir);
 
     assertThat(result.exitCode()).isNotZero();
     assertThat(result.stderr()).contains("Could not start");
@@ -58,7 +59,7 @@ class ProcessCommandExecutorTest {
 
   @Test
   void handlesLargeOutputWithoutDeadlock(@TempDir Path dir) {
-    CommandResult result =
+    final CommandResult result =
         executor.execute(
             List.of(
                 "sh",

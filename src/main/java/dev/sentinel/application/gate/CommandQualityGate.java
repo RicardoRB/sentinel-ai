@@ -34,8 +34,9 @@ public final class CommandQualityGate implements QualityGate {
 
   @Override
   public GateResult execute(Project project) {
-    GateResult result = GateResult.from(name, command, executor.execute(command, project.root()));
-    String hint = command.isEmpty() ? null : INSTALL_HINTS.get(command.getFirst());
+    final GateResult result =
+        GateResult.from(name, command, executor.execute(command, project.root()));
+    final String hint = command.isEmpty() ? null : INSTALL_HINTS.get(command.getFirst());
     if (hint == null || result.status() != GateStatus.UNAVAILABLE) {
       return result;
     }

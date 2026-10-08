@@ -24,7 +24,7 @@ class ProjectDetectorTest {
   void detectsMavenJavaProject(@TempDir Path dir) {
     withPom(dir, PLAIN_POM);
 
-    Project project = detector.detect(dir).orElseThrow();
+    final Project project = detector.detect(dir).orElseThrow();
 
     assertThat(project.language()).isEqualTo(Language.JAVA);
     assertThat(project.buildTool()).isEqualTo(BuildTool.MAVEN);
@@ -61,7 +61,7 @@ class ProjectDetectorTest {
   @Test
   void findsProjectRootFromSubdirectory(@TempDir Path dir) throws Exception {
     withPom(dir, PLAIN_POM);
-    Path sub = Files.createDirectories(dir.resolve("src/main/java"));
+    final Path sub = Files.createDirectories(dir.resolve("src/main/java"));
 
     assertThat(detector.detect(sub))
         .get()
@@ -91,7 +91,7 @@ class ProjectDetectorTest {
     Files.writeString(dir.resolve("build.gradle"), "");
 
     // TempDir lives under the system temp dir, which has no pom.xml in any parent.
-    Optional<Project> project = detector.detect(dir);
+    final Optional<Project> project = detector.detect(dir);
 
     assertThat(project).isEmpty();
   }

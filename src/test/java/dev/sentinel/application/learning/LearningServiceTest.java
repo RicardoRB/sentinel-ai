@@ -33,7 +33,7 @@ class LearningServiceTest {
 
   @Test
   void promptsArePropagatedAndResolvedLedgerIsSaved() {
-    LearningRecord failing =
+    final LearningRecord failing =
         new LearningRecord(
             "checkstyle:FAILED",
             "checkstyle",
@@ -44,9 +44,9 @@ class LearningServiceTest {
             NOW.minusSeconds(10),
             NOW,
             false);
-    FakeStore store = new FakeStore(new LearningLedger(1, Map.of(failing.key(), failing)));
+    final FakeStore store = new FakeStore(new LearningLedger(1, Map.of(failing.key(), failing)));
 
-    LearningOutcome outcome = new LearningService(store, CLOCK).learn(passingReport(), 2);
+    final LearningOutcome outcome = new LearningService(store, CLOCK).learn(passingReport(), 2);
 
     assertThat(outcome.prompts())
         .singleElement()
@@ -65,9 +65,9 @@ class LearningServiceTest {
 
   @Test
   void corruptStoreSkipsSaveAndReturnsWarningOnly() {
-    FakeStore store = new FakeStore(new LearningStoreException("could not read"));
+    final FakeStore store = new FakeStore(new LearningStoreException("could not read"));
 
-    LearningOutcome outcome = new LearningService(store, CLOCK).learn(passingReport(), 2);
+    final LearningOutcome outcome = new LearningService(store, CLOCK).learn(passingReport(), 2);
 
     assertThat(outcome.prompts()).isEmpty();
     assertThat(outcome.warnings())
@@ -79,7 +79,7 @@ class LearningServiceTest {
 
   @Test
   void thresholdIsRespectedWhenBuildingPrompts() {
-    LearningRecord failing =
+    final LearningRecord failing =
         new LearningRecord(
             "checkstyle:FAILED",
             "checkstyle",
@@ -90,9 +90,9 @@ class LearningServiceTest {
             NOW.minusSeconds(10),
             NOW,
             false);
-    FakeStore store = new FakeStore(new LearningLedger(1, Map.of(failing.key(), failing)));
+    final FakeStore store = new FakeStore(new LearningLedger(1, Map.of(failing.key(), failing)));
 
-    LearningOutcome outcome = new LearningService(store, CLOCK).learn(passingReport(), 2);
+    final LearningOutcome outcome = new LearningService(store, CLOCK).learn(passingReport(), 2);
 
     assertThat(outcome.prompts()).isEmpty();
     assertThat(store.saved.records().get("checkstyle:FAILED").state())

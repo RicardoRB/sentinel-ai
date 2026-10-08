@@ -17,9 +17,9 @@ public final class LearningPolicy {
     if (threshold < 1) {
       throw new IllegalArgumentException("Learning threshold must be at least 1");
     }
-    Map<String, LearningRecord> records = new LinkedHashMap<>(ledger.records());
-    List<LearningPrompt> prompts = new ArrayList<>();
-    for (GateResult result : report.results()) {
+    final Map<String, LearningRecord> records = new LinkedHashMap<>(ledger.records());
+    final List<LearningPrompt> prompts = new ArrayList<>();
+    for (final GateResult result : report.results()) {
       if (result.status() == GateStatus.SKIPPED) {
         continue;
       }
@@ -27,10 +27,10 @@ public final class LearningPolicy {
         resolve(records, result.name(), threshold, now, prompts);
         continue;
       }
-      String status = result.status().name();
-      String key = result.name() + ":" + status;
-      LearningRecord current = records.get(key);
-      String summary = truncate(summary(result));
+      final String status = result.status().name();
+      final String key = result.name() + ":" + status;
+      final LearningRecord current = records.get(key);
+      final String summary = truncate(summary(result));
       if (current == null || current.state() == LearningState.RESOLVED) {
         records.put(
             key,
@@ -74,7 +74,7 @@ public final class LearningPolicy {
           if (!record.gate().equals(gate) || record.state() != LearningState.FAILING) {
             return record;
           }
-          boolean emit = !record.prompted() && record.occurrences() >= threshold;
+          final boolean emit = !record.prompted() && record.occurrences() >= threshold;
           if (emit) {
             prompts.add(
                 new LearningPrompt(

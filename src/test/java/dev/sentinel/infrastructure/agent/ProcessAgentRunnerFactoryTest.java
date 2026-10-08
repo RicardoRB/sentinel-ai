@@ -11,9 +11,10 @@ import org.junit.jupiter.api.Test;
 class ProcessAgentRunnerFactoryTest {
   @Test
   void createsRunnerUsingTheRequestedWorkingDirectoryAndArguments() {
-    FakeCommandExecutor executor = new FakeCommandExecutor(0, "completed", "");
-    Path root = Path.of("project");
-    var runner = new ProcessAgentRunnerFactory(executor).create(root, List.of("agent", "--yes"));
+    final FakeCommandExecutor executor = new FakeCommandExecutor(0, "completed", "");
+    final Path root = Path.of("project");
+    final var runner =
+        new ProcessAgentRunnerFactory(executor).create(root, List.of("agent", "--yes"));
 
     assertThat(runner.run(new AgentRequest("fix the bug", 30)).succeeded()).isTrue();
     assertThat(executor.commands).containsExactly(List.of("agent", "--yes", "fix the bug"));

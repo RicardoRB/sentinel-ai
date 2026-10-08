@@ -27,9 +27,9 @@ public final class ProcessAgentRunner implements AgentRunner {
 
   @Override
   public AgentResult run(AgentRequest request) {
-    List<String> args = new ArrayList<>(command);
+    final List<String> args = new ArrayList<>(command);
     args.add(request.task());
-    var result = executor.execute(args, root);
+    final var result = executor.execute(args, root);
     return new AgentResult(
         result.succeeded(),
         result.succeeded() ? "Agent completed." : "Agent failed.",

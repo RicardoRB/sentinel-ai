@@ -48,14 +48,14 @@ public final class InitSetupCatalog {
   }
 
   public List<InitGateOption> gates(Project project) {
-    String executable = project.mavenWrapperAvailable() ? "./mvnw" : "mvn";
-    boolean mavenAvailable =
+    final String executable = project.mavenWrapperAvailable() ? "./mvnw" : "mvn";
+    final boolean mavenAvailable =
         project.mavenWrapperAvailable() || environment.inspect(project.root()).hasExecutable("mvn");
-    String availability =
+    final String availability =
         mavenAvailable
             ? "Maven command available: " + executable
             : "Maven is unavailable; install Maven or add a Maven Wrapper before running this gate.";
-    List<InitGateOption> options = new ArrayList<>();
+    final List<InitGateOption> options = new ArrayList<>();
     options.add(
         option(
             "tests",
@@ -229,8 +229,8 @@ public final class InitSetupCatalog {
 
   private InitGateOption binaryOption(
       Project project, String id, String description, List<String> command, String hint) {
-    boolean available = environment.inspect(project.root()).hasExecutable(command.getFirst());
-    String message =
+    final boolean available = environment.inspect(project.root()).hasExecutable(command.getFirst());
+    final String message =
         available
             ? "Executable available: " + command.getFirst()
             : command.getFirst() + " is not on the path. " + hint;

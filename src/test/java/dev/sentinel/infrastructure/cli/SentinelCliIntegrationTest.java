@@ -53,10 +53,10 @@ class SentinelCliIntegrationTest {
 
   @BeforeEach
   void copyFixture() throws IOException {
-    Path fixture = Path.of("src/test/resources/fixtures/maven-project");
+    final Path fixture = Path.of("src/test/resources/fixtures/maven-project");
     try (Stream<Path> files = Files.walk(fixture)) {
-      for (Path source : files.filter(Files::isRegularFile).toList()) {
-        Path target = project.resolve(fixture.relativize(source));
+      for (final Path source : files.filter(Files::isRegularFile).toList()) {
+        final Path target = project.resolve(fixture.relativize(source));
         Files.createDirectories(target.getParent());
         Files.copy(source, target);
       }
@@ -66,7 +66,7 @@ class SentinelCliIntegrationTest {
   }
 
   private int run(String... args) {
-    CommandLine cli =
+    final CommandLine cli =
         new CommandLine(component.commands().get(SentinelCommand.class).get(), factory);
     cli.setOut(new PrintWriter(out, true));
     cli.setErr(new PrintWriter(err, true));
@@ -75,13 +75,13 @@ class SentinelCliIntegrationTest {
   }
 
   private int runWithInput(String input, String... args) {
-    IntegrateCommand integrate =
+    final IntegrateCommand integrate =
         new IntegrateCommand(
             new IntegrationService(
                 new ProjectDetector(new FileSystemProjectInspection()),
                 List.of(new OpenCodeIntegration(), new ClaudeCodeIntegration())),
             new ByteArrayInputStream(input.getBytes(StandardCharsets.UTF_8)));
-    CommandLine cli = new CommandLine(integrate);
+    final CommandLine cli = new CommandLine(integrate);
     cli.setOut(new PrintWriter(out, true));
     cli.setErr(new PrintWriter(err, true));
     cli.setExecutionExceptionHandler(CommandLineRunnerImpl::handle);
@@ -90,15 +90,15 @@ class SentinelCliIntegrationTest {
 
   @Test
   void factoryResolvesEverySentinelSubcommand() throws Exception {
-    Class<?>[] subcommands = SentinelCommand.class.getAnnotation(Command.class).subcommands();
+    final Class<?>[] subcommands = SentinelCommand.class.getAnnotation(Command.class).subcommands();
     assertThat(subcommands).isNotEmpty();
-    for (Class<?> subcommand : subcommands) {
+    for (final Class<?> subcommand : subcommands) {
       assertThat(factory.create(subcommand)).isInstanceOf(subcommand);
     }
   }
 
   private int runInitWithInput(String input, String... args) {
-    InitCommand init =
+    final InitCommand init =
         new InitCommand(
             new InitService(
                 new ProjectDetector(new FileSystemProjectInspection()),
@@ -108,7 +108,7 @@ class SentinelCliIntegrationTest {
                 new ArchitectureTestGenerator(),
                 new FileConfigurationStorage()),
             new ByteArrayInputStream(input.getBytes(StandardCharsets.UTF_8)));
-    CommandLine cli = new CommandLine(init);
+    final CommandLine cli = new CommandLine(init);
     cli.setOut(new PrintWriter(out, true));
     cli.setErr(new PrintWriter(err, true));
     cli.setExecutionExceptionHandler(CommandLineRunnerImpl::handle);
@@ -157,7 +157,7 @@ class SentinelCliIntegrationTest {
         .isZero();
     out.getBuffer().setLength(0);
 
-    int exit =
+    final int exit =
         run(
             "loop",
             "complete this task",
@@ -225,10 +225,10 @@ class SentinelCliIntegrationTest {
     Files.createFile(project.resolve("FAIL"));
     out.getBuffer().setLength(0);
 
-    int exit = run("check", "--format", "json", "-C", project.toString());
+    final int exit = run("check", "--format", "json", "-C", project.toString());
 
     assertThat(exit).isEqualTo(ExitCodes.FAILED);
-    JsonTree json = JsonTree.parse(out.toString()); // fails on any extra text
+    final JsonTree json = JsonTree.parse(out.toString()); // fails on any extra text
     assertThat(json.get("status").asString()).isEqualTo("FAILED");
     assertThat(json.get("checks").get(0).get("exitCode").asInt()).isEqualTo(1);
     assertThat(json.get("checks").get(0).get("stdout").asString()).contains("stub mvnw: test");
@@ -237,7 +237,7 @@ class SentinelCliIntegrationTest {
 
   @Test
   void checkWithoutConfigurationIsAnErrorWithCleanJson() {
-    int exit = run("check", "--format", "json", "-C", project.toString());
+    final int exit = run("check", "--format", "json", "-C", project.toString());
 
     assertThat(exit).isEqualTo(ExitCodes.ERROR);
     assertThat(JsonTree.parse(out.toString()).get("status").asString()).isEqualTo("ERROR");
@@ -338,14 +338,14 @@ class SentinelCliIntegrationTest {
   @Test
   void initConfiguresMultipleQualityGatesSelectedWithSpaces() throws IOException {
     assertThat(runInitWithInput("1\n1 2\n", "-C", project.toString())).isZero();
-    String config = Files.readString(project.resolve("sentinel.toml"));
+    final String config = Files.readString(project.resolve("sentinel.toml"));
     assertThat(config).contains("[quality-gates.tests]", "[quality-gates.compile]");
   }
 
   @Test
   void archunitSelectionPromptsForArchitectureAndGeneratesTest() throws IOException {
     assertThat(runInitWithInput("1\n8\n2\n", "-C", project.toString())).isZero();
-    Path test = project.resolve("src/test/java/com/example/ArchitectureTest.java");
+    final Path test = project.resolve("src/test/java/com/example/ArchitectureTest.java");
     assertThat(test).exists();
     assertThat(Files.readString(test))
         .contains("hexagonal", "@AnalyzeClasses(packages = \"com.example\")");
@@ -374,7 +374,7 @@ class SentinelCliIntegrationTest {
 
   @Test
   void existingArchitectureTestIsPreserved() throws IOException {
-    Path test = project.resolve("src/test/java/com/example/ArchitectureTest.java");
+    final Path test = project.resolve("src/test/java/com/example/ArchitectureTest.java");
     Files.createDirectories(test.getParent());
     Files.writeString(test, "user-owned architecture test\n");
 
@@ -395,8 +395,8 @@ class SentinelCliIntegrationTest {
 
   @Test
   void existingMavenPluginIsNotDuplicated() throws IOException {
-    Path pom = project.resolve("pom.xml");
-    String original = Files.readString(pom);
+    final Path pom = project.resolve("pom.xml");
+    final String original = Files.readString(pom);
     Files.writeString(
         pom,
         original.replace(
@@ -408,7 +408,7 @@ class SentinelCliIntegrationTest {
     assertThat(
             run("init", "--integration", "none", "--gate", "checkstyle", "-C", project.toString()))
         .isZero();
-    String updated = Files.readString(pom);
+    final String updated = Files.readString(pom);
     assertThat(updated.indexOf("<artifactId>maven-checkstyle-plugin</artifactId>"))
         .isEqualTo(updated.lastIndexOf("<artifactId>maven-checkstyle-plugin</artifactId>"));
     assertThat(out.toString()).doesNotContain("Updated pom.xml with Maven tools");
@@ -416,10 +416,10 @@ class SentinelCliIntegrationTest {
 
   @Test
   void generatedMavenAndArchitectureFilesRollBackOnLaterSetupFailure() throws IOException {
-    Path testRoot = project.resolve("src/test/java");
+    final Path testRoot = project.resolve("src/test/java");
     Files.createDirectories(testRoot.getParent());
     Files.writeString(testRoot, "not a directory\n");
-    String originalPom = Files.readString(project.resolve("pom.xml"));
+    final String originalPom = Files.readString(project.resolve("pom.xml"));
 
     assertThat(
             run(
@@ -447,7 +447,7 @@ class SentinelCliIntegrationTest {
 
   @Test
   void rollsBackEarlierIntegrationWhenLaterSelectionConflicts() throws IOException {
-    Path target = project.resolve(".opencode/commands/sentinel-check.md");
+    final Path target = project.resolve(".opencode/commands/sentinel-check.md");
     Files.createDirectories(target.getParent());
     Files.writeString(target, "user-owned\n");
 
@@ -459,7 +459,7 @@ class SentinelCliIntegrationTest {
 
   @Test
   void initReportsIntegrationConflictWithoutCreatingConfiguration() throws IOException {
-    Path target = project.resolve(".opencode/commands/sentinel-check.md");
+    final Path target = project.resolve(".opencode/commands/sentinel-check.md");
     Files.createDirectories(target.getParent());
     Files.writeString(target, "user-owned\n");
 
@@ -547,10 +547,10 @@ class SentinelCliIntegrationTest {
                 command = "./mvnw test"
                 """);
 
-    int exit = run("check", "--format", "json", "-C", project.toString());
+    final int exit = run("check", "--format", "json", "-C", project.toString());
 
     assertThat(exit).isNotZero();
-    JsonTree json = JsonTree.parse(out.toString());
+    final JsonTree json = JsonTree.parse(out.toString());
     assertThat(json.get("checks").size()).isEqualTo(3);
     assertThat(json.get("checks").get(0).get("name").asString()).isEqualTo("gitleaks");
     assertThat(json.get("checks").get(0).get("status").asString()).isNotEqualTo("PASSED");
@@ -609,7 +609,7 @@ class SentinelCliIntegrationTest {
                 command = ["zap-baseline.py", "-t", "<TARGET_URL>"]
                 """);
 
-    int exit = run("check", "--format", "json", "-C", project.toString());
+    final int exit = run("check", "--format", "json", "-C", project.toString());
 
     assertThat(exit).isEqualTo(ExitCodes.ERROR);
     assertThat(JsonTree.parse(out.toString()).get("status").asString()).isEqualTo("ERROR");
@@ -688,15 +688,16 @@ class SentinelCliIntegrationTest {
     out.getBuffer().setLength(0);
     assertThat(run("check", "--format", "json", "--learn-after", "2", "-C", project.toString()))
         .isEqualTo(ExitCodes.OK);
-    JsonTree root = JsonTree.parse(out.toString());
+    final JsonTree root = JsonTree.parse(out.toString());
     assertThat(root.get("status").asString()).isEqualTo("PASSED");
-    JsonTree prompt = root.get("learning").get("prompts");
+    final JsonTree prompt = root.get("learning").get("prompts");
     assertThat(prompt.size()).isEqualTo(1);
     assertThat(prompt.get(0).get("gate").asString()).isEqualTo("tests");
     assertThat(prompt.get(0).get("occurrences").asInt()).isEqualTo(2);
     assertThat(prompt.get(0).get("instruction").asString()).contains("AGENTS.md");
 
-    JsonTree ledger = JsonTree.parse(Files.readString(project.resolve(".sentinel/learning.json")));
+    final JsonTree ledger =
+        JsonTree.parse(Files.readString(project.resolve(".sentinel/learning.json")));
     assertThat(ledger.get("formatVersion").asInt()).isEqualTo(1);
     assertThat(ledger.get("records").get("tests:FAILED").get("occurrences").asInt()).isEqualTo(2);
     assertThat(ledger.get("records").get("tests:FAILED").get("prompted").asBoolean()).isTrue();
@@ -706,7 +707,7 @@ class SentinelCliIntegrationTest {
   @Test
   void learningTextReportShowsSectionAndLeavesAgentsMdUntouched() throws IOException {
     run("init", "--integration", "none", "--gate", "tests", "-C", project.toString());
-    Path agents = project.resolve("AGENTS.md");
+    final Path agents = project.resolve("AGENTS.md");
     Files.writeString(agents, "project contract\n");
 
     fail();
@@ -723,7 +724,7 @@ class SentinelCliIntegrationTest {
     assertThat(run("check", "--learn-after", "2", "-C", project.toString()))
         .isEqualTo(ExitCodes.OK);
 
-    String text = out.toString();
+    final String text = out.toString();
     assertThat(text)
         .contains("Learning", "tests (2 occurrences):", "AGENTS.md", "Quality Gate: PASSED");
     assertThat(text.indexOf("Learning")).isGreaterThan(text.indexOf("Quality Gate"));
@@ -755,10 +756,10 @@ class SentinelCliIntegrationTest {
 
     assertThat(run("hook", "claude-code", "--learn-after", "1", "-C", project.toString()))
         .isEqualTo(ExitCodes.OK);
-    JsonTree hook = JsonTree.parse(out.toString());
+    final JsonTree hook = JsonTree.parse(out.toString());
     assertThat(hook.get("hookSpecificOutput").get("hookEventName").asString())
         .isEqualTo("PostToolUse");
-    String context = hook.get("hookSpecificOutput").get("additionalContext").asString();
+    final String context = hook.get("hookSpecificOutput").get("additionalContext").asString();
     assertThat(context).contains("AGENTS.md", "tests");
     assertThat(out.toString()).doesNotContain("\u001b");
   }

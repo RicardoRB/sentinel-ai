@@ -20,7 +20,7 @@ final class SentinelProvidesModule {
   @Provides
   @Named("sentinel.version")
   static String version() {
-    String version = SentinelProvidesModule.class.getPackage().getImplementationVersion();
+    final String version = SentinelProvidesModule.class.getPackage().getImplementationVersion();
     return version == null || version.isBlank() ? "dev" : version;
   }
 }

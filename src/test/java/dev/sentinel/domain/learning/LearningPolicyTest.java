@@ -22,16 +22,16 @@ class LearningPolicyTest {
 
   @Test
   void countsEpisodesAndPromptsOnResolution() {
-    CheckReport failure = report(GateStatus.FAILED, "x".repeat(250));
-    LearningOutcome first = LearningPolicy.apply(LearningLedger.empty(), failure, 2, NOW);
-    LearningOutcome persistent =
+    final CheckReport failure = report(GateStatus.FAILED, "x".repeat(250));
+    final LearningOutcome first = LearningPolicy.apply(LearningLedger.empty(), failure, 2, NOW);
+    final LearningOutcome persistent =
         LearningPolicy.apply(first.ledger(), failure, 2, NOW.plusSeconds(1));
-    LearningOutcome resolved =
+    final LearningOutcome resolved =
         LearningPolicy.apply(
             persistent.ledger(), report(GateStatus.PASSED, "ok"), 2, NOW.plusSeconds(2));
-    LearningOutcome secondFailure =
+    final LearningOutcome secondFailure =
         LearningPolicy.apply(resolved.ledger(), failure, 2, NOW.plusSeconds(3));
-    LearningOutcome secondResolved =
+    final LearningOutcome secondResolved =
         LearningPolicy.apply(
             secondFailure.ledger(), report(GateStatus.PASSED, "ok"), 2, NOW.plusSeconds(4));
 
@@ -50,18 +50,18 @@ class LearningPolicyTest {
 
   @Test
   void skipsDoNotTouchRecordsAndPromptIsNotDuplicated() {
-    LearningOutcome failed =
+    final LearningOutcome failed =
         LearningPolicy.apply(LearningLedger.empty(), report(GateStatus.FAILED, "bad"), 1, NOW);
-    LearningOutcome skipped =
+    final LearningOutcome skipped =
         LearningPolicy.apply(
             failed.ledger(), report(GateStatus.SKIPPED, "not run"), 1, NOW.plusSeconds(1));
-    LearningOutcome resolved =
+    final LearningOutcome resolved =
         LearningPolicy.apply(
             skipped.ledger(), report(GateStatus.PASSED, "ok"), 1, NOW.plusSeconds(2));
-    LearningOutcome recurring =
+    final LearningOutcome recurring =
         LearningPolicy.apply(
             resolved.ledger(), report(GateStatus.FAILED, "bad"), 1, NOW.plusSeconds(3));
-    LearningOutcome resolvedAgain =
+    final LearningOutcome resolvedAgain =
         LearningPolicy.apply(
             recurring.ledger(), report(GateStatus.PASSED, "ok"), 1, NOW.plusSeconds(4));
 
@@ -72,8 +72,8 @@ class LearningPolicyTest {
 
   @Test
   void noPromptWhileFailingEvenAfterThresholdIsReached() {
-    LearningOutcome failure = LearningPolicy.apply(LearningLedger.empty(), failure(), 1, NOW);
-    LearningOutcome persistent =
+    final LearningOutcome failure = LearningPolicy.apply(LearningLedger.empty(), failure(), 1, NOW);
+    final LearningOutcome persistent =
         LearningPolicy.apply(failure.ledger(), failure(), 1, NOW.plusSeconds(1));
 
     assertThat(persistent.prompts()).isEmpty();
@@ -85,13 +85,13 @@ class LearningPolicyTest {
 
   @Test
   void belowThresholdResolutionEmitsNoPromptAndMarksResolved() {
-    LearningOutcome failure = LearningPolicy.apply(LearningLedger.empty(), failure(), 3, NOW);
-    LearningOutcome resolved =
+    final LearningOutcome failure = LearningPolicy.apply(LearningLedger.empty(), failure(), 3, NOW);
+    final LearningOutcome resolved =
         LearningPolicy.apply(
             failure.ledger(), report(GateStatus.PASSED, "ok"), 3, NOW.plusSeconds(1));
 
     assertThat(resolved.prompts()).isEmpty();
-    LearningRecord record = resolved.ledger().records().get("checkstyle:FAILED");
+    final LearningRecord record = resolved.ledger().records().get("checkstyle:FAILED");
     assertThat(record.occurrences()).isOne();
     assertThat(record.state()).isEqualTo(LearningState.RESOLVED);
     assertThat(record.prompted()).isFalse();
@@ -99,9 +99,9 @@ class LearningPolicyTest {
 
   @Test
   void recordsStoreOnlyTheShortSummaryNeverStdoutOrStderr() {
-    LearningOutcome failure = LearningPolicy.apply(LearningLedger.empty(), failure(), 1, NOW);
+    final LearningOutcome failure = LearningPolicy.apply(LearningLedger.empty(), failure(), 1, NOW);
 
-    LearningRecord record = failure.ledger().records().get("checkstyle:FAILED");
+    final LearningRecord record = failure.ledger().records().get("checkstyle:FAILED");
     assertThat(record.summary()).isEqualTo("Build broke");
     assertThat(record.summary()).doesNotContain("stdout must not be stored");
     assertThat(record.summary()).doesNotContain("stderr must not be stored");
@@ -111,14 +111,14 @@ class LearningPolicyTest {
 
   @Test
   void failsToFixThenFailsAgainCountsTwoOccurrences() {
-    LearningOutcome failure = LearningPolicy.apply(LearningLedger.empty(), failure(), 1, NOW);
-    LearningOutcome resolved =
+    final LearningOutcome failure = LearningPolicy.apply(LearningLedger.empty(), failure(), 1, NOW);
+    final LearningOutcome resolved =
         LearningPolicy.apply(
             failure.ledger(), report(GateStatus.PASSED, "ok"), 1, NOW.plusSeconds(1));
-    LearningOutcome secondFailure =
+    final LearningOutcome secondFailure =
         LearningPolicy.apply(resolved.ledger(), failure(), 1, NOW.plusSeconds(2));
 
-    LearningRecord record = secondFailure.ledger().records().get("checkstyle:FAILED");
+    final LearningRecord record = secondFailure.ledger().records().get("checkstyle:FAILED");
     assertThat(record.occurrences()).isEqualTo(2);
     assertThat(record.state()).isEqualTo(LearningState.FAILING);
     assertThat(record.firstSeen()).isEqualTo(NOW);

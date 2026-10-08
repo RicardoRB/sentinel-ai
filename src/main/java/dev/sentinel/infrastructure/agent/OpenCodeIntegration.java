@@ -51,9 +51,9 @@ public final class OpenCodeIntegration implements AgentIntegration {
 
   @Override
   public IntegrationResult integrate(Path projectRoot, boolean remove) {
-    Path root = projectRoot.toAbsolutePath().normalize();
-    Path command = root.resolve(COMMAND_FILE);
-    Path plugin = root.resolve(PLUGIN_FILE);
+    final Path root = projectRoot.toAbsolutePath().normalize();
+    final Path command = root.resolve(COMMAND_FILE);
+    final Path plugin = root.resolve(PLUGIN_FILE);
     try {
       return remove ? remove(command, plugin) : install(command, plugin);
     } catch (IOException e) {
@@ -71,14 +71,14 @@ public final class OpenCodeIntegration implements AgentIntegration {
       return conflict;
     }
 
-    List<String> changed = new ArrayList<>();
-    IntegrationResult commandResult =
+    final List<String> changed = new ArrayList<>();
+    final IntegrationResult commandResult =
         IntegrationArtifacts.installOrRefresh(
             command, MARKER, COMMAND, "Updated Sentinel OpenCode integration.");
     if (commandResult.status() == IntegrationResult.Status.CONFLICT) {
       return commandResult;
     }
-    IntegrationResult pluginResult =
+    final IntegrationResult pluginResult =
         IntegrationArtifacts.installOrRefresh(
             plugin, PLUGIN_MARKER, PLUGIN, "Updated Sentinel OpenCode integration.");
     if (pluginResult.status() == IntegrationResult.Status.CONFLICT) {
@@ -114,7 +114,7 @@ public final class OpenCodeIntegration implements AgentIntegration {
           IntegrationResult.Status.NOT_FOUND, List.of(), "No Sentinel OpenCode integration found.");
     }
 
-    List<String> removed = new ArrayList<>();
+    final List<String> removed = new ArrayList<>();
     if (Files.exists(command)) {
       Files.delete(command);
       removed.add(command.toString());

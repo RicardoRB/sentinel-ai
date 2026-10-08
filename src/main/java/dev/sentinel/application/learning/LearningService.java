@@ -25,8 +25,10 @@ public final class LearningService {
 
   public LearningOutcome learn(CheckReport report, int threshold) {
     try {
-      LearningLedger ledger = store.load(report.project().root()).orElseGet(LearningLedger::empty);
-      LearningOutcome outcome = LearningPolicy.apply(ledger, report, threshold, clock.instant());
+      final LearningLedger ledger =
+          store.load(report.project().root()).orElseGet(LearningLedger::empty);
+      final LearningOutcome outcome =
+          LearningPolicy.apply(ledger, report, threshold, clock.instant());
       store.save(report.project().root(), outcome.ledger());
       return outcome;
     } catch (LearningStoreException exception) {

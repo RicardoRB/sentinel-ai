@@ -12,7 +12,7 @@ import org.junit.jupiter.api.io.TempDir;
 class IntegrationArtifactsTest {
   @Test
   void protectsOwnershipAcrossPreflightInstallAndRemoval(@TempDir Path root) throws IOException {
-    Path target = root.resolve("generated");
+    final Path target = root.resolve("generated");
     assertThat(IntegrationArtifacts.preflight(target, "marker")).isNull();
     assertThat(IntegrationArtifacts.install(target, "marker", "marker\n", "created").status())
         .isEqualTo(IntegrationResult.Status.CHANGED);

@@ -179,12 +179,12 @@ public final class PomToolConfigurator implements BuildToolConfiguration {
 
   @Override
   public PomChange apply(Project project, List<InitGateOption> gates) {
-    Path pom = project.root().resolve("pom.xml");
+    final Path pom = project.root().resolve("pom.xml");
     try {
-      String original = Files.readString(pom);
+      final String original = Files.readString(pom);
       String updated = original;
-      List<String> tools = new ArrayList<>();
-      boolean needsArchUnit = gates.stream().anyMatch(gate -> "archunit".equals(gate.id()));
+      final List<String> tools = new ArrayList<>();
+      final boolean needsArchUnit = gates.stream().anyMatch(gate -> "archunit".equals(gate.id()));
       if (gates.stream().anyMatch(gate -> "checkstyle".equals(gate.id()))
           && !containsArtifact(updated, CHECKSTYLE)) {
         updated = addPlugin(updated, CHECKSTYLE_PLUGIN);

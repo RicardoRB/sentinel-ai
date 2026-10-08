@@ -16,7 +16,7 @@ public class DaggerCommandFactory implements CommandLine.IFactory {
 
   @Override
   public <K> K create(Class<K> type) throws Exception {
-    Provider<Object> provider = commands.get(type);
+    final Provider<Object> provider = commands.get(type);
     return provider == null ? CommandLine.defaultFactory().create(type) : type.cast(provider.get());
   }
 }

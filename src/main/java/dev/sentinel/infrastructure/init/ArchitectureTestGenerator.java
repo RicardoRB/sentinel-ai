@@ -23,15 +23,15 @@ public final class ArchitectureTestGenerator implements ArchitectureTestGenerati
 
   @Override
   public ArchitectureTestChange apply(Project project, String architecture) {
-    Path projectRoot = project.root();
-    String basePackage = detectBasePackage(projectRoot);
-    Path packageDirectory =
+    final Path projectRoot = project.root();
+    final String basePackage = detectBasePackage(projectRoot);
+    final Path packageDirectory =
         projectRoot.resolve("src/test/java").resolve(basePackage.replace('.', '/'));
-    Path test = packageDirectory.resolve("ArchitectureTest.java");
+    final Path test = packageDirectory.resolve("ArchitectureTest.java");
     if (Files.exists(test)) {
       return new ArchitectureTestChange(test, false, architecture);
     }
-    String content = testSource(basePackage, architecture);
+    final String content = testSource(basePackage, architecture);
     try {
       Files.createDirectories(packageDirectory);
       Files.writeString(test, content, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
@@ -58,11 +58,11 @@ public final class ArchitectureTestGenerator implements ArchitectureTestGenerati
   }
 
   private static String detectBasePackage(Path root) {
-    Path source = root.resolve("src/main/java");
+    final Path source = root.resolve("src/main/java");
     if (Files.isDirectory(source)) {
       try (Stream<Path> files = Files.walk(source)) {
-        for (Path file : files.filter(path -> path.toString().endsWith(".java")).toList()) {
-          Matcher matcher = PACKAGE.matcher(Files.readString(file));
+        for (final Path file : files.filter(path -> path.toString().endsWith(".java")).toList()) {
+          final Matcher matcher = PACKAGE.matcher(Files.readString(file));
           if (matcher.find()) {
             return matcher.group(1);
           }
@@ -75,7 +75,7 @@ public final class ArchitectureTestGenerator implements ArchitectureTestGenerati
   }
 
   private static String testSource(String basePackage, String architecture) {
-    String rule =
+    final String rule =
         switch (architecture) {
           case "hexagonal" ->
               "noClasses().that().resideInAnyPackage(\"..domain..\", \"..application..\")"

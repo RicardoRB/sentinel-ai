@@ -190,6 +190,7 @@
                     </excludeRoots>
                     <rulesets>
                         <ruleset>config/pmd-ruleset.xml</ruleset>
+                        <ruleset>pmd-ruleset-additions.xml</ruleset>
                     </rulesets>
                     <includeTests>true</includeTests>
                     <failOnViolation>true</failOnViolation>

@@ -35,9 +35,9 @@ class CheckServiceTest {
 
   @Test
   void orchestratesWithInMemoryProjectAndConfigurationPorts() {
-    Path root = Path.of("in-memory-project");
-    Project project = new Project(root, Language.JAVA, BuildTool.MAVEN, Framework.NONE);
-    ProjectInspection projects =
+    final Path root = Path.of("in-memory-project");
+    final Project project = new Project(root, Language.JAVA, BuildTool.MAVEN, Framework.NONE);
+    final ProjectInspection projects =
         new ProjectInspection() {
           @Override
           public Optional<Project> detect(Path ignored) {
@@ -49,8 +49,8 @@ class CheckServiceTest {
             return List.of(project);
           }
         };
-    FakeCommandExecutor executor = new FakeCommandExecutor(0, "ok", "");
-    CheckService checks =
+    final FakeCommandExecutor executor = new FakeCommandExecutor(0, "ok", "");
+    final CheckService checks =
         new CheckService(
             new ProjectDetector(projects),
             file ->
@@ -59,7 +59,7 @@ class CheckServiceTest {
             new QualityGateFactory(executor),
             new QualityGateRunner());
 
-    CheckReport report = checks.check(root);
+    final CheckReport report = checks.check(root);
 
     assertThat(report.passed()).isTrue();
     assertThat(executor.commands).containsExactly(List.of("mvn", "test"));
@@ -84,9 +84,9 @@ class CheckServiceTest {
                 [quality-gates.tests]
                 command = "make verify"
                 """);
-    FakeCommandExecutor executor = new FakeCommandExecutor(0, "", "");
+    final FakeCommandExecutor executor = new FakeCommandExecutor(0, "", "");
 
-    CheckReport report = service(executor).check(dir);
+    final CheckReport report = service(executor).check(dir);
 
     assertThat(report.passed()).isTrue();
     assertThat(executor.commands).containsExactly(List.of("make", "verify"));
@@ -105,7 +105,7 @@ class CheckServiceTest {
                 enabled = false
                 command = "sonar analyze agentic"
                 """);
-    FakeCommandExecutor executor = new FakeCommandExecutor(0, "", "");
+    final FakeCommandExecutor executor = new FakeCommandExecutor(0, "", "");
 
     service(executor).check(dir);
 
@@ -162,14 +162,14 @@ class CheckServiceTest {
             command = "second"
             profiles = ["b"]
             """);
-    List<String> executed = new ArrayList<>();
-    var executor =
+    final List<String> executed = new ArrayList<>();
+    final var executor =
         (CommandExecutor)
             (command, root) -> {
               executed.add(command.getFirst());
               return new CommandResult(0, "", "", Duration.ZERO);
             };
-    CheckService checks =
+    final CheckService checks =
         new CheckService(
             new ProjectDetector(new FileSystemProjectInspection()),
             new TomlConfigurationReader(),

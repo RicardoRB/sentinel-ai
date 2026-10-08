@@ -30,7 +30,7 @@ public class QualityGateFactory {
   }
 
   public List<QualityGate> create(SentinelConfiguration configuration, Project project) {
-    List<QualityGate> gates = new ArrayList<>();
+    final List<QualityGate> gates = new ArrayList<>();
     configuration
         .gates()
         .keySet()
@@ -41,8 +41,8 @@ public class QualityGateFactory {
                     "Quality gate '" + id + "' is unknown. Supported gates: " + SUPPORTED_GATES);
               }
             });
-    for (Map.Entry<String, GateConfiguration> entry : configuration.gates().entrySet()) {
-      String id = entry.getKey();
+    for (final Map.Entry<String, GateConfiguration> entry : configuration.gates().entrySet()) {
+      final String id = entry.getKey();
       if (!entry.getValue().enabled()) {
         gates.add(new SkippedQualityGate(id));
         continue;
@@ -66,7 +66,7 @@ public class QualityGateFactory {
         && !project.mavenWrapperAvailable()
         && !configured.isEmpty()
         && ("./mvnw".equals(configured.getFirst()) || "mvnw".equals(configured.getFirst()))) {
-      List<String> fallback = new ArrayList<>(configured);
+      final List<String> fallback = new ArrayList<>(configured);
       fallback.set(0, "mvn");
       return fallback;
     }

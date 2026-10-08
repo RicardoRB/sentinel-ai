@@ -34,12 +34,12 @@ public class DetectCommand implements Callable<Integer> {
 
   @Override
   public Integer call() {
-    Optional<Project> project = detector.detect(options.directory());
+    final Optional<Project> project = detector.detect(options.directory());
     if (project.isEmpty()) {
       output().println("No supported project detected.");
       return ExitCodes.FAILED;
     }
-    Project p = project.get();
+    final Project p = project.get();
     output().println("Project detected");
     output().println();
     output().printf("Language:     %s%n", p.language().displayName());

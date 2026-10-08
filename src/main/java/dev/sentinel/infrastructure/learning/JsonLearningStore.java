@@ -30,12 +30,12 @@ public final class JsonLearningStore implements LearningStore {
 
   @Override
   public Optional<LearningLedger> load(Path projectRoot) throws LearningStoreException {
-    Path path = path(projectRoot);
+    final Path path = path(projectRoot);
     if (!Files.exists(path)) {
       return Optional.empty();
     }
     try {
-      FileDto file = codec.fromJson(Files.readString(path), FileDto.class);
+      final FileDto file = codec.fromJson(Files.readString(path), FileDto.class);
       return Optional.of(toDomain(file));
     } catch (LearningStoreException storeException) {
       throw storeException;
@@ -46,9 +46,9 @@ public final class JsonLearningStore implements LearningStore {
 
   @Override
   public void save(Path projectRoot, LearningLedger ledger) throws LearningStoreException {
-    Path directory = projectRoot.resolve(DIRECTORY);
-    Path target = directory.resolve(FILE);
-    Path temporary = directory.resolve(FILE + "." + System.nanoTime() + ".tmp");
+    final Path directory = projectRoot.resolve(DIRECTORY);
+    final Path target = directory.resolve(FILE);
+    final Path temporary = directory.resolve(FILE + "." + System.nanoTime() + ".tmp");
     try {
       Files.createDirectories(directory);
       Files.writeString(temporary, codec.toJson(fromDomain(ledger)));
@@ -77,7 +77,7 @@ public final class JsonLearningStore implements LearningStore {
     if (file == null || file.formatVersion != LearningLedger.CURRENT_FORMAT_VERSION) {
       throw new LearningStoreException("Unsupported learning format version");
     }
-    Map<String, LearningRecord> records = new LinkedHashMap<>();
+    final Map<String, LearningRecord> records = new LinkedHashMap<>();
     if (file.records != null) {
       file.records.forEach(
           (key, value) -> {
@@ -85,7 +85,7 @@ public final class JsonLearningStore implements LearningStore {
               throw new LearningStoreException("Learning record must not be null");
             }
             try {
-              LearningRecord record =
+              final LearningRecord record =
                   new LearningRecord(
                       value.key,
                       value.gate,
@@ -115,7 +115,7 @@ public final class JsonLearningStore implements LearningStore {
   }
 
   private static FileDto fromDomain(LearningLedger ledger) {
-    FileDto file = new FileDto();
+    final FileDto file = new FileDto();
     file.formatVersion = ledger.formatVersion();
     file.records = new LinkedHashMap<>();
     ledger.records().forEach((key, value) -> file.records.put(key, RecordDto.from(value)));
@@ -141,7 +141,7 @@ public final class JsonLearningStore implements LearningStore {
     public boolean prompted;
 
     static RecordDto from(LearningRecord value) {
-      RecordDto dto = new RecordDto();
+      final RecordDto dto = new RecordDto();
       dto.key = value.key();
       dto.gate = value.gate();
       dto.status = value.status();

@@ -18,13 +18,13 @@ public record SentinelConfiguration(int version, Map<String, GateConfiguration> 
   }
 
   public Set<String> profileNames() {
-    Set<String> names = new LinkedHashSet<>();
+    final Set<String> names = new LinkedHashSet<>();
     gates.values().forEach(gate -> names.addAll(gate.profiles()));
     return Collections.unmodifiableSet(names);
   }
 
   public Map<String, GateConfiguration> enabledGates() {
-    Map<String, GateConfiguration> enabled = new LinkedHashMap<>();
+    final Map<String, GateConfiguration> enabled = new LinkedHashMap<>();
     gates.forEach(
         (name, gate) -> {
           if (gate.enabled()) {

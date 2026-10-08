@@ -12,7 +12,7 @@ class FileConfigurationStorageTest {
 
   @Test
   void createsWithoutOverwritingAndRestoresOriginalContent(@TempDir Path root) throws Exception {
-    Path file = root.resolve("sentinel.toml");
+    final Path file = root.resolve("sentinel.toml");
     assertThat(storage.read(file)).isEmpty();
     assertThat(storage.create(file, "created\n")).isTrue();
     assertThat(storage.create(file, "must not replace\n")).isFalse();

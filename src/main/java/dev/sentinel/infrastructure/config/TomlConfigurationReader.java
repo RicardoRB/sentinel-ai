@@ -33,7 +33,7 @@ public class TomlConfigurationReader implements SentinelConfigurationReader {
       throw new SentinelException(
           "Configuration file not found: " + file + ". Run 'sentinel init' first.");
     }
-    TomlParseResult toml;
+    final TomlParseResult toml;
     try {
       toml = Toml.parse(file);
     } catch (IOException e) {
@@ -46,7 +46,7 @@ public class TomlConfigurationReader implements SentinelConfigurationReader {
   }
 
   SentinelConfiguration parse(TomlTable toml) {
-    Long version = requireLong(toml, "version");
+    final Long version = requireLong(toml, "version");
     if (version == null) {
       throw new SentinelException(
           "Missing required key 'version' in " + SentinelConfiguration.FILE_NAME);
@@ -60,14 +60,14 @@ public class TomlConfigurationReader implements SentinelConfigurationReader {
               + ")");
     }
 
-    Map<String, GateConfiguration> gates = new LinkedHashMap<>();
+    final Map<String, GateConfiguration> gates = new LinkedHashMap<>();
     if (toml.contains(GATES_TABLE)) {
-      TomlTable table = toml.getTable(GATES_TABLE);
+      final TomlTable table = toml.getTable(GATES_TABLE);
       if (table == null) {
         throw new SentinelException("'" + GATES_TABLE + "' must be a table");
       }
-      for (String name : table.keySet()) {
-        TomlTable gate = table.getTable(List.of(name));
+      for (final String name : table.keySet()) {
+        final TomlTable gate = table.getTable(List.of(name));
         if (gate == null) {
           throw new SentinelException("'" + GATES_TABLE + "." + name + "' must be a table");
         }
@@ -82,11 +82,11 @@ public class TomlConfigurationReader implements SentinelConfigurationReader {
   }
 
   private GateConfiguration parseGate(String name, TomlTable gate) {
-    String where = GATES_TABLE + "." + name;
-    Set<String> profiles = parseProfiles(where, gate);
+    final String where = GATES_TABLE + "." + name;
+    final Set<String> profiles = parseProfiles(where, gate);
     boolean enabled = true;
     if (gate.contains("enabled")) {
-      Boolean value = gate.isBoolean("enabled") ? gate.getBoolean("enabled") : null;
+      final Boolean value = gate.isBoolean("enabled") ? gate.getBoolean("enabled") : null;
       if (value == null) {
         throw new SentinelException("'" + where + ".enabled' must be true or false");
       }
@@ -105,15 +105,15 @@ public class TomlConfigurationReader implements SentinelConfigurationReader {
     if (!gate.contains("profiles")) {
       return Set.of(SentinelConfiguration.DEFAULT_PROFILE);
     }
-    String key = where + ".profiles";
+    final String key = where + ".profiles";
     if (!gate.isArray("profiles")) {
       throw new SentinelException("'" + key + "' must be a non-empty array of non-blank strings");
     }
-    TomlArray array = gate.getArray("profiles");
+    final TomlArray array = gate.getArray("profiles");
     if (array == null || array.isEmpty()) {
       throw new SentinelException("'" + key + "' must not be empty");
     }
-    Set<String> profiles = new LinkedHashSet<>();
+    final Set<String> profiles = new LinkedHashSet<>();
     for (int i = 0; i < array.size(); i++) {
       if (!array.isString(i) || array.getString(i) == null || array.getString(i).isBlank()) {
         throw new SentinelException("'" + key + "' must contain only non-blank strings");
@@ -124,15 +124,15 @@ public class TomlConfigurationReader implements SentinelConfigurationReader {
   }
 
   private List<String> parseCommand(String where, TomlTable gate) {
-    List<String> command;
+    final List<String> command;
     if (gate.isString("command")) {
-      String value = gate.getString("command");
+      final String value = gate.getString("command");
       if (value == null) {
         throw new SentinelException("'" + where + ".command' must be a string");
       }
       command = CommandLineTokenizer.tokenize(value);
     } else if (gate.isArray("command")) {
-      TomlArray array = gate.getArray("command");
+      final TomlArray array = gate.getArray("command");
       if (array == null) {
         throw new SentinelException("'" + where + ".command' must be an array of strings");
       }

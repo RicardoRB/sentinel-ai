@@ -16,8 +16,8 @@ public final class EditWriteGuardRunner {
   }
 
   public GuardRunResult run(Path projectRoot) {
-    CommandResult result = executor.execute(CHECK, projectRoot);
-    String output =
+    final CommandResult result = executor.execute(CHECK, projectRoot);
+    final String output =
         result.stdout() == null || result.stdout().isBlank() ? result.stderr() : result.stdout();
     return new GuardRunResult(
         result.succeeded() && !result.hasExecutionError(),

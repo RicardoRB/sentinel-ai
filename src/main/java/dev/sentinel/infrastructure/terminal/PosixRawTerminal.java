@@ -23,12 +23,12 @@ public final class PosixRawTerminal implements RawTerminal {
   }
 
   PosixRawTerminal(String osName) {
-    String os = osName.toLowerCase(Locale.ROOT);
+    final String os = osName.toLowerCase(Locale.ROOT);
     Layout detected =
         os.contains("mac") || os.contains("darwin")
             ? Layout.MAC
             : os.contains("linux") ? Layout.LINUX : null;
-    String architecture = System.getProperty("os.arch", "").toLowerCase(Locale.ROOT);
+    final String architecture = System.getProperty("os.arch", "").toLowerCase(Locale.ROOT);
     if (!("x86_64".equals(architecture)
         || "amd64".equals(architecture)
         || "aarch64".equals(architecture)
@@ -44,23 +44,23 @@ public final class PosixRawTerminal implements RawTerminal {
     if (layout == null) {
       return Optional.empty();
     }
-    Arena arena = Arena.ofConfined();
+    final Arena arena = Arena.ofConfined();
     try {
-      Linker linker = Linker.nativeLinker();
-      MethodHandle isatty =
+      final Linker linker = Linker.nativeLinker();
+      final MethodHandle isatty =
           downcall(
               linker,
               "isatty",
               MethodType.methodType(int.class, int.class),
               FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.JAVA_INT));
-      MethodHandle tcgetattr =
+      final MethodHandle tcgetattr =
           downcall(
               linker,
               "tcgetattr",
               MethodType.methodType(int.class, int.class, MemorySegment.class),
               FunctionDescriptor.of(
                   ValueLayout.JAVA_INT, ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
-      MethodHandle tcsetattr =
+      final MethodHandle tcsetattr =
           downcall(
               linker,
               "tcsetattr",
@@ -70,7 +70,7 @@ public final class PosixRawTerminal implements RawTerminal {
                   ValueLayout.JAVA_INT,
                   ValueLayout.JAVA_INT,
                   ValueLayout.ADDRESS));
-      MethodHandle read =
+      final MethodHandle read =
           downcall(
               linker,
               "read",
@@ -84,14 +84,14 @@ public final class PosixRawTerminal implements RawTerminal {
         arena.close();
         return Optional.empty();
       }
-      MemorySegment saved = arena.allocate(layout.size);
+      final MemorySegment saved = arena.allocate(layout.size);
       if ((int) tcgetattr.invokeExact(STDIN, saved) != 0) {
         arena.close();
         return Optional.empty();
       }
-      MemorySegment raw = arena.allocate(layout.size);
+      final MemorySegment raw = arena.allocate(layout.size);
       raw.copyFrom(saved);
-      long flags =
+      final long flags =
           layout.flagBytes == 4
               ? Integer.toUnsignedLong(raw.get(ValueLayout.JAVA_INT, layout.flagOffset))
               : raw.get(ValueLayout.JAVA_LONG, layout.flagOffset);
@@ -115,7 +115,7 @@ public final class PosixRawTerminal implements RawTerminal {
 
   private static MethodHandle downcall(
       Linker linker, String name, MethodType type, FunctionDescriptor descriptor) {
-    MethodHandle handle =
+    final MethodHandle handle =
         linker.downcallHandle(
             Linker.nativeLinker().defaultLookup().find(name).orElseThrow(), descriptor);
     if (!handle.type().equals(type)) {
@@ -145,7 +145,7 @@ public final class PosixRawTerminal implements RawTerminal {
     @SuppressWarnings("PMD.AvoidCatchingThrowable")
     public int read() {
       try {
-        long count = (long) read.invokeExact(STDIN, byteBuffer, 1L);
+        final long count = (long) read.invokeExact(STDIN, byteBuffer, 1L);
         return count == 1 ? Byte.toUnsignedInt(byteBuffer.get(ValueLayout.JAVA_BYTE, 0)) : -1;
       } catch (Throwable failure) {
         throw new IllegalStateException("Native terminal read failed.", failure);
@@ -180,7 +180,7 @@ public final class PosixRawTerminal implements RawTerminal {
     @SuppressWarnings("PMD.AvoidCatchingThrowable")
     private static void restoreAttributes(
         Arena targetArena, byte[] savedAttributes, MethodHandle tcsetattr) {
-      MemorySegment saved = targetArena.allocate(savedAttributes.length);
+      final MemorySegment saved = targetArena.allocate(savedAttributes.length);
       saved.copyFrom(MemorySegment.ofArray(savedAttributes));
       try {
         if ((int) tcsetattr.invokeExact(STDIN, 0, saved) != 0) {

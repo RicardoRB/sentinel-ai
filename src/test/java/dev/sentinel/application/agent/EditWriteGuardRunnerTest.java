@@ -10,8 +10,8 @@ import org.junit.jupiter.api.Test;
 class EditWriteGuardRunnerTest {
   @Test
   void runsJsonCheckWithArgumentVectorAndProjectRoot() {
-    FakeCommandExecutor executor = new FakeCommandExecutor(0, "{\"status\":\"PASSED\"}", "");
-    EditWriteGuardRunner.GuardRunResult result =
+    final FakeCommandExecutor executor = new FakeCommandExecutor(0, "{\"status\":\"PASSED\"}", "");
+    final EditWriteGuardRunner.GuardRunResult result =
         new EditWriteGuardRunner(executor).run(Path.of("/tmp/project"));
 
     assertThat(result.succeeded()).isTrue();
@@ -22,8 +22,9 @@ class EditWriteGuardRunnerTest {
 
   @Test
   void propagatesFailedAndExecutionErrorResults() {
-    FakeCommandExecutor failed = new FakeCommandExecutor(1, "{\"status\":\"FAILED\"}", "");
-    EditWriteGuardRunner.GuardRunResult result = new EditWriteGuardRunner(failed).run(Path.of("."));
+    final FakeCommandExecutor failed = new FakeCommandExecutor(1, "{\"status\":\"FAILED\"}", "");
+    final EditWriteGuardRunner.GuardRunResult result =
+        new EditWriteGuardRunner(failed).run(Path.of("."));
     assertThat(result.succeeded()).isFalse();
     assertThat(result.exitCode()).isEqualTo(1);
     assertThat(result.output()).contains("FAILED");

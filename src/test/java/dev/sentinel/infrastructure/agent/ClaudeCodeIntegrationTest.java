@@ -10,13 +10,13 @@ import org.junit.jupiter.api.Test;
 class ClaudeCodeIntegrationTest {
   @Test
   void installsIdempotentlyAndRemovesOwnedArtifacts() throws Exception {
-    Path root = Files.createTempDirectory("sentinel-claude");
-    ClaudeCodeIntegration integration = new ClaudeCodeIntegration();
+    final Path root = Files.createTempDirectory("sentinel-claude");
+    final ClaudeCodeIntegration integration = new ClaudeCodeIntegration();
 
-    IntegrationResult created = integration.integrate(root, false);
+    final IntegrationResult created = integration.integrate(root, false);
     assertThat(created.status()).isEqualTo(IntegrationResult.Status.CHANGED);
-    Path settings = root.resolve(".claude/settings.json");
-    Path hook = root.resolve(".claude/hooks/sentinel-edit-write");
+    final Path settings = root.resolve(".claude/settings.json");
+    final Path hook = root.resolve(".claude/hooks/sentinel-edit-write");
     assertThat(settings).hasContent(Files.readString(settings));
     assertThat(Files.readString(settings))
         .contains("PostToolUse", "^(Edit|Write|MultiEdit)$", ClaudeCodeIntegration.SETTINGS_MARKER);
@@ -33,12 +33,12 @@ class ClaudeCodeIntegrationTest {
 
   @Test
   void preservesConflictingUserOwnedSettings() throws Exception {
-    Path root = Files.createTempDirectory("sentinel-claude-conflict");
-    Path settings = root.resolve(".claude/settings.json");
+    final Path root = Files.createTempDirectory("sentinel-claude-conflict");
+    final Path settings = root.resolve(".claude/settings.json");
     Files.createDirectories(settings.getParent());
     Files.writeString(settings, "{\"hooks\":{}}\n");
 
-    IntegrationResult result = new ClaudeCodeIntegration().integrate(root, false);
+    final IntegrationResult result = new ClaudeCodeIntegration().integrate(root, false);
     assertThat(result.status()).isEqualTo(IntegrationResult.Status.CONFLICT);
     assertThat(settings).hasContent("{\"hooks\":{}}\n");
     assertThat(root.resolve(".claude/hooks/sentinel-edit-write")).doesNotExist();
@@ -46,9 +46,9 @@ class ClaudeCodeIntegrationTest {
 
   @Test
   void upgradesOutdatedOwnedHookAndReportsItChanged() throws Exception {
-    Path root = Files.createTempDirectory("sentinel-claude-upgrade");
-    Path settings = root.resolve(".claude/settings.json");
-    Path hook = root.resolve(".claude/hooks/sentinel-edit-write");
+    final Path root = Files.createTempDirectory("sentinel-claude-upgrade");
+    final Path settings = root.resolve(".claude/settings.json");
+    final Path hook = root.resolve(".claude/hooks/sentinel-edit-write");
     Files.createDirectories(hook.getParent());
     Files.writeString(settings, ClaudeCodeIntegration.SETTINGS_MARKER + "\nold settings\n");
     Files.writeString(
@@ -59,7 +59,7 @@ class ClaudeCodeIntegrationTest {
             + "\n"
             + "exec ./verify-quality.sh\n");
 
-    IntegrationResult result = new ClaudeCodeIntegration().integrate(root, false);
+    final IntegrationResult result = new ClaudeCodeIntegration().integrate(root, false);
 
     assertThat(result.status()).isEqualTo(IntegrationResult.Status.CHANGED);
     assertThat(result.changed()).contains(settings.toString(), hook.toString());

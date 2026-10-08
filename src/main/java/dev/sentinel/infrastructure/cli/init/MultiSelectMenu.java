@@ -22,11 +22,11 @@ public final class MultiSelectMenu {
     if (labels.isEmpty()) {
       throw new IllegalArgumentException("A menu must have at least one item");
     }
-    boolean[] selected = new boolean[labels.size()];
+    final boolean[] selected = new boolean[labels.size()];
     int cursor = 0;
     render(title, labels, selected, cursor, out);
     while (true) {
-      int key = keys.getAsInt();
+      final int key = keys.getAsInt();
       if (key < 0) {
         throw new SentinelException(
             "Initialization cancelled: input ended before setup completed.");
@@ -37,7 +37,7 @@ public final class MultiSelectMenu {
       if (key == ' ') {
         selected[cursor] = !selected[cursor];
       } else if (key == '\n' || key == '\r') {
-        List<Integer> result = new ArrayList<>();
+        final List<Integer> result = new ArrayList<>();
         for (int i = 0; i < selected.length; i++) {
           if (selected[i]) {
             result.add(i);
@@ -48,8 +48,8 @@ public final class MultiSelectMenu {
         }
         return result;
       } else if (key == 27) {
-        int bracket = keys.getAsInt();
-        int direction = bracket == '[' ? keys.getAsInt() : -1;
+        final int bracket = keys.getAsInt();
+        final int direction = bracket == '[' ? keys.getAsInt() : -1;
         if (direction == 'A') {
           cursor = (cursor + labels.size() - 1) % labels.size();
         }

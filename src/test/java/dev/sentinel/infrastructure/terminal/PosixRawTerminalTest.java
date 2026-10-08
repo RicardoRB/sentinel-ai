@@ -12,8 +12,8 @@ class PosixRawTerminalTest {
 
   @Test
   void rejectsUnsupportedArchitecture() {
-    String operatingSystem = System.getProperty("os.name", "Linux");
-    String architecture = System.getProperty("os.arch");
+    final String operatingSystem = System.getProperty("os.name", "Linux");
+    final String architecture = System.getProperty("os.arch");
     try {
       System.setProperty("os.arch", "sparc");
       assertThat(new PosixRawTerminal(operatingSystem).open()).isEmpty();

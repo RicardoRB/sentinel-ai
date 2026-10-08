@@ -21,7 +21,7 @@ class InitSetupCatalogTest {
   @Test
   void exposesStableIntegrationAndGateChoices(@TempDir Path dir) throws Exception {
     TestProjects.withPom(dir, TestProjects.PLAIN_POM);
-    InitSetupCatalog catalog = new InitSetupCatalog(new FakeEnvironmentInspection());
+    final InitSetupCatalog catalog = new InitSetupCatalog(new FakeEnvironmentInspection());
 
     assertThat(catalog.integrations())
         .extracting(InitIntegrationOption::id)
@@ -41,7 +41,7 @@ class InitSetupCatalogTest {
   void prefersWrapperWhenSystemMavenIsMissing(@TempDir Path dir) throws Exception {
     TestProjects.withPom(dir, TestProjects.PLAIN_POM);
     Files.writeString(dir.resolve("mvnw"), "#!/bin/sh\nexit 0\n");
-    InitGateOption option =
+    final InitGateOption option =
         new InitSetupCatalog(new FakeEnvironmentInspection())
             .gate(
                 new ProjectDetector(new FileSystemProjectInspection()).detect(dir).orElseThrow(),
@@ -55,9 +55,9 @@ class InitSetupCatalogTest {
   @Test
   void rejectsUnsupportedChoices(@TempDir Path dir) throws Exception {
     TestProjects.withPom(dir, TestProjects.PLAIN_POM);
-    Project project =
+    final Project project =
         new ProjectDetector(new FileSystemProjectInspection()).detect(dir).orElseThrow();
-    InitSetupCatalog catalog = new InitSetupCatalog(new FakeEnvironmentInspection());
+    final InitSetupCatalog catalog = new InitSetupCatalog(new FakeEnvironmentInspection());
 
     assertThatThrownBy(() -> catalog.integration("unknown")).isInstanceOf(SentinelException.class);
     assertThatThrownBy(() -> catalog.gate(project, "unknown"))
@@ -68,10 +68,10 @@ class InitSetupCatalogTest {
   void reportsUnavailableMavenWhenWrapperAndSystemToolAreMissing(@TempDir Path dir)
       throws Exception {
     TestProjects.withPom(dir, TestProjects.PLAIN_POM);
-    Project project =
+    final Project project =
         new ProjectDetector(new FileSystemProjectInspection()).detect(dir).orElseThrow();
 
-    InitGateOption option =
+    final InitGateOption option =
         new InitSetupCatalog(new FakeEnvironmentInspection()).gate(project, "tests");
 
     assertThat(option.available()).isFalse();
@@ -81,10 +81,10 @@ class InitSetupCatalogTest {
   @Test
   void reportsSystemMavenWhenWrapperIsMissing(@TempDir Path dir) throws Exception {
     TestProjects.withPom(dir, TestProjects.PLAIN_POM);
-    Project project =
+    final Project project =
         new ProjectDetector(new FileSystemProjectInspection()).detect(dir).orElseThrow();
 
-    InitGateOption option =
+    final InitGateOption option =
         new InitSetupCatalog(new FakeEnvironmentInspection("mvn")).gate(project, "tests");
 
     assertThat(option.available()).isTrue();
@@ -94,9 +94,9 @@ class InitSetupCatalogTest {
   @Test
   void offersBinaryGatesWithPlaceholderTargetAndHints(@TempDir Path dir) throws Exception {
     TestProjects.withPom(dir, TestProjects.PLAIN_POM);
-    Project project =
+    final Project project =
         new ProjectDetector(new FileSystemProjectInspection()).detect(dir).orElseThrow();
-    InitSetupCatalog catalog = new InitSetupCatalog(new FakeEnvironmentInspection());
+    final InitSetupCatalog catalog = new InitSetupCatalog(new FakeEnvironmentInspection());
 
     assertThat(catalog.gate(project, "zap").command()).contains("-t", "<TARGET_URL>");
     assertThat(catalog.gate(project, "gitleaks").command()).contains("--redact");

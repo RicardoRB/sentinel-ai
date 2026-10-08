@@ -47,7 +47,7 @@ class MultiSelectMenuTest {
 
   @Test
   void rejectsEmptySelectionWithActionableMessage() {
-    AtomicInteger index = new AtomicInteger();
+    final AtomicInteger index = new AtomicInteger();
     assertThatThrownBy(
             () ->
                 menu.select(
@@ -65,7 +65,7 @@ class MultiSelectMenuTest {
   }
 
   private static IntSupplier script(int... keys) {
-    AtomicInteger index = new AtomicInteger();
+    final AtomicInteger index = new AtomicInteger();
     return () -> index.get() < keys.length ? keys[index.getAndIncrement()] : -1;
   }
 }

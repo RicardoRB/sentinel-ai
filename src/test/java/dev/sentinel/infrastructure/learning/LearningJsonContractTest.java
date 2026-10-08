@@ -58,10 +58,10 @@ class LearningJsonContractTest {
   @Test
   void storeSaveMatchesContractFixtureIncludingUnicodeAndTimestamps(@TempDir Path root)
       throws Exception {
-    LearningLedger ledger = ledger();
+    final LearningLedger ledger = ledger();
     new JsonLearningStore(new ForyJsonCodec()).save(root, ledger);
 
-    String saved = Files.readString(root.resolve(".sentinel/learning.json"));
+    final String saved = Files.readString(root.resolve(".sentinel/learning.json"));
     // Record ordering is not contractual; content must match the fixture item for item.
     assertThat(recordsOf(saved)).isEqualTo(recordsOf(fixture("store-ledger.json")));
     assertThat(saved)
@@ -72,16 +72,17 @@ class LearningJsonContractTest {
 
   @Test
   void storeLoadsContractFixtureBackToSameValues() throws Exception {
-    Path root = Files.createTempDirectory("sentinel-load");
+    final Path root = Files.createTempDirectory("sentinel-load");
     Files.createDirectories(root.resolve(".sentinel"));
     Files.writeString(root.resolve(".sentinel/learning.json"), fixture("store-ledger.json"));
-    LearningLedger loaded = new JsonLearningStore(new ForyJsonCodec()).load(root).orElseThrow();
+    final LearningLedger loaded =
+        new JsonLearningStore(new ForyJsonCodec()).load(root).orElseThrow();
 
     new JsonLearningStore(new ForyJsonCodec()).save(root, loaded);
     assertThat(recordsOf(Files.readString(root.resolve(".sentinel/learning.json"))))
         .isEqualTo(recordsOf(fixture("store-ledger.json")));
 
-    LearningRecord unicode = loaded.records().get("tests:FAILED");
+    final LearningRecord unicode = loaded.records().get("tests:FAILED");
     assertThat(unicode.summary()).isEqualTo("Unicode ✓ and \"quotes\" — строка");
     assertThat(unicode.occurrences()).isEqualTo(2);
     assertThat(unicode.state()).isEqualTo(LearningState.RESOLVED);
@@ -89,7 +90,7 @@ class LearningJsonContractTest {
     assertThat(unicode.lastSeen()).isEqualTo(TIME);
     assertThat(unicode.prompted()).isTrue();
 
-    LearningRecord escaped = loaded.records().get("checkstyle:ERROR");
+    final LearningRecord escaped = loaded.records().get("checkstyle:ERROR");
     assertThat(escaped.summary()).isEqualTo("escapes \n \t \\");
     assertThat(escaped.state()).isEqualTo(LearningState.FAILING);
     assertThat(escaped.prompted()).isFalse();
@@ -97,7 +98,7 @@ class LearningJsonContractTest {
 
   @Test
   void emptyCollectionsRoundTrip(@TempDir Path root) throws Exception {
-    JsonLearningStore store = new JsonLearningStore(new ForyJsonCodec());
+    final JsonLearningStore store = new JsonLearningStore(new ForyJsonCodec());
     store.save(root, LearningLedger.empty());
     assertThat(Files.readString(root.resolve(".sentinel/learning.json")))
         .isEqualTo("{\"formatVersion\":1,\"records\":{}}");
@@ -106,7 +107,7 @@ class LearningJsonContractTest {
 
   @Test
   void reportWithLearningMatchesContractFixture() throws Exception {
-    LearningOutcome outcome =
+    final LearningOutcome outcome =
         new LearningOutcome(
             LearningLedger.empty(),
             List.of(new LearningPrompt("tests:FAILED", "tests", 2, "BUILD FAILURE")),
@@ -119,7 +120,7 @@ class LearningJsonContractTest {
 
   @Test
   void reportWithoutLearningOmitsLearningObjectAndOptionalFields() throws Exception {
-    String json = new JsonReportRenderer(new ForyJsonCodec()).render(report());
+    final String json = new JsonReportRenderer(new ForyJsonCodec()).render(report());
     assertThat(json).isEqualTo(fixture("report-no-learning.json"));
     assertThat(json).doesNotContain("learning");
     assertThat(json).doesNotContain("errors").doesNotContain("warnings");
@@ -133,7 +134,7 @@ class LearningJsonContractTest {
 
   @Test
   void hookOutputMatchesContractFixture() throws Exception {
-    HookOutput output = new HookOutput();
+    final HookOutput output = new HookOutput();
     output.hookSpecificOutput = new HookSpecificOutput();
     output.hookSpecificOutput.hookEventName = "PostToolUse";
     output.hookSpecificOutput.additionalContext =
@@ -157,7 +158,7 @@ class LearningJsonContractTest {
   }
 
   private static LearningLedger ledger() {
-    Map<String, LearningRecord> records = new LinkedHashMap<>();
+    final Map<String, LearningRecord> records = new LinkedHashMap<>();
     records.put(
         "tests:FAILED",
         new LearningRecord(

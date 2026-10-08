@@ -44,7 +44,7 @@ public record GateResult(
   }
 
   public static GateResult from(String name, List<String> command, CommandResult result) {
-    GateStatus status =
+    final GateStatus status =
         result.hasExecutionError() && result.exitCode() == -1
             ? GateStatus.UNAVAILABLE
             : result.hasExecutionError()
