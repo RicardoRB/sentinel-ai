@@ -1,0 +1,119 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - name: Verify tag matches Maven version
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag_version="${GITHUB_REF_NAME#v}"
+          pom_version="$(./mvnw -q help:evaluate -Dexpression=project.version -DforceStdout)"
+          if [[ "$tag_version" != "$pom_version" ]]; then
+            echo "Tag version ($tag_version) does not match pom.xml version ($pom_version)." >&2
+            exit 1
+          fi
+
+      - name: Run quality verification
+        run: ./verify-quality.sh
+
+  build:
+    needs: quality
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux-x86_64
+            binary: target/sentinel
+          - os: macos-13
+            platform: macos-x86_64
+            binary: target/sentinel
+          - os: macos-14
+            platform: macos-aarch64
+            binary: target/sentinel
+          - os: windows-latest
+            platform: windows-x86_64
+            binary: target/sentinel.exe
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up GraalVM 25
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '25'
+          distribution: graalvm-community
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build native executable
+        run: ./mvnw -q -Pnative -DskipTests native:compile
+
+      - name: Prepare Unix release asset
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          set -euo pipefail
+          asset="sentinel-${{ matrix.platform }}"
+          cp "${{ matrix.binary }}" "$asset"
+          chmod +x "$asset"
+          shasum -a 256 "$asset" > "$asset.sha256"
+
+      - name: Prepare Windows release asset
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $asset = "sentinel-${{ matrix.platform }}.exe"
+          Copy-Item "${{ matrix.binary }}" $asset
+          $hash = (Get-FileHash $asset -Algorithm SHA256).Hash.ToLower()
+          "$hash  $asset" | Out-File "$asset.sha256" -Encoding ascii
+
+      - name: Upload platform assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: sentinel-${{ matrix.platform }}
+          path: |
+            sentinel-${{ matrix.platform }}*
+            sentinel-${{ matrix.platform }}.exe*
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download platform assets
+        uses: actions/download-artifact@v4
+        with:
+          pattern: sentinel-*
+          path: release-assets
+          merge-multiple: true
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release create "$GITHUB_REF_NAME" release-assets/* \
+            --title "$GITHUB_REF_NAME" \
+            --generate-notes
