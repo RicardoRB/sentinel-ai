@@ -1,0 +1,37 @@
+---
+title: loop
+description: Run an external agent until the quality gates pass.
+---
+
+```sh
+sentinel loop <task> --agent-command <command> [-C <dir>] [--max-iterations <n>] [--timeout-seconds <n>] [--allow-dirty]
+```
+
+`sentinel loop` alternates between an external coding agent and `sentinel check`. Each iteration runs
+the agent, then the `default` profile gates. The loop stops when all gates pass or a limit is reached.
+
+```sh
+sentinel loop "Fix the failing tests" --agent-command "claude -p" --max-iterations 3
+```
+
+- `--agent-command` is required. It is split into arguments and run without a shell from the project
+  root. Sentinel appends the prompt as the final argument.
+- The first iteration sends `<task>`. Later iterations send only the failure feedback: the name,
+  status, and output of every failed gate, prefixed with `Fix these failed quality gates:`.
+- `--max-iterations` (default `3`) limits the number of agent runs.
+- `--timeout-seconds` (default `300`) limits each agent run.
+- By default, the loop refuses to start when the Git working tree has uncommitted changes, so that
+  the agent's changes are easy to review or revert. `--allow-dirty` disables this check.
+
+The command prints one result line, for example `PASSED after 2 iteration(s): All quality gates passed.`
+
+| State | Meaning |
+|---|---|
+| `PASSED` | All gates passed after an agent run. |
+| `MAX_ITERATIONS_REACHED` | Gates still failed after the last iteration. |
+| `TIMEOUT` | The agent exceeded `--timeout-seconds`, or the loop was interrupted. |
+| `AGENT_ERROR` | The agent command exited unsuccessfully or could not be run. |
+| `GATE_ERROR` | Sentinel could not run the checks, or the working tree was dirty. |
+
+Exit `0` means `PASSED`; every other state exits `1`. The agent runs with your user's privileges, so
+use the loop only in repositories you trust. See [security](/security/).

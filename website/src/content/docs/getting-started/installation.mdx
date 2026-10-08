@@ -1,19 +1,68 @@
 ---
 title: Installation
-description: Build Sentinel from source and run the CLI.
+description: Install the Sentinel native binary or build it from source.
 ---
 
-Sentinel currently supports Java 25 and Maven projects. Maven is provided by the repository wrapper.
+Sentinel currently supports Java/Maven projects. The native binary needs no JVM; the executable jar
+requires JDK 25.
+
+## Install script (Linux and macOS)
 
 ```bash
-git clone https://github.com/sentinel-ai/sentinel-ai.git
-cd sentinel-ai
-export JAVA_HOME=/path/to/jdk-25
-./mvnw package
+curl -fsSL https://raw.githubusercontent.com/RicardoRB/sentinel-ai/main/install.sh | sh
+sentinel --version
 ```
 
-The executable jar is `target/sentinel.jar`; use `bin/sentinel` as the repository launcher. A native
-binary can optionally be built with GraalVM 25:
+The script detects your OS and CPU, downloads the matching binary from GitHub Releases, verifies its
+SHA-256 checksum, and installs it as `sentinel` in `~/.local/bin`. If that directory is not on your
+`PATH`, the script prints the line to add to your shell profile. It supports Linux x86_64 and macOS
+(Apple Silicon and Intel).
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `SENTINEL_VERSION` | `latest` | Release tag to install, for example `v0.0.1`. |
+| `SENTINEL_INSTALL_DIR` | `~/.local/bin` | Directory for the `sentinel` binary. |
+| `SENTINEL_BASE_URL` | GitHub Releases | Download base URL, for mirrors. |
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/RicardoRB/sentinel-ai/main/install.sh \
+  | SENTINEL_VERSION=v0.0.1 SENTINEL_INSTALL_DIR=/usr/local/bin sh
+```
+
+## Manual download
+
+Each [GitHub release](https://github.com/RicardoRB/sentinel-ai/releases) publishes native binaries
+with `.sha256` checksum files:
+
+| Platform | Asset |
+|---|---|
+| Linux x86_64 | `sentinel-linux-x86_64` |
+| macOS Apple Silicon | `sentinel-macos-aarch64` |
+| macOS Intel | `sentinel-macos-x86_64` |
+| Windows x86_64 | `sentinel-windows-x86_64.exe` |
+
+```bash
+curl -fsSLO https://github.com/RicardoRB/sentinel-ai/releases/latest/download/sentinel-macos-aarch64
+curl -fsSLO https://github.com/RicardoRB/sentinel-ai/releases/latest/download/sentinel-macos-aarch64.sha256
+shasum -a 256 -c sentinel-macos-aarch64.sha256
+chmod +x sentinel-macos-aarch64 && mv sentinel-macos-aarch64 ~/.local/bin/sentinel
+```
+
+On Windows, download `sentinel-windows-x86_64.exe`, rename it to `sentinel.exe`, and place it in a
+directory on your `PATH`.
+
+## Build from source
+
+Requires JDK 25. Maven is provided by the repository wrapper.
+
+```bash
+git clone https://github.com/RicardoRB/sentinel-ai.git
+cd sentinel-ai
+./mvnw package
+java -jar target/sentinel.jar --version
+```
+
+To build the native binary `target/sentinel`, use GraalVM 25:
 
 ```bash
 ./mvnw -Pnative -DskipTests native:compile
@@ -22,4 +71,5 @@ binary can optionally be built with GraalVM 25:
 Picocli's annotation processor generates the native reflection metadata during compilation. New CLI
 commands and options are included from their annotations; no manual command metadata entry is needed.
 
-See [quick start](/getting-started/quick-start/) to detect a project and run its first check.
+Agent integrations invoke `sentinel` by name, so the binary (or a wrapper script that runs the jar)
+must be on `PATH`. See [quick start](/getting-started/quick-start/) to run your first check.

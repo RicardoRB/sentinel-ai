@@ -16,10 +16,16 @@ hero:
 Sentinel runs the quality checks declared in `sentinel.toml` and reports clear results for people
 or automation. It also provides project-local integrations for Claude Code and OpenCode.
 
+```bash
+curl -fsSL https://raw.githubusercontent.com/RicardoRB/sentinel-ai/main/install.sh | sh
+```
+
 ## What you can do
 
-- Detect supported Java/Maven projects and initialize configuration.
-- Run configured quality gates as text or machine-readable JSON.
+- Detect supported Java/Maven projects and initialize configuration from `standard` or `strict` presets.
+- Run configured quality gates as text or machine-readable JSON, locally or in [CI](/guides/ci-cd/).
 - Install agent hooks that run checks after edits and writes.
+- Drive an external coding agent with [`sentinel loop`](/commands/loop/) until the gates pass.
+- Diagnose setup problems with [`sentinel doctor`](/commands/doctor/).
 
 Start with [installation](/getting-started/installation/) or jump to [configuration](/configuration/sentinel-toml/).

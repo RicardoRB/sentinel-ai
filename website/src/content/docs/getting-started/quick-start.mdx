@@ -3,7 +3,7 @@ title: Quick start
 description: Configure and run your first Sentinel check.
 ---
 
-From a supported Maven project, run the setup wizard:
+From a supported Maven project, detect the project, create a configuration, and run the gates:
 
 ```bash
 sentinel detect
@@ -11,11 +11,22 @@ sentinel init
 sentinel check
 ```
 
-For non-interactive setup, specify both selections, for example:
+`init` starts an interactive wizard. For non-interactive setup, choose a preset or explicit gates:
 
 ```bash
+sentinel init --preset standard --integration none
+sentinel init --preset strict --integration claude-code
 sentinel init --integration none --gate tests
 ```
 
+A passing run ends with a summary such as:
+
+```text
+Quality Gate: PASSED
+7 passed · 0 failed · 0 skipped
+```
+
 Use `sentinel check --format json` for automation. The JSON contract guarantees that stdout contains
-only JSON; diagnostics go to stderr. See [commands](/commands/check/) and [exit codes](/reference/exit-codes/).
+only JSON; diagnostics go to stderr. If something does not work, run
+[`sentinel doctor`](/commands/doctor/). See [commands](/commands/check/),
+[exit codes](/reference/exit-codes/), and [CI/CD](/guides/ci-cd/).
