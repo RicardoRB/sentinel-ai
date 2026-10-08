@@ -11,6 +11,7 @@ public final class SupportedQualityGates {
           "coverage",
           "spotbugs",
           "checkstyle",
+          "pmd",
           "sonar",
           "dependency-check",
           "archunit",

@@ -7,5 +7,10 @@ import java.util.List;
 public interface BuildToolConfiguration {
   PomChange apply(Project project, List<InitGateOption> gates);
 
+  default PomChange apply(
+      final Project project, final List<InitGateOption> gates, final QualityPreset preset) {
+    return apply(project, gates);
+  }
+
   void rollback(PomChange change);
 }

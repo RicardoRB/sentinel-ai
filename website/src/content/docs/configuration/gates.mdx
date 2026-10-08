@@ -14,6 +14,7 @@ defines the actual tool invocation; Sentinel does not install gate tools.
 | | `coverage` | JaCoCo | Enforce or report test coverage. |
 | | `mutation` | PIT | Run mutation testing. |
 | Code Quality | `checkstyle` | Checkstyle | Check Java style rules. |
+| | `pmd` | PMD | Find common Java design and implementation problems. |
 | | `spotbugs` | SpotBugs | Run static analysis for potential bugs. |
 | | `sonar` | SonarQube | Code smells, bugs, duplication, overall quality. |
 | | `format` | Spotless / google-java-format | Check source formatting. |
@@ -28,7 +29,7 @@ defines the actual tool invocation; Sentinel does not install gate tools.
 | | `api-compat` | japicmp | Binary/API compatibility between versions. |
 | Custom | `command` | — | Run an arbitrary configured project check. |
 
-`sentinel init` offers every gate but selects none by default. `zap`, `trivy`, `sonar`,
+`sentinel init` offers every gate but selects none by default unless a preset is chosen. `zap`, `trivy`, `sonar`,
 `dependency-check`, `api-compat`, and `semgrep` need network access, a running application, or a
 comparison baseline, so enable them deliberately (for example in a CI-only profile with
 `profiles = ["ci"]`).
@@ -37,6 +38,15 @@ Standalone tools (`semgrep`, `gitleaks`, `trivy`, `zap-baseline.py`) must alread
 missing tool is reported as unavailable with an install link and other gates still run. Sentinel
 never installs tools. For Maven-backed gates, `init` adds the missing plugin to `pom.xml` and can
 roll the change back.
+
+## Quality presets
+
+`standard` enables compile, tests, format, Checkstyle, PMD, SpotBugs, and coverage with 70% line
+coverage. `strict` adds ArchUnit, Enforcer, and PIT mutation testing; it requires 85% line, 75%
+branch, and 60% mutation coverage. Strict mutation testing can substantially increase check runtime.
+Preset initialization may write `config/pmd-ruleset.xml`, `config/checkstyle.xml`,
+`config/spotbugs-exclude.xml` (standard), and `config/enforcer-rules.xml`. These files carry a
+`managed-by: sentinel` marker; unmarked user files are never overwritten.
 
 ## ZAP target
 

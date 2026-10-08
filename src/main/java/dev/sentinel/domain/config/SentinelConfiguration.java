@@ -7,7 +7,8 @@ import java.util.Map;
 import java.util.Set;
 
 /** Parsed {@code sentinel.toml}. Gates keep their declaration order. */
-public record SentinelConfiguration(int version, Map<String, GateConfiguration> gates) {
+public record SentinelConfiguration(
+    int version, Map<String, GateConfiguration> gates, String preset) {
 
   public static final String FILE_NAME = "sentinel.toml";
   public static final int SUPPORTED_VERSION = 1;
@@ -15,6 +16,10 @@ public record SentinelConfiguration(int version, Map<String, GateConfiguration> 
 
   public SentinelConfiguration {
     gates = Collections.unmodifiableMap(new LinkedHashMap<>(gates));
+  }
+
+  public SentinelConfiguration(final int version, final Map<String, GateConfiguration> gates) {
+    this(version, gates, null);
   }
 
   public Set<String> profileNames() {

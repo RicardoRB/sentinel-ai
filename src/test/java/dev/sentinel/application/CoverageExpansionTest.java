@@ -29,6 +29,7 @@ import dev.sentinel.domain.init.ArchitectureTestChange;
 import dev.sentinel.domain.init.InitGateOption;
 import dev.sentinel.domain.init.InitResult;
 import dev.sentinel.domain.init.PomChange;
+import dev.sentinel.domain.init.QualityPreset;
 import dev.sentinel.domain.loop.LoopConfiguration;
 import dev.sentinel.domain.policy.PolicyEvaluator;
 import dev.sentinel.domain.process.CommandExecutor;
@@ -177,6 +178,7 @@ class CoverageExpansionTest {
     assertThat(change.tools())
         .containsExactly(
             "maven-checkstyle-plugin",
+            "maven-pmd-plugin",
             "spotbugs-maven-plugin",
             "sonar-maven-plugin",
             "jacoco-maven-plugin",
@@ -201,6 +203,25 @@ class CoverageExpansionTest {
     assertThat(Files.readString(root.resolve("pom.xml"))).isEqualTo(TestProjects.PLAIN_POM);
     configurator.rollback(null);
     assertThat(new PomChange(root.resolve("pom.xml"), "", List.of()).changed()).isFalse();
+  }
+
+  @Test
+  void presetPomSnippetsUseExternalRuleFilesAndStrictMutation(final @TempDir Path root)
+      throws IOException {
+    TestProjects.withPom(root, TestProjects.PLAIN_POM);
+    final InitSetupCatalog catalog = new InitSetupCatalog(new FakeEnvironmentInspection());
+    final Project project = new Project(root, Language.JAVA, BuildTool.MAVEN, Framework.NONE);
+    final List<InitGateOption> gates =
+        catalog.gates(project).stream()
+            .filter(gate -> QualityPreset.STRICT.gates().contains(gate.id()))
+            .toList();
+    final PomChange change = new PomToolConfigurator().apply(project, gates, QualityPreset.STRICT);
+    final String pom = Files.readString(root.resolve("pom.xml"));
+    assertThat(pom)
+        .contains("${project.basedir}/config/enforcer-rules.xml", "mutationThreshold>60");
+    assertThat(change.tools()).contains("maven-pmd-plugin");
+    new PomToolConfigurator().rollback(change);
+    assertThat(Files.readString(root.resolve("pom.xml"))).isEqualTo(TestProjects.PLAIN_POM);
   }
 
   @Test

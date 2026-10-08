@@ -4,6 +4,7 @@ import dev.sentinel.domain.config.SentinelException;
 import dev.sentinel.domain.init.BuildToolConfiguration;
 import dev.sentinel.domain.init.InitGateOption;
 import dev.sentinel.domain.init.PomChange;
+import dev.sentinel.domain.init.QualityPreset;
 import dev.sentinel.domain.project.Project;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -20,6 +21,7 @@ public final class PomToolConfigurator implements BuildToolConfiguration {
   public PomToolConfigurator() {}
 
   private static final String CHECKSTYLE = "maven-checkstyle-plugin";
+  private static final String PMD = "maven-pmd-plugin";
   private static final String SPOTBUGS = "spotbugs-maven-plugin";
   private static final String SONAR = "sonar-maven-plugin";
   private static final String ARCHUNIT = "archunit-junit5";
@@ -176,24 +178,51 @@ public final class PomToolConfigurator implements BuildToolConfiguration {
                 </configuration>
               </plugin>
             """;
+  private static final String PMD_PLUGIN =
+      """
+              <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-pmd-plugin</artifactId>
+                <version>3.26.0</version>
+              </plugin>
+            """;
 
   @Override
   public PomChange apply(final Project project, final List<InitGateOption> gates) {
+    return apply(project, gates, null);
+  }
+
+  @Override
+  public PomChange apply(
+      final Project project, final List<InitGateOption> gates, final QualityPreset preset) {
     final Path pom = project.root().resolve("pom.xml");
     try {
       final String original = Files.readString(pom);
       String updated = original;
       final List<String> tools = new ArrayList<>();
+      final List<String> warnings = new ArrayList<>();
       final boolean needsArchUnit = gates.stream().anyMatch(gate -> "archunit".equals(gate.id()));
       if (gates.stream().anyMatch(gate -> "checkstyle".equals(gate.id()))
           && !containsArtifact(updated, CHECKSTYLE)) {
-        updated = addPlugin(updated, CHECKSTYLE_PLUGIN);
+        updated = addPlugin(updated, preset == null ? CHECKSTYLE_PLUGIN : checkstylePlugin());
         tools.add(CHECKSTYLE);
+      } else if (preset != null
+          && gates.stream().anyMatch(gate -> "checkstyle".equals(gate.id()))) {
+        warnings.add(CHECKSTYLE + " already declared; " + preset.id() + " settings not applied");
+      }
+      if (gates.stream().anyMatch(gate -> "pmd".equals(gate.id()))
+          && !containsArtifact(updated, PMD)) {
+        updated = addPlugin(updated, preset == null ? PMD_PLUGIN : pmdPlugin());
+        tools.add(PMD);
+      } else if (preset != null && gates.stream().anyMatch(gate -> "pmd".equals(gate.id()))) {
+        warnings.add(PMD + " already declared; " + preset.id() + " settings not applied");
       }
       if (gates.stream().anyMatch(gate -> "spotbugs".equals(gate.id()))
           && !containsArtifact(updated, SPOTBUGS)) {
-        updated = addPlugin(updated, SPOTBUGS_PLUGIN);
+        updated = addPlugin(updated, preset == null ? SPOTBUGS_PLUGIN : spotbugsPlugin(preset));
         tools.add(SPOTBUGS);
+      } else if (preset != null && gates.stream().anyMatch(gate -> "spotbugs".equals(gate.id()))) {
+        warnings.add(SPOTBUGS + " already declared; " + preset.id() + " settings not applied");
       }
       if (gates.stream().anyMatch(gate -> "sonar".equals(gate.id()))
           && !containsArtifact(updated, SONAR)) {
@@ -202,8 +231,10 @@ public final class PomToolConfigurator implements BuildToolConfiguration {
       }
       if (gates.stream().anyMatch(gate -> "coverage".equals(gate.id()))
           && !containsArtifact(updated, JACOCO)) {
-        updated = addPlugin(updated, JACOCO_PLUGIN);
+        updated = addPlugin(updated, preset == null ? JACOCO_PLUGIN : jacocoPlugin(preset));
         tools.add(JACOCO);
+      } else if (preset != null && gates.stream().anyMatch(gate -> "coverage".equals(gate.id()))) {
+        warnings.add(JACOCO + " already declared; " + preset.id() + " settings not applied");
       }
       if (gates.stream().anyMatch(gate -> "dependency-check".equals(gate.id()))
           && !containsArtifact(updated, DEPENDENCY_CHECK)) {
@@ -216,13 +247,17 @@ public final class PomToolConfigurator implements BuildToolConfiguration {
       }
       if (gates.stream().anyMatch(gate -> "mutation".equals(gate.id()))
           && !containsArtifact(updated, PIT)) {
-        updated = addPlugin(updated, PIT_PLUGIN);
+        updated = addPlugin(updated, preset == null ? PIT_PLUGIN : pitPlugin(preset));
         tools.add(PIT);
+      } else if (preset != null && gates.stream().anyMatch(gate -> "mutation".equals(gate.id()))) {
+        warnings.add(PIT + " already declared; " + preset.id() + " settings not applied");
       }
       if (gates.stream().anyMatch(gate -> "enforcer".equals(gate.id()))
           && !containsArtifact(updated, ENFORCER)) {
-        updated = addPlugin(updated, ENFORCER_PLUGIN);
+        updated = addPlugin(updated, preset == null ? ENFORCER_PLUGIN : enforcerPlugin());
         tools.add(ENFORCER);
+      } else if (preset != null && gates.stream().anyMatch(gate -> "enforcer".equals(gate.id()))) {
+        warnings.add(ENFORCER + " already declared; " + preset.id() + " settings not applied");
       }
       if (gates.stream().anyMatch(gate -> "format".equals(gate.id()))
           && !containsArtifact(updated, SPOTLESS)) {
@@ -243,7 +278,7 @@ public final class PomToolConfigurator implements BuildToolConfiguration {
         Files.writeString(
             pom, updated, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
       }
-      return new PomChange(pom, original, tools);
+      return new PomChange(pom, original, tools, warnings);
     } catch (IOException e) {
       throw new SentinelException(
           "Could not configure Maven tools in " + pom + ": " + e.getMessage(), e);
@@ -300,5 +335,84 @@ public final class PomToolConfigurator implements BuildToolConfiguration {
         "</project>",
         Matcher.quoteReplacement(
             "  <dependencies>\n" + dependency + "  </dependencies>\n</project>"));
+  }
+
+  private static String pmdPlugin() {
+    return """
+            <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-pmd-plugin</artifactId>
+              <version>3.26.0</version>
+              <configuration>
+                <rulesets><ruleset>${project.basedir}/config/pmd-ruleset.xml</ruleset></rulesets>
+                <failOnViolation>true</failOnViolation>
+                <printFailingErrors>true</printFailingErrors>
+                <includeTests>false</includeTests>
+              </configuration>
+            </plugin>
+          """;
+  }
+
+  private static String checkstylePlugin() {
+    return """
+            <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-checkstyle-plugin</artifactId>
+              <version>3.6.0</version>
+              <dependencies><dependency><groupId>com.puppycrawl.tools</groupId><artifactId>checkstyle</artifactId><version>10.20.2</version></dependency></dependencies>
+              <configuration><configLocation>${project.basedir}/config/checkstyle.xml</configLocation><violationSeverity>error</violationSeverity><consoleOutput>true</consoleOutput></configuration>
+            </plugin>
+          """;
+  }
+
+  private static String spotbugsPlugin(final QualityPreset preset) {
+    final String exclude =
+        preset == QualityPreset.STANDARD
+            ? "<excludeFilterFile>${project.basedir}/config/spotbugs-exclude.xml</excludeFilterFile>"
+            : "";
+    return "<plugin>\n"
+        + "  <groupId>com.github.spotbugs</groupId><artifactId>spotbugs-maven-plugin</artifactId><version>4.9.7.0</version>\n"
+        + "  <configuration><effort>"
+        + preset.rules().spotbugsEffort()
+        + "</effort><threshold>"
+        + preset.rules().spotbugsThreshold()
+        + "</threshold>"
+        + exclude
+        + "</configuration>\n"
+        + "</plugin>\n";
+  }
+
+  private static String jacocoPlugin(final QualityPreset preset) {
+    final String limits =
+        preset.rules().jacocoMinimums().entrySet().stream()
+            .map(
+                entry ->
+                    "<limit><counter>"
+                        + entry.getKey()
+                        + "</counter><value>COVEREDRATIO</value><minimum>"
+                        + entry.getValue()
+                        + "</minimum></limit>")
+            .reduce("", String::concat);
+    return "<plugin><groupId>org.jacoco</groupId><artifactId>jacoco-maven-plugin</artifactId><version>0.8.13</version>\n"
+        + "<executions><execution><goals><goal>prepare-agent</goal></goals></execution><execution><id>report</id><phase>test</phase><goals><goal>report</goal></goals></execution></executions>\n"
+        + "<configuration><rules><rule><element>BUNDLE</element><limits>"
+        + limits
+        + "</limits></rule></rules></configuration></plugin>\n";
+  }
+
+  private static String enforcerPlugin() {
+    return """
+            <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-enforcer-plugin</artifactId><version>3.5.0</version>
+              <configuration><rules><externalRules><location>${project.basedir}/config/enforcer-rules.xml</location></externalRules></rules><fail>true</fail></configuration>
+            </plugin>
+          """;
+  }
+
+  private static String pitPlugin(final QualityPreset preset) {
+    final String threshold =
+        preset.rules().mutationThreshold() == null
+            ? ""
+            : "<mutationThreshold>" + preset.rules().mutationThreshold() + "</mutationThreshold>";
+    return PIT_PLUGIN.replace("</dependencies>", "</dependencies>\n                  " + threshold);
   }
 }

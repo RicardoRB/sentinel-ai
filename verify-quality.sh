@@ -15,14 +15,17 @@ fi
 
 "$MVN" -q -Dtest=ArchitectureBoundaryTest test
 
-"$MVN" -q \
-  org.jacoco:jacoco-maven-plugin:prepare-agent \
-  test \
-  spotless:check \
-  checkstyle:check \
-  pmd:check \
-  spotbugs:check \
-  org.jacoco:jacoco-maven-plugin:report
+"$MVN" -q org.jacoco:jacoco-maven-plugin:prepare-agent test
+
+"$MVN" -q spotless:check
+
+"$MVN" -q checkstyle:check
+
+"$MVN" -q pmd:check
+
+"$MVN" -q spotbugs:check
+
+"$MVN" -q org.jacoco:jacoco-maven-plugin:report
 
 coverage=$(awk -F, '
   NR > 1 { missed += $4; covered += $5 }

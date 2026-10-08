@@ -63,7 +63,19 @@ class ExtendedGatesTest {
 
     assertThatThrownBy(() -> factory.create(config("nope", List.of("x"))))
         .isInstanceOf(SentinelException.class)
-        .hasMessageContaining("gitleaks", "zap", "api-compat");
+        .hasMessageContaining("gitleaks", "zap", "api-compat", "pmd");
+  }
+
+  @Test
+  void pmdGateRunsThroughCommandExecutor() {
+    final FakeCommandExecutor executor = new FakeCommandExecutor(0, "ok", "");
+    final GateResult result =
+        new QualityGateFactory(executor)
+            .create(config("pmd", List.of("mvnw", "pmd:check")))
+            .getFirst()
+            .execute(PROJECT);
+    assertThat(result.name()).isEqualTo("pmd");
+    assertThat(result.status()).isEqualTo(GateStatus.PASSED);
   }
 
   @Test

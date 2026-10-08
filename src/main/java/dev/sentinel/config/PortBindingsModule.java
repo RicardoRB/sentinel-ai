@@ -9,6 +9,7 @@ import dev.sentinel.domain.init.ArchitectureTestGeneration;
 import dev.sentinel.domain.init.BuildToolConfiguration;
 import dev.sentinel.domain.init.ConfigurationStorage;
 import dev.sentinel.domain.init.RawTerminal;
+import dev.sentinel.domain.init.RuleFileGeneration;
 import dev.sentinel.domain.json.JsonCodec;
 import dev.sentinel.domain.learning.LearningStore;
 import dev.sentinel.domain.loop.GitStateInspection;
@@ -21,6 +22,7 @@ import dev.sentinel.infrastructure.doctor.SystemEnvironmentInspection;
 import dev.sentinel.infrastructure.init.ArchitectureTestGenerator;
 import dev.sentinel.infrastructure.init.FileConfigurationStorage;
 import dev.sentinel.infrastructure.init.PomToolConfigurator;
+import dev.sentinel.infrastructure.init.PresetRuleFileWriter;
 import dev.sentinel.infrastructure.json.ForyJsonCodec;
 import dev.sentinel.infrastructure.learning.JsonLearningStore;
 import dev.sentinel.infrastructure.loop.GitStateInspector;
@@ -63,6 +65,9 @@ interface PortBindingsModule {
 
   @Binds
   ArchitectureTestGeneration architectureTestGeneration(ArchitectureTestGenerator implementation);
+
+  @Binds
+  RuleFileGeneration ruleFileGeneration(PresetRuleFileWriter implementation);
 
   @Binds
   LearningStore learningStore(JsonLearningStore implementation);

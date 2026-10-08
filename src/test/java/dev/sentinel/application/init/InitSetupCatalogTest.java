@@ -10,6 +10,7 @@ import dev.sentinel.domain.FakeEnvironmentInspection;
 import dev.sentinel.domain.config.SentinelException;
 import dev.sentinel.domain.init.InitGateOption;
 import dev.sentinel.domain.init.InitIntegrationOption;
+import dev.sentinel.domain.init.QualityPreset;
 import dev.sentinel.domain.project.Project;
 import dev.sentinel.infrastructure.project.FileSystemProjectInspection;
 import java.nio.file.Files;
@@ -35,6 +36,42 @@ class InitSetupCatalogTest {
             catalog.gates(
                 new ProjectDetector(new FileSystemProjectInspection()).detect(dir).orElseThrow()))
         .allSatisfy(gate -> assertThat(gate.description()).isNotBlank());
+  }
+
+  @Test
+  void exposesPresetRules() {
+    final InitSetupCatalog catalog = new InitSetupCatalog(new FakeEnvironmentInspection());
+    assertThat(catalog.presets()).containsExactly(QualityPreset.STANDARD, QualityPreset.STRICT);
+    assertThat(QualityPreset.STANDARD.gates())
+        .containsExactly("compile", "tests", "format", "checkstyle", "pmd", "spotbugs", "coverage");
+    assertThat(QualityPreset.STRICT.rules().jacocoMinimums())
+        .containsEntry("LINE", 0.85)
+        .containsEntry("BRANCH", 0.75);
+    assertThat(QualityPreset.STANDARD.rules().pmdRules())
+        .containsExactly("category/java/quickstart.xml");
+    assertThat(QualityPreset.STRICT.rules().pmdRules())
+        .anySatisfy(rule -> assertThat(rule).contains("bestpractices"));
+    assertThat(QualityPreset.STANDARD.rules().checkstyleModules())
+        .containsExactly(
+            "EqualsHashCode",
+            "MissingSwitchDefault",
+            "FallThrough",
+            "EmptyCatchBlock",
+            "IllegalCatch",
+            "AvoidStarImport",
+            "UnusedImports",
+            "StringLiteralEquality",
+            "OneStatementPerLine",
+            "MultipleVariableDeclarations");
+    assertThat(QualityPreset.STANDARD.rules().spotbugsEffort()).isEqualTo("Default");
+    assertThat(QualityPreset.STANDARD.rules().spotbugsThreshold()).isEqualTo("Medium");
+    assertThat(QualityPreset.STANDARD.rules().spotbugsExcludes())
+        .containsExactly("EI_EXPOSE_REP", "EI_EXPOSE_REP2");
+    assertThat(QualityPreset.STRICT.rules().enforcerRules())
+        .contains("requireUpperBoundDeps", "requirePluginVersions", "banDynamicVersions");
+    assertThat(QualityPreset.STRICT.rules().mutationThreshold()).isEqualTo(60);
+    assertThat(QualityPreset.STRICT.rules().architectureExtras().cycles()).isTrue();
+    assertThatThrownBy(() -> catalog.preset("paranoid")).hasMessageContaining("standard", "strict");
   }
 
   @Test

@@ -14,11 +14,15 @@ import dev.sentinel.domain.init.InitGateOption;
 import dev.sentinel.domain.init.InitResult;
 import dev.sentinel.domain.init.InitSelection;
 import dev.sentinel.domain.init.PomChange;
+import dev.sentinel.domain.init.QualityPreset;
+import dev.sentinel.domain.init.RuleFileChange;
+import dev.sentinel.domain.init.RuleFileGeneration;
 import dev.sentinel.domain.project.Project;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import javax.inject.Inject;
 
@@ -39,6 +43,7 @@ public class InitService {
   private final BuildToolConfiguration pomTools;
   private final ArchitectureTestGeneration architectureTests;
   private final ConfigurationStorage configurationStorage;
+  private final RuleFileGeneration ruleFiles;
 
   @Inject
   @SuppressFBWarnings(
@@ -51,13 +56,43 @@ public class InitService {
       final InitSetupCatalog catalog,
       final BuildToolConfiguration pomTools,
       final ArchitectureTestGeneration architectureTests,
-      final ConfigurationStorage configurationStorage) {
+      final ConfigurationStorage configurationStorage,
+      final RuleFileGeneration ruleFiles) {
     this.detector = detector;
     this.integrations = Set.copyOf(integrations);
     this.catalog = catalog;
     this.pomTools = pomTools;
     this.architectureTests = architectureTests;
     this.configurationStorage = configurationStorage;
+    this.ruleFiles = ruleFiles;
+  }
+
+  public InitService(
+      final ProjectDetector detector,
+      final Set<AgentIntegration> integrations,
+      final InitSetupCatalog catalog,
+      final BuildToolConfiguration pomTools,
+      final ArchitectureTestGeneration architectureTests,
+      final ConfigurationStorage configurationStorage) {
+    this(
+        detector,
+        integrations,
+        catalog,
+        pomTools,
+        architectureTests,
+        configurationStorage,
+        new RuleFileGeneration() {
+          @Override
+          public RuleFileChange apply(
+              final Project p, final QualityPreset q, final List<InitGateOption> g) {
+            return new RuleFileChange(p.root().resolve("config"), false, Map.of(), List.of());
+          }
+
+          @Override
+          public void rollback(final RuleFileChange c) {
+            // Nothing to restore for the compatibility no-op port.
+          }
+        });
   }
 
   public InitResult init(final Path start) {
@@ -86,8 +121,21 @@ public class InitService {
       final Path start, final InitSelection selection, final boolean overwrite) {
     final Project project = project(start);
     validateIntegrations(selection.integrations());
+    final QualityPreset preset = selection.preset();
+    final List<String> gateIds = new ArrayList<>();
+    if (preset != null) {
+      gateIds.addAll(preset.gates());
+    }
+    selection
+        .gates()
+        .forEach(
+            id -> {
+              if (!gateIds.contains(id)) {
+                gateIds.add(id);
+              }
+            });
     final List<InitGateOption> gates =
-        selection.gates().stream().map(id -> catalog.gate(project, id)).toList();
+        gateIds.stream().map(id -> catalog.gate(project, id)).toList();
     if (gates.isEmpty()) {
       throw new SentinelException("Select at least one quality gate.");
     }
@@ -104,6 +152,7 @@ public class InitService {
 
     final List<IntegrationResult> installed = new ArrayList<>();
     PomChange pomChange = null;
+    RuleFileChange ruleFileChange = null;
     ArchitectureTestChange architectureTest = null;
     try {
       for (final String integration : selection.integrations()) {
@@ -119,16 +168,29 @@ public class InitService {
                   + ": selected integration conflicts with user-owned content.");
         }
       }
-      pomChange = pomTools.apply(project, gates);
+      pomChange = pomTools.apply(project, gates, preset);
+      ruleFileChange = ruleFiles.apply(project, preset, gates);
       if (requiresArchitectureTest(gates)) {
         architectureTest =
             architectureTests.apply(
-                project, selection.architecture() == null ? "layered" : selection.architecture());
+                project,
+                selection.architecture() == null ? "layered" : selection.architecture(),
+                preset == null
+                    ? new QualityPreset.ArchitectureExtras(false, false, false)
+                    : preset.rules().architectureExtras());
       }
       final InitResult result =
           writeConfiguration(
-              project, gates, installed, pomChange.tools(), architectureTest, overwrite);
+              project,
+              gates,
+              installed,
+              pomChange,
+              architectureTest,
+              ruleFileChange,
+              preset,
+              overwrite);
       if (!result.created()) {
+        ruleFiles.rollback(ruleFileChange);
         architectureTests.rollback(architectureTest);
         pomTools.rollback(pomChange);
         rollbackNewIntegrations(project.root(), selection.integrations(), installed);
@@ -136,6 +198,7 @@ public class InitService {
       return result;
     } catch (RuntimeException e) {
       architectureTests.rollback(architectureTest);
+      ruleFiles.rollback(ruleFileChange);
       pomTools.rollback(pomChange);
       if (originalConfiguration != null) {
         try {
@@ -153,17 +216,37 @@ public class InitService {
       final Project project,
       final List<InitGateOption> gates,
       final List<IntegrationResult> integrations,
-      final List<String> pomChanges,
+      final PomChange pomChange,
       final ArchitectureTestChange architectureTest,
+      final RuleFileChange ruleFileChange,
+      final QualityPreset preset,
       final boolean overwrite) {
     final Path file = project.root().resolve(SentinelConfiguration.FILE_NAME);
-    final String content = configuration(gates);
+    final String content = configuration(gates, preset);
     if (overwrite) {
       configurationStorage.replace(file, content);
-      return new InitResult(file, true, true, gates, integrations, pomChanges, architectureTest);
+      return new InitResult(
+          file,
+          true,
+          true,
+          gates,
+          integrations,
+          pomChange.tools(),
+          architectureTest,
+          ruleFileChange == null ? List.of() : ruleFileChange.preserved(),
+          pomChange.warnings());
     }
     final boolean created = configurationStorage.create(file, content);
-    return new InitResult(file, created, false, gates, integrations, pomChanges, architectureTest);
+    return new InitResult(
+        file,
+        created,
+        false,
+        gates,
+        integrations,
+        pomChange.tools(),
+        architectureTest,
+        ruleFileChange == null ? List.of() : ruleFileChange.preserved(),
+        pomChange.warnings());
   }
 
   private IntegrationResult installIntegration(final Path root, final String id) {
@@ -213,8 +296,12 @@ public class InitService {
     return gates.stream().anyMatch(gate -> "archunit".equals(gate.id()));
   }
 
-  private static String configuration(final List<InitGateOption> gates) {
+  private static String configuration(
+      final List<InitGateOption> gates, final QualityPreset preset) {
     final StringBuilder content = new StringBuilder("version = 1\n");
+    if (preset != null) {
+      content.append("preset = \"").append(preset.id()).append("\"\n");
+    }
     for (final InitGateOption gate : gates) {
       final String executable =
           gate.command().getFirst().replace("\\", "\\\\").replace("\"", "\\\"");

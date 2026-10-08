@@ -78,7 +78,17 @@ public class TomlConfigurationReader implements SentinelConfigurationReader {
       throw new SentinelException(
           "'[profiles]' is no longer supported; declare 'profiles = [...]' under [quality-gates.<id>] instead");
     }
-    return new SentinelConfiguration((int) (long) version, gates);
+    String preset = null;
+    if (toml.contains("preset")) {
+      if (!toml.isString("preset")
+          || toml.getString("preset") == null
+          || !("standard".equals(toml.getString("preset"))
+              || "strict".equals(toml.getString("preset")))) {
+        throw new SentinelException("'preset' must be one of: standard, strict");
+      }
+      preset = toml.getString("preset");
+    }
+    return new SentinelConfiguration((int) (long) version, gates, preset);
   }
 
   private GateConfiguration parseGate(final String name, final TomlTable gate) {

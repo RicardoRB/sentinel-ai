@@ -10,6 +10,7 @@ import dev.sentinel.domain.init.InitGateOption;
 import dev.sentinel.domain.init.InitIntegrationOption;
 import dev.sentinel.domain.init.InitResult;
 import dev.sentinel.domain.init.InitSelection;
+import dev.sentinel.domain.init.QualityPreset;
 import dev.sentinel.domain.init.RawTerminal;
 import dev.sentinel.domain.init.RawTerminal.RawSession;
 import dev.sentinel.domain.project.Project;
@@ -27,8 +28,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import javax.inject.Inject;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
@@ -66,6 +70,9 @@ public class InitCommand implements Callable<Integer> {
           "Architecture style for architecture/ArchUnit tests: layered, hexagonal, or clean.")
   private String architecture;
 
+  @Option(names = "--preset", description = "Quality preset: standard or strict.")
+  private String preset;
+
   @Option(
       names = "--overwrite",
       description = "Overwrite an existing sentinel.toml without prompting.")
@@ -101,6 +108,8 @@ public class InitCommand implements Callable<Integer> {
   public Integer call() {
     final Path start = options.directory();
     final Project project = service.get().project(start);
+    final InitSetupCatalog catalog = service.get().catalog();
+    QualityPreset selectedPreset = preset == null ? null : catalog.preset(preset);
     boolean overwrite = overwriteOption;
     if (service.get().configurationExists(project)) {
       if (!overwrite) {
@@ -113,11 +122,14 @@ public class InitCommand implements Callable<Integer> {
         overwrite = true;
       }
     }
+    if (preset == null && gates.isEmpty()) {
+      selectedPreset = selectPreset();
+    }
 
-    final InitSetupCatalog catalog = service.get().catalog();
     final List<String> selectedIntegrations =
         integrations.isEmpty() ? selectIntegrations(catalog) : integrations;
-    final List<String> selectedGates = gates.isEmpty() ? selectGates(catalog, project) : gates;
+    final List<String> selectedGates =
+        preset != null || !gates.isEmpty() ? gates : selectGates(catalog, project, selectedPreset);
     String selectedArchitecture = architecture;
     if (requiresArchitectureTest(selectedGates)) {
       selectedArchitecture =
@@ -137,7 +149,8 @@ public class InitCommand implements Callable<Integer> {
             .get()
             .initialize(
                 project.root(),
-                new InitSelection(selectedIntegrations, selectedGates, selectedArchitecture),
+                new InitSelection(
+                    selectedIntegrations, selectedGates, selectedArchitecture, selectedPreset),
                 overwrite);
     return printResult(result);
   }
@@ -185,7 +198,25 @@ public class InitCommand implements Callable<Integer> {
     }
   }
 
-  private List<String> selectGates(final InitSetupCatalog catalog, final Project project) {
+  private QualityPreset selectPreset() {
+    output().println("Select quality preset: 1) standard  2) strict  3) custom");
+    output().print("Choose a preset [1-3]: ");
+    output().flush();
+    try {
+      final String value = reader.readLine();
+      return switch (value == null ? "" : value.trim()) {
+        case "1" -> QualityPreset.STANDARD;
+        case "2" -> QualityPreset.STRICT;
+        case "3" -> null;
+        default -> throw new SentinelException("Invalid preset selection. Choose 1, 2, or 3.");
+      };
+    } catch (IOException e) {
+      throw new SentinelException("Could not read preset selection: " + e.getMessage(), e);
+    }
+  }
+
+  private List<String> selectGates(
+      final InitSetupCatalog catalog, final Project project, final QualityPreset preset) {
     final List<InitGateOption> choices = catalog.gates(project);
     final Optional<RawSession> raw = openRawTerminal();
     if (raw.isPresent()) {
@@ -198,7 +229,13 @@ public class InitCommand implements Callable<Integer> {
                     labels,
                     "Select at least one quality gate.",
                     session::read,
-                    output())
+                    output(),
+                    preset == null
+                        ? Set.of()
+                        : IntStream.range(0, choices.size())
+                            .filter(i -> preset.gates().contains(choices.get(i).id()))
+                            .boxed()
+                            .collect(Collectors.toSet()))
                 .stream()
                 .map(index -> choices.get(index).id())
                 .toList();
@@ -215,7 +252,7 @@ public class InitCommand implements Callable<Integer> {
               choice.description(),
               choice.available() ? "available" : "unavailable");
     }
-    return readGateChoices(choices);
+    return readGateChoices(choices, preset);
   }
 
   private String selectArchitecture(final InitSetupCatalog catalog) {
@@ -294,7 +331,8 @@ public class InitCommand implements Callable<Integer> {
     }
   }
 
-  private List<String> readGateChoices(final List<InitGateOption> choices) {
+  private List<String> readGateChoices(
+      final List<InitGateOption> choices, final QualityPreset preset) {
     output()
         .print("Toggle quality gates with space-separated numbers [1-" + choices.size() + "]: ");
     output().flush();
@@ -305,6 +343,9 @@ public class InitCommand implements Callable<Integer> {
             "Initialization cancelled: input ended before setup completed.");
       }
       final List<String> selected = new ArrayList<>();
+      if (preset != null) {
+        selected.addAll(preset.gates());
+      }
       for (final String token : value.trim().split("[ ,]+")) {
         if (token.isBlank()) {
           continue;
@@ -353,6 +394,10 @@ public class InitCommand implements Callable<Integer> {
         output().println("Updated pom.xml with Maven tools:");
         result.pomChanges().forEach(tool -> output().println("- " + tool));
       }
+      result
+          .preservedRuleFiles()
+          .forEach(file -> output().println("Preserved user-owned rule file: " + file));
+      result.pomWarnings().forEach(warning -> output().println("Warning: " + warning));
       if (result.architectureTest() != null) {
         if (result.architectureTest().created()) {
           output()

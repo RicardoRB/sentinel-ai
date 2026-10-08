@@ -6,6 +6,7 @@ import dev.sentinel.domain.gate.SupportedQualityGates;
 import dev.sentinel.domain.init.InitArchitectureOption;
 import dev.sentinel.domain.init.InitGateOption;
 import dev.sentinel.domain.init.InitIntegrationOption;
+import dev.sentinel.domain.init.QualityPreset;
 import dev.sentinel.domain.project.Project;
 import java.util.ArrayList;
 import java.util.List;
@@ -94,6 +95,14 @@ public final class InitSetupCatalog {
             "Checks source style and formatting rules.",
             executable,
             "checkstyle:check",
+            mavenAvailable,
+            availability));
+    options.add(
+        option(
+            "pmd",
+            "Finds common Java design and implementation problems with PMD.",
+            executable,
+            "pmd:check",
             mavenAvailable,
             availability));
     options.add(
@@ -225,6 +234,20 @@ public final class InitSetupCatalog {
                         + id
                         + "'. Supported gates: "
                         + SupportedQualityGates.IDS));
+  }
+
+  public List<QualityPreset> presets() {
+    return List.of(QualityPreset.STANDARD, QualityPreset.STRICT);
+  }
+
+  public QualityPreset preset(final String id) {
+    return presets().stream()
+        .filter(candidate -> candidate.id().equals(id))
+        .findFirst()
+        .orElseThrow(
+            () ->
+                new SentinelException(
+                    "Unknown preset '" + id + "'. Supported presets: standard, strict"));
   }
 
   private InitGateOption binaryOption(

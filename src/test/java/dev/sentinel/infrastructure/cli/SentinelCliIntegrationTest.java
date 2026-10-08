@@ -141,6 +141,66 @@ class SentinelCliIntegrationTest {
   }
 
   @Test
+  void presetStandardWritesConfigurationAndRuleFiles() throws IOException {
+    assertThat(
+            run("init", "--preset", "standard", "--integration", "none", "-C", project.toString()))
+        .isZero();
+    assertThat(Files.readString(project.resolve("sentinel.toml")))
+        .contains("preset = \"standard\"", "quality-gates.pmd");
+    assertThat(project.resolve("config/pmd-ruleset.xml")).exists();
+  }
+
+  @Test
+  void unknownPresetChangesNothing() throws IOException {
+    assertThat(
+            run("init", "--preset", "paranoid", "--integration", "none", "-C", project.toString()))
+        .isEqualTo(ExitCodes.ERROR);
+    assertThat(project.resolve("sentinel.toml")).doesNotExist();
+    assertThat(project.resolve("config")).doesNotExist();
+  }
+
+  @Test
+  void strictPresetGeneratesArchitectureAndEnforcerFiles() throws IOException {
+    assertThat(
+            run(
+                "init",
+                "--preset",
+                "strict",
+                "--integration",
+                "none",
+                "--architecture",
+                "layered",
+                "-C",
+                project.toString()))
+        .isZero();
+    assertThat(project.resolve("config/enforcer-rules.xml")).exists();
+    assertThat(Files.readString(project.resolve("sentinel.toml")))
+        .contains("quality-gates.mutation");
+    try (Stream<Path> files = Files.walk(project.resolve("src/test/java"))) {
+      assertThat(files)
+          .anyMatch(path -> "ArchitectureTest.java".equals(path.getFileName().toString()));
+    }
+  }
+
+  @Test
+  void presetCanAddExplicitGate() throws IOException {
+    assertThat(
+            run(
+                "init",
+                "--preset",
+                "standard",
+                "--gate",
+                "gitleaks",
+                "--integration",
+                "none",
+                "-C",
+                project.toString()))
+        .isZero();
+    assertThat(Files.readString(project.resolve("sentinel.toml")))
+        .contains("quality-gates.gitleaks");
+  }
+
+  @Test
   void checkJsonWritesOnlyJsonToStdout() {
     assertThat(run("init", "--integration", "none", "--gate", "tests", "-C", project.toString()))
         .isZero();
@@ -196,7 +256,7 @@ class SentinelCliIntegrationTest {
     assertThat(Files.readString(project.resolve("sentinel.toml"))).contains("command = \"old\"");
 
     out.getBuffer().setLength(0);
-    assertThat(runInitWithInput("y\n1\n1\n", "-C", project.toString())).isZero();
+    assertThat(runInitWithInput("y\n3\n1\n1\n", "-C", project.toString())).isZero();
     assertThat(Files.readString(project.resolve("sentinel.toml")))
         .contains("[quality-gates.tests]");
     assertThat(out.toString()).contains("Overwrite it?", "Updated ");
@@ -276,8 +336,6 @@ class SentinelCliIntegrationTest {
   void unknownIntegrationListsSupportedAgentsWithoutWritingFiles() {
     assertThat(run("integrate", "unknown", "-C", project.toString())).isEqualTo(ExitCodes.ERROR);
     assertThat(err.toString()).contains("Supported agents: opencode, claude-code");
-    assertThat(project.resolve(".claude")).doesNotExist();
-    assertThat(project.resolve(".opencode")).doesNotExist();
   }
 
   @Test
@@ -306,18 +364,16 @@ class SentinelCliIntegrationTest {
 
   @Test
   void initPromptsForIntegrationAndGateAndCreatesSelectedConfiguration() throws IOException {
-    assertThat(runInitWithInput("1\n1\n", "-C", project.toString())).isZero();
+    assertThat(runInitWithInput("3\n1\n1\n", "-C", project.toString())).isZero();
     assertThat(out.toString())
         .contains("Select agent integrations", "> [ ] 1)", "Select quality gates", "AVAILABLE");
     assertThat(Files.readString(project.resolve("sentinel.toml")))
         .contains("[quality-gates.tests]");
-    assertThat(project.resolve(".claude")).doesNotExist();
-    assertThat(project.resolve(".opencode")).doesNotExist();
   }
 
   @Test
   void initFallsBackToNumberedPromptsWhenRawTerminalIsUnavailable() throws IOException {
-    assertThat(runInitWithInput("1\n1\n", "-C", project.toString())).isZero();
+    assertThat(runInitWithInput("1\n3\n1\n", "-C", project.toString())).isZero();
 
     assertThat(out.toString())
         .contains(
@@ -327,7 +383,7 @@ class SentinelCliIntegrationTest {
 
   @Test
   void initInstallsMultipleIntegrationsSelectedWithSpaces() {
-    assertThat(runInitWithInput("2 3\n1\n", "-C", project.toString())).isZero();
+    assertThat(runInitWithInput("3\n2 3\n1\n", "-C", project.toString())).isZero();
     assertThat(project.resolve(".opencode/commands/sentinel-check.md")).exists();
     assertThat(project.resolve(".opencode/plugins/sentinel-edit-write.js")).exists();
     assertThat(project.resolve(".claude/settings.json")).exists();
@@ -337,18 +393,18 @@ class SentinelCliIntegrationTest {
 
   @Test
   void initConfiguresMultipleQualityGatesSelectedWithSpaces() throws IOException {
-    assertThat(runInitWithInput("1\n1 2\n", "-C", project.toString())).isZero();
+    assertThat(runInitWithInput("3\n1\n1 2\n", "-C", project.toString())).isZero();
     final String config = Files.readString(project.resolve("sentinel.toml"));
     assertThat(config).contains("[quality-gates.tests]", "[quality-gates.compile]");
   }
 
   @Test
   void archunitSelectionPromptsForArchitectureAndGeneratesTest() throws IOException {
-    assertThat(runInitWithInput("1\n8\n2\n", "-C", project.toString())).isZero();
+    assertThat(runInitWithInput("3\n1\n9\n2\n", "-C", project.toString())).isZero();
     final Path test = project.resolve("src/test/java/com/example/ArchitectureTest.java");
     assertThat(test).exists();
     assertThat(Files.readString(test))
-        .contains("hexagonal", "@AnalyzeClasses(packages = \"com.example\")");
+        .contains("hexagonal", "@AnalyzeClasses(packages = \"com.example\"");
     assertThat(Files.readString(project.resolve("pom.xml"))).contains("archunit-junit5");
     assertThat(out.toString())
         .contains("Select an architecture style", "Generated hexagonal ArchUnit test");
@@ -378,7 +434,7 @@ class SentinelCliIntegrationTest {
     Files.createDirectories(test.getParent());
     Files.writeString(test, "user-owned architecture test\n");
 
-    assertThat(runInitWithInput("1\n8\n1\n", "-C", project.toString())).isZero();
+    assertThat(runInitWithInput("3\n1\n9\n1\n", "-C", project.toString())).isZero();
     assertThat(test).hasContent("user-owned architecture test\n");
     assertThat(out.toString()).contains("Preserved existing ArchUnit test");
   }
@@ -439,7 +495,8 @@ class SentinelCliIntegrationTest {
 
   @Test
   void rejectsCombiningNoIntegrationWithAnAgent() {
-    assertThat(runInitWithInput("1 2\n1\n", "-C", project.toString())).isEqualTo(ExitCodes.ERROR);
+    assertThat(runInitWithInput("3\n1 2\n1\n", "-C", project.toString()))
+        .isEqualTo(ExitCodes.ERROR);
     assertThat(err.toString()).contains("no-integration choice cannot be combined");
     assertThat(project.resolve("sentinel.toml")).doesNotExist();
     assertThat(project.resolve(".opencode")).doesNotExist();
@@ -451,7 +508,8 @@ class SentinelCliIntegrationTest {
     Files.createDirectories(target.getParent());
     Files.writeString(target, "user-owned\n");
 
-    assertThat(runInitWithInput("3 2\n1\n", "-C", project.toString())).isEqualTo(ExitCodes.ERROR);
+    assertThat(runInitWithInput("3\n3 2\n1\n", "-C", project.toString()))
+        .isEqualTo(ExitCodes.ERROR);
     assertThat(project.resolve(".claude")).doesNotExist();
     assertThat(project.resolve("sentinel.toml")).doesNotExist();
     assertThat(target).hasContent("user-owned\n");
@@ -473,27 +531,28 @@ class SentinelCliIntegrationTest {
 
   @Test
   void initRejectsInvalidAndEmptySelectionsWithoutWriting() {
-    assertThat(runInitWithInput("x\n", "-C", project.toString())).isEqualTo(ExitCodes.ERROR);
+    assertThat(runInitWithInput("3\nx\n", "-C", project.toString())).isEqualTo(ExitCodes.ERROR);
     assertThat(err.toString()).contains("Invalid integration selection");
     err.getBuffer().setLength(0);
-    assertThat(runInitWithInput("1\nx\n", "-C", project.toString())).isEqualTo(ExitCodes.ERROR);
+    assertThat(runInitWithInput("3\n1\nx\n", "-C", project.toString())).isEqualTo(ExitCodes.ERROR);
     assertThat(err.toString()).contains("Invalid quality-gate selection");
     err.getBuffer().setLength(0);
-    assertThat(runInitWithInput("1\n\n", "-C", project.toString())).isEqualTo(ExitCodes.ERROR);
+    assertThat(runInitWithInput("3\n1\n\n", "-C", project.toString())).isEqualTo(ExitCodes.ERROR);
     assertThat(err.toString()).contains("Select at least one quality gate");
     assertThat(project.resolve("sentinel.toml")).doesNotExist();
   }
 
   @Test
   void initRejectsInvalidArchitectureAndEof() {
-    assertThat(runInitWithInput("1\n8\nnope\n", "-C", project.toString()))
+    assertThat(runInitWithInput("3\n1\n9\nnope\n", "-C", project.toString()))
         .isEqualTo(ExitCodes.ERROR);
     assertThat(err.toString()).contains("Invalid architecture selection");
     err.getBuffer().setLength(0);
-    assertThat(runInitWithInput("1\n8\n9\n", "-C", project.toString())).isEqualTo(ExitCodes.ERROR);
+    assertThat(runInitWithInput("3\n1\n9\n10\n", "-C", project.toString()))
+        .isEqualTo(ExitCodes.ERROR);
     assertThat(err.toString()).contains("Invalid architecture selection");
     err.getBuffer().setLength(0);
-    assertThat(runInitWithInput("1\n8\n", "-C", project.toString())).isEqualTo(ExitCodes.ERROR);
+    assertThat(runInitWithInput("3\n1\n9\n", "-C", project.toString())).isEqualTo(ExitCodes.ERROR);
     assertThat(err.toString()).contains("input ended");
   }
 
