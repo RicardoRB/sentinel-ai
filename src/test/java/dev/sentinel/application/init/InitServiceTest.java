@@ -7,8 +7,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import dev.sentinel.application.project.ProjectDetector;
 import dev.sentinel.application.project.ProjectNotFoundException;
+import dev.sentinel.domain.FakeEnvironmentInspection;
 import dev.sentinel.domain.init.InitResult;
-import dev.sentinel.infrastructure.doctor.SystemEnvironmentInspection;
 import dev.sentinel.infrastructure.init.ArchitectureTestGenerator;
 import dev.sentinel.infrastructure.init.FileConfigurationStorage;
 import dev.sentinel.infrastructure.init.PomToolConfigurator;
@@ -25,7 +25,7 @@ class InitServiceTest {
       new InitService(
           new ProjectDetector(new FileSystemProjectInspection()),
           Set.of(),
-          new InitSetupCatalog(new SystemEnvironmentInspection()),
+          new InitSetupCatalog(new FakeEnvironmentInspection()),
           new PomToolConfigurator(),
           new ArchitectureTestGenerator(),
           new FileConfigurationStorage());

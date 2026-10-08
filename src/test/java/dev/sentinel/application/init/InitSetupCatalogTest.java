@@ -6,18 +6,14 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import dev.sentinel.TestProjects;
 import dev.sentinel.application.gate.QualityGateFactory;
 import dev.sentinel.application.project.ProjectDetector;
+import dev.sentinel.domain.FakeEnvironmentInspection;
 import dev.sentinel.domain.config.SentinelException;
-import dev.sentinel.domain.doctor.EnvironmentFacts;
-import dev.sentinel.domain.doctor.EnvironmentInspection;
 import dev.sentinel.domain.init.InitGateOption;
 import dev.sentinel.domain.init.InitIntegrationOption;
 import dev.sentinel.domain.project.Project;
-import dev.sentinel.infrastructure.doctor.SystemEnvironmentInspection;
 import dev.sentinel.infrastructure.project.FileSystemProjectInspection;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Map;
-import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -25,7 +21,7 @@ class InitSetupCatalogTest {
   @Test
   void exposesStableIntegrationAndGateChoices(@TempDir Path dir) throws Exception {
     TestProjects.withPom(dir, TestProjects.PLAIN_POM);
-    InitSetupCatalog catalog = new InitSetupCatalog(new SystemEnvironmentInspection());
+    InitSetupCatalog catalog = new InitSetupCatalog(new FakeEnvironmentInspection());
 
     assertThat(catalog.integrations())
         .extracting(InitIntegrationOption::id)
@@ -42,17 +38,18 @@ class InitSetupCatalogTest {
   }
 
   @Test
-  void prefersWrapperAndReportsMissingSystemMaven(@TempDir Path dir) throws Exception {
+  void prefersWrapperWhenSystemMavenIsMissing(@TempDir Path dir) throws Exception {
     TestProjects.withPom(dir, TestProjects.PLAIN_POM);
     Files.writeString(dir.resolve("mvnw"), "#!/bin/sh\nexit 0\n");
     InitGateOption option =
-        new InitSetupCatalog(new SystemEnvironmentInspection())
+        new InitSetupCatalog(new FakeEnvironmentInspection())
             .gate(
                 new ProjectDetector(new FileSystemProjectInspection()).detect(dir).orElseThrow(),
                 "tests");
 
     assertThat(option.command()).containsExactly("./mvnw", "test");
     assertThat(option.available()).isTrue();
+    assertThat(option.availabilityMessage()).contains("Maven command available: ./mvnw");
   }
 
   @Test
@@ -60,7 +57,7 @@ class InitSetupCatalogTest {
     TestProjects.withPom(dir, TestProjects.PLAIN_POM);
     Project project =
         new ProjectDetector(new FileSystemProjectInspection()).detect(dir).orElseThrow();
-    InitSetupCatalog catalog = new InitSetupCatalog(new SystemEnvironmentInspection());
+    InitSetupCatalog catalog = new InitSetupCatalog(new FakeEnvironmentInspection());
 
     assertThatThrownBy(() -> catalog.integration("unknown")).isInstanceOf(SentinelException.class);
     assertThatThrownBy(() -> catalog.gate(project, "unknown"))
@@ -74,7 +71,8 @@ class InitSetupCatalogTest {
     Project project =
         new ProjectDetector(new FileSystemProjectInspection()).detect(dir).orElseThrow();
 
-    InitGateOption option = new InitSetupCatalog(withExecutables()).gate(project, "tests");
+    InitGateOption option =
+        new InitSetupCatalog(new FakeEnvironmentInspection()).gate(project, "tests");
 
     assertThat(option.available()).isFalse();
     assertThat(option.availabilityMessage()).contains("Maven is unavailable");
@@ -86,14 +84,11 @@ class InitSetupCatalogTest {
     Project project =
         new ProjectDetector(new FileSystemProjectInspection()).detect(dir).orElseThrow();
 
-    InitGateOption option = new InitSetupCatalog(withExecutables("mvn")).gate(project, "tests");
+    InitGateOption option =
+        new InitSetupCatalog(new FakeEnvironmentInspection("mvn")).gate(project, "tests");
 
     assertThat(option.available()).isTrue();
     assertThat(option.availabilityMessage()).contains("Maven command available: mvn");
-  }
-
-  private static EnvironmentInspection withExecutables(String... executables) {
-    return root -> new EnvironmentFacts(Set.of(executables), Map.of());
   }
 
   @Test
@@ -101,7 +96,7 @@ class InitSetupCatalogTest {
     TestProjects.withPom(dir, TestProjects.PLAIN_POM);
     Project project =
         new ProjectDetector(new FileSystemProjectInspection()).detect(dir).orElseThrow();
-    InitSetupCatalog catalog = new InitSetupCatalog(new SystemEnvironmentInspection());
+    InitSetupCatalog catalog = new InitSetupCatalog(new FakeEnvironmentInspection());
 
     assertThat(catalog.gate(project, "zap").command()).contains("-t", "<TARGET_URL>");
     assertThat(catalog.gate(project, "gitleaks").command()).contains("--redact");

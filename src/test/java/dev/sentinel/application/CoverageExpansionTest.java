@@ -14,6 +14,7 @@ import dev.sentinel.application.init.InitSetupCatalog;
 import dev.sentinel.application.project.ProjectDetector;
 import dev.sentinel.application.project.ProjectDiscovery;
 import dev.sentinel.config.DaggerSentinelComponent;
+import dev.sentinel.domain.FakeEnvironmentInspection;
 import dev.sentinel.domain.agent.AgentRequest;
 import dev.sentinel.domain.agent.AgentResult;
 import dev.sentinel.domain.config.CommandLineTokenizer;
@@ -43,7 +44,6 @@ import dev.sentinel.infrastructure.cli.VersionProvider;
 import dev.sentinel.infrastructure.cli.gate.JsonReportRenderer;
 import dev.sentinel.infrastructure.cli.gate.TextReportRenderer;
 import dev.sentinel.infrastructure.config.TomlConfigurationReader;
-import dev.sentinel.infrastructure.doctor.SystemEnvironmentInspection;
 import dev.sentinel.infrastructure.init.ArchitectureTestGenerator;
 import dev.sentinel.infrastructure.init.PomToolConfigurator;
 import dev.sentinel.infrastructure.json.ForyJsonCodec;
@@ -166,7 +166,7 @@ class CoverageExpansionTest {
   @Test
   void pomConfiguratorAddsAndRollsBackAllTools(@TempDir Path root) throws IOException {
     TestProjects.withPom(root, TestProjects.PLAIN_POM);
-    InitSetupCatalog catalog = new InitSetupCatalog(new SystemEnvironmentInspection());
+    InitSetupCatalog catalog = new InitSetupCatalog(new FakeEnvironmentInspection());
     List<InitGateOption> gates =
         catalog.gates(new Project(root, Language.JAVA, BuildTool.MAVEN, Framework.NONE));
     PomToolConfigurator configurator = new PomToolConfigurator();
@@ -207,7 +207,7 @@ class CoverageExpansionTest {
     String pom =
         "<project><build><plugins></plugins></build><dependencies></dependencies></project>";
     Files.writeString(root.resolve("pom.xml"), pom);
-    InitSetupCatalog catalog = new InitSetupCatalog(new SystemEnvironmentInspection());
+    InitSetupCatalog catalog = new InitSetupCatalog(new FakeEnvironmentInspection());
     Project project = new Project(root, Language.JAVA, BuildTool.MAVEN, Framework.NONE);
     PomChange change =
         new PomToolConfigurator()
