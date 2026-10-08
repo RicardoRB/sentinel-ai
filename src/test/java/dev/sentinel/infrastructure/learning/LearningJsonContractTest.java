@@ -2,6 +2,7 @@ package dev.sentinel.infrastructure.learning;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import dev.sentinel.JsonTree;
 import dev.sentinel.domain.gate.CheckReport;
 import dev.sentinel.domain.gate.GateResult;
 import dev.sentinel.domain.gate.GateStatus;
@@ -30,8 +31,6 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.json.JsonMapper;
 
 /** Byte-for-byte contract verification of persistence, report, and hook JSON. */
 class LearningJsonContractTest {
@@ -194,7 +193,7 @@ class LearningJsonContractTest {
     }
   }
 
-  private static JsonNode recordsOf(String storeJson) throws IOException {
-    return JsonMapper.builder().build().readTree(storeJson).get("records");
+  private static JsonTree recordsOf(String storeJson) {
+    return JsonTree.parse(storeJson).get("records");
   }
 }

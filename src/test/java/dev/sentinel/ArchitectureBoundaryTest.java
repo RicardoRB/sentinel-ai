@@ -83,7 +83,7 @@ class ArchitectureBoundaryTest {
                 || target.startsWith("org.springframework.")
                 || isInnerLayerExternalEffectApi(target)
                 || target.startsWith("org.tomlj.")
-                || target.startsWith("tools.jackson.")
+                || target.startsWith("org.apache.fory.")
                 || target.startsWith("javax.xml.")
                 || target.startsWith("org.w3c.dom."));
   }
@@ -100,7 +100,7 @@ class ArchitectureBoundaryTest {
                 || target.startsWith("org.springframework.")
                 || isInnerLayerExternalEffectApi(target)
                 || target.startsWith("org.tomlj.")
-                || target.startsWith("tools.jackson.")
+                || target.startsWith("org.apache.fory.")
                 || target.startsWith("javax.xml.")
                 || target.startsWith("org.w3c.dom."));
   }

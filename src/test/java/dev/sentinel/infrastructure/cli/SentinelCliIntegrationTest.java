@@ -2,6 +2,7 @@ package dev.sentinel.infrastructure.cli;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import dev.sentinel.JsonTree;
 import dev.sentinel.application.agent.IntegrationService;
 import dev.sentinel.application.init.InitService;
 import dev.sentinel.application.init.InitSetupCatalog;
@@ -35,8 +36,6 @@ import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.io.TempDir;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.json.JsonMapper;
 
 /**
  * End to end: real Dagger wiring, real process execution, against a small Maven project fixture.
@@ -148,8 +147,7 @@ class SentinelCliIntegrationTest {
     out.getBuffer().setLength(0);
 
     assertThat(run("check", "--format", "json", "-C", project.toString())).isZero();
-    assertThat(JsonMapper.builder().build().readTree(out.toString()).get("status").asString())
-        .isEqualTo("PASSED");
+    assertThat(JsonTree.parse(out.toString()).get("status").asString()).isEqualTo("PASSED");
     assertThat(out.toString()).doesNotContain("Sentinel", "✓", "…", "\\u001b");
   }
 
@@ -230,8 +228,7 @@ class SentinelCliIntegrationTest {
     int exit = run("check", "--format", "json", "-C", project.toString());
 
     assertThat(exit).isEqualTo(ExitCodes.FAILED);
-    JsonNode json =
-        JsonMapper.builder().build().readTree(out.toString()); // fails on any extra text
+    JsonTree json = JsonTree.parse(out.toString()); // fails on any extra text
     assertThat(json.get("status").asString()).isEqualTo("FAILED");
     assertThat(json.get("checks").get(0).get("exitCode").asInt()).isEqualTo(1);
     assertThat(json.get("checks").get(0).get("stdout").asString()).contains("stub mvnw: test");
@@ -243,8 +240,7 @@ class SentinelCliIntegrationTest {
     int exit = run("check", "--format", "json", "-C", project.toString());
 
     assertThat(exit).isEqualTo(ExitCodes.ERROR);
-    assertThat(JsonMapper.builder().build().readTree(out.toString()).get("status").asString())
-        .isEqualTo("ERROR");
+    assertThat(JsonTree.parse(out.toString()).get("status").asString()).isEqualTo("ERROR");
     assertThat(err.toString()).contains("sentinel init");
   }
 
@@ -554,8 +550,8 @@ class SentinelCliIntegrationTest {
     int exit = run("check", "--format", "json", "-C", project.toString());
 
     assertThat(exit).isNotZero();
-    JsonNode json = JsonMapper.builder().build().readTree(out.toString());
-    assertThat(json.get("checks")).hasSize(3);
+    JsonTree json = JsonTree.parse(out.toString());
+    assertThat(json.get("checks").size()).isEqualTo(3);
     assertThat(json.get("checks").get(0).get("name").asString()).isEqualTo("gitleaks");
     assertThat(json.get("checks").get(0).get("status").asString()).isNotEqualTo("PASSED");
     assertThat(json.get("checks").get(1).get("name").asString()).isEqualTo("format");
@@ -588,7 +584,7 @@ class SentinelCliIntegrationTest {
     out.getBuffer().setLength(0);
     assertThat(run("check", "--fail-fast", "--format", "json", "-C", project.toString()))
         .isEqualTo(ExitCodes.FAILED);
-    JsonNode json = JsonMapper.builder().build().readTree(out.toString());
+    JsonTree json = JsonTree.parse(out.toString());
     assertThat(json.get("failFast").asBoolean()).isTrue();
     assertThat(json.get("checks").get(1).get("status").asString()).isEqualTo("SKIPPED");
     assertThat(json.get("checks").get(1).get("command").asString()).isEmpty();
@@ -598,7 +594,7 @@ class SentinelCliIntegrationTest {
     out.getBuffer().setLength(0);
     assertThat(run("check", "--format", "json", "-C", project.toString()))
         .isEqualTo(ExitCodes.FAILED);
-    json = JsonMapper.builder().build().readTree(out.toString());
+    json = JsonTree.parse(out.toString());
     assertThat(json.get("failFast").asBoolean()).isFalse();
     assertThat(json.get("checks").get(1).get("status").asString()).isEqualTo("FAILED");
   }
@@ -616,8 +612,7 @@ class SentinelCliIntegrationTest {
     int exit = run("check", "--format", "json", "-C", project.toString());
 
     assertThat(exit).isEqualTo(ExitCodes.ERROR);
-    assertThat(JsonMapper.builder().build().readTree(out.toString()).get("status").asString())
-        .isEqualTo("ERROR");
+    assertThat(JsonTree.parse(out.toString()).get("status").asString()).isEqualTo("ERROR");
     assertThat(err.toString()).contains("requires an explicit target");
   }
 
@@ -682,8 +677,7 @@ class SentinelCliIntegrationTest {
     out.getBuffer().setLength(0);
     assertThat(run("check", "--format", "json", "--learn-after", "2", "-C", project.toString()))
         .isEqualTo(ExitCodes.OK);
-    assertThat(JsonMapper.builder().build().readTree(out.toString()).get("learning").get("prompts"))
-        .isEmpty();
+    assertThat(JsonTree.parse(out.toString()).get("learning").get("prompts").size()).isZero();
 
     fail();
     out.getBuffer().setLength(0);
@@ -694,18 +688,15 @@ class SentinelCliIntegrationTest {
     out.getBuffer().setLength(0);
     assertThat(run("check", "--format", "json", "--learn-after", "2", "-C", project.toString()))
         .isEqualTo(ExitCodes.OK);
-    JsonNode root = JsonMapper.builder().build().readTree(out.toString());
+    JsonTree root = JsonTree.parse(out.toString());
     assertThat(root.get("status").asString()).isEqualTo("PASSED");
-    JsonNode prompt = root.get("learning").get("prompts");
-    assertThat(prompt).hasSize(1);
+    JsonTree prompt = root.get("learning").get("prompts");
+    assertThat(prompt.size()).isEqualTo(1);
     assertThat(prompt.get(0).get("gate").asString()).isEqualTo("tests");
     assertThat(prompt.get(0).get("occurrences").asInt()).isEqualTo(2);
     assertThat(prompt.get(0).get("instruction").asString()).contains("AGENTS.md");
 
-    JsonNode ledger =
-        JsonMapper.builder()
-            .build()
-            .readTree(Files.readString(project.resolve(".sentinel/learning.json")));
+    JsonTree ledger = JsonTree.parse(Files.readString(project.resolve(".sentinel/learning.json")));
     assertThat(ledger.get("formatVersion").asInt()).isEqualTo(1);
     assertThat(ledger.get("records").get("tests:FAILED").get("occurrences").asInt()).isEqualTo(2);
     assertThat(ledger.get("records").get("tests:FAILED").get("prompted").asBoolean()).isTrue();
@@ -764,7 +755,7 @@ class SentinelCliIntegrationTest {
 
     assertThat(run("hook", "claude-code", "--learn-after", "1", "-C", project.toString()))
         .isEqualTo(ExitCodes.OK);
-    JsonNode hook = JsonMapper.builder().build().readTree(out.toString());
+    JsonTree hook = JsonTree.parse(out.toString());
     assertThat(hook.get("hookSpecificOutput").get("hookEventName").asString())
         .isEqualTo("PostToolUse");
     String context = hook.get("hookSpecificOutput").get("additionalContext").asString();

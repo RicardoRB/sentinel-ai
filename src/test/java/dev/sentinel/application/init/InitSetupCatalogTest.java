@@ -7,6 +7,8 @@ import dev.sentinel.TestProjects;
 import dev.sentinel.application.gate.QualityGateFactory;
 import dev.sentinel.application.project.ProjectDetector;
 import dev.sentinel.domain.config.SentinelException;
+import dev.sentinel.domain.doctor.EnvironmentFacts;
+import dev.sentinel.domain.doctor.EnvironmentInspection;
 import dev.sentinel.domain.init.InitGateOption;
 import dev.sentinel.domain.init.InitIntegrationOption;
 import dev.sentinel.domain.project.Project;
@@ -14,6 +16,8 @@ import dev.sentinel.infrastructure.doctor.SystemEnvironmentInspection;
 import dev.sentinel.infrastructure.project.FileSystemProjectInspection;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -70,11 +74,26 @@ class InitSetupCatalogTest {
     Project project =
         new ProjectDetector(new FileSystemProjectInspection()).detect(dir).orElseThrow();
 
-    InitGateOption option =
-        new InitSetupCatalog(new SystemEnvironmentInspection()).gate(project, "tests");
+    InitGateOption option = new InitSetupCatalog(withExecutables()).gate(project, "tests");
 
     assertThat(option.available()).isFalse();
     assertThat(option.availabilityMessage()).contains("Maven is unavailable");
+  }
+
+  @Test
+  void reportsSystemMavenWhenWrapperIsMissing(@TempDir Path dir) throws Exception {
+    TestProjects.withPom(dir, TestProjects.PLAIN_POM);
+    Project project =
+        new ProjectDetector(new FileSystemProjectInspection()).detect(dir).orElseThrow();
+
+    InitGateOption option = new InitSetupCatalog(withExecutables("mvn")).gate(project, "tests");
+
+    assertThat(option.available()).isTrue();
+    assertThat(option.availabilityMessage()).contains("Maven command available: mvn");
+  }
+
+  private static EnvironmentInspection withExecutables(String... executables) {
+    return root -> new EnvironmentFacts(Set.of(executables), Map.of());
   }
 
   @Test

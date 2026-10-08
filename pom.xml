@@ -16,7 +16,6 @@
         <tomlj.version>2.2.0</tomlj.version>
         <dagger.version>2.56.2</dagger.version>
         <javax.inject.version>1</javax.inject.version>
-        <jackson.version>3.0.3</jackson.version>
         <fory.version>1.7.6</fory.version>
         <junit.version>6.0.3</junit.version>
         <assertj.version>3.27.6</assertj.version>
@@ -42,11 +41,6 @@
             <groupId>org.tomlj</groupId>
             <artifactId>tomlj</artifactId>
             <version>${tomlj.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>tools.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-            <version>${jackson.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.fory</groupId>

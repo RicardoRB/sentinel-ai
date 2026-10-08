@@ -2,6 +2,7 @@ package dev.sentinel.infrastructure.cli.gate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import dev.sentinel.JsonTree;
 import dev.sentinel.domain.gate.CheckReport;
 import dev.sentinel.domain.gate.GateResult;
 import dev.sentinel.domain.gate.GateStatus;
@@ -15,8 +16,6 @@ import java.time.Duration;
 import java.util.List;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.json.JsonMapper;
 
 class ReportRendererTest {
 
@@ -43,12 +42,12 @@ class ReportRendererTest {
         new JsonReportRenderer(new ForyJsonCodec())
             .render(report(GateStatus.FAILED, "line \"1\"\n", "err"));
 
-    JsonNode root = JsonMapper.builder().build().readTree(json);
+    JsonTree root = JsonTree.parse(json);
     assertThat(root.get("status").asString()).isEqualTo("FAILED");
     assertThat(root.get("project").get("language").asString()).isEqualTo("JAVA");
     assertThat(root.get("project").get("buildTool").asString()).isEqualTo("MAVEN");
     assertThat(root.get("project").get("framework").asString()).isEqualTo("SPRING_BOOT");
-    JsonNode check = root.get("checks").get(0);
+    JsonTree check = root.get("checks").get(0);
     assertThat(check.get("name").asString()).isEqualTo("tests");
     assertThat(check.get("status").asString()).isEqualTo("FAILED");
     assertThat(check.get("command").asString()).isEqualTo("./mvnw test");
@@ -60,10 +59,7 @@ class ReportRendererTest {
 
   @Test
   void jsonErrorDocument() {
-    JsonNode root =
-        JsonMapper.builder()
-            .build()
-            .readTree(new JsonReportRenderer(new ForyJsonCodec()).renderError("nope"));
+    JsonTree root = JsonTree.parse(new JsonReportRenderer(new ForyJsonCodec()).renderError("nope"));
 
     assertThat(root.get("status").asString()).isEqualTo("ERROR");
     assertThat(root.get("error").asString()).isEqualTo("nope");
