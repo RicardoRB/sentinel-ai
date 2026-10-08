@@ -23,12 +23,12 @@ public final class DoctorService {
   private final EnvironmentInspection environment;
 
   @Inject
-  public DoctorService(ProjectDetector detector, EnvironmentInspection environment) {
+  public DoctorService(final ProjectDetector detector, final EnvironmentInspection environment) {
     this.detector = detector;
     this.environment = environment;
   }
 
-  public List<Finding> diagnose(Path start) {
+  public List<Finding> diagnose(final Path start) {
     final List<Finding> findings = new ArrayList<>();
     final Optional<Project> project = detector.detect(start);
     if (project.isEmpty()) {

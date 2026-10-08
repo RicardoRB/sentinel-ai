@@ -16,7 +16,7 @@ public final class JdkTerminalCapabilities implements TerminalCapabilities {
         System.getenv("TERM"));
   }
 
-  JdkTerminalCapabilities(boolean consoleTerminal, String noColor, String term) {
+  JdkTerminalCapabilities(final boolean consoleTerminal, final String noColor, final String term) {
     this.consoleTerminal = consoleTerminal;
     this.noColor = noColor;
     this.term = term;

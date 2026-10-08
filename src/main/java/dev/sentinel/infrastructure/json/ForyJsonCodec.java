@@ -14,17 +14,17 @@ public final class ForyJsonCodec implements JsonCodec {
   }
 
   @Override
-  public String toJson(Object value) {
+  public String toJson(final Object value) {
     return json.toJson(value);
   }
 
   @Override
-  public String toPrettyJson(Object value) {
+  public String toPrettyJson(final Object value) {
     return json.toPrettyJson(value);
   }
 
   @Override
-  public <T> T fromJson(String source, Class<T> type) {
+  public <T> T fromJson(final String source, final Class<T> type) {
     return json.fromJson(source, type);
   }
 }

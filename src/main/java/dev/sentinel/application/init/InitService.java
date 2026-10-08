@@ -46,12 +46,12 @@ public class InitService {
       justification =
           "The constructor-injected storage port is retained for use-case orchestration.")
   public InitService(
-      ProjectDetector detector,
-      Set<AgentIntegration> integrations,
-      InitSetupCatalog catalog,
-      BuildToolConfiguration pomTools,
-      ArchitectureTestGeneration architectureTests,
-      ConfigurationStorage configurationStorage) {
+      final ProjectDetector detector,
+      final Set<AgentIntegration> integrations,
+      final InitSetupCatalog catalog,
+      final BuildToolConfiguration pomTools,
+      final ArchitectureTestGeneration architectureTests,
+      final ConfigurationStorage configurationStorage) {
     this.detector = detector;
     this.integrations = Set.copyOf(integrations);
     this.catalog = catalog;
@@ -60,17 +60,17 @@ public class InitService {
     this.configurationStorage = configurationStorage;
   }
 
-  public InitResult init(Path start) {
+  public InitResult init(final Path start) {
     final Project project = project(start);
     final Path file = project.root().resolve(SentinelConfiguration.FILE_NAME);
     return new InitResult(file, configurationStorage.create(file, DEFAULT_CONFIGURATION));
   }
 
-  public Project project(Path start) {
+  public Project project(final Path start) {
     return detector.detect(start).orElseThrow(ProjectNotFoundException::new);
   }
 
-  public boolean configurationExists(Project project) {
+  public boolean configurationExists(final Project project) {
     return configurationStorage.exists(project.root().resolve(SentinelConfiguration.FILE_NAME));
   }
 
@@ -78,11 +78,12 @@ public class InitService {
     return catalog;
   }
 
-  public InitResult initialize(Path start, InitSelection selection) {
+  public InitResult initialize(final Path start, final InitSelection selection) {
     return initialize(start, selection, false);
   }
 
-  public InitResult initialize(Path start, InitSelection selection, boolean overwrite) {
+  public InitResult initialize(
+      final Path start, final InitSelection selection, final boolean overwrite) {
     final Project project = project(start);
     validateIntegrations(selection.integrations());
     final List<InitGateOption> gates =
@@ -149,12 +150,12 @@ public class InitService {
   }
 
   private InitResult writeConfiguration(
-      Project project,
-      List<InitGateOption> gates,
-      List<IntegrationResult> integrations,
-      List<String> pomChanges,
-      ArchitectureTestChange architectureTest,
-      boolean overwrite) {
+      final Project project,
+      final List<InitGateOption> gates,
+      final List<IntegrationResult> integrations,
+      final List<String> pomChanges,
+      final ArchitectureTestChange architectureTest,
+      final boolean overwrite) {
     final Path file = project.root().resolve(SentinelConfiguration.FILE_NAME);
     final String content = configuration(gates);
     if (overwrite) {
@@ -165,7 +166,7 @@ public class InitService {
     return new InitResult(file, created, false, gates, integrations, pomChanges, architectureTest);
   }
 
-  private IntegrationResult installIntegration(Path root, String id) {
+  private IntegrationResult installIntegration(final Path root, final String id) {
     if (integrations.isEmpty()) {
       throw new SentinelException("Agent integrations are unavailable in this runtime.");
     }
@@ -173,7 +174,7 @@ public class InitService {
   }
 
   private void rollbackNewIntegrations(
-      Path root, List<String> ids, List<IntegrationResult> results) {
+      final Path root, final List<String> ids, final List<IntegrationResult> results) {
     for (int i = 0; i < Math.min(ids.size(), results.size()); i++) {
       if (results.get(i).status() != IntegrationResult.Status.CHANGED) {
         continue;
@@ -186,7 +187,7 @@ public class InitService {
     }
   }
 
-  private AgentIntegration integration(String id) {
+  private AgentIntegration integration(final String id) {
     return integrations.stream()
         .filter(candidate -> candidate.id().equals(id))
         .findFirst()
@@ -196,7 +197,7 @@ public class InitService {
                     "Unknown agent '" + id + "'. Supported agents: opencode, claude-code"));
   }
 
-  private void validateIntegrations(List<String> ids) {
+  private void validateIntegrations(final List<String> ids) {
     if (ids.isEmpty()) {
       throw new SentinelException("Select at least one integration, or choose none.");
     }
@@ -208,11 +209,11 @@ public class InitService {
     ids.forEach(catalog::integration);
   }
 
-  private static boolean requiresArchitectureTest(List<InitGateOption> gates) {
+  private static boolean requiresArchitectureTest(final List<InitGateOption> gates) {
     return gates.stream().anyMatch(gate -> "archunit".equals(gate.id()));
   }
 
-  private static String configuration(List<InitGateOption> gates) {
+  private static String configuration(final List<InitGateOption> gates) {
     final StringBuilder content = new StringBuilder("version = 1\n");
     for (final InitGateOption gate : gates) {
       final String executable =

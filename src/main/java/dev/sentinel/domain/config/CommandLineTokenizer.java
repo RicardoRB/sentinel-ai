@@ -14,7 +14,7 @@ public final class CommandLineTokenizer {
 
   private CommandLineTokenizer() {}
 
-  public static List<String> tokenize(String commandLine) {
+  public static List<String> tokenize(final String commandLine) {
     final List<String> tokens = new ArrayList<>();
     final StringBuilder current = new StringBuilder();
     boolean inToken = false;

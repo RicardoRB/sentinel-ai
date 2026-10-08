@@ -21,7 +21,7 @@ class ProjectDetectorTest {
   private final ProjectDetector detector = new ProjectDetector(new FileSystemProjectInspection());
 
   @Test
-  void detectsMavenJavaProject(@TempDir Path dir) {
+  void detectsMavenJavaProject(final @TempDir Path dir) {
     withPom(dir, PLAIN_POM);
 
     final Project project = detector.detect(dir).orElseThrow();
@@ -33,7 +33,7 @@ class ProjectDetectorTest {
   }
 
   @Test
-  void detectsSpringBoot(@TempDir Path dir) {
+  void detectsSpringBoot(final @TempDir Path dir) {
     withPom(dir, SPRING_BOOT_POM);
 
     assertThat(detector.detect(dir))
@@ -43,7 +43,7 @@ class ProjectDetectorTest {
   }
 
   @Test
-  void detectsSpringBootFromDependencyWithoutParent(@TempDir Path dir) {
+  void detectsSpringBootFromDependencyWithoutParent(final @TempDir Path dir) {
     withPom(
         dir,
         """
@@ -59,7 +59,7 @@ class ProjectDetectorTest {
   }
 
   @Test
-  void findsProjectRootFromSubdirectory(@TempDir Path dir) throws Exception {
+  void findsProjectRootFromSubdirectory(@TempDir final Path dir) throws Exception {
     withPom(dir, PLAIN_POM);
     final Path sub = Files.createDirectories(dir.resolve("src/main/java"));
 
@@ -70,14 +70,14 @@ class ProjectDetectorTest {
   }
 
   @Test
-  void stillMavenWhenPomIsMalformed(@TempDir Path dir) {
+  void stillMavenWhenPomIsMalformed(final @TempDir Path dir) {
     withPom(dir, "<project><unclosed>");
 
     assertThat(detector.detect(dir)).get().extracting(Project::framework).isEqualTo(Framework.NONE);
   }
 
   @Test
-  void rejectsPomWithDoctype(@TempDir Path dir) {
+  void rejectsPomWithDoctype(final @TempDir Path dir) {
     withPom(
         dir,
         "<!DOCTYPE project [<!ENTITY x SYSTEM \"file:///etc/passwd\">]><project>&x;</project>");
@@ -86,7 +86,7 @@ class ProjectDetectorTest {
   }
 
   @Test
-  void unsupportedProjectIsNotDetected(@TempDir Path dir) throws Exception {
+  void unsupportedProjectIsNotDetected(final @TempDir Path dir) throws Exception {
     Files.writeString(dir.resolve("package.json"), "{}");
     Files.writeString(dir.resolve("build.gradle"), "");
 

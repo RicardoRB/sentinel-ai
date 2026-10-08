@@ -21,29 +21,30 @@ public record GateResult(
   }
 
   public GateResult(
-      String name,
-      GateStatus status,
-      List<String> command,
-      int exitCode,
-      Duration duration,
-      String stdout,
-      String stderr,
-      String summary) {
+      final String name,
+      final GateStatus status,
+      final List<String> command,
+      final int exitCode,
+      final Duration duration,
+      final String stdout,
+      final String stderr,
+      final String summary) {
     this(name, status, command, exitCode, duration, stdout, stderr, summary, null, null);
   }
 
   public GateResult(
-      String name,
-      GateStatus status,
-      List<String> command,
-      int exitCode,
-      Duration duration,
-      String stdout,
-      String stderr) {
+      final String name,
+      final GateStatus status,
+      final List<String> command,
+      final int exitCode,
+      final Duration duration,
+      final String stdout,
+      final String stderr) {
     this(name, status, command, exitCode, duration, stdout, stderr, null);
   }
 
-  public static GateResult from(String name, List<String> command, CommandResult result) {
+  public static GateResult from(
+      final String name, final List<String> command, final CommandResult result) {
     final GateStatus status =
         result.hasExecutionError() && result.exitCode() == -1
             ? GateStatus.UNAVAILABLE

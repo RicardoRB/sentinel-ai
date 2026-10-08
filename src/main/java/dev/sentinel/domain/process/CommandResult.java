@@ -4,7 +4,8 @@ import java.time.Duration;
 
 public record CommandResult(
     int exitCode, String stdout, String stderr, Duration duration, String executionError) {
-  public CommandResult(int exitCode, String stdout, String stderr, Duration duration) {
+  public CommandResult(
+      final int exitCode, final String stdout, final String stderr, final Duration duration) {
     this(exitCode, stdout, stderr, duration, null);
   }
 

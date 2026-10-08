@@ -9,15 +9,15 @@ public record InitSelection(List<String> integrations, List<String> gates, Strin
     gates = List.copyOf(gates);
   }
 
-  public InitSelection(String integration, String gate) {
+  public InitSelection(final String integration, final String gate) {
     this(List.of(integration), List.of(gate), null);
   }
 
-  public InitSelection(List<String> integrations, String gate) {
+  public InitSelection(final List<String> integrations, final String gate) {
     this(integrations, List.of(gate), null);
   }
 
-  public InitSelection(List<String> integrations, List<String> gates) {
+  public InitSelection(final List<String> integrations, final List<String> gates) {
     this(integrations, gates, null);
   }
 }

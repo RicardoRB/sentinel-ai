@@ -22,7 +22,7 @@ public final class PosixRawTerminal implements RawTerminal {
     this(System.getProperty("os.name", ""));
   }
 
-  PosixRawTerminal(String osName) {
+  PosixRawTerminal(final String osName) {
     final String os = osName.toLowerCase(Locale.ROOT);
     Layout detected =
         os.contains("mac") || os.contains("darwin")
@@ -114,7 +114,10 @@ public final class PosixRawTerminal implements RawTerminal {
   }
 
   private static MethodHandle downcall(
-      Linker linker, String name, MethodType type, FunctionDescriptor descriptor) {
+      final Linker linker,
+      final String name,
+      final MethodType type,
+      final FunctionDescriptor descriptor) {
     final MethodHandle handle =
         linker.downcallHandle(
             Linker.nativeLinker().defaultLookup().find(name).orElseThrow(), descriptor);
@@ -132,7 +135,11 @@ public final class PosixRawTerminal implements RawTerminal {
     private final MemorySegment byteBuffer;
     private boolean closed;
 
-    Session(Arena arena, byte[] savedAttributes, MethodHandle read, MethodHandle tcsetattr) {
+    Session(
+        final Arena arena,
+        final byte[] savedAttributes,
+        final MethodHandle read,
+        final MethodHandle tcsetattr) {
       this.arena = arena;
       this.savedAttributes = savedAttributes;
       this.read = read;
@@ -179,7 +186,7 @@ public final class PosixRawTerminal implements RawTerminal {
 
     @SuppressWarnings("PMD.AvoidCatchingThrowable")
     private static void restoreAttributes(
-        Arena targetArena, byte[] savedAttributes, MethodHandle tcsetattr) {
+        final Arena targetArena, final byte[] savedAttributes, final MethodHandle tcsetattr) {
       final MemorySegment saved = targetArena.allocate(savedAttributes.length);
       saved.copyFrom(MemorySegment.ofArray(savedAttributes));
       try {

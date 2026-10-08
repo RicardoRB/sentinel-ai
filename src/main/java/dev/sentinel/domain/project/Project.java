@@ -8,7 +8,11 @@ public record Project(
     BuildTool buildTool,
     Framework framework,
     boolean mavenWrapperAvailable) {
-  public Project(Path root, Language language, BuildTool buildTool, Framework framework) {
+  public Project(
+      final Path root,
+      final Language language,
+      final BuildTool buildTool,
+      final Framework framework) {
     this(root, language, buildTool, framework, false);
   }
 }

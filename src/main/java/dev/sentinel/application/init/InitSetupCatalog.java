@@ -17,7 +17,7 @@ public final class InitSetupCatalog {
   private final EnvironmentInspection environment;
 
   @Inject
-  public InitSetupCatalog(EnvironmentInspection environment) {
+  public InitSetupCatalog(final EnvironmentInspection environment) {
     this.environment = environment;
   }
 
@@ -35,7 +35,7 @@ public final class InitSetupCatalog {
         new InitArchitectureOption("clean", "Clean (domain isolated from outer layers)"));
   }
 
-  public InitArchitectureOption architecture(String id) {
+  public InitArchitectureOption architecture(final String id) {
     return architectures().stream()
         .filter(option -> option.id().equals(id))
         .findFirst()
@@ -47,7 +47,7 @@ public final class InitSetupCatalog {
                         + "'. Supported architectures: layered, hexagonal, clean"));
   }
 
-  public List<InitGateOption> gates(Project project) {
+  public List<InitGateOption> gates(final Project project) {
     final String executable = project.mavenWrapperAvailable() ? "./mvnw" : "mvn";
     final boolean mavenAvailable =
         project.mavenWrapperAvailable() || environment.inspect(project.root()).hasExecutable("mvn");
@@ -202,7 +202,7 @@ public final class InitSetupCatalog {
     return List.copyOf(options);
   }
 
-  public InitIntegrationOption integration(String id) {
+  public InitIntegrationOption integration(final String id) {
     return integrations().stream()
         .filter(option -> option.id().equals(id))
         .findFirst()
@@ -214,7 +214,7 @@ public final class InitSetupCatalog {
                         + "'. Supported integrations: none, opencode, claude-code"));
   }
 
-  public InitGateOption gate(Project project, String id) {
+  public InitGateOption gate(final Project project, final String id) {
     return gates(project).stream()
         .filter(option -> option.id().equals(id))
         .findFirst()
@@ -228,7 +228,11 @@ public final class InitSetupCatalog {
   }
 
   private InitGateOption binaryOption(
-      Project project, String id, String description, List<String> command, String hint) {
+      final Project project,
+      final String id,
+      final String description,
+      final List<String> command,
+      final String hint) {
     final boolean available = environment.inspect(project.root()).hasExecutable(command.getFirst());
     final String message =
         available
@@ -238,23 +242,23 @@ public final class InitSetupCatalog {
   }
 
   private static InitGateOption option(
-      String id,
-      String description,
-      String executable,
-      String goal,
-      boolean available,
-      String message) {
+      final String id,
+      final String description,
+      final String executable,
+      final String goal,
+      final boolean available,
+      final String message) {
     return new InitGateOption(id, description, List.of(executable, goal), available, message);
   }
 
   private static InitGateOption option(
-      String id,
-      String description,
-      String executable,
-      String firstGoal,
-      String secondGoal,
-      boolean available,
-      String message) {
+      final String id,
+      final String description,
+      final String executable,
+      final String firstGoal,
+      final String secondGoal,
+      final boolean available,
+      final String message) {
     return new InitGateOption(
         id, description, List.of(executable, firstGoal, secondGoal), available, message);
   }

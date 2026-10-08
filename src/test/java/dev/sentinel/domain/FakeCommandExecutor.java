@@ -13,12 +13,12 @@ public class FakeCommandExecutor implements CommandExecutor {
   public final List<Path> workingDirectories = new ArrayList<>();
   private final CommandResult result;
 
-  public FakeCommandExecutor(int exitCode, String stdout, String stderr) {
+  public FakeCommandExecutor(final int exitCode, final String stdout, final String stderr) {
     this.result = new CommandResult(exitCode, stdout, stderr, Duration.ofMillis(1234));
   }
 
   @Override
-  public CommandResult execute(List<String> command, Path workingDirectory) {
+  public CommandResult execute(final List<String> command, final Path workingDirectory) {
     commands.add(command);
     workingDirectories.add(workingDirectory);
     return result;

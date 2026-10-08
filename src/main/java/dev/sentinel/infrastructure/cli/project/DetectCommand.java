@@ -28,7 +28,7 @@ public class DetectCommand implements Callable<Integer> {
   private final ProjectDetector detector;
 
   @Inject
-  public DetectCommand(ProjectDetector detector) {
+  public DetectCommand(final ProjectDetector detector) {
     this.detector = detector;
   }
 

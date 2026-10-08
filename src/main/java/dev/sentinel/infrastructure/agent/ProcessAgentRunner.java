@@ -15,7 +15,8 @@ public final class ProcessAgentRunner implements AgentRunner {
   private final Path root;
   private final List<String> command;
 
-  public ProcessAgentRunner(CommandExecutor executor, Path root, List<String> command) {
+  public ProcessAgentRunner(
+      final CommandExecutor executor, final Path root, final List<String> command) {
     this.executor = executor;
     this.root = root;
     this.command = List.copyOf(command);
@@ -27,7 +28,7 @@ public final class ProcessAgentRunner implements AgentRunner {
   }
 
   @Override
-  public AgentResult run(AgentRequest request) {
+  public AgentResult run(final AgentRequest request) {
     final List<String> args = new ArrayList<>(command);
     args.add(request.task());
     final CommandResult result = executor.execute(args, root);

@@ -12,7 +12,7 @@ public record GateConfiguration(boolean enabled, List<String> command, Set<Strin
     profiles = Collections.unmodifiableSet(new LinkedHashSet<>(profiles));
   }
 
-  public GateConfiguration(boolean enabled, List<String> command) {
+  public GateConfiguration(final boolean enabled, final List<String> command) {
     this(enabled, command, Set.of(SentinelConfiguration.DEFAULT_PROFILE));
   }
 }

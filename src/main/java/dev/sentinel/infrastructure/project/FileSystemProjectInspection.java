@@ -30,7 +30,7 @@ public final class FileSystemProjectInspection implements ProjectInspection {
   public FileSystemProjectInspection() {}
 
   @Override
-  public Optional<Project> detect(Path start) {
+  public Optional<Project> detect(final Path start) {
     for (Path dir = start.toAbsolutePath().normalize(); dir != null; dir = dir.getParent()) {
       final Path pom = dir.resolve(POM);
       if (Files.isRegularFile(pom)) {
@@ -47,7 +47,7 @@ public final class FileSystemProjectInspection implements ProjectInspection {
   }
 
   @Override
-  public List<Project> discover(Path start) {
+  public List<Project> discover(final Path start) {
     Path root = start.toAbsolutePath().normalize();
     Path candidate = root;
     Path parent;
@@ -72,7 +72,7 @@ public final class FileSystemProjectInspection implements ProjectInspection {
         .toList();
   }
 
-  private static void addMarkers(Path dir, List<Project> projects) {
+  private static void addMarkers(final Path dir, final List<Project> projects) {
     if (Files.isRegularFile(dir.resolve(POM))) {
       projects.add(
           new Project(
@@ -118,7 +118,7 @@ public final class FileSystemProjectInspection implements ProjectInspection {
     }
   }
 
-  private static BuildTool tool(Path dir) {
+  private static BuildTool tool(final Path dir) {
     if (Files.isRegularFile(dir.resolve("pnpm-lock.yaml"))) {
       return BuildTool.PNPM;
     }
@@ -129,7 +129,7 @@ public final class FileSystemProjectInspection implements ProjectInspection {
   }
 
   /** Spring Boot is detected when the POM references any org.springframework.boot groupId. */
-  private static Framework detectFramework(Path pom) {
+  private static Framework detectFramework(final Path pom) {
     try {
       final DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
       factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);

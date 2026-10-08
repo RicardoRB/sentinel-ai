@@ -65,10 +65,10 @@ public class CheckCommand implements Callable<Integer> {
 
   @Inject
   public CheckCommand(
-      CheckService service,
-      TextReportRenderer textRenderer,
-      JsonReportRenderer jsonRenderer,
-      LearningService learningService) {
+      final CheckService service,
+      final TextReportRenderer textRenderer,
+      final JsonReportRenderer jsonRenderer,
+      final LearningService learningService) {
     this.service = service;
     this.textRenderer = textRenderer;
     this.jsonRenderer = jsonRenderer;

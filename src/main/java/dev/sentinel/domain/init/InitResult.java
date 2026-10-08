@@ -19,24 +19,24 @@ public record InitResult(
     pomChanges = pomChanges == null ? List.of() : List.copyOf(pomChanges);
   }
 
-  public InitResult(Path file, boolean created) {
+  public InitResult(final Path file, final boolean created) {
     this(file, created, false, List.of(), List.of(), List.of(), null);
   }
 
   public InitResult(
-      Path file,
-      boolean created,
-      List<InitGateOption> gates,
-      List<IntegrationResult> integrations) {
+      final Path file,
+      final boolean created,
+      final List<InitGateOption> gates,
+      final List<IntegrationResult> integrations) {
     this(file, created, false, gates, integrations, List.of(), null);
   }
 
   public InitResult(
-      Path file,
-      boolean created,
-      List<InitGateOption> gates,
-      List<IntegrationResult> integrations,
-      List<String> pomChanges) {
+      final Path file,
+      final boolean created,
+      final List<InitGateOption> gates,
+      final List<IntegrationResult> integrations,
+      final List<String> pomChanges) {
     this(file, created, false, gates, integrations, pomChanges, null);
   }
 }

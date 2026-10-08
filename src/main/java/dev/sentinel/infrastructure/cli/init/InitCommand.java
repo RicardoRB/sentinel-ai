@@ -76,20 +76,21 @@ public class InitCommand implements Callable<Integer> {
   private final BufferedReader reader;
   private final RawTerminal rawTerminal;
 
-  public InitCommand(InitService service) {
+  public InitCommand(final InitService service) {
     this(service, System.in, UNAVAILABLE_TERMINAL);
   }
 
-  public InitCommand(InitService service, InputStream input) {
+  public InitCommand(final InitService service, final InputStream input) {
     this(service, input, UNAVAILABLE_TERMINAL);
   }
 
   @Inject
-  public InitCommand(InitService service, RawTerminal rawTerminal) {
+  public InitCommand(final InitService service, final RawTerminal rawTerminal) {
     this(service, System.in, rawTerminal);
   }
 
-  public InitCommand(InitService service, InputStream input, RawTerminal rawTerminal) {
+  public InitCommand(
+      final InitService service, final InputStream input, final RawTerminal rawTerminal) {
     this.service = () -> service;
     this.input = input;
     this.reader = new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8));
@@ -141,7 +142,7 @@ public class InitCommand implements Callable<Integer> {
     return printResult(result);
   }
 
-  private List<String> selectIntegrations(InitSetupCatalog catalog) {
+  private List<String> selectIntegrations(final InitSetupCatalog catalog) {
     final List<InitIntegrationOption> choices = catalog.integrations();
     final Optional<RawSession> raw = openRawTerminal();
     if (raw.isPresent()) {
@@ -168,7 +169,7 @@ public class InitCommand implements Callable<Integer> {
     return readIntegrationChoices(choices);
   }
 
-  private boolean confirmOverwrite(Path file) {
+  private boolean confirmOverwrite(final Path file) {
     output().print(file + " already exists. Overwrite it? [y/N]: ");
     output().flush();
     try {
@@ -184,7 +185,7 @@ public class InitCommand implements Callable<Integer> {
     }
   }
 
-  private List<String> selectGates(InitSetupCatalog catalog, Project project) {
+  private List<String> selectGates(final InitSetupCatalog catalog, final Project project) {
     final List<InitGateOption> choices = catalog.gates(project);
     final Optional<RawSession> raw = openRawTerminal();
     if (raw.isPresent()) {
@@ -217,7 +218,7 @@ public class InitCommand implements Callable<Integer> {
     return readGateChoices(choices);
   }
 
-  private String selectArchitecture(InitSetupCatalog catalog) {
+  private String selectArchitecture(final InitSetupCatalog catalog) {
     final List<InitArchitectureOption> choices = catalog.architectures();
     output().println("Select an architecture style:");
     for (int i = 0; i < choices.size(); i++) {
@@ -247,11 +248,11 @@ public class InitCommand implements Callable<Integer> {
     }
   }
 
-  private static boolean requiresArchitectureTest(List<String> selectedGates) {
+  private static boolean requiresArchitectureTest(final List<String> selectedGates) {
     return selectedGates.stream().anyMatch("archunit"::equals);
   }
 
-  private List<String> readIntegrationChoices(List<InitIntegrationOption> choices) {
+  private List<String> readIntegrationChoices(final List<InitIntegrationOption> choices) {
     output().print("Toggle integrations with space-separated numbers [1-" + choices.size() + "]: ");
     output().flush();
     try {
@@ -293,7 +294,7 @@ public class InitCommand implements Callable<Integer> {
     }
   }
 
-  private List<String> readGateChoices(List<InitGateOption> choices) {
+  private List<String> readGateChoices(final List<InitGateOption> choices) {
     output()
         .print("Toggle quality gates with space-separated numbers [1-" + choices.size() + "]: ");
     output().flush();
@@ -345,7 +346,7 @@ public class InitCommand implements Callable<Integer> {
     return rawTerminal.open();
   }
 
-  private int printResult(InitResult result) {
+  private int printResult(final InitResult result) {
     if (result.created()) {
       output().println((result.overwritten() ? "Updated " : "Created ") + result.file());
       if (!result.pomChanges().isEmpty()) {

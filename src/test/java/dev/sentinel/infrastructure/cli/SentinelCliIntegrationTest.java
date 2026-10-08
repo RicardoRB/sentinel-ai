@@ -65,7 +65,7 @@ class SentinelCliIntegrationTest {
         project.resolve("mvnw"), PosixFilePermissions.fromString("rwxr-xr-x"));
   }
 
-  private int run(String... args) {
+  private int run(final String... args) {
     final CommandLine cli =
         new CommandLine(component.commands().get(SentinelCommand.class).get(), factory);
     cli.setOut(new PrintWriter(out, true));
@@ -74,7 +74,7 @@ class SentinelCliIntegrationTest {
     return cli.execute(args);
   }
 
-  private int runWithInput(String input, String... args) {
+  private int runWithInput(final String input, final String... args) {
     final IntegrateCommand integrate =
         new IntegrateCommand(
             new IntegrationService(
@@ -97,7 +97,7 @@ class SentinelCliIntegrationTest {
     }
   }
 
-  private int runInitWithInput(String input, String... args) {
+  private int runInitWithInput(final String input, final String... args) {
     final InitCommand init =
         new InitCommand(
             new InitService(
@@ -123,7 +123,7 @@ class SentinelCliIntegrationTest {
   }
 
   @Test
-  void detectOnUnsupportedDirectoryExitsNonZero(@TempDir Path empty) {
+  void detectOnUnsupportedDirectoryExitsNonZero(final @TempDir Path empty) {
     assertThat(run("detect", "-C", empty.toString())).isEqualTo(ExitCodes.FAILED);
     assertThat(out.toString().trim()).isEqualTo("No supported project detected.");
   }
@@ -245,7 +245,7 @@ class SentinelCliIntegrationTest {
   }
 
   @Test
-  void checkOutsideAProjectIsAnError(@TempDir Path empty) {
+  void checkOutsideAProjectIsAnError(final @TempDir Path empty) {
     assertThat(run("check", "-C", empty.toString())).isEqualTo(ExitCodes.ERROR);
     assertThat(err.toString()).contains("No supported project detected.");
   }

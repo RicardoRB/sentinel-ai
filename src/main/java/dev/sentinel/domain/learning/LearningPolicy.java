@@ -13,7 +13,10 @@ public final class LearningPolicy {
   private LearningPolicy() {}
 
   public static LearningOutcome apply(
-      LearningLedger ledger, CheckReport report, int threshold, Instant now) {
+      final LearningLedger ledger,
+      final CheckReport report,
+      final int threshold,
+      final Instant now) {
     if (threshold < 1) {
       throw new IllegalArgumentException("Learning threshold must be at least 1");
     }
@@ -64,11 +67,11 @@ public final class LearningPolicy {
   }
 
   private static void resolve(
-      Map<String, LearningRecord> records,
-      String gate,
-      int threshold,
-      Instant now,
-      List<LearningPrompt> prompts) {
+      final Map<String, LearningRecord> records,
+      final String gate,
+      final int threshold,
+      final Instant now,
+      final List<LearningPrompt> prompts) {
     records.replaceAll(
         (key, record) -> {
           if (!record.gate().equals(gate) || record.state() != LearningState.FAILING) {
@@ -84,14 +87,14 @@ public final class LearningPolicy {
         });
   }
 
-  private static String summary(GateResult result) {
+  private static String summary(final GateResult result) {
     if (result.summary() != null && !result.summary().isBlank()) {
       return result.summary();
     }
     return result.status().name();
   }
 
-  private static String truncate(String value) {
+  private static String truncate(final String value) {
     return value.length() <= 200 ? value : value.substring(0, 200);
   }
 }

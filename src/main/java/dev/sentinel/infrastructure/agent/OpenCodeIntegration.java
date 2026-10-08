@@ -51,7 +51,7 @@ public final class OpenCodeIntegration implements AgentIntegration {
   }
 
   @Override
-  public IntegrationResult integrate(Path projectRoot, boolean remove) {
+  public IntegrationResult integrate(final Path projectRoot, final boolean remove) {
     final Path root = projectRoot.toAbsolutePath().normalize();
     final Path command = root.resolve(COMMAND_FILE);
     final Path plugin = root.resolve(PLUGIN_FILE);
@@ -62,7 +62,7 @@ public final class OpenCodeIntegration implements AgentIntegration {
     }
   }
 
-  private IntegrationResult install(Path command, Path plugin) throws IOException {
+  private IntegrationResult install(final Path command, final Path plugin) throws IOException {
     IntegrationResult conflict = IntegrationArtifacts.preflight(command, MARKER);
     if (conflict != null) {
       return conflict;
@@ -101,7 +101,7 @@ public final class OpenCodeIntegration implements AgentIntegration {
             : "Created Sentinel-owned OpenCode command and edit/write integration (or refreshed it).");
   }
 
-  private IntegrationResult remove(Path command, Path plugin) throws IOException {
+  private IntegrationResult remove(final Path command, final Path plugin) throws IOException {
     IntegrationResult conflict = IntegrationArtifacts.preflight(command, MARKER);
     if (conflict != null) {
       return conflict;
@@ -130,7 +130,7 @@ public final class OpenCodeIntegration implements AgentIntegration {
         IntegrationResult.Status.REMOVED, removed, "Removed Sentinel-owned OpenCode integration.");
   }
 
-  private static void deleteIfEmpty(Path directory) throws IOException {
+  private static void deleteIfEmpty(final Path directory) throws IOException {
     if (directory != null && Files.isDirectory(directory)) {
       try (Stream<Path> entries = Files.list(directory)) {
         if (entries.findAny().isEmpty()) {

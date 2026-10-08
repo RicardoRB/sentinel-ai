@@ -42,11 +42,11 @@ public final class IntegrateCommand implements Callable<Integer> {
   private final InputStream input;
 
   @Inject
-  public IntegrateCommand(IntegrationService service) {
+  public IntegrateCommand(final IntegrationService service) {
     this(service, System.in);
   }
 
-  public IntegrateCommand(IntegrationService service, InputStream input) {
+  public IntegrateCommand(final IntegrationService service, final InputStream input) {
     this.service = service;
     this.input = input;
   }

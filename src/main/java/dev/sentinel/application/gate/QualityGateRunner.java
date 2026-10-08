@@ -18,20 +18,25 @@ public class QualityGateRunner {
   @Inject
   public QualityGateRunner() {}
 
-  public CheckReport run(Project project, List<QualityGate> gates) {
+  public CheckReport run(final Project project, final List<QualityGate> gates) {
     return run(project, gates, CheckProgressListener.NO_OP, false);
   }
 
-  public CheckReport run(Project project, List<QualityGate> gates, CheckProgressListener listener) {
+  public CheckReport run(
+      final Project project, final List<QualityGate> gates, final CheckProgressListener listener) {
     return run(project, gates, listener, false);
   }
 
-  public CheckReport run(Project project, List<QualityGate> gates, boolean failFast) {
+  public CheckReport run(
+      final Project project, final List<QualityGate> gates, final boolean failFast) {
     return run(project, gates, CheckProgressListener.NO_OP, failFast);
   }
 
   public CheckReport run(
-      Project project, List<QualityGate> gates, CheckProgressListener listener, boolean failFast) {
+      final Project project,
+      final List<QualityGate> gates,
+      final CheckProgressListener listener,
+      final boolean failFast) {
     final List<GateResult> results = new ArrayList<>();
     for (int i = 0; i < gates.size(); i++) {
       final QualityGate gate = gates.get(i);

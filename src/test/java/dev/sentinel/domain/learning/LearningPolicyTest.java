@@ -139,7 +139,7 @@ class LearningPolicyTest {
                 "Build broke")));
   }
 
-  private static CheckReport report(GateStatus status, String summary) {
+  private static CheckReport report(final GateStatus status, final String summary) {
     return new CheckReport(
         PROJECT,
         List.of(

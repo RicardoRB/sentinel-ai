@@ -35,7 +35,7 @@ public final class LanguageGateRegistry {
           Language.RUST, List.of("tests", "command", "gitleaks", "semgrep", "trivy"),
           Language.CSHARP, List.of("compile", "tests", "gitleaks", "semgrep", "trivy"));
 
-  public List<String> defaults(Language language) {
+  public List<String> defaults(final Language language) {
     return DEFAULTS.getOrDefault(language, List.of());
   }
 }

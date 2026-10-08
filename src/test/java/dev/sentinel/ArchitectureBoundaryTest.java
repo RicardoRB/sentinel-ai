@@ -69,7 +69,8 @@ class ArchitectureBoundaryTest {
           Map.entry("learning", Set.of()));
 
   @ArchTest
-  static void domainDoesNotDependOnOuterLayersOrExternalEffectImplementations(JavaClasses classes) {
+  static void domainDoesNotDependOnOuterLayersOrExternalEffectImplementations(
+      final JavaClasses classes) {
     assertNoDependencies(
         classes,
         "dev.sentinel.domain..",
@@ -90,7 +91,7 @@ class ArchitectureBoundaryTest {
 
   @ArchTest
   static void applicationDoesNotDependOnInfrastructureOrPerformExternalEffects(
-      JavaClasses classes) {
+      final JavaClasses classes) {
     assertNoDependencies(
         classes,
         "dev.sentinel.application..",
@@ -107,7 +108,7 @@ class ArchitectureBoundaryTest {
 
   @ArchTest
   static void cliAdaptersDoNotDependOnOutboundAdaptersOrPerformFilesystemOrProcessWork(
-      JavaClasses classes) {
+      final JavaClasses classes) {
     assertNoDependencies(
         classes,
         "dev.sentinel.infrastructure.cli..",
@@ -123,7 +124,7 @@ class ArchitectureBoundaryTest {
   }
 
   @ArchTest
-  static void productionCodeDoesNotUseFieldInjection(JavaClasses classes) {
+  static void productionCodeDoesNotUseFieldInjection(final JavaClasses classes) {
     final ArchRule noFieldInjection =
         com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noFields()
             .should()
@@ -133,7 +134,7 @@ class ArchitectureBoundaryTest {
 
   @ArchTest
   static void productionClassesFollowLayerFeaturePackagesAndExplicitRootExceptions(
-      JavaClasses classes) {
+      final JavaClasses classes) {
     final Set<String> commonCliTypes =
         Set.of(
             "CommandLineRunnerImpl",
@@ -150,7 +151,7 @@ class ArchitectureBoundaryTest {
   }
 
   @ArchTest
-  static void springIsAbsentFromProductionDependencies(JavaClasses classes) {
+  static void springIsAbsentFromProductionDependencies(final JavaClasses classes) {
     assertNoDependencies(
         classes, "dev.sentinel..", target -> target.startsWith("org.springframework."));
     assertThat(System.getProperty("java.class.path")).doesNotContain("spring");
@@ -158,7 +159,7 @@ class ArchitectureBoundaryTest {
 
   @ArchTest
   static void domainAndApplicationFeatureGraphsAreAcyclicAndUseDocumentedEdges(
-      JavaClasses production) {
+      final JavaClasses production) {
     SlicesRuleDefinition.slices()
         .matching("dev.sentinel.domain.(*)..")
         .should()
@@ -242,7 +243,7 @@ class ArchitectureBoundaryTest {
         .anyMatch(javaClass -> "dev.sentinel.domain.project.Project".equals(javaClass.getName()));
   }
 
-  private static void assertDomainFeatureEdges(JavaClasses classes) {
+  private static void assertDomainFeatureEdges(final JavaClasses classes) {
     DOMAIN_FEATURE_EDGES.forEach(
         (sourceFeature, allowedTargets) ->
             assertNoDependencies(
@@ -259,7 +260,7 @@ class ArchitectureBoundaryTest {
                 }));
   }
 
-  private static void assertApplicationEntryPoints(JavaClasses classes) {
+  private static void assertApplicationEntryPoints(final JavaClasses classes) {
     APPLICATION_ENTRY_POINTS.forEach(
         (sourceFeature, allowedTargets) ->
             assertNoDependencies(
@@ -275,7 +276,7 @@ class ArchitectureBoundaryTest {
   }
 
   private static void assertFeatureAllowlistCoverage(
-      JavaClasses classes, String layerPrefix, Set<String> declaredFeatures) {
+      final JavaClasses classes, final String layerPrefix, final Set<String> declaredFeatures) {
     final Set<String> discoveredFeatures =
         classes.stream()
             .map(JavaClass::getPackageName)
@@ -287,7 +288,8 @@ class ArchitectureBoundaryTest {
         .containsExactlyInAnyOrderElementsOf(discoveredFeatures);
   }
 
-  private static boolean isAllowedPackage(JavaClass javaClass, Set<String> commonCliTypes) {
+  private static boolean isAllowedPackage(
+      final JavaClass javaClass, final Set<String> commonCliTypes) {
     final String name = javaClass.getName();
     final String packageName = javaClass.getPackageName();
     return switch (packageName) {
@@ -308,7 +310,7 @@ class ArchitectureBoundaryTest {
     };
   }
 
-  private static boolean isDaggerGenerated(String name) {
+  private static boolean isDaggerGenerated(final String name) {
     return name.contains(".Dagger")
         || name.contains("Module_")
         || name.contains("_Factory")
@@ -317,7 +319,7 @@ class ArchitectureBoundaryTest {
         || name.contains("_Proxy");
   }
 
-  private static boolean isInnerLayerExternalEffectApi(String target) {
+  private static boolean isInnerLayerExternalEffectApi(final String target) {
     return target.startsWith("java.io.")
         || target.startsWith("java.net.")
         || target.startsWith("java.nio.channels.")
@@ -334,7 +336,7 @@ class ArchitectureBoundaryTest {
             .contains(target);
   }
 
-  private static boolean isCliExternalEffectApi(String target) {
+  private static boolean isCliExternalEffectApi(final String target) {
     return target.startsWith("java.net.")
         || target.startsWith("java.nio.channels.")
         || target.startsWith("java.nio.file.spi.")
@@ -351,7 +353,9 @@ class ArchitectureBoundaryTest {
   }
 
   private static void assertNoDependencies(
-      JavaClasses classes, String sourcePackage, Predicate<String> forbiddenTarget) {
+      final JavaClasses classes,
+      final String sourcePackage,
+      final Predicate<String> forbiddenTarget) {
     final ArchRule rule =
         com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses()
             .that()
@@ -360,7 +364,7 @@ class ArchitectureBoundaryTest {
             .dependOnClassesThat(
                 new DescribedPredicate<JavaClass>("match forbidden dependency") {
                   @Override
-                  public boolean test(JavaClass target) {
+                  public boolean test(final JavaClass target) {
                     return forbiddenTarget.test(target.getName());
                   }
                 });

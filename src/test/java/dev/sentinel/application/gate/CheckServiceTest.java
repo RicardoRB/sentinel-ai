@@ -66,7 +66,7 @@ class CheckServiceTest {
     assertThat(executor.workingDirectories).containsExactly(root);
   }
 
-  private CheckService service(FakeCommandExecutor executor) {
+  private CheckService service(final FakeCommandExecutor executor) {
     return new CheckService(
         new ProjectDetector(new FileSystemProjectInspection()),
         new TomlConfigurationReader(),
@@ -75,7 +75,7 @@ class CheckServiceTest {
   }
 
   @Test
-  void runsConfiguredCommandNotAHardcodedOne(@TempDir Path dir) throws Exception {
+  void runsConfiguredCommandNotAHardcodedOne(final @TempDir Path dir) throws Exception {
     withPom(dir, PLAIN_POM);
     Files.writeString(
         dir.resolve("sentinel.toml"),
@@ -93,7 +93,7 @@ class CheckServiceTest {
   }
 
   @Test
-  void disabledGatesAreNotExecuted(@TempDir Path dir) throws Exception {
+  void disabledGatesAreNotExecuted(final @TempDir Path dir) throws Exception {
     withPom(dir, PLAIN_POM);
     Files.writeString(
         dir.resolve("sentinel.toml"),
@@ -113,7 +113,7 @@ class CheckServiceTest {
   }
 
   @Test
-  void failsWhenNoGateIsEnabled(@TempDir Path dir) throws Exception {
+  void failsWhenNoGateIsEnabled(final @TempDir Path dir) throws Exception {
     withPom(dir, PLAIN_POM);
     Files.writeString(
         dir.resolve("sentinel.toml"), "version = 1\n[quality-gates.tests]\nenabled = false\n");
@@ -124,7 +124,7 @@ class CheckServiceTest {
   }
 
   @Test
-  void supportsConfiguredAnalysisGate(@TempDir Path dir) throws Exception {
+  void supportsConfiguredAnalysisGate(final @TempDir Path dir) throws Exception {
     withPom(dir, PLAIN_POM);
     Files.writeString(
         dir.resolve("sentinel.toml"),
@@ -137,7 +137,7 @@ class CheckServiceTest {
   }
 
   @Test
-  void failsWithoutProjectOrConfiguration(@TempDir Path dir) {
+  void failsWithoutProjectOrConfiguration(final @TempDir Path dir) {
     assertThatThrownBy(() -> service(new FakeCommandExecutor(0, "", "")).check(dir))
         .isInstanceOf(ProjectNotFoundException.class);
 
@@ -147,7 +147,8 @@ class CheckServiceTest {
   }
 
   @Test
-  void selectsUnionOnceInDeclarationOrderAndDefaultsToDefault(@TempDir Path dir) throws Exception {
+  void selectsUnionOnceInDeclarationOrderAndDefaultsToDefault(final @TempDir Path dir)
+      throws Exception {
     withPom(dir, PLAIN_POM);
     Files.writeString(
         dir.resolve("sentinel.toml"),

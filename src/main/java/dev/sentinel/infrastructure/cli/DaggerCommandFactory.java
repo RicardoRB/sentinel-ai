@@ -10,12 +10,12 @@ public class DaggerCommandFactory implements CommandLine.IFactory {
   private final Map<Class<?>, Provider<Object>> commands;
 
   @Inject
-  public DaggerCommandFactory(Map<Class<?>, Provider<Object>> commands) {
+  public DaggerCommandFactory(final Map<Class<?>, Provider<Object>> commands) {
     this.commands = Map.copyOf(commands);
   }
 
   @Override
-  public <K> K create(Class<K> type) throws Exception {
+  public <K> K create(final Class<K> type) throws Exception {
     final Provider<Object> provider = commands.get(type);
     return provider == null ? CommandLine.defaultFactory().create(type) : type.cast(provider.get());
   }

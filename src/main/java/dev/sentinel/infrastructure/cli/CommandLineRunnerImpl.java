@@ -16,12 +16,13 @@ public class CommandLineRunnerImpl {
   private final DaggerCommandFactory factory;
 
   @Inject
-  public CommandLineRunnerImpl(DaggerCommandFactory factory, SentinelCommand rootCommand) {
+  public CommandLineRunnerImpl(
+      final DaggerCommandFactory factory, final SentinelCommand rootCommand) {
     this.factory = factory;
     this.rootCommand = rootCommand;
   }
 
-  public int run(String... args) {
+  public int run(final String... args) {
     final CommandLine commandLine = new CommandLine(rootCommand, factory);
     commandLine.setOut(
         new PrintWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8), true));
@@ -38,7 +39,8 @@ public class CommandLineRunnerImpl {
    * Known failures print a clean one-line message; anything else is a bug and keeps its stack
    * trace.
    */
-  static int handle(Exception e, CommandLine commandLine, CommandLine.ParseResult parseResult) {
+  static final int handle(
+      final Exception e, final CommandLine commandLine, final CommandLine.ParseResult parseResult) {
     if (e instanceof SentinelException) {
       commandLine.getErr().println("sentinel: " + e.getMessage());
     } else {

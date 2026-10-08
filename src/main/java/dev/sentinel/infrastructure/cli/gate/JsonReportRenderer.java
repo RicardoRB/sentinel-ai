@@ -16,33 +16,36 @@ public class JsonReportRenderer {
   private final JsonCodec codec;
 
   @Inject
-  public JsonReportRenderer(JsonCodec codec) {
+  public JsonReportRenderer(final JsonCodec codec) {
     this.codec = codec;
   }
 
-  public String render(CheckReport report) {
+  public String render(final CheckReport report) {
     return render(report, false, false, null);
   }
 
-  public String render(CheckReport report, boolean strict) {
+  public String render(final CheckReport report, final boolean strict) {
     return render(report, strict, false, null);
   }
 
-  public String render(CheckReport report, boolean strict, boolean failFast) {
+  public String render(final CheckReport report, final boolean strict, final boolean failFast) {
     return render(report, strict, failFast, null);
   }
 
   public String render(
-      CheckReport report, boolean strict, boolean failFast, LearningOutcome learning) {
+      final CheckReport report,
+      final boolean strict,
+      final boolean failFast,
+      final LearningOutcome learning) {
     return render(report, strict, failFast, learning, null);
   }
 
   public String render(
-      CheckReport report,
-      boolean strict,
-      boolean failFast,
-      LearningOutcome learning,
-      Integer threshold) {
+      final CheckReport report,
+      final boolean strict,
+      final boolean failFast,
+      final LearningOutcome learning,
+      final Integer threshold) {
     final ReportDto root = new ReportDto();
     root.schemaVersion = 1;
     root.status = report.status().name();
@@ -64,7 +67,7 @@ public class JsonReportRenderer {
     return codec.toPrettyJson(root);
   }
 
-  public String renderError(String message) {
+  public String renderError(final String message) {
     final ErrorDto error = new ErrorDto();
     error.status = "ERROR";
     error.error = message;
@@ -89,7 +92,7 @@ public class JsonReportRenderer {
     public String framework;
     public String root;
 
-    static ProjectDto from(Project project) {
+    static ProjectDto from(final Project project) {
       final ProjectDto dto = new ProjectDto();
       dto.language = project.language().name();
       dto.buildTool = project.buildTool().name();
@@ -113,7 +116,7 @@ public class JsonReportRenderer {
     public Integer errors;
     public Integer warnings;
 
-    static CheckDto from(GateResult result) {
+    static CheckDto from(final GateResult result) {
       final CheckDto dto = new CheckDto();
       dto.name = result.name();
       dto.status = result.status().name();
@@ -138,7 +141,7 @@ public class JsonReportRenderer {
     public int threshold;
     public List<PromptDto> prompts;
 
-    static LearningDto from(LearningOutcome outcome, int threshold) {
+    static LearningDto from(final LearningOutcome outcome, final int threshold) {
       final LearningDto dto = new LearningDto();
       dto.threshold = threshold;
       dto.prompts = outcome.prompts().stream().map(PromptDto::from).toList();
@@ -149,7 +152,7 @@ public class JsonReportRenderer {
   @JsonType
   public record PromptDto(
       String key, String gate, int occurrences, String summary, String instruction) {
-    static PromptDto from(LearningPrompt prompt) {
+    static PromptDto from(final LearningPrompt prompt) {
       return new PromptDto(
           prompt.key(),
           prompt.gate(),

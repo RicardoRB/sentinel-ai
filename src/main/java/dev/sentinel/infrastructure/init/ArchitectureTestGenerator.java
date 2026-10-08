@@ -22,7 +22,7 @@ public final class ArchitectureTestGenerator implements ArchitectureTestGenerati
   private static final Pattern PACKAGE = Pattern.compile("\\bpackage\\s+([A-Za-z_][\\w.]*)\\s*;");
 
   @Override
-  public ArchitectureTestChange apply(Project project, String architecture) {
+  public ArchitectureTestChange apply(final Project project, final String architecture) {
     final Path projectRoot = project.root();
     final String basePackage = detectBasePackage(projectRoot);
     final Path packageDirectory =
@@ -45,7 +45,7 @@ public final class ArchitectureTestGenerator implements ArchitectureTestGenerati
   }
 
   @Override
-  public void rollback(ArchitectureTestChange change) {
+  public void rollback(final ArchitectureTestChange change) {
     if (change == null || !change.created()) {
       return;
     }
@@ -57,7 +57,7 @@ public final class ArchitectureTestGenerator implements ArchitectureTestGenerati
     }
   }
 
-  private static String detectBasePackage(Path root) {
+  private static String detectBasePackage(final Path root) {
     final Path source = root.resolve("src/main/java");
     if (Files.isDirectory(source)) {
       try (Stream<Path> files = Files.walk(source)) {
@@ -74,7 +74,7 @@ public final class ArchitectureTestGenerator implements ArchitectureTestGenerati
     return "com.example";
   }
 
-  private static String testSource(String basePackage, String architecture) {
+  private static String testSource(final String basePackage, final String architecture) {
     final String rule =
         switch (architecture) {
           case "hexagonal" ->

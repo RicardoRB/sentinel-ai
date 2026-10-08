@@ -28,7 +28,7 @@ public class TomlConfigurationReader implements SentinelConfigurationReader {
   private static final String GATES_TABLE = "quality-gates";
 
   @Override
-  public SentinelConfiguration read(Path file) {
+  public SentinelConfiguration read(final Path file) {
     if (!Files.isRegularFile(file)) {
       throw new SentinelException(
           "Configuration file not found: " + file + ". Run 'sentinel init' first.");
@@ -45,7 +45,7 @@ public class TomlConfigurationReader implements SentinelConfigurationReader {
     return parse(toml);
   }
 
-  SentinelConfiguration parse(TomlTable toml) {
+  SentinelConfiguration parse(final TomlTable toml) {
     final Long version = requireLong(toml, "version");
     if (version == null) {
       throw new SentinelException(
@@ -81,7 +81,7 @@ public class TomlConfigurationReader implements SentinelConfigurationReader {
     return new SentinelConfiguration((int) (long) version, gates);
   }
 
-  private GateConfiguration parseGate(String name, TomlTable gate) {
+  private GateConfiguration parseGate(final String name, final TomlTable gate) {
     final String where = GATES_TABLE + "." + name;
     final Set<String> profiles = parseProfiles(where, gate);
     boolean enabled = true;
@@ -101,7 +101,7 @@ public class TomlConfigurationReader implements SentinelConfigurationReader {
     return new GateConfiguration(enabled, parseCommand(where, gate), profiles);
   }
 
-  private Set<String> parseProfiles(String where, TomlTable gate) {
+  private Set<String> parseProfiles(final String where, final TomlTable gate) {
     if (!gate.contains("profiles")) {
       return Set.of(SentinelConfiguration.DEFAULT_PROFILE);
     }
@@ -123,7 +123,7 @@ public class TomlConfigurationReader implements SentinelConfigurationReader {
     return profiles;
   }
 
-  private List<String> parseCommand(String where, TomlTable gate) {
+  private List<String> parseCommand(final String where, final TomlTable gate) {
     final List<String> command;
     if (gate.isString("command")) {
       final String value = gate.getString("command");
@@ -153,7 +153,7 @@ public class TomlConfigurationReader implements SentinelConfigurationReader {
     return command;
   }
 
-  private Long requireLong(TomlTable toml, String key) {
+  private Long requireLong(final TomlTable toml, final String key) {
     if (!toml.contains(key)) {
       return null;
     }

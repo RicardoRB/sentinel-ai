@@ -18,7 +18,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 class JsonLearningStoreTest {
   @Test
-  void missingFileAndRoundTrip(@TempDir Path root) throws Exception {
+  void missingFileAndRoundTrip(final @TempDir Path root) throws Exception {
     final JsonLearningStore store = new JsonLearningStore(new ForyJsonCodec());
     assertThat(store.load(root)).isEmpty();
     final Instant time = Instant.parse("2026-01-01T00:00:00Z");
@@ -45,7 +45,8 @@ class JsonLearningStoreTest {
   }
 
   @Test
-  void rejectsCorruptAndUnsupportedDataWithoutReplacingFile(@TempDir Path root) throws Exception {
+  void rejectsCorruptAndUnsupportedDataWithoutReplacingFile(final @TempDir Path root)
+      throws Exception {
     final Path file = root.resolve(".sentinel/learning.json");
     Files.createDirectories(file.getParent());
     Files.writeString(file, "{not json}");
@@ -59,7 +60,7 @@ class JsonLearningStoreTest {
   }
 
   @Test
-  void rejectsInvalidRecordsWithoutReplacingFile(@TempDir Path root) throws Exception {
+  void rejectsInvalidRecordsWithoutReplacingFile(final @TempDir Path root) throws Exception {
     final Path file = root.resolve(".sentinel/learning.json");
     Files.createDirectories(file.getParent());
 
@@ -90,7 +91,8 @@ class JsonLearningStoreTest {
   }
 
   @Test
-  void saveOverwritesAtomicallyAndLeavesNoTemporaryFiles(@TempDir Path root) throws Exception {
+  void saveOverwritesAtomicallyAndLeavesNoTemporaryFiles(final @TempDir Path root)
+      throws Exception {
     final JsonLearningStore store = new JsonLearningStore(new ForyJsonCodec());
     final Instant time = Instant.parse("2026-01-01T00:00:00Z");
     final LearningRecord first =
@@ -122,7 +124,8 @@ class JsonLearningStoreTest {
   }
 
   @Test
-  void corruptLoadPerformsNoWritesUnderSentinelDirectory(@TempDir Path root) throws Exception {
+  void corruptLoadPerformsNoWritesUnderSentinelDirectory(final @TempDir Path root)
+      throws Exception {
     final Path file = root.resolve(".sentinel/learning.json");
     Files.createDirectories(file.getParent());
     Files.writeString(file, "{not json}");

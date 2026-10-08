@@ -21,7 +21,8 @@ public final class CommandQualityGate implements QualityGate {
   private final CommandExecutor executor;
   private final List<String> command;
 
-  public CommandQualityGate(String name, CommandExecutor executor, List<String> command) {
+  public CommandQualityGate(
+      final String name, final CommandExecutor executor, final List<String> command) {
     this.name = name;
     this.executor = executor;
     this.command = List.copyOf(command);
@@ -33,7 +34,7 @@ public final class CommandQualityGate implements QualityGate {
   }
 
   @Override
-  public GateResult execute(Project project) {
+  public GateResult execute(final Project project) {
     final GateResult result =
         GateResult.from(name, command, executor.execute(command, project.root()));
     final String hint = command.isEmpty() ? null : INSTALL_HINTS.get(command.getFirst());

@@ -55,7 +55,7 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
   }
 
   @Override
-  public IntegrationResult integrate(Path projectRoot, boolean remove) {
+  public IntegrationResult integrate(final Path projectRoot, final boolean remove) {
     final Path settings = projectRoot.toAbsolutePath().normalize().resolve(SETTINGS_FILE);
     final Path hook = projectRoot.toAbsolutePath().normalize().resolve(HOOK_FILE);
     try {
@@ -65,7 +65,7 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
     }
   }
 
-  private IntegrationResult install(Path settings, Path hook) throws IOException {
+  private IntegrationResult install(final Path settings, final Path hook) throws IOException {
     IntegrationResult conflict = IntegrationArtifacts.preflight(settings, SETTINGS_MARKER);
     if (conflict != null) {
       return conflict;
@@ -107,7 +107,7 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
             : "Created Sentinel-owned Claude Code edit/write integration (or refreshed it).");
   }
 
-  private IntegrationResult remove(Path settings, Path hook) throws IOException {
+  private IntegrationResult remove(final Path settings, final Path hook) throws IOException {
     IntegrationResult conflict = IntegrationArtifacts.preflight(settings, SETTINGS_MARKER);
     if (conflict != null) {
       return conflict;
@@ -140,7 +140,7 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
         "Removed Sentinel-owned Claude Code integration.");
   }
 
-  private static void deleteIfEmpty(Path directory) throws IOException {
+  private static void deleteIfEmpty(final Path directory) throws IOException {
     if (directory != null && Files.isDirectory(directory)) {
       try (Stream<Path> entries = Files.list(directory)) {
         if (entries.findAny().isEmpty()) {
@@ -150,7 +150,7 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
     }
   }
 
-  private static void makeExecutable(Path file) throws IOException {
+  private static void makeExecutable(final Path file) throws IOException {
     try {
       final Set<PosixFilePermission> permissions =
           EnumSet.of(

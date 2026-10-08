@@ -4,7 +4,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 public final class DirectFilesystemAccess {
-  public boolean exists(Path path) {
+  public boolean exists(final Path path) {
     return Files.exists(path);
   }
 }

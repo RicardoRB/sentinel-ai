@@ -31,7 +31,7 @@ class InitServiceTest {
           new FileConfigurationStorage());
 
   @Test
-  void createsDefaultConfiguration(@TempDir Path dir) throws Exception {
+  void createsDefaultConfiguration(final @TempDir Path dir) throws Exception {
     withPom(dir, PLAIN_POM);
 
     final InitResult result = service.init(dir);
@@ -49,7 +49,7 @@ class InitServiceTest {
   }
 
   @Test
-  void neverOverwritesExistingConfiguration(@TempDir Path dir) throws Exception {
+  void neverOverwritesExistingConfiguration(final @TempDir Path dir) throws Exception {
     withPom(dir, PLAIN_POM);
     Files.writeString(dir.resolve("sentinel.toml"), "version = 1 # mine\n");
 
@@ -60,7 +60,7 @@ class InitServiceTest {
   }
 
   @Test
-  void requiresASupportedProject(@TempDir Path dir) {
+  void requiresASupportedProject(final @TempDir Path dir) {
     assertThatThrownBy(() -> service.init(dir)).isInstanceOf(ProjectNotFoundException.class);
   }
 }

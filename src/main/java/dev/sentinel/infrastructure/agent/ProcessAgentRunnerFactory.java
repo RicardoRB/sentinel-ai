@@ -12,12 +12,12 @@ public final class ProcessAgentRunnerFactory implements AgentRunnerFactory {
   private final CommandExecutor executor;
 
   @Inject
-  public ProcessAgentRunnerFactory(CommandExecutor executor) {
+  public ProcessAgentRunnerFactory(final CommandExecutor executor) {
     this.executor = executor;
   }
 
   @Override
-  public AgentRunner create(Path workingDirectory, List<String> arguments) {
+  public AgentRunner create(final Path workingDirectory, final List<String> arguments) {
     return new ProcessAgentRunner(executor, workingDirectory, arguments);
   }
 }

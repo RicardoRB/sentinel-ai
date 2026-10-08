@@ -14,17 +14,19 @@ public final class IntegrationService {
   private final ProjectDetector detector;
   private final List<AgentIntegration> integrations;
 
-  public IntegrationService(ProjectDetector detector, List<AgentIntegration> integrations) {
+  public IntegrationService(
+      final ProjectDetector detector, final List<AgentIntegration> integrations) {
     this.detector = detector;
     this.integrations = List.copyOf(integrations);
   }
 
   @Inject
-  public IntegrationService(ProjectDetector detector, Set<AgentIntegration> integrations) {
+  public IntegrationService(
+      final ProjectDetector detector, final Set<AgentIntegration> integrations) {
     this(detector, List.copyOf(integrations));
   }
 
-  public IntegrationResult integrate(String agent, Path start, boolean remove) {
+  public IntegrationResult integrate(final String agent, final Path start, final boolean remove) {
     final AgentIntegration adapter =
         integrations.stream()
             .filter(candidate -> candidate.id().equals(agent))

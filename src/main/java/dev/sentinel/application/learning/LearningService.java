@@ -14,16 +14,16 @@ public final class LearningService {
   private final Clock clock;
 
   @Inject
-  public LearningService(LearningStore store) {
+  public LearningService(final LearningStore store) {
     this(store, Clock.systemUTC());
   }
 
-  public LearningService(LearningStore store, Clock clock) {
+  public LearningService(final LearningStore store, final Clock clock) {
     this.store = store;
     this.clock = clock;
   }
 
-  public LearningOutcome learn(CheckReport report, int threshold) {
+  public LearningOutcome learn(final CheckReport report, final int threshold) {
     try {
       final LearningLedger ledger =
           store.load(report.project().root()).orElseGet(LearningLedger::empty);

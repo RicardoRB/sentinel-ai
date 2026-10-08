@@ -99,7 +99,7 @@ class QualityLoopServiceTest {
   }
 
   @Test
-  void passesAfterAgentAttempt(@TempDir Path dir) throws Exception {
+  void passesAfterAgentAttempt(final @TempDir Path dir) throws Exception {
     withPom(dir, PLAIN_POM);
     Files.writeString(
         dir.resolve("sentinel.toml"), "version = 1\n[quality-gates.tests]\ncommand = \"verify\"\n");
@@ -135,7 +135,7 @@ class QualityLoopServiceTest {
   }
 
   @Test
-  void stopsAtMaximumIterations(@TempDir Path dir) throws Exception {
+  void stopsAtMaximumIterations(final @TempDir Path dir) throws Exception {
     withPom(dir, PLAIN_POM);
     Files.writeString(
         dir.resolve("sentinel.toml"), "version = 1\n[quality-gates.tests]\ncommand = \"verify\"\n");
@@ -171,7 +171,7 @@ class QualityLoopServiceTest {
   }
 
   @Test
-  void distinguishesAgentTimeoutAndFailure(@TempDir Path dir) throws Exception {
+  void distinguishesAgentTimeoutAndFailure(final @TempDir Path dir) throws Exception {
     withPom(dir, PLAIN_POM);
     Files.writeString(
         dir.resolve("sentinel.toml"), "version = 1\n[quality-gates.tests]\ncommand = \"verify\"\n");
@@ -233,7 +233,7 @@ class QualityLoopServiceTest {
   }
 
   @Test
-  void retriesWithFeedbackUntilSuccess(@TempDir Path dir) throws Exception {
+  void retriesWithFeedbackUntilSuccess(final @TempDir Path dir) throws Exception {
     withPom(dir, PLAIN_POM);
     Files.writeString(
         dir.resolve("sentinel.toml"), "version = 1\n[quality-gates.tests]\ncommand = \"verify\"\n");
@@ -279,12 +279,12 @@ class QualityLoopServiceTest {
   }
 
   private static LoopResult run(
-      CheckService checks,
-      AgentRunner agent,
-      GitStateInspection git,
-      Path root,
-      String task,
-      LoopConfiguration configuration) {
+      final CheckService checks,
+      final AgentRunner agent,
+      final GitStateInspection git,
+      final Path root,
+      final String task,
+      final LoopConfiguration configuration) {
     final QualityLoopService service =
         new QualityLoopService(checks, (directory, arguments) -> agent, git);
     return service.run(new LoopRequest(root, List.of("fake"), task, configuration));

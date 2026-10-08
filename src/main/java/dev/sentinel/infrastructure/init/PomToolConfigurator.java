@@ -178,7 +178,7 @@ public final class PomToolConfigurator implements BuildToolConfiguration {
             """;
 
   @Override
-  public PomChange apply(Project project, List<InitGateOption> gates) {
+  public PomChange apply(final Project project, final List<InitGateOption> gates) {
     final Path pom = project.root().resolve("pom.xml");
     try {
       final String original = Files.readString(pom);
@@ -251,7 +251,7 @@ public final class PomToolConfigurator implements BuildToolConfiguration {
   }
 
   @Override
-  public void rollback(PomChange change) {
+  public void rollback(final PomChange change) {
     if (change == null || !change.changed()) {
       return;
     }
@@ -266,11 +266,11 @@ public final class PomToolConfigurator implements BuildToolConfiguration {
     }
   }
 
-  private static boolean containsArtifact(String pom, String artifactId) {
+  private static boolean containsArtifact(final String pom, final String artifactId) {
     return pom.contains("<artifactId>" + artifactId + "</artifactId>");
   }
 
-  private static String addPlugin(String pom, String plugin) {
+  private static String addPlugin(final String pom, final String plugin) {
     if (pom.contains("</plugins>")) {
       return pom.replaceFirst("</plugins>", Matcher.quoteReplacement(plugin + "  </plugins>"));
     }
@@ -288,7 +288,7 @@ public final class PomToolConfigurator implements BuildToolConfiguration {
             "  <build>\n    <plugins>\n" + plugin + "    </plugins>\n  </build>\n</project>"));
   }
 
-  private static String addDependency(String pom, String dependency) {
+  private static String addDependency(final String pom, final String dependency) {
     if (pom.contains("</dependencies>")) {
       return pom.replaceFirst(
           "</dependencies>", Matcher.quoteReplacement(dependency + "  </dependencies>"));

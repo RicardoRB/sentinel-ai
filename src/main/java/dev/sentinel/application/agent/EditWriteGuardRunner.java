@@ -11,11 +11,11 @@ public final class EditWriteGuardRunner {
 
   private final CommandExecutor executor;
 
-  public EditWriteGuardRunner(CommandExecutor executor) {
+  public EditWriteGuardRunner(final CommandExecutor executor) {
     this.executor = executor;
   }
 
-  public GuardRunResult run(Path projectRoot) {
+  public GuardRunResult run(final Path projectRoot) {
     final CommandResult result = executor.execute(CHECK, projectRoot);
     final String output =
         result.stdout() == null || result.stdout().isBlank() ? result.stderr() : result.stdout();

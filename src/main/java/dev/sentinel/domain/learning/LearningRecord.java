@@ -35,7 +35,8 @@ public record LearningRecord(
     }
   }
 
-  public LearningRecord withState(LearningState nextState, Instant seen, boolean nextPrompted) {
+  public LearningRecord withState(
+      final LearningState nextState, final Instant seen, final boolean nextPrompted) {
     return new LearningRecord(
         key, gate, status, summary, occurrences, nextState, firstSeen, seen, nextPrompted);
   }

@@ -12,7 +12,7 @@ import java.util.List;
  */
 public interface CommandExecutor {
 
-  default CommandResult execute(Command command) {
+  default CommandResult execute(final Command command) {
     return execute(command.arguments(), command.workingDirectory());
   }
 

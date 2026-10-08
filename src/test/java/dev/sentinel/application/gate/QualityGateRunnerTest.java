@@ -23,7 +23,7 @@ class QualityGateRunnerTest {
       new Project(Path.of("/p"), Language.JAVA, BuildTool.MAVEN, Framework.NONE);
   private final QualityGateRunner runner = new QualityGateRunner();
 
-  private static QualityGate gate(String name, GateStatus status) {
+  private static QualityGate gate(final String name, final GateStatus status) {
     return new QualityGate() {
       @Override
       public String name() {
@@ -73,12 +73,12 @@ class QualityGateRunnerTest {
             new CommandQualityGate("b", executor, List.of("second"))),
         new CheckProgressListener() {
           @Override
-          public void gateStarted(String name) {
+          public void gateStarted(final String name) {
             events.add("start:" + name);
           }
 
           @Override
-          public void gateFinished(GateResult result) {
+          public void gateFinished(final GateResult result) {
             events.add("finish:" + result.name());
           }
         });
@@ -100,7 +100,7 @@ class QualityGateRunnerTest {
                 recordingGate("c", GateStatus.PASSED, executed)),
             new CheckProgressListener() {
               @Override
-              public void gateFinished(GateResult result) {
+              public void gateFinished(final GateResult result) {
                 events.add(result.name() + ":" + result.status());
               }
             },
@@ -144,7 +144,8 @@ class QualityGateRunnerTest {
         .containsExactly(GateStatus.EXECUTION_ERROR, GateStatus.SKIPPED);
   }
 
-  private static QualityGate recordingGate(String name, GateStatus status, List<String> executed) {
+  private static QualityGate recordingGate(
+      final String name, final GateStatus status, final List<String> executed) {
     return new QualityGate() {
       @Override
       public String name() {

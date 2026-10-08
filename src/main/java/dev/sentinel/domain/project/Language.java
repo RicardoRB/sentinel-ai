@@ -12,7 +12,7 @@ public enum Language {
 
   private final String displayName;
 
-  Language(String displayName) {
+  Language(final String displayName) {
     this.displayName = displayName;
   }
 

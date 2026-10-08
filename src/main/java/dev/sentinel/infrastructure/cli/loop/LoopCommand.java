@@ -28,7 +28,7 @@ public final class LoopCommand implements Callable<Integer> {
   private final QualityLoopService service;
 
   @Inject
-  public LoopCommand(QualityLoopService service) {
+  public LoopCommand(final QualityLoopService service) {
     this.service = service;
   }
 

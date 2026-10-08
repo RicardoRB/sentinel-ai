@@ -22,7 +22,7 @@ class ReportRendererTest {
   private final Project project =
       new Project(Path.of("/p"), Language.JAVA, BuildTool.MAVEN, Framework.SPRING_BOOT);
 
-  private CheckReport report(GateStatus status, String stdout, String stderr) {
+  private CheckReport report(final GateStatus status, final String stdout, final String stderr) {
     return new CheckReport(
         project,
         List.of(

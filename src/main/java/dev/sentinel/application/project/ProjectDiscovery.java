@@ -9,11 +9,11 @@ import java.util.List;
 public final class ProjectDiscovery {
   private final ProjectInspection inspection;
 
-  public ProjectDiscovery(ProjectInspection inspection) {
+  public ProjectDiscovery(final ProjectInspection inspection) {
     this.inspection = inspection;
   }
 
-  public List<Project> discover(Path start) {
+  public List<Project> discover(final Path start) {
     return inspection.discover(start);
   }
 }

@@ -10,7 +10,7 @@ public final class ZapTargetValidation {
 
   private ZapTargetValidation() {}
 
-  public static void require(String gate, List<String> command) {
+  public static void require(final String gate, final List<String> command) {
     final int flag = command.indexOf("-t");
     if (flag < 0 || flag + 1 >= command.size() || PLACEHOLDER.equals(command.get(flag + 1))) {
       throw new SentinelException(

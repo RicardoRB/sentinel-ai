@@ -1,11 +1,11 @@
 package dev.sentinel.domain.learning;
 
 public class LearningStoreException extends RuntimeException {
-  public LearningStoreException(String message, Throwable cause) {
+  public LearningStoreException(final String message, final Throwable cause) {
     super(message, cause);
   }
 
-  public LearningStoreException(String message) {
+  public LearningStoreException(final String message) {
     super(message);
   }
 }

@@ -32,7 +32,7 @@ public class ProcessCommandExecutor implements CommandExecutor {
   private static final int EXIT_INTERRUPTED = 130;
 
   @Override
-  public CommandResult execute(List<String> command, Path workingDirectory) {
+  public CommandResult execute(final List<String> command, final Path workingDirectory) {
     final long start = System.nanoTime();
     try {
       final ProcessBuilder builder =
@@ -72,7 +72,8 @@ public class ProcessCommandExecutor implements CommandExecutor {
    * A relative executable that contains a path separator (e.g. {@code ./mvnw}) is resolved against
    * the working directory, so behaviour does not depend on the JVM's own directory.
    */
-  private static List<String> resolveExecutable(List<String> command, Path workingDirectory) {
+  private static List<String> resolveExecutable(
+      final List<String> command, final Path workingDirectory) {
     final List<String> resolved = new ArrayList<>(command);
     final String executable = resolved.getFirst();
     if (executable.contains("/") && !Path.of(executable).isAbsolute()) {
@@ -81,11 +82,11 @@ public class ProcessCommandExecutor implements CommandExecutor {
     return resolved;
   }
 
-  private static String read(InputStream stream) throws IOException {
+  private static String read(final InputStream stream) throws IOException {
     return new String(stream.readAllBytes(), StandardCharsets.UTF_8);
   }
 
-  private static Duration since(long startNanos) {
+  private static Duration since(final long startNanos) {
     return Duration.ofNanos(System.nanoTime() - startNanos);
   }
 }

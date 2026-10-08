@@ -21,15 +21,16 @@ public class QualityGateFactory {
   private final CommandExecutor executor;
 
   @Inject
-  public QualityGateFactory(CommandExecutor executor) {
+  public QualityGateFactory(final CommandExecutor executor) {
     this.executor = executor;
   }
 
-  public List<QualityGate> create(SentinelConfiguration configuration) {
+  public List<QualityGate> create(final SentinelConfiguration configuration) {
     return create(configuration, null);
   }
 
-  public List<QualityGate> create(SentinelConfiguration configuration, Project project) {
+  public List<QualityGate> create(
+      final SentinelConfiguration configuration, final Project project) {
     final List<QualityGate> gates = new ArrayList<>();
     configuration
         .gates()
@@ -61,7 +62,7 @@ public class QualityGateFactory {
     return gates;
   }
 
-  private static List<String> testsCommand(List<String> configured, Project project) {
+  private static List<String> testsCommand(final List<String> configured, final Project project) {
     if (project != null
         && !project.mavenWrapperAvailable()
         && !configured.isEmpty()

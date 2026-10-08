@@ -11,7 +11,7 @@ public record LearningOutcome(
     warnings = List.copyOf(warnings);
   }
 
-  public static LearningOutcome withoutPrompts(LearningLedger ledger, String warning) {
+  public static LearningOutcome withoutPrompts(final LearningLedger ledger, final String warning) {
     return new LearningOutcome(ledger, List.of(), List.of(warning));
   }
 }

@@ -6,4 +6,5 @@
     <description>Additional PMD rules for Sentinel.</description>
     <rule ref="category/java/codestyle.xml/LocalVariableCouldBeFinal" />
     <rule ref="category/java/codestyle.xml/UseExplicitTypes" />
+    <rule ref="category/java/codestyle.xml/MethodArgumentCouldBeFinal" />
 </ruleset>

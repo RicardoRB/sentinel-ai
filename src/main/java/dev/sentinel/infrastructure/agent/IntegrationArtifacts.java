@@ -12,11 +12,11 @@ import java.util.Objects;
 final class IntegrationArtifacts {
   private IntegrationArtifacts() {}
 
-  static boolean owned(Path target, String marker) throws IOException {
+  static boolean owned(final Path target, final String marker) throws IOException {
     return Files.exists(target) && Files.readString(target).contains(marker);
   }
 
-  static IntegrationResult preflight(Path target, String marker) throws IOException {
+  static IntegrationResult preflight(final Path target, final String marker) throws IOException {
     if (!Files.exists(target) || owned(target, marker)) {
       return null;
     }
@@ -26,7 +26,8 @@ final class IntegrationArtifacts {
         "Existing user-owned integration preserved; resolve the conflict explicitly.");
   }
 
-  static IntegrationResult install(Path target, String marker, String content, String message)
+  static IntegrationResult install(
+      final Path target, final String marker, final String content, final String message)
       throws IOException {
     if (Files.exists(target)) {
       if (owned(target, marker)) {
@@ -48,7 +49,8 @@ final class IntegrationArtifacts {
   }
 
   static IntegrationResult installOrRefresh(
-      Path target, String marker, String content, String message) throws IOException {
+      final Path target, final String marker, final String content, final String message)
+      throws IOException {
     if (Files.exists(target)) {
       if (!owned(target, marker)) {
         return new IntegrationResult(
@@ -69,7 +71,8 @@ final class IntegrationArtifacts {
     return install(target, marker, content, message);
   }
 
-  static IntegrationResult remove(Path target, String marker, String message) throws IOException {
+  static IntegrationResult remove(final Path target, final String marker, final String message)
+      throws IOException {
     if (!Files.exists(target)) {
       return new IntegrationResult(IntegrationResult.Status.NOT_FOUND, List.of(), message);
     }

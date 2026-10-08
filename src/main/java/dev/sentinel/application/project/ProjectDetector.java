@@ -12,11 +12,11 @@ public final class ProjectDetector {
   private final ProjectInspection inspection;
 
   @Inject
-  public ProjectDetector(ProjectInspection inspection) {
+  public ProjectDetector(final ProjectInspection inspection) {
     this.inspection = inspection;
   }
 
-  public Optional<Project> detect(Path start) {
+  public Optional<Project> detect(final Path start) {
     return inspection.detect(start);
   }
 }

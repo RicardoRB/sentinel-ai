@@ -24,12 +24,12 @@ public final class JsonLearningStore implements LearningStore {
   private final JsonCodec codec;
 
   @Inject
-  public JsonLearningStore(JsonCodec codec) {
+  public JsonLearningStore(final JsonCodec codec) {
     this.codec = codec;
   }
 
   @Override
-  public Optional<LearningLedger> load(Path projectRoot) throws LearningStoreException {
+  public Optional<LearningLedger> load(final Path projectRoot) throws LearningStoreException {
     final Path path = path(projectRoot);
     if (!Files.exists(path)) {
       return Optional.empty();
@@ -45,7 +45,8 @@ public final class JsonLearningStore implements LearningStore {
   }
 
   @Override
-  public void save(Path projectRoot, LearningLedger ledger) throws LearningStoreException {
+  public void save(final Path projectRoot, final LearningLedger ledger)
+      throws LearningStoreException {
     final Path directory = projectRoot.resolve(DIRECTORY);
     final Path target = directory.resolve(FILE);
     final Path temporary = directory.resolve(FILE + "." + System.nanoTime() + ".tmp");
@@ -69,11 +70,11 @@ public final class JsonLearningStore implements LearningStore {
     }
   }
 
-  private static Path path(Path root) {
+  private static Path path(final Path root) {
     return root.resolve(DIRECTORY).resolve(FILE);
   }
 
-  private static LearningLedger toDomain(FileDto file) {
+  private static LearningLedger toDomain(final FileDto file) {
     if (file == null || file.formatVersion != LearningLedger.CURRENT_FORMAT_VERSION) {
       throw new LearningStoreException("Unsupported learning format version");
     }
@@ -114,7 +115,7 @@ public final class JsonLearningStore implements LearningStore {
     }
   }
 
-  private static FileDto fromDomain(LearningLedger ledger) {
+  private static FileDto fromDomain(final LearningLedger ledger) {
     final FileDto file = new FileDto();
     file.formatVersion = ledger.formatVersion();
     file.records = new LinkedHashMap<>();
@@ -140,7 +141,7 @@ public final class JsonLearningStore implements LearningStore {
     public String lastSeen;
     public boolean prompted;
 
-    static RecordDto from(LearningRecord value) {
+    static RecordDto from(final LearningRecord value) {
       final RecordDto dto = new RecordDto();
       dto.key = value.key();
       dto.gate = value.gate();

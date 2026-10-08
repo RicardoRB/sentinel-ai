@@ -62,7 +62,7 @@ class CoverageExpansionTest {
       new Project(Path.of("/project"), Language.JAVA, BuildTool.MAVEN, Framework.NONE);
 
   @Test
-  void discoversEverySupportedProjectMarker(@TempDir Path root) throws IOException {
+  void discoversEverySupportedProjectMarker(final @TempDir Path root) throws IOException {
     Files.createDirectories(root.resolve("maven"));
     Files.writeString(root.resolve("maven/pom.xml"), TestProjects.PLAIN_POM);
     Files.createDirectories(root.resolve("gradle"));
@@ -104,7 +104,7 @@ class CoverageExpansionTest {
   }
 
   @Test
-  void projectDiscoverySelectsPackageManagerMarkers(@TempDir Path root) throws IOException {
+  void projectDiscoverySelectsPackageManagerMarkers(final @TempDir Path root) throws IOException {
     Files.writeString(root.resolve("package.json"), "{}");
     Files.writeString(root.resolve("pnpm-lock.yaml"), "");
     assertThat(
@@ -124,7 +124,8 @@ class CoverageExpansionTest {
   }
 
   @Test
-  void architectureGeneratorCreatesAndRollsBackAllStyles(@TempDir Path root) throws IOException {
+  void architectureGeneratorCreatesAndRollsBackAllStyles(final @TempDir Path root)
+      throws IOException {
     Files.createDirectories(root.resolve("src/main/java/com/acme"));
     Files.writeString(
         root.resolve("src/main/java/com/acme/App.java"), "package com.acme; class App {}");
@@ -143,7 +144,7 @@ class CoverageExpansionTest {
   }
 
   @Test
-  void architectureGeneratorDefaultsPackageAndPreservesExisting(@TempDir Path root)
+  void architectureGeneratorDefaultsPackageAndPreservesExisting(final @TempDir Path root)
       throws IOException {
     final ArchitectureTestGenerator generator = new ArchitectureTestGenerator();
     final ArchitectureTestChange change =
@@ -164,7 +165,7 @@ class CoverageExpansionTest {
   }
 
   @Test
-  void pomConfiguratorAddsAndRollsBackAllTools(@TempDir Path root) throws IOException {
+  void pomConfiguratorAddsAndRollsBackAllTools(final @TempDir Path root) throws IOException {
     TestProjects.withPom(root, TestProjects.PLAIN_POM);
     final InitSetupCatalog catalog = new InitSetupCatalog(new FakeEnvironmentInspection());
     final List<InitGateOption> gates =
@@ -203,7 +204,7 @@ class CoverageExpansionTest {
   }
 
   @Test
-  void pomConfiguratorHandlesExistingBuildSections(@TempDir Path root) throws IOException {
+  void pomConfiguratorHandlesExistingBuildSections(final @TempDir Path root) throws IOException {
     final String pom =
         "<project><build><plugins></plugins></build><dependencies></dependencies></project>";
     Files.writeString(root.resolve("pom.xml"), pom);
@@ -239,7 +240,8 @@ class CoverageExpansionTest {
   }
 
   @Test
-  void configurationAndTokenizerCoverProfilesAndErrors(@TempDir Path root) throws IOException {
+  void configurationAndTokenizerCoverProfilesAndErrors(final @TempDir Path root)
+      throws IOException {
     assertThat(CommandLineTokenizer.tokenize("java -Dname='hello world' app"))
         .containsExactly("java", "-Dname=hello world", "app");
     assertThatThrownBy(() -> CommandLineTokenizer.tokenize("'unterminated"))
@@ -342,7 +344,8 @@ class CoverageExpansionTest {
   }
 
   @Test
-  void checkServiceSelectsProfilesAndRejectsInvalidOnes(@TempDir Path root) throws IOException {
+  void checkServiceSelectsProfilesAndRejectsInvalidOnes(final @TempDir Path root)
+      throws IOException {
     TestProjects.withPom(root, TestProjects.PLAIN_POM);
     Files.writeString(
         root.resolve("sentinel.toml"),
@@ -374,7 +377,7 @@ class CoverageExpansionTest {
   }
 
   @Test
-  void commandLineRunnerWiresCommandsAndHandlesKnownAndUnexpectedFailures(@TempDir Path root)
+  void commandLineRunnerWiresCommandsAndHandlesKnownAndUnexpectedFailures(final @TempDir Path root)
       throws IOException {
     TestProjects.withPom(root, TestProjects.PLAIN_POM);
     final CommandLineRunnerImpl runner = DaggerSentinelComponent.create().commandLineRunner();

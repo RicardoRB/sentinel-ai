@@ -35,7 +35,9 @@ public final class ClaudeCodeHookCommand implements Callable<Integer> {
 
   @Inject
   public ClaudeCodeHookCommand(
-      CheckService checkService, LearningService learningService, JsonCodec codec) {
+      final CheckService checkService,
+      final LearningService learningService,
+      final JsonCodec codec) {
     this.checkService = checkService;
     this.learningService = learningService;
     this.codec = codec;
@@ -78,7 +80,7 @@ public final class ClaudeCodeHookCommand implements Callable<Integer> {
     }
   }
 
-  private static String failureSummary(CheckReport report) {
+  private static String failureSummary(final CheckReport report) {
     return report.results().stream()
         .filter(result -> !result.passed() && !"SKIPPED".equals(result.status().name()))
         .map(ClaudeCodeHookCommand::summary)
@@ -86,7 +88,7 @@ public final class ClaudeCodeHookCommand implements Callable<Integer> {
         .orElse("Sentinel quality check failed");
   }
 
-  private static String summary(GateResult result) {
+  private static String summary(final GateResult result) {
     return result.name() + ": " + (result.summary() == null ? result.status() : result.summary());
   }
 

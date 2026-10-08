@@ -18,7 +18,7 @@ class TomlConfigurationReaderTest {
 
   @TempDir Path dir;
 
-  private SentinelConfiguration read(String toml) throws Exception {
+  private SentinelConfiguration read(final String toml) throws Exception {
     final Path file = dir.resolve("sentinel.toml");
     Files.writeString(file, toml);
     return reader.read(file);

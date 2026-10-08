@@ -33,7 +33,7 @@ public class TextReportRenderer implements CheckProgressListener {
 
   @Inject
   public TextReportRenderer(
-      TerminalCapabilities terminal, @Named("sentinel.version") String version) {
+      final TerminalCapabilities terminal, @Named("sentinel.version") final String version) {
     this.terminal = terminal;
     this.version = version;
   }
@@ -58,7 +58,7 @@ public class TextReportRenderer implements CheckProgressListener {
       value = "EI_EXPOSE_REP2",
       justification =
           "The renderer writes to the command-owned output stream during one invocation.")
-  public void begin(PrintWriter output) {
+  public void begin(final PrintWriter output) {
     writer = output;
     writer.println("Sentinel " + version);
     writer.println();
@@ -66,7 +66,7 @@ public class TextReportRenderer implements CheckProgressListener {
   }
 
   @Override
-  public void gateStarted(String name) {
+  public void gateStarted(final String name) {
     if (terminal.interactive()) {
       writer.print("… " + displayName(name));
       writer.flush();
@@ -74,7 +74,7 @@ public class TextReportRenderer implements CheckProgressListener {
   }
 
   @Override
-  public void gateFinished(GateResult result) {
+  public void gateFinished(final GateResult result) {
     if (terminal.interactive()) {
       writer.print("\r\033[2K");
     }
@@ -82,11 +82,11 @@ public class TextReportRenderer implements CheckProgressListener {
     writer.flush();
   }
 
-  public void summary(CheckReport report) {
+  public void summary(final CheckReport report) {
     summary(report, null);
   }
 
-  public void summary(CheckReport report, LearningOutcome learning) {
+  public void summary(final CheckReport report, final LearningOutcome learning) {
     writer.println();
     writer.println("Quality Gate: " + report.status());
     String tally =
@@ -114,11 +114,11 @@ public class TextReportRenderer implements CheckProgressListener {
     writer.flush();
   }
 
-  public String render(CheckReport report) {
+  public String render(final CheckReport report) {
     return render(report, null);
   }
 
-  public String render(CheckReport report, LearningOutcome learning) {
+  public String render(final CheckReport report, final LearningOutcome learning) {
     final StringBuilder output = new StringBuilder();
     output
         .append("Sentinel ")
@@ -158,7 +158,7 @@ public class TextReportRenderer implements CheckProgressListener {
     return output.toString();
   }
 
-  private static void appendLearning(Appendable output, LearningOutcome learning) {
+  private static void appendLearning(final Appendable output, final LearningOutcome learning) {
     if (learning == null || learning.prompts().isEmpty()) {
       return;
     }
@@ -177,7 +177,7 @@ public class TextReportRenderer implements CheckProgressListener {
     }
   }
 
-  private static String gateLine(GateResult result) {
+  private static String gateLine(final GateResult result) {
     final String marker =
         switch (result.status()) {
           case PASSED -> "✓";
@@ -200,11 +200,11 @@ public class TextReportRenderer implements CheckProgressListener {
     return line;
   }
 
-  private static String displayName(String id) {
+  private static String displayName(final String id) {
     return DISPLAY_NAMES.getOrDefault(id.toLowerCase(Locale.ROOT), id);
   }
 
-  private static void appendFailure(Appendable output, GateResult result) {
+  private static void appendFailure(final Appendable output, final GateResult result) {
     try {
       output
           .append(System.lineSeparator())
@@ -219,7 +219,8 @@ public class TextReportRenderer implements CheckProgressListener {
     }
   }
 
-  private static void appendTail(Appendable output, String label, String text) throws IOException {
+  private static void appendTail(final Appendable output, final String label, final String text)
+      throws IOException {
     if (text.isBlank()) {
       return;
     }

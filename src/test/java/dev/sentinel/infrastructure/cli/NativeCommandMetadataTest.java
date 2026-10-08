@@ -66,7 +66,7 @@ class NativeCommandMetadataTest {
             .collect(Collectors.toSet());
   }
 
-  private String readResource(String path) throws IOException {
+  private String readResource(final String path) throws IOException {
     try (InputStream stream = getClass().getClassLoader().getResourceAsStream(path)) {
       assertThat(stream).as(path).isNotNull();
       return new String(stream.readAllBytes(), StandardCharsets.UTF_8);

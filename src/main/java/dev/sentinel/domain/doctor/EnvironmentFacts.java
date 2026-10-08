@@ -10,7 +10,7 @@ public record EnvironmentFacts(Set<String> availableExecutables, Map<String, Str
     values = Map.copyOf(values);
   }
 
-  public boolean hasExecutable(String name) {
+  public boolean hasExecutable(final String name) {
     return availableExecutables.contains(name);
   }
 }

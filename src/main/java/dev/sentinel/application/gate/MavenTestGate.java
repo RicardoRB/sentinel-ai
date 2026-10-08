@@ -17,7 +17,7 @@ public class MavenTestGate implements QualityGate {
   private final CommandExecutor executor;
   private final List<String> command;
 
-  public MavenTestGate(CommandExecutor executor, List<String> command) {
+  public MavenTestGate(final CommandExecutor executor, final List<String> command) {
     this.executor = executor;
     this.command = List.copyOf(command);
   }
@@ -28,7 +28,7 @@ public class MavenTestGate implements QualityGate {
   }
 
   @Override
-  public GateResult execute(Project project) {
+  public GateResult execute(final Project project) {
     return GateResult.from(NAME, command, executor.execute(command, project.root()));
   }
 }

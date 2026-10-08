@@ -16,12 +16,12 @@ public final class FileConfigurationStorage implements ConfigurationStorage {
   public FileConfigurationStorage() {}
 
   @Override
-  public boolean exists(Path file) {
+  public boolean exists(final Path file) {
     return Files.exists(file);
   }
 
   @Override
-  public Optional<String> read(Path file) {
+  public Optional<String> read(final Path file) {
     if (!Files.exists(file)) {
       return Optional.empty();
     }
@@ -33,7 +33,7 @@ public final class FileConfigurationStorage implements ConfigurationStorage {
   }
 
   @Override
-  public boolean create(Path file, String content) {
+  public boolean create(final Path file, final String content) {
     try {
       Files.writeString(file, content, StandardOpenOption.CREATE_NEW);
       return true;
@@ -45,16 +45,17 @@ public final class FileConfigurationStorage implements ConfigurationStorage {
   }
 
   @Override
-  public void replace(Path file, String content) {
+  public void replace(final Path file, final String content) {
     write(file, content, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
   }
 
   @Override
-  public void restore(Path file, String originalContent) {
+  public void restore(final Path file, final String originalContent) {
     replace(file, originalContent);
   }
 
-  private static void write(Path file, String content, StandardOpenOption... options) {
+  private static void write(
+      final Path file, final String content, final StandardOpenOption... options) {
     try {
       Files.writeString(file, content, options);
     } catch (IOException e) {

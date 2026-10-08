@@ -25,13 +25,13 @@ public final class QualityLoopService {
 
   @Inject
   public QualityLoopService(
-      CheckService checks, AgentRunnerFactory agents, GitStateInspection git) {
+      final CheckService checks, final AgentRunnerFactory agents, final GitStateInspection git) {
     this.checks = checks;
     this.agents = agents;
     this.git = git;
   }
 
-  public LoopResult run(LoopRequest request) {
+  public LoopResult run(final LoopRequest request) {
     final Path root = request.workingDirectory();
     final String task = request.task();
     final LoopConfiguration config = request.configuration();
@@ -89,7 +89,7 @@ public final class QualityLoopService {
         "Maximum iterations reached.");
   }
 
-  private static String feedback(CheckReport report) {
+  private static String feedback(final CheckReport report) {
     return report.results().stream()
         .filter(result -> !result.passed())
         .map(

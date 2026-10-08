@@ -113,12 +113,12 @@ class LearningServiceTest {
     private LearningLedger saved;
     private int saveCalls;
 
-    FakeStore(LearningLedger ledger) {
+    FakeStore(final LearningLedger ledger) {
       this.loaded = Optional.of(ledger);
       this.failure = null;
     }
 
-    FakeStore(LearningStoreException failure) {
+    FakeStore(final LearningStoreException failure) {
       this.loaded = Optional.empty();
       this.failure = failure;
     }
@@ -132,7 +132,7 @@ class LearningServiceTest {
     }
 
     @Override
-    public void save(Path projectRoot, LearningLedger ledger) throws LearningStoreException {
+    public void save(Path projectRoot, final LearningLedger ledger) throws LearningStoreException {
       saveCalls++;
       saved = ledger;
     }

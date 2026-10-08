@@ -11,16 +11,16 @@ public final class JsonTree {
 
   private final Object value;
 
-  private JsonTree(Object value) {
+  private JsonTree(final Object value) {
     this.value = value;
   }
 
   /** Parses a complete JSON document; fails on malformed input or trailing text. */
-  public static JsonTree parse(String json) {
+  public static JsonTree parse(final String json) {
     return new JsonTree(JSON.fromJson(json, Object.class));
   }
 
-  public JsonTree get(String field) {
+  public JsonTree get(final String field) {
     final Map<?, ?> object = as(Map.class);
     if (!object.containsKey(field)) {
       throw new AssertionError("Missing JSON field '" + field + "' in " + value);
@@ -28,11 +28,11 @@ public final class JsonTree {
     return new JsonTree(object.get(field));
   }
 
-  public JsonTree get(int index) {
+  public JsonTree get(final int index) {
     return new JsonTree(as(List.class).get(index));
   }
 
-  public boolean has(String field) {
+  public boolean has(final String field) {
     return value instanceof Map<?, ?> object && object.containsKey(field);
   }
 
@@ -60,7 +60,7 @@ public final class JsonTree {
     return value;
   }
 
-  private <T> T as(Class<T> type) {
+  private <T> T as(final Class<T> type) {
     if (!type.isInstance(value)) {
       throw new AssertionError(
           "Expected JSON " + type.getSimpleName() + " but was " + Objects.toString(value));
@@ -69,7 +69,7 @@ public final class JsonTree {
   }
 
   @Override
-  public boolean equals(Object other) {
+  public boolean equals(final Object other) {
     return other instanceof JsonTree tree && Objects.equals(value, tree.value);
   }
 

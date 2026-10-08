@@ -7,7 +7,7 @@ import java.util.List;
 public final class SkippedQualityGate implements QualityGate {
   private final String name;
 
-  public SkippedQualityGate(String name) {
+  public SkippedQualityGate(final String name) {
     this.name = name;
   }
 

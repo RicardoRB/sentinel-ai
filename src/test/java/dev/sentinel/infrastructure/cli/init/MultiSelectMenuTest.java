@@ -64,7 +64,7 @@ class MultiSelectMenuTest {
     return new PrintWriter(rendered, true);
   }
 
-  private static IntSupplier script(int... keys) {
+  private static IntSupplier script(final int... keys) {
     final AtomicInteger index = new AtomicInteger();
     return () -> index.get() < keys.length ? keys[index.getAndIncrement()] : -1;
   }

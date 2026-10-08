@@ -6,7 +6,7 @@ public enum Framework {
 
   private final String displayName;
 
-  Framework(String displayName) {
+  Framework(final String displayName) {
     this.displayName = displayName;
   }
 

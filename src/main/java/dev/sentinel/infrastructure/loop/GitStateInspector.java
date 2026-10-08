@@ -12,12 +12,12 @@ public final class GitStateInspector implements GitStateInspection {
   private final CommandExecutor executor;
 
   @Inject
-  public GitStateInspector(CommandExecutor executor) {
+  public GitStateInspector(final CommandExecutor executor) {
     this.executor = executor;
   }
 
   @Override
-  public GitState inspect(Path root) {
+  public GitState inspect(final Path root) {
     final CommandResult repository =
         executor.execute(List.of("git", "rev-parse", "--is-inside-work-tree"), root);
     if (!repository.succeeded()) {

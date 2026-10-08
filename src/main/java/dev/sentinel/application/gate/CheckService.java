@@ -26,42 +26,45 @@ public class CheckService {
 
   @Inject
   public CheckService(
-      ProjectDetector detector,
-      SentinelConfigurationReader configurationReader,
-      QualityGateFactory gateFactory,
-      QualityGateRunner runner) {
+      final ProjectDetector detector,
+      final SentinelConfigurationReader configurationReader,
+      final QualityGateFactory gateFactory,
+      final QualityGateRunner runner) {
     this.detector = detector;
     this.configurationReader = configurationReader;
     this.gateFactory = gateFactory;
     this.runner = runner;
   }
 
-  public CheckReport check(Path start) {
+  public CheckReport check(final Path start) {
     return check(start, List.of());
   }
 
-  public CheckReport check(Path start, List<String> requestedProfiles) {
+  public CheckReport check(final Path start, final List<String> requestedProfiles) {
     return check(start, requestedProfiles, CheckProgressListener.NO_OP, false);
   }
 
   public CheckReport check(
-      Path start, List<String> requestedProfiles, CheckProgressListener listener) {
+      final Path start,
+      final List<String> requestedProfiles,
+      final CheckProgressListener listener) {
     return check(start, requestedProfiles, listener, false);
   }
 
-  public CheckReport check(Path start, boolean failFast) {
+  public CheckReport check(final Path start, final boolean failFast) {
     return check(start, List.of(), CheckProgressListener.NO_OP, failFast);
   }
 
-  public CheckReport check(Path start, List<String> requestedProfiles, boolean failFast) {
+  public CheckReport check(
+      final Path start, final List<String> requestedProfiles, final boolean failFast) {
     return check(start, requestedProfiles, CheckProgressListener.NO_OP, failFast);
   }
 
   public CheckReport check(
-      Path start,
-      List<String> requestedProfiles,
-      CheckProgressListener listener,
-      boolean failFast) {
+      final Path start,
+      final List<String> requestedProfiles,
+      final CheckProgressListener listener,
+      final boolean failFast) {
     final Project project = detector.detect(start).orElseThrow(ProjectNotFoundException::new);
     final SentinelConfiguration configuration =
         configurationReader.read(project.root().resolve(SentinelConfiguration.FILE_NAME));
@@ -77,7 +80,7 @@ public class CheckService {
   }
 
   private static SentinelConfiguration selectProfiles(
-      SentinelConfiguration configuration, List<String> requested) {
+      final SentinelConfiguration configuration, final List<String> requested) {
     final List<String> names =
         requested == null || requested.isEmpty()
             ? List.of(SentinelConfiguration.DEFAULT_PROFILE)

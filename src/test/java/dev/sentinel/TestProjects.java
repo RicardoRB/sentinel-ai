@@ -30,7 +30,7 @@ public final class TestProjects {
 
   private TestProjects() {}
 
-  public static Path withPom(Path dir, String pom) {
+  public static Path withPom(final Path dir, final String pom) {
     try {
       Files.writeString(dir.resolve("pom.xml"), pom);
       return dir;

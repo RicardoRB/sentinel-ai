@@ -14,7 +14,7 @@ public class VersionProvider implements IVersionProvider {
   }
 
   @Inject
-  public VersionProvider(@Named("sentinel.version") String version) {
+  public VersionProvider(@Named("sentinel.version") final String version) {
     this.version = version;
   }
 

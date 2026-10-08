@@ -24,7 +24,7 @@ public final class DoctorCommand implements Callable<Integer> {
   private final DoctorService service;
 
   @Inject
-  public DoctorCommand(DoctorService service) {
+  public DoctorCommand(final DoctorService service) {
     this.service = service;
   }
 

@@ -14,7 +14,7 @@ public enum BuildTool {
 
   private final String displayName;
 
-  BuildTool(String displayName) {
+  BuildTool(final String displayName) {
     this.displayName = displayName;
   }
 

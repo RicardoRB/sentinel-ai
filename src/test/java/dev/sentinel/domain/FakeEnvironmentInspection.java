@@ -14,12 +14,12 @@ public class FakeEnvironmentInspection implements EnvironmentInspection {
   public final List<Path> inspectedRoots = new ArrayList<>();
   private final EnvironmentFacts facts;
 
-  public FakeEnvironmentInspection(String... executables) {
+  public FakeEnvironmentInspection(final String... executables) {
     this.facts = new EnvironmentFacts(Set.of(executables), Map.of());
   }
 
   @Override
-  public EnvironmentFacts inspect(Path projectRoot) {
+  public EnvironmentFacts inspect(final Path projectRoot) {
     inspectedRoots.add(projectRoot);
     return facts;
   }

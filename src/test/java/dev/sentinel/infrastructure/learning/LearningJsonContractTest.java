@@ -56,7 +56,7 @@ class LearningJsonContractTest {
   }
 
   @Test
-  void storeSaveMatchesContractFixtureIncludingUnicodeAndTimestamps(@TempDir Path root)
+  void storeSaveMatchesContractFixtureIncludingUnicodeAndTimestamps(final @TempDir Path root)
       throws Exception {
     final LearningLedger ledger = ledger();
     new JsonLearningStore(new ForyJsonCodec()).save(root, ledger);
@@ -97,7 +97,7 @@ class LearningJsonContractTest {
   }
 
   @Test
-  void emptyCollectionsRoundTrip(@TempDir Path root) throws Exception {
+  void emptyCollectionsRoundTrip(final @TempDir Path root) throws Exception {
     final JsonLearningStore store = new JsonLearningStore(new ForyJsonCodec());
     store.save(root, LearningLedger.empty());
     assertThat(Files.readString(root.resolve(".sentinel/learning.json")))
@@ -186,7 +186,7 @@ class LearningJsonContractTest {
     return new LearningLedger(1, records);
   }
 
-  private static String fixture(String name) throws IOException {
+  private static String fixture(final String name) throws IOException {
     try (InputStream stream =
         LearningJsonContractTest.class.getClassLoader().getResourceAsStream(CONTRACTS + name)) {
       assertThat(stream).as(CONTRACTS + name).isNotNull();
@@ -194,7 +194,7 @@ class LearningJsonContractTest {
     }
   }
 
-  private static JsonTree recordsOf(String storeJson) {
+  private static JsonTree recordsOf(final String storeJson) {
     return JsonTree.parse(storeJson).get("records");
   }
 }

@@ -28,7 +28,7 @@ class ExtendedGatesTest {
   private static final Project PROJECT =
       new Project(Path.of("/p"), Language.JAVA, BuildTool.MAVEN, Framework.NONE);
 
-  private static SentinelConfiguration config(String id, List<String> command) {
+  private static SentinelConfiguration config(final String id, final List<String> command) {
     final Map<String, GateConfiguration> gates = new LinkedHashMap<>();
     gates.put(id, new GateConfiguration(true, command));
     return new SentinelConfiguration(1, gates);

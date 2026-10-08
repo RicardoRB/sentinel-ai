@@ -14,7 +14,10 @@ public record InitGateOption(
   }
 
   public InitGateOption(
-      String id, List<String> command, boolean available, String availabilityMessage) {
+      final String id,
+      final List<String> command,
+      final boolean available,
+      final String availabilityMessage) {
     this(id, id, command, available, availabilityMessage);
   }
 }

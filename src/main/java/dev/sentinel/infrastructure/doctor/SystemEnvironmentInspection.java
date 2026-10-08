@@ -20,7 +20,7 @@ public final class SystemEnvironmentInspection implements EnvironmentInspection 
       Set.of("mvn", "java", "git", "claude", "opencode");
 
   @Override
-  public EnvironmentFacts inspect(Path projectRoot) {
+  public EnvironmentFacts inspect(final Path projectRoot) {
     final Set<String> available = new HashSet<>();
     final String path = System.getenv("PATH");
     if (path != null) {
