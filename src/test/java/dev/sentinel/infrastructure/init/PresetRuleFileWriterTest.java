@@ -2,7 +2,7 @@ package dev.sentinel.infrastructure.init;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import dev.sentinel.TestProjects;
+import dev.sentinel.ProjectFixtures;
 import dev.sentinel.domain.init.InitGateOption;
 import dev.sentinel.domain.init.QualityPreset;
 import dev.sentinel.domain.init.RuleFileChange;
@@ -18,8 +18,8 @@ import org.junit.jupiter.api.io.TempDir;
 
 class PresetRuleFileWriterTest {
   @Test
-  void writesOwnedFilesAndRestoresCreatedFiles(final @TempDir Path root) throws Exception {
-    TestProjects.withPom(root, TestProjects.PLAIN_POM);
+  void writesOwnedFilesAndRestoresCreatedFiles(@TempDir final Path root) throws Exception {
+    ProjectFixtures.withPom(root, ProjectFixtures.PLAIN_POM);
     final Project project = new Project(root, Language.JAVA, BuildTool.MAVEN, Framework.NONE);
     final List<InitGateOption> gates =
         List.of(gate("pmd"), gate("checkstyle"), gate("spotbugs"), gate("enforcer"));
@@ -36,8 +36,8 @@ class PresetRuleFileWriterTest {
   }
 
   @Test
-  void preservesUnmarkedFilesAndReplacesMarkedFiles(final @TempDir Path root) throws Exception {
-    TestProjects.withPom(root, TestProjects.PLAIN_POM);
+  void preservesUnmarkedFilesAndReplacesMarkedFiles(@TempDir final Path root) throws Exception {
+    ProjectFixtures.withPom(root, ProjectFixtures.PLAIN_POM);
     final Path config = root.resolve("config");
     Files.createDirectories(config);
     final Path pmd = config.resolve("pmd-ruleset.xml");

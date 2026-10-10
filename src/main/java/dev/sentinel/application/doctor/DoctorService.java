@@ -11,6 +11,9 @@ import java.util.Optional;
 import javax.inject.Inject;
 
 public final class DoctorService {
+  private final ProjectDetector detector;
+  private final EnvironmentInspection environment;
+
   public enum Status {
     OK,
     WARNING,
@@ -18,9 +21,6 @@ public final class DoctorService {
   }
 
   public record Finding(String name, Status status, String message) {}
-
-  private final ProjectDetector detector;
-  private final EnvironmentInspection environment;
 
   @Inject
   public DoctorService(final ProjectDetector detector, final EnvironmentInspection environment) {
@@ -37,37 +37,53 @@ public final class DoctorService {
     }
     final Path root = project.get().root();
     final EnvironmentFacts facts = environment.inspect(root);
+    final String mavenMessage =
+        project.get().mavenWrapperAvailable()
+            ? "Maven Wrapper available."
+            : "System Maven is required.";
+    final boolean openCode = flag(facts, "openCodeCommandPresent");
     findings.add(new Finding("project", Status.OK, root.toString()));
-    final boolean mavenAvailable =
-        Boolean.parseBoolean(facts.values().get("mavenWrapperAvailable"))
-            || facts.hasExecutable("mvn");
     findings.add(
-        new Finding(
+        check(
             "maven",
-            mavenAvailable ? Status.OK : Status.ERROR,
-            project.get().mavenWrapperAvailable()
-                ? "Maven Wrapper available."
-                : "System Maven is required."));
-    final boolean configPresent = Boolean.parseBoolean(facts.values().get("configurationPresent"));
+            flag(facts, "mavenWrapperAvailable") || facts.hasExecutable("mvn"),
+            Status.ERROR,
+            mavenMessage,
+            mavenMessage));
     findings.add(
-        new Finding(
+        check(
             "configuration",
-            configPresent ? Status.OK : Status.ERROR,
-            configPresent ? "Configuration is present." : "Run 'sentinel init'."));
-    final boolean integrationPresent =
-        Boolean.parseBoolean(facts.values().get("openCodeCommandPresent"));
+            flag(facts, "configurationPresent"),
+            Status.ERROR,
+            "Configuration is present.",
+            "Run 'sentinel init'."));
     findings.add(
         new Finding(
             "integration",
-            integrationPresent ? Status.OK : Status.WARNING,
-            "OpenCode integration " + (integrationPresent ? "present." : "not configured.")));
-    final boolean nativePresent =
-        Boolean.parseBoolean(facts.values().get("nativeExecutablePresent"));
+            openCode ? Status.OK : Status.WARNING,
+            "OpenCode integration " + (openCode ? "present." : "not configured.")));
     findings.add(
-        new Finding(
+        check(
             "native",
-            nativePresent ? Status.OK : Status.WARNING,
-            nativePresent ? "Native executable present." : "Build with the native profile."));
+            flag(facts, "nativeExecutablePresent"),
+            Status.WARNING,
+            "Native executable present.",
+            "Build with the native profile."));
     return findings;
+  }
+
+  private static boolean flag(final EnvironmentFacts facts, final String name) {
+    return Boolean.parseBoolean(facts.values().get(name));
+  }
+
+  private static Finding check(
+      final String name,
+      final boolean passed,
+      final Status failure,
+      final String passedMessage,
+      final String failedMessage) {
+    return passed
+        ? new Finding(name, Status.OK, passedMessage)
+        : new Finding(name, failure, failedMessage);
   }
 }

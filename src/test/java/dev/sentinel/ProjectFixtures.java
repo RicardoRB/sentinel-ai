@@ -5,7 +5,7 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-public final class TestProjects {
+public final class ProjectFixtures {
 
   public static final String PLAIN_POM =
       """
@@ -28,7 +28,7 @@ public final class TestProjects {
             </project>
             """;
 
-  private TestProjects() {}
+  private ProjectFixtures() {}
 
   public static Path withPom(final Path dir, final String pom) {
     try {

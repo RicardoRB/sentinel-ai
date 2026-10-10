@@ -15,37 +15,67 @@ public final class CommandLineTokenizer {
   private CommandLineTokenizer() {}
 
   public static List<String> tokenize(final String commandLine) {
-    final List<String> tokens = new ArrayList<>();
+    final Tokens tokens = new Tokens();
     final StringBuilder current = new StringBuilder();
-    boolean inToken = false;
-    char quote = 0;
     for (final char c : commandLine.toCharArray()) {
-      if (quote != 0) {
-        if (c == quote) {
-          quote = 0;
-        } else {
-          current.append(c);
-        }
-      } else if (c == '"' || c == '\'') {
-        quote = c;
-        inToken = true;
-      } else if (Character.isWhitespace(c)) {
-        if (inToken) {
-          tokens.add(current.toString());
-          current.setLength(0);
-          inToken = false;
-        }
-      } else {
-        current.append(c);
-        inToken = true;
-      }
+      tokens.accept(c, current);
     }
-    if (quote != 0) {
+    if (tokens.inQuote()) {
       throw new SentinelException("Unterminated quote in command: " + commandLine);
     }
-    if (inToken) {
-      tokens.add(current.toString());
+    return tokens.finish(current);
+  }
+
+  /** Tracks quote and token state for one {@link #tokenize} call. */
+  private static final class Tokens {
+    private static final char NO_QUOTE = 0;
+
+    private final List<String> values = new ArrayList<>();
+    private boolean inToken;
+    private char quote = NO_QUOTE;
+
+    void accept(final char c, final StringBuilder current) {
+      if (quote == NO_QUOTE) {
+        acceptUnquoted(c, current);
+      } else if (c == quote) {
+        quote = NO_QUOTE;
+      } else {
+        current.append(c);
+      }
     }
-    return tokens;
+
+    boolean inQuote() {
+      return quote != NO_QUOTE;
+    }
+
+    List<String> finish(final StringBuilder current) {
+      endToken(current);
+      return values;
+    }
+
+    private void acceptUnquoted(final char c, final StringBuilder current) {
+      switch (c) {
+        case '"', '\'' -> {
+          quote = c;
+          inToken = true;
+        }
+        default -> {
+          if (Character.isWhitespace(c)) {
+            endToken(current);
+          } else {
+            current.append(c);
+            inToken = true;
+          }
+        }
+      }
+    }
+
+    private void endToken(final StringBuilder current) {
+      if (inToken) {
+        values.add(current.toString());
+        current.setLength(0);
+        inToken = false;
+      }
+    }
   }
 }

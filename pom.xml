@@ -66,12 +66,6 @@
             <version>1.4.2</version>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>com.github.spotbugs</groupId>
-            <artifactId>spotbugs-annotations</artifactId>
-            <version>4.9.7</version>
-            <scope>provided</scope>
-        </dependency>
     </dependencies>
 
     <profiles>

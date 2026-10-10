@@ -89,6 +89,21 @@ public class CheckService {
       throw new SentinelException("Profile names must not be blank.");
     }
     final Set<String> selectedNames = new LinkedHashSet<>(names);
+    requireKnownProfiles(configuration, selectedNames);
+    final Map<String, GateConfiguration> selected = new LinkedHashMap<>();
+    configuration
+        .gates()
+        .forEach(
+            (gate, config) -> {
+              if (config.profiles().stream().anyMatch(selectedNames::contains)) {
+                selected.put(gate, config);
+              }
+            });
+    return new SentinelConfiguration(configuration.version(), selected);
+  }
+
+  private static void requireKnownProfiles(
+      final SentinelConfiguration configuration, final Set<String> selectedNames) {
     if (selectedNames.contains(SentinelConfiguration.DEFAULT_PROFILE)
         && !configuration.profileNames().contains(SentinelConfiguration.DEFAULT_PROFILE)) {
       throw new SentinelException(
@@ -100,15 +115,5 @@ public class CheckService {
       throw new SentinelException(
           "Unknown profiles " + unknown + ". Available profiles: " + configuration.profileNames());
     }
-    final Map<String, GateConfiguration> selected = new LinkedHashMap<String, GateConfiguration>();
-    configuration
-        .gates()
-        .forEach(
-            (gate, config) -> {
-              if (config.profiles().stream().anyMatch(selectedNames::contains)) {
-                selected.put(gate, config);
-              }
-            });
-    return new SentinelConfiguration(configuration.version(), selected);
   }
 }

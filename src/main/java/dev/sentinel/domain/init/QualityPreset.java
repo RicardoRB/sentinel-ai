@@ -99,7 +99,9 @@ public enum QualityPreset {
 
   private final String id;
   private final List<String> gates;
-  private final PresetRules rules;
+
+  // Enum constants serialize by name, so their fields are never serialized.
+  private final transient PresetRules rules;
 
   QualityPreset(final String id, final List<String> gates, final PresetRules rules) {
     this.id = id;

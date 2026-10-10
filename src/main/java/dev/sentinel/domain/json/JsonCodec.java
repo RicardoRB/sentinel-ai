@@ -5,7 +5,7 @@ package dev.sentinel.domain.json;
  *
  * <p>Adapters couple a JSON library to this port so that application and CLI code depend only on
  * the contract. Implementations must not throw checked exceptions; serialization failures are
- * reported as runtime exceptions.
+ * reported as runtime exceptions, and undecodable input as {@link JsonCodecException}.
  */
 public interface JsonCodec {
   String toJson(Object value);

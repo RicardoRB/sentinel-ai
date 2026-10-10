@@ -12,14 +12,14 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.function.Function;
 import java.util.regex.Matcher;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
 
 /** Adds only missing, pinned Maven tool declarations required by selected init gates. */
 public final class PomToolConfigurator implements BuildToolConfiguration {
-  @Inject
-  public PomToolConfigurator() {}
-
   private static final String CHECKSTYLE = "maven-checkstyle-plugin";
   private static final String PMD = "maven-pmd-plugin";
   private static final String SPOTBUGS = "spotbugs-maven-plugin";
@@ -149,7 +149,7 @@ public final class PomToolConfigurator implements BuildToolConfiguration {
                 </configuration>
               </plugin>
             """;
-  private static final String PIT_PLUGIN =
+  static final String PIT_PLUGIN =
       """
               <plugin>
                 <groupId>org.pitest</groupId>
@@ -187,6 +187,30 @@ public final class PomToolConfigurator implements BuildToolConfiguration {
               </plugin>
             """;
 
+  /** Tools in the order they are added to pom.xml. */
+  private static final List<Tool> TOOLS =
+      List.of(
+          Tool.plugin(
+              "checkstyle",
+              CHECKSTYLE,
+              CHECKSTYLE_PLUGIN,
+              preset -> PresetPluginSnippets.checkstyle()),
+          Tool.plugin("pmd", PMD, PMD_PLUGIN, preset -> PresetPluginSnippets.pmd()),
+          Tool.plugin("spotbugs", SPOTBUGS, SPOTBUGS_PLUGIN, PresetPluginSnippets::spotbugs),
+          Tool.plugin("sonar", SONAR, SONAR_PLUGIN),
+          Tool.plugin("coverage", JACOCO, JACOCO_PLUGIN, PresetPluginSnippets::jacoco),
+          Tool.plugin("dependency-check", DEPENDENCY_CHECK, DEPENDENCY_CHECK_PLUGIN),
+          new Tool("archunit", ARCHUNIT, ARCHUNIT_DEPENDENCY, null, true),
+          Tool.plugin("mutation", PIT, PIT_PLUGIN, PresetPluginSnippets::pit),
+          Tool.plugin(
+              "enforcer", ENFORCER, ENFORCER_PLUGIN, preset -> PresetPluginSnippets.enforcer()),
+          Tool.plugin("format", SPOTLESS, SPOTLESS_PLUGIN),
+          Tool.plugin("license", LICENSE, LICENSE_PLUGIN),
+          Tool.plugin("api-compat", JAPICMP, JAPICMP_PLUGIN));
+
+  @Inject
+  public PomToolConfigurator() {}
+
   @Override
   public PomChange apply(final Project project, final List<InitGateOption> gates) {
     return apply(project, gates, null);
@@ -196,83 +220,25 @@ public final class PomToolConfigurator implements BuildToolConfiguration {
   public PomChange apply(
       final Project project, final List<InitGateOption> gates, final QualityPreset preset) {
     final Path pom = project.root().resolve("pom.xml");
+    final Set<String> selected = gates.stream().map(InitGateOption::id).collect(Collectors.toSet());
     try {
       final String original = Files.readString(pom);
       String updated = original;
       final List<String> tools = new ArrayList<>();
       final List<String> warnings = new ArrayList<>();
-      final boolean needsArchUnit = gates.stream().anyMatch(gate -> "archunit".equals(gate.id()));
-      if (gates.stream().anyMatch(gate -> "checkstyle".equals(gate.id()))
-          && !containsArtifact(updated, CHECKSTYLE)) {
-        updated = addPlugin(updated, preset == null ? CHECKSTYLE_PLUGIN : checkstylePlugin());
-        tools.add(CHECKSTYLE);
-      } else if (preset != null
-          && gates.stream().anyMatch(gate -> "checkstyle".equals(gate.id()))) {
-        warnings.add(CHECKSTYLE + " already declared; " + preset.id() + " settings not applied");
-      }
-      if (gates.stream().anyMatch(gate -> "pmd".equals(gate.id()))
-          && !containsArtifact(updated, PMD)) {
-        updated = addPlugin(updated, preset == null ? PMD_PLUGIN : pmdPlugin());
-        tools.add(PMD);
-      } else if (preset != null && gates.stream().anyMatch(gate -> "pmd".equals(gate.id()))) {
-        warnings.add(PMD + " already declared; " + preset.id() + " settings not applied");
-      }
-      if (gates.stream().anyMatch(gate -> "spotbugs".equals(gate.id()))
-          && !containsArtifact(updated, SPOTBUGS)) {
-        updated = addPlugin(updated, preset == null ? SPOTBUGS_PLUGIN : spotbugsPlugin(preset));
-        tools.add(SPOTBUGS);
-      } else if (preset != null && gates.stream().anyMatch(gate -> "spotbugs".equals(gate.id()))) {
-        warnings.add(SPOTBUGS + " already declared; " + preset.id() + " settings not applied");
-      }
-      if (gates.stream().anyMatch(gate -> "sonar".equals(gate.id()))
-          && !containsArtifact(updated, SONAR)) {
-        updated = addPlugin(updated, SONAR_PLUGIN);
-        tools.add(SONAR);
-      }
-      if (gates.stream().anyMatch(gate -> "coverage".equals(gate.id()))
-          && !containsArtifact(updated, JACOCO)) {
-        updated = addPlugin(updated, preset == null ? JACOCO_PLUGIN : jacocoPlugin(preset));
-        tools.add(JACOCO);
-      } else if (preset != null && gates.stream().anyMatch(gate -> "coverage".equals(gate.id()))) {
-        warnings.add(JACOCO + " already declared; " + preset.id() + " settings not applied");
-      }
-      if (gates.stream().anyMatch(gate -> "dependency-check".equals(gate.id()))
-          && !containsArtifact(updated, DEPENDENCY_CHECK)) {
-        updated = addPlugin(updated, DEPENDENCY_CHECK_PLUGIN);
-        tools.add(DEPENDENCY_CHECK);
-      }
-      if (needsArchUnit && !containsArtifact(updated, ARCHUNIT)) {
-        updated = addDependency(updated, ARCHUNIT_DEPENDENCY);
-        tools.add(ARCHUNIT);
-      }
-      if (gates.stream().anyMatch(gate -> "mutation".equals(gate.id()))
-          && !containsArtifact(updated, PIT)) {
-        updated = addPlugin(updated, preset == null ? PIT_PLUGIN : pitPlugin(preset));
-        tools.add(PIT);
-      } else if (preset != null && gates.stream().anyMatch(gate -> "mutation".equals(gate.id()))) {
-        warnings.add(PIT + " already declared; " + preset.id() + " settings not applied");
-      }
-      if (gates.stream().anyMatch(gate -> "enforcer".equals(gate.id()))
-          && !containsArtifact(updated, ENFORCER)) {
-        updated = addPlugin(updated, preset == null ? ENFORCER_PLUGIN : enforcerPlugin());
-        tools.add(ENFORCER);
-      } else if (preset != null && gates.stream().anyMatch(gate -> "enforcer".equals(gate.id()))) {
-        warnings.add(ENFORCER + " already declared; " + preset.id() + " settings not applied");
-      }
-      if (gates.stream().anyMatch(gate -> "format".equals(gate.id()))
-          && !containsArtifact(updated, SPOTLESS)) {
-        updated = addPlugin(updated, SPOTLESS_PLUGIN);
-        tools.add(SPOTLESS);
-      }
-      if (gates.stream().anyMatch(gate -> "license".equals(gate.id()))
-          && !containsArtifact(updated, LICENSE)) {
-        updated = addPlugin(updated, LICENSE_PLUGIN);
-        tools.add(LICENSE);
-      }
-      if (gates.stream().anyMatch(gate -> "api-compat".equals(gate.id()))
-          && !containsArtifact(updated, JAPICMP)) {
-        updated = addPlugin(updated, JAPICMP_PLUGIN);
-        tools.add(JAPICMP);
+      for (final Tool tool : TOOLS) {
+        if (!selected.contains(tool.gate())) {
+          continue;
+        }
+        if (containsArtifact(updated, tool.artifact())) {
+          if (preset != null && tool.presetSnippet() != null) {
+            warnings.add(
+                tool.artifact() + " already declared; " + preset.id() + " settings not applied");
+          }
+        } else {
+          updated = tool.addTo(updated, preset);
+          tools.add(tool.artifact());
+        }
       }
       if (!tools.isEmpty()) {
         Files.writeString(
@@ -337,82 +303,32 @@ public final class PomToolConfigurator implements BuildToolConfiguration {
             "  <dependencies>\n" + dependency + "  </dependencies>\n</project>"));
   }
 
-  private static String pmdPlugin() {
-    return """
-            <plugin>
-              <groupId>org.apache.maven.plugins</groupId>
-              <artifactId>maven-pmd-plugin</artifactId>
-              <version>3.26.0</version>
-              <configuration>
-                <rulesets><ruleset>${project.basedir}/config/pmd-ruleset.xml</ruleset></rulesets>
-                <failOnViolation>true</failOnViolation>
-                <printFailingErrors>true</printFailingErrors>
-                <includeTests>false</includeTests>
-              </configuration>
-            </plugin>
-          """;
-  }
+  /**
+   * A Maven tool added for a selected gate. Its preset snippet, when present, replaces the default
+   * snippet under a quality preset.
+   */
+  private record Tool(
+      String gate,
+      String artifact,
+      String snippet,
+      Function<QualityPreset, String> presetSnippet,
+      boolean dependency) {
+    static Tool plugin(final String gate, final String artifact, final String snippet) {
+      return new Tool(gate, artifact, snippet, null, false);
+    }
 
-  private static String checkstylePlugin() {
-    return """
-            <plugin>
-              <groupId>org.apache.maven.plugins</groupId>
-              <artifactId>maven-checkstyle-plugin</artifactId>
-              <version>3.6.0</version>
-              <dependencies><dependency><groupId>com.puppycrawl.tools</groupId><artifactId>checkstyle</artifactId><version>10.20.2</version></dependency></dependencies>
-              <configuration><configLocation>${project.basedir}/config/checkstyle.xml</configLocation><violationSeverity>error</violationSeverity><consoleOutput>true</consoleOutput></configuration>
-            </plugin>
-          """;
-  }
+    static Tool plugin(
+        final String gate,
+        final String artifact,
+        final String snippet,
+        final Function<QualityPreset, String> presetSnippet) {
+      return new Tool(gate, artifact, snippet, presetSnippet, false);
+    }
 
-  private static String spotbugsPlugin(final QualityPreset preset) {
-    final String exclude =
-        preset == QualityPreset.STANDARD
-            ? "<excludeFilterFile>${project.basedir}/config/spotbugs-exclude.xml</excludeFilterFile>"
-            : "";
-    return "<plugin>\n"
-        + "  <groupId>com.github.spotbugs</groupId><artifactId>spotbugs-maven-plugin</artifactId><version>4.9.7.0</version>\n"
-        + "  <configuration><effort>"
-        + preset.rules().spotbugsEffort()
-        + "</effort><threshold>"
-        + preset.rules().spotbugsThreshold()
-        + "</threshold>"
-        + exclude
-        + "</configuration>\n"
-        + "</plugin>\n";
-  }
-
-  private static String jacocoPlugin(final QualityPreset preset) {
-    final String limits =
-        preset.rules().jacocoMinimums().entrySet().stream()
-            .map(
-                entry ->
-                    "<limit><counter>"
-                        + entry.getKey()
-                        + "</counter><value>COVEREDRATIO</value><minimum>"
-                        + entry.getValue()
-                        + "</minimum></limit>")
-            .reduce("", String::concat);
-    return "<plugin><groupId>org.jacoco</groupId><artifactId>jacoco-maven-plugin</artifactId><version>0.8.13</version>\n"
-        + "<executions><execution><goals><goal>prepare-agent</goal></goals></execution><execution><id>report</id><phase>test</phase><goals><goal>report</goal></goals></execution></executions>\n"
-        + "<configuration><rules><rule><element>BUNDLE</element><limits>"
-        + limits
-        + "</limits></rule></rules></configuration></plugin>\n";
-  }
-
-  private static String enforcerPlugin() {
-    return """
-            <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-enforcer-plugin</artifactId><version>3.5.0</version>
-              <configuration><rules><externalRules><location>${project.basedir}/config/enforcer-rules.xml</location></externalRules></rules><fail>true</fail></configuration>
-            </plugin>
-          """;
-  }
-
-  private static String pitPlugin(final QualityPreset preset) {
-    final String threshold =
-        preset.rules().mutationThreshold() == null
-            ? ""
-            : "<mutationThreshold>" + preset.rules().mutationThreshold() + "</mutationThreshold>";
-    return PIT_PLUGIN.replace("</dependencies>", "</dependencies>\n                  " + threshold);
+    String addTo(final String pom, final QualityPreset preset) {
+      final String chosen =
+          preset == null || presetSnippet == null ? snippet : presetSnippet.apply(preset);
+      return dependency ? addDependency(pom, chosen) : addPlugin(pom, chosen);
+    }
   }
 }

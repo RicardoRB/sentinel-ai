@@ -18,7 +18,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 class JsonLearningStoreTest {
   @Test
-  void missingFileAndRoundTrip(final @TempDir Path root) throws Exception {
+  void missingFileAndRoundTrip(@TempDir final Path root) throws Exception {
     final JsonLearningStore store = new JsonLearningStore(new ForyJsonCodec());
     assertThat(store.load(root)).isEmpty();
     final Instant time = Instant.parse("2026-01-01T00:00:00Z");
@@ -45,7 +45,7 @@ class JsonLearningStoreTest {
   }
 
   @Test
-  void rejectsCorruptAndUnsupportedDataWithoutReplacingFile(final @TempDir Path root)
+  void rejectsCorruptAndUnsupportedDataWithoutReplacingFile(@TempDir final Path root)
       throws Exception {
     final Path file = root.resolve(".sentinel/learning.json");
     Files.createDirectories(file.getParent());
@@ -60,7 +60,7 @@ class JsonLearningStoreTest {
   }
 
   @Test
-  void rejectsInvalidRecordsWithoutReplacingFile(final @TempDir Path root) throws Exception {
+  void rejectsInvalidRecordsWithoutReplacingFile(@TempDir final Path root) throws Exception {
     final Path file = root.resolve(".sentinel/learning.json");
     Files.createDirectories(file.getParent());
 
@@ -91,7 +91,7 @@ class JsonLearningStoreTest {
   }
 
   @Test
-  void saveOverwritesAtomicallyAndLeavesNoTemporaryFiles(final @TempDir Path root)
+  void saveOverwritesAtomicallyAndLeavesNoTemporaryFiles(@TempDir final Path root)
       throws Exception {
     final JsonLearningStore store = new JsonLearningStore(new ForyJsonCodec());
     final Instant time = Instant.parse("2026-01-01T00:00:00Z");
@@ -124,7 +124,7 @@ class JsonLearningStoreTest {
   }
 
   @Test
-  void corruptLoadPerformsNoWritesUnderSentinelDirectory(final @TempDir Path root)
+  void corruptLoadPerformsNoWritesUnderSentinelDirectory(@TempDir final Path root)
       throws Exception {
     final Path file = root.resolve(".sentinel/learning.json");
     Files.createDirectories(file.getParent());

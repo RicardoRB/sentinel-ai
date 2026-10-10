@@ -3,6 +3,7 @@ package dev.sentinel.infrastructure.agent;
 import dev.sentinel.domain.agent.AgentIntegration;
 import dev.sentinel.domain.agent.IntegrationResult;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -58,21 +59,16 @@ public final class OpenCodeIntegration implements AgentIntegration {
     try {
       return remove ? remove(command, plugin) : install(command, plugin);
     } catch (IOException e) {
-      throw new RuntimeException("Could not update OpenCode integration: " + e.getMessage(), e);
+      throw new UncheckedIOException("Could not update OpenCode integration: " + e.getMessage(), e);
     }
   }
 
   private IntegrationResult install(final Path command, final Path plugin) throws IOException {
-    IntegrationResult conflict = IntegrationArtifacts.preflight(command, MARKER);
+    final IntegrationResult conflict =
+        IntegrationArtifacts.preflight(command, MARKER, plugin, PLUGIN_MARKER);
     if (conflict != null) {
       return conflict;
     }
-    conflict = IntegrationArtifacts.preflight(plugin, PLUGIN_MARKER);
-    if (conflict != null) {
-      return conflict;
-    }
-
-    final List<String> changed = new ArrayList<>();
     final IntegrationResult commandResult =
         IntegrationArtifacts.installOrRefresh(
             command, MARKER, COMMAND, "Updated Sentinel OpenCode integration.");
@@ -85,20 +81,13 @@ public final class OpenCodeIntegration implements AgentIntegration {
     if (pluginResult.status() == IntegrationResult.Status.CONFLICT) {
       return pluginResult;
     }
-    if (commandResult.status() == IntegrationResult.Status.CHANGED) {
-      changed.add(command.toString());
-    }
-    if (pluginResult.status() == IntegrationResult.Status.CHANGED) {
-      changed.add(plugin.toString());
-    }
-    return new IntegrationResult(
-        changed.isEmpty()
-            ? IntegrationResult.Status.ALREADY_PRESENT
-            : IntegrationResult.Status.CHANGED,
-        changed,
-        changed.isEmpty()
-            ? "Sentinel OpenCode integration is already present."
-            : "Created Sentinel-owned OpenCode command and edit/write integration (or refreshed it).");
+    return IntegrationArtifacts.combine(
+        command,
+        commandResult,
+        plugin,
+        pluginResult,
+        "Sentinel OpenCode integration is already present.",
+        "Created Sentinel-owned OpenCode command and edit/write integration (or refreshed it).");
   }
 
   private IntegrationResult remove(final Path command, final Path plugin) throws IOException {

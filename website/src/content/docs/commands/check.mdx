@@ -32,6 +32,9 @@ Quality Gate: FAILED
 ```
 
 Use `--format json` in scripts; only the JSON report goes to stdout and diagnostics go to stderr.
+The format values are exactly `text` and `json`; an unknown value is a usage error. `--learn-after`
+must be at least `1`, and invalid values are reported as usage errors without emitting a partial
+report.
 Learning is opt-in: `--learn-after <n>` records recurring gate failures in `.sentinel/learning.json`.
 A failure is counted once per failing episode; when a recurring failure later passes, the text report
 adds a `Learning` section asking the agent to add a preventive rule to `AGENTS.md`. Sentinel never

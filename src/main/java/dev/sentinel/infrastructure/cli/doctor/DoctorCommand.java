@@ -20,7 +20,10 @@ import picocli.CommandLine.Spec;
     mixinStandardHelpOptions = true)
 public final class DoctorCommand implements Callable<Integer> {
   @Spec private CommandSpec spec;
-  @Mixin private ProjectOptions options = new ProjectOptions();
+
+  // Picocli assigns annotated fields reflectively, so they cannot be final.
+  @Mixin private final ProjectOptions options = new ProjectOptions();
+
   private final DoctorService service;
 
   @Inject

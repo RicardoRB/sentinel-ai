@@ -3,6 +3,7 @@ package dev.sentinel.infrastructure.agent;
 import dev.sentinel.domain.agent.AgentIntegration;
 import dev.sentinel.domain.agent.IntegrationResult;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermission;
@@ -61,21 +62,17 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
     try {
       return remove ? remove(settings, hook) : install(settings, hook);
     } catch (IOException e) {
-      throw new RuntimeException("Could not update Claude Code integration: " + e.getMessage(), e);
+      throw new UncheckedIOException(
+          "Could not update Claude Code integration: " + e.getMessage(), e);
     }
   }
 
   private IntegrationResult install(final Path settings, final Path hook) throws IOException {
-    IntegrationResult conflict = IntegrationArtifacts.preflight(settings, SETTINGS_MARKER);
+    final IntegrationResult conflict =
+        IntegrationArtifacts.preflight(settings, SETTINGS_MARKER, hook, HOOK_MARKER);
     if (conflict != null) {
       return conflict;
     }
-    conflict = IntegrationArtifacts.preflight(hook, HOOK_MARKER);
-    if (conflict != null) {
-      return conflict;
-    }
-
-    final List<String> changed = new ArrayList<>();
     final IntegrationResult settingsResult =
         IntegrationArtifacts.installOrRefresh(
             settings, SETTINGS_MARKER, SETTINGS, "Updated Sentinel Claude Code integration.");
@@ -91,20 +88,13 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
     if (Files.exists(hook)) {
       makeExecutable(hook);
     }
-    if (settingsResult.status() == IntegrationResult.Status.CHANGED) {
-      changed.add(settings.toString());
-    }
-    if (hookResult.status() == IntegrationResult.Status.CHANGED) {
-      changed.add(hook.toString());
-    }
-    return new IntegrationResult(
-        changed.isEmpty()
-            ? IntegrationResult.Status.ALREADY_PRESENT
-            : IntegrationResult.Status.CHANGED,
-        changed,
-        changed.isEmpty()
-            ? "Sentinel Claude Code integration is already present."
-            : "Created Sentinel-owned Claude Code edit/write integration (or refreshed it).");
+    return IntegrationArtifacts.combine(
+        settings,
+        settingsResult,
+        hook,
+        hookResult,
+        "Sentinel Claude Code integration is already present.",
+        "Created Sentinel-owned Claude Code edit/write integration (or refreshed it).");
   }
 
   private IntegrationResult remove(final Path settings, final Path hook) throws IOException {

@@ -11,7 +11,7 @@ class FileConfigurationStorageTest {
   private final FileConfigurationStorage storage = new FileConfigurationStorage();
 
   @Test
-  void createsWithoutOverwritingAndRestoresOriginalContent(final @TempDir Path root)
+  void createsWithoutOverwritingAndRestoresOriginalContent(@TempDir final Path root)
       throws Exception {
     final Path file = root.resolve("sentinel.toml");
     assertThat(storage.read(file)).isEmpty();

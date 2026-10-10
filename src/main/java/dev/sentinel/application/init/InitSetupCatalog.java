@@ -61,91 +61,91 @@ public final class InitSetupCatalog {
         option(
             "tests",
             "Runs the project's tests.",
-            executable,
-            "test",
             mavenAvailable,
-            availability));
+            availability,
+            executable,
+            "test"));
     options.add(
         option(
             "compile",
             "Checks that the project compiles.",
-            executable,
-            "compile",
             mavenAvailable,
-            availability));
+            availability,
+            executable,
+            "compile"));
     options.add(
         option(
             "coverage",
             "Enforces minimum test coverage.",
-            executable,
-            "jacoco:check",
             mavenAvailable,
-            availability + " (minimum coverage is configured in pom.xml.)"));
+            availability + " (minimum coverage is configured in pom.xml.)",
+            executable,
+            "jacoco:check"));
     options.add(
         option(
             "spotbugs",
             "Finds potential bugs through static analysis.",
-            executable,
-            "spotbugs:check",
             mavenAvailable,
-            availability));
+            availability,
+            executable,
+            "spotbugs:check"));
     options.add(
         option(
             "checkstyle",
             "Checks source style and formatting rules.",
-            executable,
-            "checkstyle:check",
             mavenAvailable,
-            availability));
+            availability,
+            executable,
+            "checkstyle:check"));
     options.add(
         option(
             "pmd",
             "Finds common Java design and implementation problems with PMD.",
-            executable,
-            "pmd:check",
             mavenAvailable,
-            availability));
+            availability,
+            executable,
+            "pmd:check"));
     options.add(
         option(
             "sonar",
             "Checks code quality, smells, and duplication.",
-            executable,
-            "sonar",
             mavenAvailable,
-            availability));
+            availability,
+            executable,
+            "sonar"));
     options.add(
         option(
             "dependency-check",
             "Scans dependencies for known CVEs.",
-            executable,
-            "dependency-check:check",
             mavenAvailable,
-            availability));
+            availability,
+            executable,
+            "dependency-check:check"));
     options.add(
         option(
             "archunit",
             "Checks architecture rules with ArchitectureTest.",
+            mavenAvailable,
+            availability + " (runs only ArchitectureTest.)",
             executable,
             "-Dtest=ArchitectureTest",
-            "test",
-            mavenAvailable,
-            availability + " (runs only ArchitectureTest.)"));
+            "test"));
     options.add(
         option(
             "mutation",
             "Measures test strength with mutation testing.",
-            executable,
-            "pitest:mutationCoverage",
             mavenAvailable,
-            availability));
+            availability,
+            executable,
+            "pitest:mutationCoverage"));
     options.add(
         option(
             "format",
             "Checks formatting with Spotless and google-java-format.",
-            executable,
-            "spotless:check",
             mavenAvailable,
-            availability));
+            availability,
+            executable,
+            "spotless:check"));
     options.add(
         binaryOption(
             project,
@@ -180,34 +180,34 @@ public final class InitSetupCatalog {
         option(
             "enforcer",
             "Enforces dependency and build rules with Maven Enforcer.",
-            executable,
-            "enforcer:enforce",
             mavenAvailable,
-            availability + " (dependency and build rules are configured in pom.xml.)"));
+            availability + " (dependency and build rules are configured in pom.xml.)",
+            executable,
+            "enforcer:enforce"));
     options.add(
         option(
             "license",
             "Checks dependency license compliance with the License Maven Plugin.",
-            executable,
-            "license:add-third-party",
             mavenAvailable,
-            availability + " (license policy is configured in pom.xml.)"));
+            availability + " (license policy is configured in pom.xml.)",
+            executable,
+            "license:add-third-party"));
     options.add(
         option(
             "api-compat",
             "Checks binary/API compatibility between versions with japicmp.",
-            executable,
-            "japicmp:cmp",
             mavenAvailable,
-            availability + " (the comparison baseline is configured in pom.xml.)"));
+            availability + " (the comparison baseline is configured in pom.xml.)",
+            executable,
+            "japicmp:cmp"));
     options.add(
         option(
             "command",
             "Runs a custom command from sentinel.toml.",
-            executable,
-            "test",
             mavenAvailable,
-            availability + " (customize the command in sentinel.toml after initialization.)"));
+            availability + " (customize the command in sentinel.toml after initialization.)",
+            executable,
+            "test"));
     return List.copyOf(options);
   }
 
@@ -267,22 +267,9 @@ public final class InitSetupCatalog {
   private static InitGateOption option(
       final String id,
       final String description,
-      final String executable,
-      final String goal,
       final boolean available,
-      final String message) {
-    return new InitGateOption(id, description, List.of(executable, goal), available, message);
-  }
-
-  private static InitGateOption option(
-      final String id,
-      final String description,
-      final String executable,
-      final String firstGoal,
-      final String secondGoal,
-      final boolean available,
-      final String message) {
-    return new InitGateOption(
-        id, description, List.of(executable, firstGoal, secondGoal), available, message);
+      final String message,
+      final String... command) {
+    return new InitGateOption(id, description, List.of(command), available, message);
   }
 }

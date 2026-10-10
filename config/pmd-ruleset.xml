@@ -1,15 +1,78 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ruleset name="Sentinel PMD rules"
-    xmlns="http://pmd.sourceforge.net/ruleset/2.0.0"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0 https://pmd.sourceforge.io/ruleset_2_0_0.xsd">
-    <description>PMD rules for Sentinel production and test sources.</description>
-    <rule ref="rulesets/java/quickstart.xml" />
+         xmlns="http://pmd.sourceforge.net/ruleset/2.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0 https://pmd.github.io/schema/ruleset_2_0_0.xsd">
+
+    <description>
+        PMD rules for Sentinel production and test sources.
+        Focuses on correctness, maintainability, security,
+        performance, and robust software design.
+    </description>
+
+    <!-- Common mistakes and potential bugs -->
+    <rule ref="category/java/errorprone.xml">
+        <!-- Tuned below. -->
+        <exclude name="AvoidDuplicateLiterals" />
+        <!-- Constant/accessor pairs such as NAME/name() are part of the gate API. -->
+        <exclude name="AvoidFieldNameMatchingMethodName" />
+    </rule>
+    <rule ref="category/java/errorprone.xml/AvoidDuplicateLiterals">
+        <properties>
+            <property name="maxDuplicateLiterals" value="8" />
+            <property name="skipAnnotations" value="true" />
+        </properties>
+    </rule>
+
+    <!-- Maintainability and engineering best practices -->
+    <rule ref="category/java/bestpractices.xml">
+        <!-- Tuned below. -->
+        <exclude name="LooseCoupling" />
+        <exclude name="UnitTestContainsTooManyAsserts" />
+    </rule>
     <rule ref="category/java/bestpractices.xml/LooseCoupling">
         <properties>
+            <!-- ArchUnit exposes no interface for imported classes. -->
             <property name="allowedTypes">
                 <value>com.tngtech.archunit.core.domain.JavaClasses</value>
             </property>
         </properties>
     </rule>
+
+    <!-- Object-oriented design and complexity -->
+    <rule ref="category/java/design.xml">
+        <!-- Flags ordinary fluent and Picocli API use. -->
+        <exclude name="LawOfDemeter" />
+        <!-- Inert without package configuration. -->
+        <exclude name="LoosePackageCoupling" />
+    </rule>
+
+    <!-- Naming, readability, and coding conventions -->
+    <rule ref="category/java/codestyle.xml">
+        <!-- Forbids guard clauses and adds the nesting the complexity rules penalise. -->
+        <exclude name="OnlyOneReturn" />
+        <!-- Contradicts UnnecessaryConstructor in the same category. -->
+        <exclude name="AtLeastOneConstructor" />
+        <!-- Flag conventional names such as id and descriptive ones such as configurationReader. -->
+        <exclude name="ShortVariable" />
+        <exclude name="LongVariable" />
+        <exclude name="ShortMethodName" />
+        <!-- Package-private Dagger and test members are intentional. -->
+        <exclude name="CommentDefaultAccessModifier" />
+    </rule>
+
+    <!-- Thread safety and concurrency -->
+    <rule ref="category/java/multithreading.xml">
+        <!-- Flags maps with no concurrent access. -->
+        <exclude name="UseConcurrentHashMap" />
+        <!-- A J2EE container rule; Sentinel is a CLI. -->
+        <exclude name="DoNotUseThreads" />
+    </rule>
+
+    <!-- Performance improvements -->
+    <rule ref="category/java/performance.xml" />
+
+    <!-- Security vulnerabilities and risky patterns -->
+    <rule ref="category/java/security.xml" />
+
 </ruleset>

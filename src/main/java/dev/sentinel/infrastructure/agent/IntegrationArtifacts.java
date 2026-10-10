@@ -6,7 +6,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Stream;
 
 /** Common ownership-safe filesystem operations for generated agent integrations. */
 final class IntegrationArtifacts {
@@ -24,6 +26,32 @@ final class IntegrationArtifacts {
         IntegrationResult.Status.CONFLICT,
         List.of(target.toString()),
         "Existing user-owned integration preserved; resolve the conflict explicitly.");
+  }
+
+  /** Returns the first conflict of two ownership-marked targets, or {@code null}. */
+  static IntegrationResult preflight(
+      final Path first, final String firstMarker, final Path second, final String secondMarker)
+      throws IOException {
+    final IntegrationResult conflict = preflight(first, firstMarker);
+    return conflict == null ? preflight(second, secondMarker) : conflict;
+  }
+
+  /** Combines two artifact results into one, listing the targets that changed. */
+  static IntegrationResult combine(
+      final Path first,
+      final IntegrationResult firstResult,
+      final Path second,
+      final IntegrationResult secondResult,
+      final String presentMessage,
+      final String changedMessage) {
+    final List<String> changed =
+        Stream.of(Map.entry(first, firstResult), Map.entry(second, secondResult))
+            .filter(entry -> entry.getValue().status() == IntegrationResult.Status.CHANGED)
+            .map(entry -> entry.getKey().toString())
+            .toList();
+    return changed.isEmpty()
+        ? new IntegrationResult(IntegrationResult.Status.ALREADY_PRESENT, changed, presentMessage)
+        : new IntegrationResult(IntegrationResult.Status.CHANGED, changed, changedMessage);
   }
 
   static IntegrationResult install(

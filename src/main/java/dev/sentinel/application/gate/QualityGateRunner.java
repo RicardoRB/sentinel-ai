@@ -46,16 +46,7 @@ public class QualityGateRunner {
       listener.gateFinished(result);
       if (failFast && result.status() != GateStatus.PASSED) {
         for (final QualityGate skipped : gates.subList(i + 1, gates.size())) {
-          final GateResult skippedResult =
-              new GateResult(
-                  skipped.name(),
-                  GateStatus.SKIPPED,
-                  List.of(),
-                  0,
-                  Duration.ZERO,
-                  "",
-                  "",
-                  "not run (fail-fast)");
+          final GateResult skippedResult = skippedByFailFast(skipped);
           results.add(skippedResult);
           listener.gateFinished(skippedResult);
         }
@@ -63,5 +54,17 @@ public class QualityGateRunner {
       }
     }
     return new CheckReport(project, results);
+  }
+
+  private static GateResult skippedByFailFast(final QualityGate gate) {
+    return new GateResult(
+        gate.name(),
+        GateStatus.SKIPPED,
+        List.of(),
+        0,
+        Duration.ZERO,
+        "",
+        "",
+        "not run (fail-fast)");
   }
 }

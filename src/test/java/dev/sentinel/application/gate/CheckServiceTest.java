@@ -1,7 +1,7 @@
 package dev.sentinel.application.gate;
 
-import static dev.sentinel.TestProjects.PLAIN_POM;
-import static dev.sentinel.TestProjects.withPom;
+import static dev.sentinel.ProjectFixtures.PLAIN_POM;
+import static dev.sentinel.ProjectFixtures.withPom;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -75,7 +75,7 @@ class CheckServiceTest {
   }
 
   @Test
-  void runsConfiguredCommandNotAHardcodedOne(final @TempDir Path dir) throws Exception {
+  void runsConfiguredCommandNotAHardcodedOne(@TempDir final Path dir) throws Exception {
     withPom(dir, PLAIN_POM);
     Files.writeString(
         dir.resolve("sentinel.toml"),
@@ -93,7 +93,7 @@ class CheckServiceTest {
   }
 
   @Test
-  void disabledGatesAreNotExecuted(final @TempDir Path dir) throws Exception {
+  void disabledGatesAreNotExecuted(@TempDir final Path dir) throws Exception {
     withPom(dir, PLAIN_POM);
     Files.writeString(
         dir.resolve("sentinel.toml"),
@@ -113,7 +113,7 @@ class CheckServiceTest {
   }
 
   @Test
-  void failsWhenNoGateIsEnabled(final @TempDir Path dir) throws Exception {
+  void failsWhenNoGateIsEnabled(@TempDir final Path dir) throws Exception {
     withPom(dir, PLAIN_POM);
     Files.writeString(
         dir.resolve("sentinel.toml"), "version = 1\n[quality-gates.tests]\nenabled = false\n");
@@ -124,7 +124,7 @@ class CheckServiceTest {
   }
 
   @Test
-  void supportsConfiguredAnalysisGate(final @TempDir Path dir) throws Exception {
+  void supportsConfiguredAnalysisGate(@TempDir final Path dir) throws Exception {
     withPom(dir, PLAIN_POM);
     Files.writeString(
         dir.resolve("sentinel.toml"),
@@ -137,7 +137,7 @@ class CheckServiceTest {
   }
 
   @Test
-  void failsWithoutProjectOrConfiguration(final @TempDir Path dir) {
+  void failsWithoutProjectOrConfiguration(@TempDir final Path dir) {
     assertThatThrownBy(() -> service(new FakeCommandExecutor(0, "", "")).check(dir))
         .isInstanceOf(ProjectNotFoundException.class);
 
@@ -147,7 +147,7 @@ class CheckServiceTest {
   }
 
   @Test
-  void selectsUnionOnceInDeclarationOrderAndDefaultsToDefault(final @TempDir Path dir)
+  void selectsUnionOnceInDeclarationOrderAndDefaultsToDefault(@TempDir final Path dir)
       throws Exception {
     withPom(dir, PLAIN_POM);
     Files.writeString(
@@ -165,11 +165,10 @@ class CheckServiceTest {
             """);
     final List<String> executed = new ArrayList<>();
     final CommandExecutor executor =
-        (CommandExecutor)
-            (command, root) -> {
-              executed.add(command.getFirst());
-              return new CommandResult(0, "", "", Duration.ZERO);
-            };
+        (command, root) -> {
+          executed.add(command.getFirst());
+          return new CommandResult(0, "", "", Duration.ZERO);
+        };
     final CheckService checks =
         new CheckService(
             new ProjectDetector(new FileSystemProjectInspection()),

@@ -27,7 +27,9 @@ import picocli.CommandLine.Spec;
     subcommands = {})
 public final class IntegrateCommand implements Callable<Integer> {
   @Spec private CommandSpec spec;
-  @Mixin private ProjectOptions options = new ProjectOptions();
+
+  // Picocli assigns annotated fields reflectively, so they cannot be final.
+  @Mixin private final ProjectOptions options = new ProjectOptions();
 
   @Parameters(
       index = "0",
@@ -53,17 +55,13 @@ public final class IntegrateCommand implements Callable<Integer> {
 
   @Override
   public Integer call() {
-    try {
-      if (agent == null || agent.isBlank()) {
-        agent = selectAgent();
-      }
-      final IntegrationResult result = service.integrate(agent, options.directory(), remove);
-      output().printf("%s: %s%n", result.status(), result.message());
-      result.changed().forEach(output()::println);
-      return result.status() == IntegrationResult.Status.CONFLICT ? ExitCodes.ERROR : ExitCodes.OK;
-    } catch (SentinelException e) {
-      throw e;
+    if (agent == null || agent.isBlank()) {
+      agent = selectAgent();
     }
+    final IntegrationResult result = service.integrate(agent, options.directory(), remove);
+    output().printf("%s: %s%n", result.status(), result.message());
+    result.changed().forEach(output()::println);
+    return result.status() == IntegrationResult.Status.CONFLICT ? ExitCodes.ERROR : ExitCodes.OK;
   }
 
   private String selectAgent() {

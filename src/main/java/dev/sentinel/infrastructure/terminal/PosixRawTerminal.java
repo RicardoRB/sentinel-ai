@@ -7,14 +7,20 @@ import java.lang.foreign.Linker;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandleProxies;
 import java.lang.invoke.MethodType;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.atomic.AtomicBoolean;
 import javax.inject.Inject;
 
 /** libc-backed raw terminal adapter for macOS and Linux. */
 public final class PosixRawTerminal implements RawTerminal {
   private static final int STDIN = 0;
+  private static final int INT_FLAG_BYTES = Integer.BYTES;
   private final Layout layout;
 
   @Inject
@@ -23,94 +29,88 @@ public final class PosixRawTerminal implements RawTerminal {
   }
 
   PosixRawTerminal(final String osName) {
-    final String os = osName.toLowerCase(Locale.ROOT);
-    Layout detected =
-        os.contains("mac") || os.contains("darwin")
-            ? Layout.MAC
-            : os.contains("linux") ? Layout.LINUX : null;
+    layout = detectLayout(osName);
+  }
+
+  /** Returns the termios layout for a supported OS and 64-bit architecture, or {@code null}. */
+  private static Layout detectLayout(final String osName) {
     final String architecture = System.getProperty("os.arch", "").toLowerCase(Locale.ROOT);
-    if (!("x86_64".equals(architecture)
-        || "amd64".equals(architecture)
-        || "aarch64".equals(architecture)
-        || "arm64".equals(architecture))) {
-      detected = null;
+    if (!Set.of("x86_64", "amd64", "aarch64", "arm64").contains(architecture)) {
+      return null;
     }
-    layout = detected;
+    final String os = osName.toLowerCase(Locale.ROOT);
+    if (os.contains("mac") || os.contains("darwin")) {
+      return Layout.MAC;
+    }
+    return os.contains("linux") ? Layout.LINUX : null;
   }
 
   @Override
-  @SuppressWarnings("PMD.AvoidCatchingThrowable")
   public Optional<RawSession> open() {
     if (layout == null) {
       return Optional.empty();
     }
-    final Arena arena = Arena.ofConfined();
-    try {
-      final Linker linker = Linker.nativeLinker();
-      final MethodHandle isatty =
-          downcall(
-              linker,
-              "isatty",
-              MethodType.methodType(int.class, int.class),
-              FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.JAVA_INT));
-      final MethodHandle tcgetattr =
-          downcall(
-              linker,
-              "tcgetattr",
-              MethodType.methodType(int.class, int.class, MemorySegment.class),
-              FunctionDescriptor.of(
-                  ValueLayout.JAVA_INT, ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
-      final MethodHandle tcsetattr =
-          downcall(
-              linker,
-              "tcsetattr",
-              MethodType.methodType(int.class, int.class, int.class, MemorySegment.class),
-              FunctionDescriptor.of(
-                  ValueLayout.JAVA_INT,
-                  ValueLayout.JAVA_INT,
-                  ValueLayout.JAVA_INT,
-                  ValueLayout.ADDRESS));
-      final MethodHandle read =
-          downcall(
-              linker,
-              "read",
-              MethodType.methodType(long.class, int.class, MemorySegment.class, long.class),
-              FunctionDescriptor.of(
-                  ValueLayout.JAVA_LONG,
-                  ValueLayout.JAVA_INT,
-                  ValueLayout.ADDRESS,
-                  ValueLayout.JAVA_LONG));
-      if ((int) isatty.invokeExact(STDIN) == 0) {
-        arena.close();
-        return Optional.empty();
-      }
-      final MemorySegment saved = arena.allocate(layout.size);
-      if ((int) tcgetattr.invokeExact(STDIN, saved) != 0) {
-        arena.close();
-        return Optional.empty();
-      }
-      final MemorySegment raw = arena.allocate(layout.size);
-      raw.copyFrom(saved);
-      final long flags =
-          layout.flagBytes == 4
-              ? Integer.toUnsignedLong(raw.get(ValueLayout.JAVA_INT, layout.flagOffset))
-              : raw.get(ValueLayout.JAVA_LONG, layout.flagOffset);
-      if (layout.flagBytes == 4) {
-        raw.set(ValueLayout.JAVA_INT, layout.flagOffset, (int) (flags & ~layout.disableFlags));
-      } else {
-        raw.set(ValueLayout.JAVA_LONG, layout.flagOffset, flags & ~layout.disableFlags);
-      }
-      raw.set(ValueLayout.JAVA_BYTE, layout.ccOffset + layout.vmin, (byte) 1);
-      raw.set(ValueLayout.JAVA_BYTE, layout.ccOffset + layout.vtime, (byte) 0);
-      if ((int) tcsetattr.invokeExact(STDIN, 0, raw) != 0) {
-        arena.close();
-        return Optional.empty();
-      }
-      return Optional.of(new Session(arena, saved.toArray(ValueLayout.JAVA_BYTE), read, tcsetattr));
-    } catch (Throwable failure) {
-      arena.close();
-      throw new IllegalStateException("Native terminal initialization failed.", failure);
+    try (Arena arena = Arena.ofConfined()) {
+      return openSession(arena);
     }
+  }
+
+  private Optional<RawSession> openSession(final Arena arena) {
+    final Linker linker = Linker.nativeLinker();
+    final NativeFunctions functions = NativeFunctions.create(linker);
+    if (functions.isatty().call(STDIN) == 0) {
+      return Optional.empty();
+    }
+    final MemorySegment saved = arena.allocate(layout.size);
+    if (functions.tcgetattr().call(STDIN, saved) != 0) {
+      return Optional.empty();
+    }
+    if (!enableRawMode(arena, saved, functions.tcsetattr())) {
+      return Optional.empty();
+    }
+    try (SessionArena sessionArena = new SessionArena()) {
+      final FutureTask<Session> session =
+          new FutureTask<>(
+              () ->
+                  new Session(
+                      sessionArena.arena,
+                      saved.toArray(ValueLayout.JAVA_BYTE),
+                      functions.read(),
+                      functions.tcsetattr()));
+      session.run();
+      try {
+        final Session value = session.get();
+        sessionArena.transfer();
+        return Optional.of(value);
+      } catch (InterruptedException interrupted) {
+        Thread.currentThread().interrupt();
+        throw new IllegalStateException("Native terminal initialization interrupted.", interrupted);
+      } catch (ExecutionException failure) {
+        throw new IllegalStateException("Native terminal initialization failed.", failure);
+      }
+    }
+  }
+
+  private boolean enableRawMode(
+      final Arena arena, final MemorySegment saved, final Tcsetattr tcsetattr) {
+    final MemorySegment raw = arena.allocate(layout.size);
+    raw.copyFrom(saved);
+    final long flags =
+        layout.flagBytes == INT_FLAG_BYTES
+            ? Integer.toUnsignedLong(raw.get(ValueLayout.JAVA_INT, layout.flagOffset))
+            : raw.get(ValueLayout.JAVA_LONG, layout.flagOffset);
+    if (layout.flagBytes == INT_FLAG_BYTES) {
+      raw.set(ValueLayout.JAVA_INT, layout.flagOffset, (int) (flags & ~layout.disableFlags));
+    } else {
+      raw.set(ValueLayout.JAVA_LONG, layout.flagOffset, flags & ~layout.disableFlags);
+    }
+    raw.set(ValueLayout.JAVA_BYTE, layout.ccOffset + layout.vmin, (byte) 1);
+    raw.set(ValueLayout.JAVA_BYTE, layout.ccOffset + layout.vtime, (byte) 0);
+    return tcsetattr.call(STDIN, 0, raw) == 0;
+  }
+
+  private static <T> T proxy(final Class<T> type, final MethodHandle handle) {
+    return type.cast(MethodHandleProxies.asInterfaceInstance(type, handle));
   }
 
   private static MethodHandle downcall(
@@ -127,21 +127,81 @@ public final class PosixRawTerminal implements RawTerminal {
     return handle;
   }
 
-  private static final class Session implements RawSession {
+  private record NativeFunctions(
+      Isatty isatty, Tcgetattr tcgetattr, Tcsetattr tcsetattr, NativeRead read) {
+    static NativeFunctions create(final Linker linker) {
+      return new NativeFunctions(
+          proxy(
+              Isatty.class,
+              downcall(
+                  linker,
+                  "isatty",
+                  MethodType.methodType(int.class, int.class),
+                  FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.JAVA_INT))),
+          proxy(
+              Tcgetattr.class,
+              downcall(
+                  linker,
+                  "tcgetattr",
+                  MethodType.methodType(int.class, int.class, MemorySegment.class),
+                  FunctionDescriptor.of(
+                      ValueLayout.JAVA_INT, ValueLayout.JAVA_INT, ValueLayout.ADDRESS))),
+          proxy(
+              Tcsetattr.class,
+              downcall(
+                  linker,
+                  "tcsetattr",
+                  MethodType.methodType(int.class, int.class, int.class, MemorySegment.class),
+                  FunctionDescriptor.of(
+                      ValueLayout.JAVA_INT,
+                      ValueLayout.JAVA_INT,
+                      ValueLayout.JAVA_INT,
+                      ValueLayout.ADDRESS))),
+          proxy(
+              NativeRead.class,
+              downcall(
+                  linker,
+                  "read",
+                  MethodType.methodType(long.class, int.class, MemorySegment.class, long.class),
+                  FunctionDescriptor.of(
+                      ValueLayout.JAVA_LONG,
+                      ValueLayout.JAVA_INT,
+                      ValueLayout.ADDRESS,
+                      ValueLayout.JAVA_LONG))));
+    }
+  }
+
+  private static final class SessionArena implements AutoCloseable {
+    private final Arena arena = Arena.ofConfined();
+    private boolean transferred;
+
+    void transfer() {
+      transferred = true;
+    }
+
+    @Override
+    public void close() {
+      if (!transferred) {
+        arena.close();
+      }
+    }
+  }
+
+  static final class Session implements RawSession {
     private final Arena arena;
     private final byte[] savedAttributes;
-    private final MethodHandle read;
-    private final MethodHandle tcsetattr;
+    private final NativeRead read;
+    private final Tcsetattr tcsetattr;
     private final MemorySegment byteBuffer;
-    private boolean closed;
+    private final AtomicBoolean closed = new AtomicBoolean();
 
     Session(
         final Arena arena,
         final byte[] savedAttributes,
-        final MethodHandle read,
-        final MethodHandle tcsetattr) {
+        final NativeRead read,
+        final Tcsetattr tcsetattr) {
       this.arena = arena;
-      this.savedAttributes = savedAttributes;
+      this.savedAttributes = savedAttributes.clone();
       this.read = read;
       this.tcsetattr = tcsetattr;
       byteBuffer = arena.allocate(1);
@@ -149,54 +209,59 @@ public final class PosixRawTerminal implements RawTerminal {
     }
 
     @Override
-    @SuppressWarnings("PMD.AvoidCatchingThrowable")
     public int read() {
-      try {
-        final long count = (long) read.invokeExact(STDIN, byteBuffer, 1L);
-        return count == 1 ? Byte.toUnsignedInt(byteBuffer.get(ValueLayout.JAVA_BYTE, 0)) : -1;
-      } catch (Throwable failure) {
-        throw new IllegalStateException("Native terminal read failed.", failure);
-      }
+      final long count = read.call(STDIN, byteBuffer, 1L);
+      return count == 1 ? Byte.toUnsignedInt(byteBuffer.get(ValueLayout.JAVA_BYTE, 0)) : -1;
     }
 
     @Override
-    @SuppressWarnings("PMD.AvoidCatchingThrowable")
-    public synchronized void close() {
-      if (closed) {
+    public void close() {
+      if (!closed.compareAndSet(false, true)) {
         return;
       }
-      closed = true;
-      try {
-        restoreAttributes(arena, savedAttributes, tcsetattr);
-      } finally {
-        arena.close();
+      try (Arena owned = arena) {
+        restoreAttributes(owned, savedAttributes, tcsetattr);
       }
     }
 
-    @SuppressWarnings("PMD.AvoidCatchingThrowable")
-    private synchronized void restoreOnShutdown() {
-      if (closed) {
+    void restoreOnShutdown() {
+      if (!closed.compareAndSet(false, true)) {
         return;
       }
-      closed = true;
       try (Arena shutdownArena = Arena.ofConfined()) {
         restoreAttributes(shutdownArena, savedAttributes, tcsetattr);
       }
     }
 
-    @SuppressWarnings("PMD.AvoidCatchingThrowable")
     private static void restoreAttributes(
-        final Arena targetArena, final byte[] savedAttributes, final MethodHandle tcsetattr) {
+        final Arena targetArena, final byte[] savedAttributes, final Tcsetattr tcsetattr) {
       final MemorySegment saved = targetArena.allocate(savedAttributes.length);
       saved.copyFrom(MemorySegment.ofArray(savedAttributes));
-      try {
-        if ((int) tcsetattr.invokeExact(STDIN, 0, saved) != 0) {
-          throw new IllegalStateException("Could not restore terminal attributes.");
-        }
-      } catch (Throwable failure) {
-        throw new IllegalStateException("Native terminal restoration failed.", failure);
+      final int status = tcsetattr.call(STDIN, 0, saved);
+      if (status != 0) {
+        throw new IllegalStateException("Could not restore terminal attributes.");
       }
     }
+  }
+
+  @FunctionalInterface
+  public interface Isatty {
+    int call(int fileDescriptor);
+  }
+
+  @FunctionalInterface
+  public interface Tcgetattr {
+    int call(int fileDescriptor, MemorySegment attributes);
+  }
+
+  @FunctionalInterface
+  public interface Tcsetattr {
+    int call(int fileDescriptor, int action, MemorySegment attributes);
+  }
+
+  @FunctionalInterface
+  public interface NativeRead {
+    long call(int fileDescriptor, MemorySegment buffer, long count);
   }
 
   private record Layout(

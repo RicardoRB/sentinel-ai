@@ -13,6 +13,8 @@ import dev.sentinel.infrastructure.cli.ProjectOptions;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.FutureTask;
 import javax.inject.Inject;
 import org.apache.fory.json.annotation.JsonType;
 import picocli.CommandLine.Command;
@@ -23,8 +25,12 @@ import picocli.CommandLine.Spec;
 
 @Command(name = "claude-code", description = "Run the Claude Code edit/write hook.")
 public final class ClaudeCodeHookCommand implements Callable<Integer> {
+  private static final int MIN_LEARN_AFTER = 1;
+
   @Spec private CommandSpec spec;
-  @Mixin private ProjectOptions options = new ProjectOptions();
+
+  // Picocli assigns annotated fields reflectively, so they cannot be final.
+  @Mixin private final ProjectOptions options = new ProjectOptions();
 
   @Option(names = "--learn-after", defaultValue = "3")
   private int threshold;
@@ -43,41 +49,63 @@ public final class ClaudeCodeHookCommand implements Callable<Integer> {
     this.codec = codec;
   }
 
+  // The hook must always answer Claude Code with an exit code, even on unexpected failures.
   @Override
   public Integer call() {
-    if (threshold < 1) {
+    if (threshold < MIN_LEARN_AFTER) {
       error().println("--learn-after must be at least 1");
       return ExitCodes.ERROR;
     }
+    final FutureTask<Integer> execution = new FutureTask<>(this::executeHook);
+    execution.run();
     try {
-      final CheckReport report = checkService.check(options.directory());
-      final LearningOutcome learning = learningService.learn(report, threshold);
-      if (!report.passed()) {
-        error().println(failureSummary(report));
-        learning.prompts().forEach(prompt -> error().println(prompt.instruction()));
-        learning.warnings().forEach(warning -> error().println(warning));
-        return ExitCodes.ERROR;
-      }
-      if (!learning.prompts().isEmpty()) {
-        final HookOutput output = new HookOutput();
-        output.hookSpecificOutput = new HookSpecificOutput();
-        output.hookSpecificOutput.hookEventName = "PostToolUse";
-        output.hookSpecificOutput.additionalContext =
-            learning.prompts().stream()
-                .map(LearningPrompt::instruction)
-                .reduce((a, b) -> a + "\n" + b)
-                .orElse("");
-        output().println(codec.toJson(output));
-      }
+      return execution.get();
+    } catch (InterruptedException exception) {
+      Thread.currentThread().interrupt();
+      return unexpectedFailure(exception);
+    } catch (ExecutionException exception) {
+      return reportFailure(exception.getCause());
+    }
+  }
+
+  private Integer executeHook() {
+    final CheckReport report = checkService.check(options.directory());
+    final LearningOutcome learning = learningService.learn(report, threshold);
+    if (!report.passed()) {
+      error().println(failureSummary(report));
+      learning.prompts().forEach(prompt -> error().println(prompt.instruction()));
       learning.warnings().forEach(warning -> error().println(warning));
-      return ExitCodes.OK;
-    } catch (SentinelException exception) {
-      error().println("sentinel: " + exception.getMessage());
-      return ExitCodes.ERROR;
-    } catch (RuntimeException exception) {
-      error().println("sentinel: unexpected error: " + exception.getMessage());
       return ExitCodes.ERROR;
     }
+    if (!learning.prompts().isEmpty()) {
+      final HookOutput output = new HookOutput();
+      output.hookSpecificOutput = new HookSpecificOutput();
+      output.hookSpecificOutput.hookEventName = "PostToolUse";
+      output.hookSpecificOutput.additionalContext =
+          learning.prompts().stream()
+              .map(LearningPrompt::instruction)
+              .reduce((a, b) -> a + "\n" + b)
+              .orElse("");
+      output().println(codec.toJson(output));
+    }
+    learning.warnings().forEach(warning -> error().println(warning));
+    return ExitCodes.OK;
+  }
+
+  private Integer reportFailure(final Throwable failure) {
+    return failure instanceof SentinelException exception
+        ? expectedFailure(exception)
+        : unexpectedFailure(failure);
+  }
+
+  private Integer expectedFailure(final SentinelException failure) {
+    error().println("sentinel: " + failure.getMessage());
+    return ExitCodes.ERROR;
+  }
+
+  private Integer unexpectedFailure(final Throwable failure) {
+    error().println("sentinel: unexpected error: " + failure.getMessage());
+    return ExitCodes.ERROR;
   }
 
   private static String failureSummary(final CheckReport report) {

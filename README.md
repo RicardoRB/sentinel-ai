@@ -274,14 +274,12 @@ Sentinel's verdict is **per gate**. Each gate ends in one of these states: `PASS
 fails the run. Per-finding severity (for example SpotBugs `threshold`, Checkstyle `severity`, or
 coverage minimums) is set in each tool's configuration, and the presets choose sensible defaults.
 
-### Suppressing or ignoring a violation
+### Fixing a violation
 
-Use the underlying tool's mechanism:
-
-- **PMD:** `@SuppressWarnings("PMD.RuleName")` or `// NOPMD`.
-- **SpotBugs:** `@SuppressFBWarnings`, or `config/spotbugs-exclude.xml`.
-- **Checkstyle:** a suppressions filter in `config/checkstyle.xml`.
-- **A whole gate:** `enabled = false`, or move it to a non-default profile.
+Correct the underlying cause while preserving observable behavior and test coverage. Do not use
+suppression annotations, `// NOPMD`, SpotBugs or Checkstyle exclusions, disabled checks, or lower
+thresholds as shortcuts. If a finding appears to be a demonstrated framework limitation or false
+positive, document the evidence and request explicit review before introducing any workaround.
 
 ### Exit codes
 

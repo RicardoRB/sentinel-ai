@@ -17,10 +17,10 @@ import javax.inject.Inject;
 
 /** Creates a conservative, user-owned ArchUnit test only when the project has none. */
 public final class ArchitectureTestGenerator implements ArchitectureTestGeneration {
+  private static final Pattern PACKAGE = Pattern.compile("\\bpackage\\s+([A-Za-z_][\\w.]*)\\s*;");
+
   @Inject
   public ArchitectureTestGenerator() {}
-
-  private static final Pattern PACKAGE = Pattern.compile("\\bpackage\\s+([A-Za-z_][\\w.]*)\\s*;");
 
   @Override
   public ArchitectureTestChange apply(final Project project, final String architecture) {

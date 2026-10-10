@@ -40,7 +40,9 @@ class NativeCommandMetadataTest {
   @Test
   void handWrittenMetadataDoesNotRelistCommandClasses() throws IOException {
     final Enumeration<URL> roots =
-        getClass().getClassLoader().getResources(NATIVE_IMAGE_DIR + "dev.sentinel/sentinel-ai");
+        Thread.currentThread()
+            .getContextClassLoader()
+            .getResources(NATIVE_IMAGE_DIR + "dev.sentinel/sentinel-ai");
     final Set<String> commands = commandClasses();
 
     while (roots.hasMoreElements()) {
@@ -67,7 +69,8 @@ class NativeCommandMetadataTest {
   }
 
   private String readResource(final String path) throws IOException {
-    try (InputStream stream = getClass().getClassLoader().getResourceAsStream(path)) {
+    try (InputStream stream =
+        Thread.currentThread().getContextClassLoader().getResourceAsStream(path)) {
       assertThat(stream).as(path).isNotNull();
       return new String(stream.readAllBytes(), StandardCharsets.UTF_8);
     }
