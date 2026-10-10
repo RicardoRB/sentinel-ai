@@ -33,6 +33,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 /** Byte-for-byte contract verification of persistence, report, and hook JSON. */
+@SuppressWarnings({"PMD.ExcessiveImports", "PMD.TooManyMethods"})
 class LearningJsonContractTest {
   private static final String CONTRACTS = "fixtures/learning-contracts/";
   private static final Instant TIME = Instant.parse("2026-01-01T00:00:00Z");

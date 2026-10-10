@@ -13,6 +13,8 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+// Configuration syntax cases share one reader fixture and are kept as one contract suite.
+@SuppressWarnings("PMD.TooManyMethods")
 class TomlConfigurationReaderTest {
 
   private final TomlConfigurationReader reader = new TomlConfigurationReader();

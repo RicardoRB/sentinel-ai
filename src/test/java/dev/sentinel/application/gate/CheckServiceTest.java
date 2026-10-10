@@ -1,7 +1,7 @@
 package dev.sentinel.application.gate;
 
-import static dev.sentinel.TestProjects.PLAIN_POM;
-import static dev.sentinel.TestProjects.withPom;
+import static dev.sentinel.ProjectFixtures.PLAIN_POM;
+import static dev.sentinel.ProjectFixtures.withPom;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 

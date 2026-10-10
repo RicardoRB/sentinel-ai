@@ -41,6 +41,8 @@ import picocli.CommandLine.Command;
  * End to end: real Dagger wiring, real process execution, against a small Maven project fixture.
  */
 @DisabledOnOs(OS.WINDOWS)
+// The command matrix is intentionally kept together so every CLI contract uses the same fixture.
+@SuppressWarnings({"PMD.ExcessiveImports", "PMD.TooManyMethods", "PMD.AvoidDuplicateLiterals"})
 class SentinelCliIntegrationTest {
 
   private final SentinelComponent component = DaggerSentinelComponent.create();

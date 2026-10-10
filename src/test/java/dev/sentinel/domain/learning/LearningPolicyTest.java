@@ -16,6 +16,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class LearningPolicyTest {
+  private static final String CHECKSTYLE_FAILED = "checkstyle:FAILED";
   private static final Instant NOW = Instant.parse("2026-01-01T00:00:00Z");
   private static final Project PROJECT =
       new Project(Path.of("/project"), Language.JAVA, BuildTool.MAVEN, Framework.NONE);
@@ -35,8 +36,8 @@ class LearningPolicyTest {
         LearningPolicy.apply(
             secondFailure.ledger(), report(GateStatus.PASSED, "ok"), 2, NOW.plusSeconds(4));
 
-    assertThat(first.ledger().records().get("checkstyle:FAILED").occurrences()).isOne();
-    assertThat(persistent.ledger().records().get("checkstyle:FAILED").occurrences()).isOne();
+    assertThat(first.ledger().records().get(CHECKSTYLE_FAILED).occurrences()).isOne();
+    assertThat(persistent.ledger().records().get(CHECKSTYLE_FAILED).occurrences()).isOne();
     assertThat(resolved.prompts()).isEmpty();
     assertThat(secondResolved.prompts())
         .singleElement()
@@ -45,7 +46,7 @@ class LearningPolicyTest {
               assertThat(prompt.occurrences()).isEqualTo(2);
               assertThat(prompt.instruction()).contains("AGENTS.md", "checkstyle");
             });
-    assertThat(secondFailure.ledger().records().get("checkstyle:FAILED").summary()).hasSize(200);
+    assertThat(secondFailure.ledger().records().get(CHECKSTYLE_FAILED).summary()).hasSize(200);
   }
 
   @Test
@@ -77,8 +78,8 @@ class LearningPolicyTest {
         LearningPolicy.apply(failure.ledger(), failure(), 1, NOW.plusSeconds(1));
 
     assertThat(persistent.prompts()).isEmpty();
-    assertThat(persistent.ledger().records().get("checkstyle:FAILED").occurrences()).isOne();
-    assertThat(persistent.ledger().records().get("checkstyle:FAILED").state())
+    assertThat(persistent.ledger().records().get(CHECKSTYLE_FAILED).occurrences()).isOne();
+    assertThat(persistent.ledger().records().get(CHECKSTYLE_FAILED).state())
         .isEqualTo(LearningState.FAILING);
     assertThat(persistent.ledger().records().get("checkstyle:FAILED").prompted()).isFalse();
   }
@@ -91,7 +92,7 @@ class LearningPolicyTest {
             failure.ledger(), report(GateStatus.PASSED, "ok"), 3, NOW.plusSeconds(1));
 
     assertThat(resolved.prompts()).isEmpty();
-    final LearningRecord record = resolved.ledger().records().get("checkstyle:FAILED");
+    final LearningRecord record = resolved.ledger().records().get(CHECKSTYLE_FAILED);
     assertThat(record.occurrences()).isOne();
     assertThat(record.state()).isEqualTo(LearningState.RESOLVED);
     assertThat(record.prompted()).isFalse();

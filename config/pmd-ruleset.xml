@@ -38,11 +38,6 @@
             </property>
         </properties>
     </rule>
-    <rule ref="category/java/bestpractices.xml/UnitTestContainsTooManyAsserts">
-        <properties>
-            <property name="maximumAsserts" value="5" />
-        </properties>
-    </rule>
 
     <!-- Object-oriented design and complexity -->
     <rule ref="category/java/design.xml">

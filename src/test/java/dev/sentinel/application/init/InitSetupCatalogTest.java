@@ -3,7 +3,7 @@ package dev.sentinel.application.init;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import dev.sentinel.TestProjects;
+import dev.sentinel.ProjectFixtures;
 import dev.sentinel.application.gate.QualityGateFactory;
 import dev.sentinel.application.project.ProjectDetector;
 import dev.sentinel.domain.FakeEnvironmentInspection;
@@ -21,7 +21,7 @@ import org.junit.jupiter.api.io.TempDir;
 class InitSetupCatalogTest {
   @Test
   void exposesStableIntegrationAndGateChoices(@TempDir final Path dir) throws Exception {
-    TestProjects.withPom(dir, TestProjects.PLAIN_POM);
+    ProjectFixtures.withPom(dir, ProjectFixtures.PLAIN_POM);
     final InitSetupCatalog catalog = new InitSetupCatalog(new FakeEnvironmentInspection());
 
     assertThat(catalog.integrations())
@@ -76,7 +76,7 @@ class InitSetupCatalogTest {
 
   @Test
   void prefersWrapperWhenSystemMavenIsMissing(@TempDir final Path dir) throws Exception {
-    TestProjects.withPom(dir, TestProjects.PLAIN_POM);
+    ProjectFixtures.withPom(dir, ProjectFixtures.PLAIN_POM);
     Files.writeString(dir.resolve("mvnw"), "#!/bin/sh\nexit 0\n");
     final InitGateOption option =
         new InitSetupCatalog(new FakeEnvironmentInspection())
@@ -91,7 +91,7 @@ class InitSetupCatalogTest {
 
   @Test
   void rejectsUnsupportedChoices(@TempDir final Path dir) throws Exception {
-    TestProjects.withPom(dir, TestProjects.PLAIN_POM);
+    ProjectFixtures.withPom(dir, ProjectFixtures.PLAIN_POM);
     final Project project =
         new ProjectDetector(new FileSystemProjectInspection()).detect(dir).orElseThrow();
     final InitSetupCatalog catalog = new InitSetupCatalog(new FakeEnvironmentInspection());
@@ -104,7 +104,7 @@ class InitSetupCatalogTest {
   @Test
   void reportsUnavailableMavenWhenWrapperAndSystemToolAreMissing(@TempDir final Path dir)
       throws Exception {
-    TestProjects.withPom(dir, TestProjects.PLAIN_POM);
+    ProjectFixtures.withPom(dir, ProjectFixtures.PLAIN_POM);
     final Project project =
         new ProjectDetector(new FileSystemProjectInspection()).detect(dir).orElseThrow();
 
@@ -117,7 +117,7 @@ class InitSetupCatalogTest {
 
   @Test
   void reportsSystemMavenWhenWrapperIsMissing(@TempDir final Path dir) throws Exception {
-    TestProjects.withPom(dir, TestProjects.PLAIN_POM);
+    ProjectFixtures.withPom(dir, ProjectFixtures.PLAIN_POM);
     final Project project =
         new ProjectDetector(new FileSystemProjectInspection()).detect(dir).orElseThrow();
 
@@ -130,7 +130,7 @@ class InitSetupCatalogTest {
 
   @Test
   void offersBinaryGatesWithPlaceholderTargetAndHints(@TempDir final Path dir) throws Exception {
-    TestProjects.withPom(dir, TestProjects.PLAIN_POM);
+    ProjectFixtures.withPom(dir, ProjectFixtures.PLAIN_POM);
     final Project project =
         new ProjectDetector(new FileSystemProjectInspection()).detect(dir).orElseThrow();
     final InitSetupCatalog catalog = new InitSetupCatalog(new FakeEnvironmentInspection());

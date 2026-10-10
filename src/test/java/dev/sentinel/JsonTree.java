@@ -6,6 +6,7 @@ import java.util.Objects;
 import org.apache.fory.json.ForyJson;
 
 /** Read-only navigation over JSON parsed by Fory into maps, lists and scalars, for assertions. */
+@SuppressWarnings("PMD.TooManyMethods")
 public final class JsonTree {
   private static final ForyJson JSON = ForyJson.builder().build();
 

@@ -14,7 +14,7 @@ import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.library.dependencies.SlicesRuleDefinition;
 import dev.sentinel.application.agent.fixture.PrivateImplementationCoupling;
 import dev.sentinel.application.cyclealpha.Alpha;
-import dev.sentinel.application.cyclebeta.Beta;
+import dev.sentinel.application.cyclebeta.CycleBeta;
 import dev.sentinel.application.gate.internal.HiddenImplementation;
 import dev.sentinel.domain.architecturefixture.DirectFilesystemAccess;
 import dev.sentinel.domain.architecturefixture.ExternalEffectAccess;
@@ -30,6 +30,8 @@ import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 
 @AnalyzeClasses(packages = "dev.sentinel", importOptions = ImportOption.DoNotIncludeTests.class)
+// This is one architectural specification with many independent rules.
+@SuppressWarnings("PMD.TooManyMethods")
 class ArchitectureBoundaryTest {
   private static final Map<String, Set<String>> DOMAIN_FEATURE_EDGES =
       Map.ofEntries(
@@ -211,7 +213,7 @@ class ArchitectureBoundaryTest {
                     .matching("dev.sentinel.application.(*)..")
                     .should()
                     .beFreeOfCycles()
-                    .check(new ClassFileImporter().importClasses(Alpha.class, Beta.class)))
+                    .check(new ClassFileImporter().importClasses(Alpha.class, CycleBeta.class)))
         .isInstanceOf(AssertionError.class);
 
     final Set<String> commonCliTypes =

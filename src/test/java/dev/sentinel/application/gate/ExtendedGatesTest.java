@@ -25,6 +25,20 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class ExtendedGatesTest {
+  private static final String GITLEAKS = "gitleaks";
+  private static final GateConfiguration ENABLED_GATE =
+      new GateConfiguration(true, List.of("tool"));
+  private static final List<String> GATE_IDENTIFIERS =
+      List.of(
+          "format",
+          "semgrep",
+          GITLEAKS,
+          "trivy",
+          "enforcer",
+          "license",
+          "api-compat",
+          "compliance",
+          "architecture");
   private static final Project PROJECT =
       new Project(Path.of("/p"), Language.JAVA, BuildTool.MAVEN, Framework.NONE);
 
@@ -37,18 +51,8 @@ class ExtendedGatesTest {
   @Test
   void acceptsEveryNewAndLegacyIdentifierInConfigurationOrder() {
     final Map<String, GateConfiguration> gates = new LinkedHashMap<>();
-    for (final String id :
-        List.of(
-            "format",
-            "semgrep",
-            "gitleaks",
-            "trivy",
-            "enforcer",
-            "license",
-            "api-compat",
-            "compliance",
-            "architecture")) {
-      gates.put(id, new GateConfiguration(true, List.of("tool")));
+    for (final String id : GATE_IDENTIFIERS) {
+      gates.put(id, ENABLED_GATE);
     }
     final List<QualityGate> created =
         new QualityGateFactory(new FakeCommandExecutor(0, "", ""))
@@ -63,7 +67,7 @@ class ExtendedGatesTest {
 
     assertThatThrownBy(() -> factory.create(config("nope", List.of("x"))))
         .isInstanceOf(SentinelException.class)
-        .hasMessageContaining("gitleaks", "zap", "api-compat", "pmd");
+        .hasMessageContaining(GITLEAKS, "zap", "api-compat", "pmd");
   }
 
   @Test
@@ -117,17 +121,17 @@ class ExtendedGatesTest {
         (command, dir) ->
             new CommandResult(-1, "", "", Duration.ZERO, "Could not start [gitleaks]: not found");
     final GateResult result =
-        new CommandQualityGate("gitleaks", missing, List.of("gitleaks", "detect")).execute(PROJECT);
+        new CommandQualityGate(GITLEAKS, missing, List.of(GITLEAKS, "detect")).execute(PROJECT);
 
     assertThat(result.status()).isEqualTo(GateStatus.UNAVAILABLE);
-    assertThat(result.summary()).contains("gitleaks").contains("Install gitleaks");
+    assertThat(result.summary()).contains(GITLEAKS).contains("Install gitleaks");
   }
 
   @Test
   void failedSecretScanDoesNotAddMatchedValuesToSummary() {
     final FakeCommandExecutor executor = new FakeCommandExecutor(1, "", "leaks found: 1");
     final GateResult result =
-        new CommandQualityGate("gitleaks", executor, List.of("gitleaks", "detect", "--redact"))
+        new CommandQualityGate(GITLEAKS, executor, List.of(GITLEAKS, "detect", "--redact"))
             .execute(PROJECT);
 
     assertThat(result.status()).isEqualTo(GateStatus.FAILED);
@@ -139,7 +143,7 @@ class ExtendedGatesTest {
   void javaDefaultsIncludeNewGates() {
     assertThat(new LanguageGateRegistry().defaults(Language.JAVA))
         .contains(
-            "format", "semgrep", "gitleaks", "zap", "trivy", "enforcer", "license", "api-compat");
-    assertThat(new LanguageGateRegistry().defaults(Language.GO)).contains("gitleaks", "trivy");
+            "format", "semgrep", GITLEAKS, "zap", "trivy", "enforcer", "license", "api-compat");
+    assertThat(new LanguageGateRegistry().defaults(Language.GO)).contains(GITLEAKS, "trivy");
   }
 }

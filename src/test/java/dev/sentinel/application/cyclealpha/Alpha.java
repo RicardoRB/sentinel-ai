@@ -1,7 +1,7 @@
 package dev.sentinel.application.cyclealpha;
 
-import dev.sentinel.application.cyclebeta.Beta;
+import dev.sentinel.application.cyclebeta.CycleBeta;
 
 public final class Alpha {
-  public Beta beta;
+  public CycleBeta beta;
 }

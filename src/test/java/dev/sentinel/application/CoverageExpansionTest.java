@@ -3,7 +3,7 @@ package dev.sentinel.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import dev.sentinel.TestProjects;
+import dev.sentinel.ProjectFixtures;
 import dev.sentinel.application.gate.CheckService;
 import dev.sentinel.application.gate.CommandQualityGate;
 import dev.sentinel.application.gate.LanguageGateRegistry;
@@ -58,6 +58,9 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+// This test intentionally aggregates coverage across the application services.
+// Splitting it would duplicate setup and obscure the cross-service scenarios.
+@SuppressWarnings({"PMD.ExcessiveImports", "PMD.TooManyMethods"})
 class CoverageExpansionTest {
   private static final Project PROJECT =
       new Project(Path.of("/project"), Language.JAVA, BuildTool.MAVEN, Framework.NONE);
@@ -65,7 +68,7 @@ class CoverageExpansionTest {
   @Test
   void discoversEverySupportedProjectMarker(@TempDir final Path root) throws IOException {
     Files.createDirectories(root.resolve("maven"));
-    Files.writeString(root.resolve("maven/pom.xml"), TestProjects.PLAIN_POM);
+    Files.writeString(root.resolve("maven/pom.xml"), ProjectFixtures.PLAIN_POM);
     Files.createDirectories(root.resolve("gradle"));
     Files.writeString(root.resolve("gradle/build.gradle"), "");
     Files.createDirectories(root.resolve("kotlin"));
@@ -131,14 +134,13 @@ class CoverageExpansionTest {
     Files.writeString(
         root.resolve("src/main/java/com/acme/App.java"), "package com.acme; class App {}");
     final ArchitectureTestGenerator generator = new ArchitectureTestGenerator();
+    final Project project = new Project(root, Language.JAVA, BuildTool.MAVEN, Framework.NONE);
     for (final String style : List.of("layered", "hexagonal", "clean")) {
-      final ArchitectureTestChange change =
-          generator.apply(new Project(root, Language.JAVA, BuildTool.MAVEN, Framework.NONE), style);
+      final ArchitectureTestChange change = generator.apply(project, style);
       assertThat(change.created()).isTrue();
       assertThat(Files.readString(change.file())).contains("package com.acme;", style);
       generator.rollback(change);
     }
-    final Project project = new Project(root, Language.JAVA, BuildTool.MAVEN, Framework.NONE);
     final ArchitectureTestChange existing = generator.apply(project, "layered");
     assertThat(generator.apply(project, "clean").created()).isFalse();
     generator.rollback(existing);
@@ -167,7 +169,7 @@ class CoverageExpansionTest {
 
   @Test
   void pomConfiguratorAddsAndRollsBackAllTools(@TempDir final Path root) throws IOException {
-    TestProjects.withPom(root, TestProjects.PLAIN_POM);
+    ProjectFixtures.withPom(root, ProjectFixtures.PLAIN_POM);
     final InitSetupCatalog catalog = new InitSetupCatalog(new FakeEnvironmentInspection());
     final List<InitGateOption> gates =
         catalog.gates(new Project(root, Language.JAVA, BuildTool.MAVEN, Framework.NONE));
@@ -200,7 +202,7 @@ class CoverageExpansionTest {
             "pitest-maven",
             "maven-enforcer-plugin");
     configurator.rollback(change);
-    assertThat(Files.readString(root.resolve("pom.xml"))).isEqualTo(TestProjects.PLAIN_POM);
+    assertThat(Files.readString(root.resolve("pom.xml"))).isEqualTo(ProjectFixtures.PLAIN_POM);
     configurator.rollback(null);
     assertThat(new PomChange(root.resolve("pom.xml"), "", List.of()).changed()).isFalse();
   }
@@ -208,7 +210,7 @@ class CoverageExpansionTest {
   @Test
   void presetPomSnippetsUseExternalRuleFilesAndStrictMutation(@TempDir final Path root)
       throws IOException {
-    TestProjects.withPom(root, TestProjects.PLAIN_POM);
+    ProjectFixtures.withPom(root, ProjectFixtures.PLAIN_POM);
     final InitSetupCatalog catalog = new InitSetupCatalog(new FakeEnvironmentInspection());
     final Project project = new Project(root, Language.JAVA, BuildTool.MAVEN, Framework.NONE);
     final List<InitGateOption> gates =
@@ -221,7 +223,7 @@ class CoverageExpansionTest {
         .contains("${project.basedir}/config/enforcer-rules.xml", "mutationThreshold>60");
     assertThat(change.tools()).contains("maven-pmd-plugin");
     new PomToolConfigurator().rollback(change);
-    assertThat(Files.readString(root.resolve("pom.xml"))).isEqualTo(TestProjects.PLAIN_POM);
+    assertThat(Files.readString(root.resolve("pom.xml"))).isEqualTo(ProjectFixtures.PLAIN_POM);
   }
 
   @Test
@@ -365,7 +367,7 @@ class CoverageExpansionTest {
   @Test
   void checkServiceSelectsProfilesAndRejectsInvalidOnes(@TempDir final Path root)
       throws IOException {
-    TestProjects.withPom(root, TestProjects.PLAIN_POM);
+    ProjectFixtures.withPom(root, ProjectFixtures.PLAIN_POM);
     Files.writeString(
         root.resolve("sentinel.toml"),
         """
@@ -398,7 +400,7 @@ class CoverageExpansionTest {
   @Test
   void commandLineRunnerWiresCommandsAndHandlesKnownAndUnexpectedFailures(@TempDir final Path root)
       throws IOException {
-    TestProjects.withPom(root, TestProjects.PLAIN_POM);
+    ProjectFixtures.withPom(root, ProjectFixtures.PLAIN_POM);
     final CommandLineRunnerImpl runner = DaggerSentinelComponent.create().commandLineRunner();
     assertThat(runner.run()).isEqualTo(ExitCodes.ERROR);
     assertThat(runner.run("--help")).isZero();

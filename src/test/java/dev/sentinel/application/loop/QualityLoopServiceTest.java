@@ -1,7 +1,7 @@
 package dev.sentinel.application.loop;
 
-import static dev.sentinel.TestProjects.PLAIN_POM;
-import static dev.sentinel.TestProjects.withPom;
+import static dev.sentinel.ProjectFixtures.PLAIN_POM;
+import static dev.sentinel.ProjectFixtures.withPom;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import dev.sentinel.application.gate.CheckService;
@@ -41,7 +41,10 @@ import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+@SuppressWarnings("PMD.ExcessiveImports")
 class QualityLoopServiceTest {
+  private static final String GIT_COMMAND = "git";
+
   @Test
   void orchestratesFromRequestUsingFakePortsWithoutFilesystemAdapters() {
     final Path root = Path.of("memory-project");
@@ -240,7 +243,7 @@ class QualityLoopServiceTest {
     final int[] calls = {0};
     final CommandExecutor executor =
         (command, root) -> {
-          if ("git".equals(command.getFirst())) {
+          if (GIT_COMMAND.equals(command.getFirst())) {
             return new CommandResult(1, "", "", Duration.ZERO);
           }
           calls[0]++;

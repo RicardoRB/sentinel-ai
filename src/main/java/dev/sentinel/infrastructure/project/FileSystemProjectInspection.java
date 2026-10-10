@@ -70,8 +70,10 @@ public final class FileSystemProjectInspection implements ProjectInspection {
   public List<Project> discover(final Path start) {
     Path root = start.toAbsolutePath().normalize();
     Path candidate = root;
-    while (candidate.getParent() != null && !isRepositoryRoot(candidate)) {
-      candidate = candidate.getParent();
+    Path parent = candidate.getParent();
+    while (parent != null && !isRepositoryRoot(candidate)) {
+      candidate = parent;
+      parent = candidate.getParent();
     }
     if (isRepositoryRoot(candidate)) {
       root = candidate;
