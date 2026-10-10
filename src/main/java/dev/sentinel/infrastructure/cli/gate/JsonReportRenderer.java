@@ -46,24 +46,27 @@ public class JsonReportRenderer {
       final boolean failFast,
       final LearningOutcome learning,
       final Integer threshold) {
-    final ReportDto root = new ReportDto();
-    root.schemaVersion = 1;
-    root.status = report.status().name();
-    root.failFast = failFast;
-    root.project = ProjectDto.from(report.project());
-    root.checks = new ArrayList<>();
+    final List<CheckDto> checks = new ArrayList<>();
     for (final GateResult result : report.results()) {
-      root.checks.add(CheckDto.from(result));
+      checks.add(CheckDto.from(result));
     }
-    root.policies = new ArrayList<>();
+    final List<PolicyDto> policies = new ArrayList<>();
     new PolicyEvaluator()
         .evaluate(report, strict)
         .forEach(
             policy ->
-                root.policies.add(new PolicyDto(policy.name(), policy.passed(), policy.message())));
-    if (learning != null) {
-      root.learning = LearningDto.from(learning, threshold == null ? 0 : threshold);
-    }
+                policies.add(new PolicyDto(policy.name(), policy.passed(), policy.message())));
+    final LearningDto learningDto =
+        learning == null ? null : LearningDto.from(learning, threshold == null ? 0 : threshold);
+    final ReportDto root =
+        new ReportDto(
+            1,
+            report.status().name(),
+            failFast,
+            ProjectDto.from(report.project()),
+            checks,
+            policies,
+            learningDto);
     return codec.toPrettyJson(root);
   }
 
@@ -76,15 +79,18 @@ public class JsonReportRenderer {
 
   /** Top-level JSON report; its public fields are the report schema. */
   @JsonType
-  @SuppressWarnings("PMD.DataClass")
-  public static final class ReportDto {
-    public int schemaVersion;
-    public String status;
-    public boolean failFast;
-    public ProjectDto project;
-    public List<CheckDto> checks;
-    public List<PolicyDto> policies;
-    public LearningDto learning;
+  public record ReportDto(
+      int schemaVersion,
+      String status,
+      boolean failFast,
+      ProjectDto project,
+      List<CheckDto> checks,
+      List<PolicyDto> policies,
+      LearningDto learning) {
+    public ReportDto {
+      checks = List.copyOf(checks);
+      policies = List.copyOf(policies);
+    }
   }
 
   @JsonType

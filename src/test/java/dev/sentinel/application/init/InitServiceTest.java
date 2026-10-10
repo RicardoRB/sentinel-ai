@@ -138,4 +138,18 @@ class InitServiceTest {
   void requiresASupportedProject(@TempDir final Path dir) {
     assertThatThrownBy(() -> service.init(dir)).isInstanceOf(ProjectNotFoundException.class);
   }
+
+  @Test
+  void preservesSetupFailureWhenConfigurationRestorationAlsoFails(@TempDir final Path dir)
+      throws Exception {
+    withPom(dir, PLAIN_POM);
+    final InitService failing = InitFailureFixtures.failingService(dir);
+
+    assertThatThrownBy(
+            () ->
+                failing.initialize(
+                    dir, new InitSelection(List.of("none"), List.of("tests"), null, null), true))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage("setup failed");
+  }
 }

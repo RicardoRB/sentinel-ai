@@ -17,7 +17,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -41,26 +40,22 @@ public class InitCommand implements Callable<Integer> {
   @Spec private CommandSpec spec;
 
   // Picocli assigns annotated fields reflectively, so they cannot be final.
-  @SuppressWarnings("PMD.ImmutableField")
-  @Mixin
-  private ProjectOptions options = new ProjectOptions();
+  @Mixin private final ProjectOptions options = new ProjectOptions();
 
   // Picocli assigns annotated fields reflectively, so they cannot be final.
-  @SuppressWarnings("PMD.ImmutableField")
   @Option(
       names = "--integration",
       split = ",",
       description =
           "Agent integration(s): none, opencode, or claude-code. Repeat or comma-separate.")
-  private List<String> integrations = new ArrayList<>();
+  private List<String> integrations;
 
   // Picocli assigns annotated fields reflectively, so they cannot be final.
-  @SuppressWarnings("PMD.ImmutableField")
   @Option(
       names = "--gate",
       split = ",",
       description = "Quality gate(s) to enable. Repeat or comma-separate.")
-  private List<String> gates = new ArrayList<>();
+  private List<String> gates;
 
   @Option(
       names = "--architecture",
@@ -125,12 +120,14 @@ public class InitCommand implements Callable<Integer> {
       final InitSetupCatalog catalog,
       final Project project,
       final QualityPreset requestedPreset) {
-    final boolean gatesGiven = preset != null || !gates.isEmpty();
+    final List<String> selectedOptions = gates == null ? List.of() : gates;
+    final List<String> providedIntegrations = integrations == null ? List.of() : integrations;
+    final boolean gatesGiven = preset != null || !selectedOptions.isEmpty();
     final QualityPreset selectedPreset = gatesGiven ? requestedPreset : wizard.selectPreset();
     final List<String> selectedIntegrations =
-        integrations.isEmpty() ? wizard.selectIntegrations(catalog) : integrations;
+        providedIntegrations.isEmpty() ? wizard.selectIntegrations(catalog) : providedIntegrations;
     final List<String> selectedGates =
-        gatesGiven ? gates : wizard.selectGates(catalog, project, selectedPreset);
+        gatesGiven ? selectedOptions : wizard.selectGates(catalog, project, selectedPreset);
     final String selectedArchitecture = resolveArchitecture(wizard, catalog, selectedGates);
     return new InitSelection(
         selectedIntegrations, selectedGates, selectedArchitecture, selectedPreset);

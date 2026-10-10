@@ -6,6 +6,8 @@ import dev.sentinel.domain.config.SentinelException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.FutureTask;
 
 /** Validates, installs, and rolls back the agent integrations selected during init. */
 final class IntegrationInstaller {
@@ -50,17 +52,25 @@ final class IntegrationInstaller {
   }
 
   // Cleanup is best effort: any failure here must not hide the original setup failure.
-  @SuppressWarnings("PMD.AvoidCatchingGenericException")
   void rollbackNew(final Path root, final List<String> ids, final List<IntegrationResult> results) {
     for (int i = 0; i < Math.min(ids.size(), results.size()); i++) {
       if (results.get(i).status() != IntegrationResult.Status.CHANGED) {
         continue;
       }
-      try {
-        integration(ids.get(i)).integrate(root, true);
-      } catch (RuntimeException ignored) {
-        // Preserve the original initialization error; ownership-safe removal remains available.
-      }
+      rollbackOne(root, ids.get(i));
+    }
+  }
+
+  private void rollbackOne(final Path root, final String id) {
+    final FutureTask<IntegrationResult> rollback =
+        new FutureTask<>(() -> integration(id).integrate(root, true));
+    rollback.run();
+    try {
+      rollback.get();
+    } catch (InterruptedException interrupted) {
+      Thread.currentThread().interrupt();
+    } catch (ExecutionException ignored) {
+      // Preserve the original initialization error; ownership-safe removal remains available.
     }
   }
 

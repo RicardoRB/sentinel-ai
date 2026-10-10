@@ -3,26 +3,22 @@ package dev.sentinel.application.init;
 import dev.sentinel.application.project.ProjectDetector;
 import dev.sentinel.application.project.ProjectNotFoundException;
 import dev.sentinel.domain.agent.AgentIntegration;
-import dev.sentinel.domain.agent.IntegrationResult;
 import dev.sentinel.domain.config.SentinelConfiguration;
 import dev.sentinel.domain.config.SentinelException;
-import dev.sentinel.domain.init.ArchitectureTestChange;
 import dev.sentinel.domain.init.ArchitectureTestGeneration;
 import dev.sentinel.domain.init.BuildToolConfiguration;
 import dev.sentinel.domain.init.ConfigurationStorage;
 import dev.sentinel.domain.init.InitGateOption;
 import dev.sentinel.domain.init.InitResult;
 import dev.sentinel.domain.init.InitSelection;
-import dev.sentinel.domain.init.PomChange;
 import dev.sentinel.domain.init.QualityPreset;
-import dev.sentinel.domain.init.RuleFileChange;
 import dev.sentinel.domain.init.RuleFileGeneration;
 import dev.sentinel.domain.project.Project;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.FutureTask;
 import java.util.stream.Stream;
 import javax.inject.Inject;
 
@@ -42,14 +38,10 @@ public class InitService {
   private final InitSetupCatalog catalog;
   private final BuildToolConfiguration pomTools;
   private final ArchitectureTestGeneration architectureTests;
-  private final ConfigurationStorage configurationStorage;
+  private final StorageAccess configurationStorage;
   private final RuleFileGeneration ruleFiles;
 
   @Inject
-  @SuppressFBWarnings(
-      value = "EI_EXPOSE_REP2",
-      justification =
-          "The constructor-injected storage port is retained for use-case orchestration.")
   public InitService(
       final ProjectDetector detector,
       final Set<AgentIntegration> integrations,
@@ -63,7 +55,7 @@ public class InitService {
     this.catalog = catalog;
     this.pomTools = pomTools;
     this.architectureTests = architectureTests;
-    this.configurationStorage = configurationStorage;
+    this.configurationStorage = () -> configurationStorage;
     this.ruleFiles = ruleFiles;
   }
 
@@ -87,7 +79,7 @@ public class InitService {
   public InitResult init(final Path start) {
     final Project project = project(start);
     final Path file = project.root().resolve(SentinelConfiguration.FILE_NAME);
-    return new InitResult(file, configurationStorage.create(file, DEFAULT_CONFIGURATION));
+    return new InitResult(file, configurationStorage.get().create(file, DEFAULT_CONFIGURATION));
   }
 
   public Project project(final Path start) {
@@ -95,7 +87,9 @@ public class InitService {
   }
 
   public boolean configurationExists(final Project project) {
-    return configurationStorage.exists(project.root().resolve(SentinelConfiguration.FILE_NAME));
+    return configurationStorage
+        .get()
+        .exists(project.root().resolve(SentinelConfiguration.FILE_NAME));
   }
 
   public InitSetupCatalog catalog() {
@@ -115,11 +109,19 @@ public class InitService {
       catalog.architecture(selection.architecture());
     }
     final Path configurationFile = project.root().resolve(SentinelConfiguration.FILE_NAME);
-    final String originalConfiguration = configurationStorage.read(configurationFile).orElse(null);
+    final String originalConfiguration =
+        configurationStorage.get().read(configurationFile).orElse(null);
     if (originalConfiguration != null && !overwrite) {
       return new InitResult(configurationFile, false, gates, List.of());
     }
-    final AppliedChanges changes = new AppliedChanges(project.root(), selection.integrations());
+    final InitChanges changes =
+        new InitChanges(
+            project.root(),
+            selection.integrations(),
+            architectureTests,
+            ruleFiles,
+            pomTools,
+            installer);
     boolean completed = false;
     try {
       apply(project, selection, gates, changes);
@@ -159,77 +161,47 @@ public class InitService {
       final Project project,
       final InitSelection selection,
       final List<InitGateOption> gates,
-      final AppliedChanges changes) {
-    final QualityPreset preset = selection.preset();
-    installer.install(project.root(), selection.integrations(), changes.installed);
-    changes.pomChange = pomTools.apply(project, gates, preset);
-    changes.ruleFileChange = ruleFiles.apply(project, preset, gates);
-    if (gates.stream().anyMatch(gate -> "archunit".equals(gate.id()))) {
-      changes.architectureTest =
-          architectureTests.apply(
-              project,
-              selection.architecture() == null ? "layered" : selection.architecture(),
-              preset == null
-                  ? new QualityPreset.ArchitectureExtras(false, false, false)
-                  : preset.rules().architectureExtras());
-    }
+      final InitChanges changes) {
+    changes.apply(project, selection, gates);
   }
 
   private InitResult writeConfiguration(
       final Path file,
       final List<InitGateOption> gates,
       final QualityPreset preset,
-      final AppliedChanges changes,
+      final InitChanges changes,
       final boolean overwrite) {
     final String content = ConfigurationTemplate.render(gates, preset);
     final boolean created;
     if (overwrite) {
-      configurationStorage.replace(file, content);
+      configurationStorage.get().replace(file, content);
       created = true;
     } else {
-      created = configurationStorage.create(file, content);
+      created = configurationStorage.get().create(file, content);
     }
-    return new InitResult(
-        file,
-        created,
-        overwrite,
-        gates,
-        changes.installed,
-        changes.pomChange.tools(),
-        changes.architectureTest,
-        changes.ruleFileChange == null ? List.of() : changes.ruleFileChange.preserved(),
-        changes.pomChange.warnings());
+    return changes.result(file, created, overwrite, gates);
   }
 
   // Cleanup is best effort: any failure here must not hide the original setup failure.
-  @SuppressWarnings("PMD.AvoidCatchingGenericException")
   private void restoreConfiguration(final Path configurationFile, final String original) {
+    final FutureTask<Void> restoration =
+        new FutureTask<>(
+            () -> {
+              configurationStorage.get().restore(configurationFile, original);
+              return null;
+            });
+    restoration.run();
     try {
-      configurationStorage.restore(configurationFile, original);
-    } catch (RuntimeException ignored) {
+      restoration.get();
+    } catch (InterruptedException interrupted) {
+      Thread.currentThread().interrupt();
+    } catch (ExecutionException ignored) {
       // Restoration can be retried manually.
     }
   }
 
-  /** Files changed by one initialization, so they can be rolled back together. */
-  private final class AppliedChanges {
-    private final Path root;
-    private final List<String> integrationIds;
-    private final List<IntegrationResult> installed = new ArrayList<>();
-    private PomChange pomChange;
-    private RuleFileChange ruleFileChange;
-    private ArchitectureTestChange architectureTest;
-
-    AppliedChanges(final Path root, final List<String> integrationIds) {
-      this.root = root;
-      this.integrationIds = integrationIds;
-    }
-
-    void rollback() {
-      architectureTests.rollback(architectureTest);
-      ruleFiles.rollback(ruleFileChange);
-      pomTools.rollback(pomChange);
-      installer.rollbackNew(root, integrationIds, installed);
-    }
+  @FunctionalInterface
+  private interface StorageAccess {
+    ConfigurationStorage get();
   }
 }

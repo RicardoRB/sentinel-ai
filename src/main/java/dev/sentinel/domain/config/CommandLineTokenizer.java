@@ -16,28 +16,27 @@ public final class CommandLineTokenizer {
 
   public static List<String> tokenize(final String commandLine) {
     final Tokens tokens = new Tokens();
+    final StringBuilder current = new StringBuilder();
     for (final char c : commandLine.toCharArray()) {
-      tokens.accept(c);
+      tokens.accept(c, current);
     }
     if (tokens.inQuote()) {
       throw new SentinelException("Unterminated quote in command: " + commandLine);
     }
-    return tokens.finish();
+    return tokens.finish(current);
   }
 
-  /** Accumulates tokens one character at a time; lives only for one {@link #tokenize} call. */
-  @SuppressWarnings("PMD.AvoidStringBufferField")
+  /** Tracks quote and token state for one {@link #tokenize} call. */
   private static final class Tokens {
     private static final char NO_QUOTE = 0;
 
     private final List<String> values = new ArrayList<>();
-    private final StringBuilder current = new StringBuilder();
     private boolean inToken;
     private char quote = NO_QUOTE;
 
-    void accept(final char c) {
+    void accept(final char c, final StringBuilder current) {
       if (quote == NO_QUOTE) {
-        acceptUnquoted(c);
+        acceptUnquoted(c, current);
       } else if (c == quote) {
         quote = NO_QUOTE;
       } else {
@@ -49,12 +48,12 @@ public final class CommandLineTokenizer {
       return quote != NO_QUOTE;
     }
 
-    List<String> finish() {
-      endToken();
+    List<String> finish(final StringBuilder current) {
+      endToken(current);
       return values;
     }
 
-    private void acceptUnquoted(final char c) {
+    private void acceptUnquoted(final char c, final StringBuilder current) {
       switch (c) {
         case '"', '\'' -> {
           quote = c;
@@ -62,7 +61,7 @@ public final class CommandLineTokenizer {
         }
         default -> {
           if (Character.isWhitespace(c)) {
-            endToken();
+            endToken(current);
           } else {
             current.append(c);
             inToken = true;
@@ -71,7 +70,7 @@ public final class CommandLineTokenizer {
       }
     }
 
-    private void endToken() {
+    private void endToken(final StringBuilder current) {
       if (inToken) {
         values.add(current.toString());
         current.setLength(0);

@@ -5,8 +5,8 @@ import dev.sentinel.domain.gate.CheckReport;
 import dev.sentinel.domain.gate.GateResult;
 import dev.sentinel.domain.learning.LearningOutcome;
 import dev.sentinel.domain.terminal.TerminalCapabilities;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.PrintWriter;
+import java.util.function.Consumer;
 import javax.inject.Inject;
 import javax.inject.Named;
 
@@ -15,7 +15,9 @@ public class TextReportRenderer implements CheckProgressListener {
 
   private final TerminalCapabilities terminal;
   private final String version;
-  private PrintWriter writer;
+  private Consumer<String> print = ignored -> {};
+  private Consumer<String> println = ignored -> {};
+  private Runnable flush = () -> {};
 
   @Inject
   public TextReportRenderer(
@@ -40,32 +42,30 @@ public class TextReportRenderer implements CheckProgressListener {
         "dev");
   }
 
-  @SuppressFBWarnings(
-      value = "EI_EXPOSE_REP2",
-      justification =
-          "The renderer writes to the command-owned output stream during one invocation.")
   public void begin(final PrintWriter output) {
-    writer = output;
-    writer.println("Sentinel " + version);
-    writer.println();
-    writer.flush();
+    print = output::print;
+    println = output::println;
+    flush = output::flush;
+    println.accept("Sentinel " + version);
+    println.accept("");
+    flush.run();
   }
 
   @Override
   public void gateStarted(final String name) {
     if (terminal.interactive()) {
-      writer.print("… " + ReportText.displayName(name));
-      writer.flush();
+      print.accept("… " + ReportText.displayName(name));
+      flush.run();
     }
   }
 
   @Override
   public void gateFinished(final GateResult result) {
     if (terminal.interactive()) {
-      writer.print("\r\033[2K");
+      print.accept("\r\033[2K");
     }
-    writer.println(ReportText.gateLine(result));
-    writer.flush();
+    println.accept(ReportText.gateLine(result));
+    flush.run();
   }
 
   public void summary(final CheckReport report) {
@@ -73,8 +73,8 @@ public class TextReportRenderer implements CheckProgressListener {
   }
 
   public void summary(final CheckReport report, final LearningOutcome learning) {
-    writer.print(ReportText.summary(report, learning));
-    writer.flush();
+    print.accept(ReportText.summary(report, learning));
+    flush.run();
   }
 
   public String render(final CheckReport report) {

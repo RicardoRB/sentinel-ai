@@ -29,9 +29,7 @@ public final class IntegrateCommand implements Callable<Integer> {
   @Spec private CommandSpec spec;
 
   // Picocli assigns annotated fields reflectively, so they cannot be final.
-  @SuppressWarnings("PMD.ImmutableField")
-  @Mixin
-  private ProjectOptions options = new ProjectOptions();
+  @Mixin private final ProjectOptions options = new ProjectOptions();
 
   @Parameters(
       index = "0",

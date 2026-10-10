@@ -20,6 +20,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import javax.inject.Inject;
@@ -113,15 +114,25 @@ public final class QualityLoopService {
   }
 
   // Any gate failure must end the loop as GATE_ERROR rather than escape it.
-  @SuppressWarnings("PMD.AvoidCatchingGenericException")
   private Optional<LoopResult> checkQuality(
       final Path root, final int iteration, final List<CheckReport> history) {
     final CheckReport report;
+    final FutureTask<CheckReport> check = new FutureTask<>(() -> checks.check(root));
+    check.run();
     try {
-      report = checks.check(root);
-    } catch (RuntimeException e) {
+      report = check.get();
+    } catch (InterruptedException interrupted) {
+      Thread.currentThread().interrupt();
       return Optional.of(
-          new LoopResult(LoopTerminalState.GATE_ERROR, iteration, history, e.getMessage()));
+          new LoopResult(LoopTerminalState.GATE_ERROR, iteration, history, "Loop interrupted."));
+    } catch (ExecutionException failure) {
+      final Throwable cause = failure.getCause();
+      return Optional.of(
+          new LoopResult(
+              LoopTerminalState.GATE_ERROR,
+              iteration,
+              history,
+              cause == null ? failure.getMessage() : cause.getMessage()));
     }
     history.add(report);
     return report.passed()

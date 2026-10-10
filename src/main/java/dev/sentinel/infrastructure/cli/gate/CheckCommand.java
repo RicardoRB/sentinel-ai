@@ -11,10 +11,13 @@ import dev.sentinel.infrastructure.cli.VersionProvider;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.Callable;
 import javax.inject.Inject;
 import picocli.CommandLine.Command;
+import picocli.CommandLine.ITypeConverter;
 import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Model.CommandSpec;
 import picocli.CommandLine.Option;
@@ -29,23 +32,22 @@ import picocli.CommandLine.Spec;
 public class CheckCommand implements Callable<Integer> {
 
   // The constants are the user-facing --format values.
-  @SuppressWarnings("PMD.FieldNamingConventions")
   public enum Format {
-    text,
-    json
+    TEXT,
+    JSON
   }
 
   @Spec private CommandSpec spec;
 
   // Picocli assigns annotated fields reflectively, so they cannot be final.
-  @SuppressWarnings("PMD.ImmutableField")
-  @Mixin
-  private ProjectOptions options = new ProjectOptions();
+  @Mixin private final ProjectOptions options = new ProjectOptions();
 
   @Option(
       names = "--format",
       paramLabel = "<format>",
       defaultValue = "text",
+      converter = FormatConverter.class,
+      completionCandidates = FormatCandidates.class,
       description = "Output format: ${COMPLETION-CANDIDATES} (default: ${DEFAULT-VALUE}).")
   private Format format;
 
@@ -68,6 +70,24 @@ public class CheckCommand implements Callable<Integer> {
   private final TextReportRenderer textRenderer;
   private final JsonReportRenderer jsonRenderer;
   private final LearningService learningService;
+
+  static final class FormatConverter implements ITypeConverter<Format> {
+    @Override
+    public Format convert(final String value) {
+      return switch (value.toLowerCase(Locale.ROOT)) {
+        case "text" -> Format.TEXT;
+        case "json" -> Format.JSON;
+        default -> throw new IllegalArgumentException("expected text or json");
+      };
+    }
+  }
+
+  static final class FormatCandidates implements Iterable<String> {
+    @Override
+    public Iterator<String> iterator() {
+      return List.of("text", "json").iterator();
+    }
+  }
 
   @Inject
   public CheckCommand(
@@ -94,7 +114,7 @@ public class CheckCommand implements Callable<Integer> {
     if (learning != null) {
       learning.warnings().forEach(warning -> error().println(warning));
     }
-    if (format == Format.json) {
+    if (format == Format.JSON) {
       output()
           .println(
               jsonRenderer.render(
@@ -107,14 +127,14 @@ public class CheckCommand implements Callable<Integer> {
 
   private CheckReport runChecks() {
     try {
-      if (format == Format.text) {
+      if (format == Format.TEXT) {
         textRenderer.begin(output());
         // Render the summary after learning so prompts can be placed before diagnostics.
         return service.check(options.directory(), profiles, textRenderer, failFast);
       }
       return service.check(options.directory(), profiles, failFast);
     } catch (SentinelException e) {
-      if (format == Format.json) {
+      if (format == Format.JSON) {
         // stdout stays machine-readable; the human message goes to stderr as well.
         output().println(jsonRenderer.renderError(e.getMessage()));
       }
