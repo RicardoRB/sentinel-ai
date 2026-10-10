@@ -2,12 +2,8 @@ package dev.sentinel.infrastructure.cli.init;
 
 import dev.sentinel.application.init.InitService;
 import dev.sentinel.application.init.InitSetupCatalog;
-import dev.sentinel.domain.agent.IntegrationResult;
 import dev.sentinel.domain.config.SentinelConfiguration;
-import dev.sentinel.domain.config.SentinelException;
-import dev.sentinel.domain.init.InitArchitectureOption;
 import dev.sentinel.domain.init.InitGateOption;
-import dev.sentinel.domain.init.InitIntegrationOption;
 import dev.sentinel.domain.init.InitResult;
 import dev.sentinel.domain.init.InitSelection;
 import dev.sentinel.domain.init.QualityPreset;
@@ -18,21 +14,16 @@ import dev.sentinel.infrastructure.cli.ExitCodes;
 import dev.sentinel.infrastructure.cli.ProjectOptions;
 import dev.sentinel.infrastructure.cli.VersionProvider;
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import javax.inject.Inject;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
@@ -88,7 +79,7 @@ public class InitCommand implements Callable<Integer> {
 
   private final Supplier<InitService> service;
   private final InputStream input;
-  private final BufferedReader reader;
+  private final LinePrompt prompt;
   private final RawTerminal rawTerminal;
 
   public InitCommand(final InitService service) {
@@ -108,42 +99,60 @@ public class InitCommand implements Callable<Integer> {
       final InitService service, final InputStream input, final RawTerminal rawTerminal) {
     this.service = () -> service;
     this.input = input;
-    this.reader = new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8));
+    this.prompt =
+        new LinePrompt(new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8)));
     this.rawTerminal = rawTerminal;
   }
 
   @Override
   public Integer call() {
-    final Path start = options.directory();
-    final Project project = service.get().project(start);
-    final InitSetupCatalog catalog = service.get().catalog();
-    QualityPreset selectedPreset = preset == null ? null : catalog.preset(preset);
-    boolean overwrite = overwriteOption;
-    if (service.get().configurationExists(project)) {
-      if (!overwrite) {
-        if (input.equals(System.in) && System.console() == null) {
-          return printResult(service.get().init(project.root()));
-        }
-        if (!confirmOverwrite(project.root().resolve(SentinelConfiguration.FILE_NAME))) {
-          return printResult(service.get().init(project.root()));
-        }
-        overwrite = true;
-      }
+    final InitService init = service.get();
+    final Project project = init.project(options.directory());
+    final InitSetupCatalog catalog = init.catalog();
+    final QualityPreset requestedPreset = preset == null ? null : catalog.preset(preset);
+    final InitWizard wizard = new InitWizard(prompt, this::openRawTerminal, output());
+    final boolean exists = init.configurationExists(project);
+    if (exists && !overwriteOption && !overwriteApproved(wizard, project)) {
+      return printResult(init.init(project.root()));
     }
-    if (preset == null && gates.isEmpty()) {
-      selectedPreset = selectPreset();
-    }
-
+    final QualityPreset selectedPreset =
+        preset == null && gates.isEmpty() ? wizard.selectPreset() : requestedPreset;
     final List<String> selectedIntegrations =
-        integrations.isEmpty() ? selectIntegrations(catalog) : integrations;
+        integrations.isEmpty() ? wizard.selectIntegrations(catalog) : integrations;
     final List<String> selectedGates =
-        preset != null || !gates.isEmpty() ? gates : selectGates(catalog, project, selectedPreset);
-    String selectedArchitecture = architecture;
-    if (requiresArchitectureTest(selectedGates)) {
-      selectedArchitecture =
-          selectedArchitecture == null ? selectArchitecture(catalog) : selectedArchitecture;
-      catalog.architecture(selectedArchitecture);
+        preset != null || !gates.isEmpty()
+            ? gates
+            : wizard.selectGates(catalog, project, selectedPreset);
+    final String selectedArchitecture = resolveArchitecture(wizard, catalog, selectedGates);
+    printSelectedGates(catalog, project, selectedGates);
+    return printResult(
+        init.initialize(
+            project.root(),
+            new InitSelection(
+                selectedIntegrations, selectedGates, selectedArchitecture, selectedPreset),
+            overwriteOption || exists));
+  }
+
+  private boolean overwriteApproved(final InitWizard wizard, final Project project) {
+    if (input.equals(System.in) && System.console() == null) {
+      return false;
     }
+    return wizard.confirmOverwrite(project.root().resolve(SentinelConfiguration.FILE_NAME));
+  }
+
+  private String resolveArchitecture(
+      final InitWizard wizard, final InitSetupCatalog catalog, final List<String> selectedGates) {
+    if (selectedGates.stream().noneMatch("archunit"::equals)) {
+      return architecture;
+    }
+    final String selected =
+        architecture == null ? wizard.selectArchitecture(catalog) : architecture;
+    catalog.architecture(selected);
+    return selected;
+  }
+
+  private void printSelectedGates(
+      final InitSetupCatalog catalog, final Project project, final List<String> selectedGates) {
     for (final String selectedGate : selectedGates) {
       final InitGateOption gateOption = catalog.gate(project, selectedGate);
       output()
@@ -151,238 +160,6 @@ public class InitCommand implements Callable<Integer> {
               "Selected quality gate '%s': %s%n",
               gateOption.id(), gateOption.available() ? "AVAILABLE" : "UNAVAILABLE");
       output().println(gateOption.availabilityMessage());
-    }
-    final InitResult result =
-        service
-            .get()
-            .initialize(
-                project.root(),
-                new InitSelection(
-                    selectedIntegrations, selectedGates, selectedArchitecture, selectedPreset),
-                overwrite);
-    return printResult(result);
-  }
-
-  private List<String> selectIntegrations(final InitSetupCatalog catalog) {
-    final List<InitIntegrationOption> choices = catalog.integrations();
-    final Optional<RawSession> raw = openRawTerminal();
-    if (raw.isPresent()) {
-      try (RawSession session = raw.get()) {
-        final List<String> labels = choices.stream().map(InitIntegrationOption::label).toList();
-        return new MultiSelectMenu()
-                .select(
-                    "Select agent integrations",
-                    labels,
-                    "Select at least one integration, or choose none.",
-                    session::read,
-                    output())
-                .stream()
-                .map(index -> choices.get(index).id())
-                .toList();
-      }
-    }
-    output()
-        .println(
-            "Select agent integrations (enter numbers separated by spaces, then press Enter):");
-    for (int i = 0; i < choices.size(); i++) {
-      output().printf("> [ ] %d) %s%n", i + 1, choices.get(i).label());
-    }
-    return readIntegrationChoices(choices);
-  }
-
-  private boolean confirmOverwrite(final Path file) {
-    output().print(file + " already exists. Overwrite it? [y/N]: ");
-    output().flush();
-    try {
-      final String answer = reader.readLine();
-      final boolean overwrite = answer != null && "y".equalsIgnoreCase(answer.trim());
-      if (!overwrite) {
-        output().println("Keeping existing sentinel.toml. No changes made.");
-      }
-      return overwrite;
-    } catch (IOException e) {
-      output().println("Keeping existing sentinel.toml. No changes made.");
-      return false;
-    }
-  }
-
-  private QualityPreset selectPreset() {
-    output().println("Select quality preset: 1) standard  2) strict  3) custom");
-    output().print("Choose a preset [1-3]: ");
-    output().flush();
-    try {
-      final String value = reader.readLine();
-      return switch (value == null ? "" : value.trim()) {
-        case "1" -> QualityPreset.STANDARD;
-        case "2" -> QualityPreset.STRICT;
-        case "3" -> null;
-        default -> throw new SentinelException("Invalid preset selection. Choose 1, 2, or 3.");
-      };
-    } catch (IOException e) {
-      throw new SentinelException("Could not read preset selection: " + e.getMessage(), e);
-    }
-  }
-
-  private List<String> selectGates(
-      final InitSetupCatalog catalog, final Project project, final QualityPreset preset) {
-    final List<InitGateOption> choices = catalog.gates(project);
-    final Optional<RawSession> raw = openRawTerminal();
-    if (raw.isPresent()) {
-      try (RawSession session = raw.get()) {
-        final List<String> labels =
-            choices.stream().map(c -> c.id() + " - " + c.description()).toList();
-        return new MultiSelectMenu()
-                .select(
-                    "Select quality gates",
-                    labels,
-                    "Select at least one quality gate.",
-                    session::read,
-                    output(),
-                    preset == null
-                        ? Set.of()
-                        : IntStream.range(0, choices.size())
-                            .filter(i -> preset.gates().contains(choices.get(i).id()))
-                            .boxed()
-                            .collect(Collectors.toSet()))
-                .stream()
-                .map(index -> choices.get(index).id())
-                .toList();
-      }
-    }
-    output().println("Select quality gates (enter numbers separated by spaces, then press Enter):");
-    for (int i = 0; i < choices.size(); i++) {
-      final InitGateOption choice = choices.get(i);
-      output()
-          .printf(
-              "> [ ] %d) %s - %s [%s]%n",
-              i + 1,
-              choice.id(),
-              choice.description(),
-              choice.available() ? "available" : "unavailable");
-    }
-    return readGateChoices(choices, preset);
-  }
-
-  private String selectArchitecture(final InitSetupCatalog catalog) {
-    final List<InitArchitectureOption> choices = catalog.architectures();
-    output().println("Select an architecture style:");
-    for (int i = 0; i < choices.size(); i++) {
-      output().printf("> %d) %s%n", i + 1, choices.get(i).label());
-    }
-    output().print("Choose an architecture [1-" + choices.size() + "]: ");
-    output().flush();
-    try {
-      final String value = reader.readLine();
-      if (value == null) {
-        throw new SentinelException(
-            "Initialization cancelled: input ended before setup completed.");
-      }
-      final int choice;
-      try {
-        choice = Integer.parseInt(value.trim());
-      } catch (NumberFormatException e) {
-        throw new SentinelException("Invalid architecture selection '" + value + "'.", e);
-      }
-      if (choice < 1 || choice > choices.size()) {
-        throw new SentinelException(
-            "Invalid architecture selection. Choose a number from 1 to " + choices.size() + ".");
-      }
-      return choices.get(choice - 1).id();
-    } catch (IOException e) {
-      throw new SentinelException("Could not read architecture selection: " + e.getMessage(), e);
-    }
-  }
-
-  private static boolean requiresArchitectureTest(final List<String> selectedGates) {
-    return selectedGates.stream().anyMatch("archunit"::equals);
-  }
-
-  private List<String> readIntegrationChoices(final List<InitIntegrationOption> choices) {
-    output().print("Toggle integrations with space-separated numbers [1-" + choices.size() + "]: ");
-    output().flush();
-    try {
-      final String value = reader.readLine();
-      if (value == null) {
-        throw new SentinelException(
-            "Initialization cancelled: input ended before setup completed.");
-      }
-      final List<String> selected = new ArrayList<>();
-      for (final String token : value.trim().split("[ ,]+")) {
-        if (token.isBlank()) {
-          continue;
-        }
-        try {
-          final int choice = Integer.parseInt(token);
-          if (choice < 1 || choice > choices.size()) {
-            throw new NumberFormatException();
-          }
-          final String id = choices.get(choice - 1).id();
-          if (!selected.contains(id)) {
-            selected.add(id);
-          }
-        } catch (NumberFormatException e) {
-          throw new SentinelException(
-              "Invalid integration selection '"
-                  + token
-                  + "'. Choose numbers from 1 to "
-                  + choices.size()
-                  + ".",
-              e);
-        }
-      }
-      if (selected.isEmpty()) {
-        throw new SentinelException("Select at least one integration, or choose 1 for none.");
-      }
-      return selected;
-    } catch (IOException e) {
-      throw new SentinelException("Could not read initialization selection: " + e.getMessage(), e);
-    }
-  }
-
-  private List<String> readGateChoices(
-      final List<InitGateOption> choices, final QualityPreset preset) {
-    output()
-        .print("Toggle quality gates with space-separated numbers [1-" + choices.size() + "]: ");
-    output().flush();
-    try {
-      final String value = reader.readLine();
-      if (value == null) {
-        throw new SentinelException(
-            "Initialization cancelled: input ended before setup completed.");
-      }
-      final List<String> selected = new ArrayList<>();
-      if (preset != null) {
-        selected.addAll(preset.gates());
-      }
-      for (final String token : value.trim().split("[ ,]+")) {
-        if (token.isBlank()) {
-          continue;
-        }
-        try {
-          final int choice = Integer.parseInt(token);
-          if (choice < 1 || choice > choices.size()) {
-            throw new NumberFormatException();
-          }
-          final String id = choices.get(choice - 1).id();
-          if (!selected.contains(id)) {
-            selected.add(id);
-          }
-        } catch (NumberFormatException e) {
-          throw new SentinelException(
-              "Invalid quality-gate selection '"
-                  + token
-                  + "'. Choose numbers from 1 to "
-                  + choices.size()
-                  + ".",
-              e);
-        }
-      }
-      if (selected.isEmpty()) {
-        throw new SentinelException("Select at least one quality gate.");
-      }
-      return selected;
-    } catch (IOException e) {
-      throw new SentinelException("Could not read initialization selection: " + e.getMessage(), e);
     }
   }
 
@@ -396,39 +173,7 @@ public class InitCommand implements Callable<Integer> {
   }
 
   private int printResult(final InitResult result) {
-    if (result.created()) {
-      output().println((result.overwritten() ? "Updated " : "Created ") + result.file());
-      if (!result.pomChanges().isEmpty()) {
-        output().println("Updated pom.xml with Maven tools:");
-        result.pomChanges().forEach(tool -> output().println("- " + tool));
-      }
-      result
-          .preservedRuleFiles()
-          .forEach(file -> output().println("Preserved user-owned rule file: " + file));
-      result.pomWarnings().forEach(warning -> output().println("Warning: " + warning));
-      if (result.architectureTest() != null) {
-        if (result.architectureTest().created()) {
-          output()
-              .println(
-                  "Generated "
-                      + result.architectureTest().architecture()
-                      + " ArchUnit test: "
-                      + result.architectureTest().file());
-        } else {
-          output().println("Preserved existing ArchUnit test: " + result.architectureTest().file());
-        }
-      }
-      if (result.integrations().isEmpty()) {
-        output().println("No agent integration installed.");
-      } else {
-        for (final IntegrationResult integration : result.integrations()) {
-          output().printf("Integration: %s%n", integration.message());
-          integration.changed().forEach(output()::println);
-        }
-      }
-    } else {
-      output().println(result.file() + " already exists. Nothing was changed.");
-    }
+    new InitResultPrinter(output()).print(result);
     return ExitCodes.OK;
   }
 

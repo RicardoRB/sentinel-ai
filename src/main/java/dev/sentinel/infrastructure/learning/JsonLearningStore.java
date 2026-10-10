@@ -1,6 +1,7 @@
 package dev.sentinel.infrastructure.learning;
 
 import dev.sentinel.domain.json.JsonCodec;
+import dev.sentinel.domain.json.JsonCodecException;
 import dev.sentinel.domain.learning.LearningLedger;
 import dev.sentinel.domain.learning.LearningRecord;
 import dev.sentinel.domain.learning.LearningState;
@@ -12,9 +13,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.time.Instant;
+import java.time.format.DateTimeParseException;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Stream;
 import javax.inject.Inject;
 import org.apache.fory.json.annotation.JsonType;
 
@@ -29,7 +33,7 @@ public final class JsonLearningStore implements LearningStore {
   }
 
   @Override
-  public Optional<LearningLedger> load(final Path projectRoot) throws LearningStoreException {
+  public Optional<LearningLedger> load(final Path projectRoot) {
     final Path path = path(projectRoot);
     if (!Files.exists(path)) {
       return Optional.empty();
@@ -37,16 +41,13 @@ public final class JsonLearningStore implements LearningStore {
     try {
       final FileDto file = codec.fromJson(Files.readString(path), FileDto.class);
       return Optional.of(toDomain(file));
-    } catch (LearningStoreException storeException) {
-      throw storeException;
-    } catch (Exception exception) {
+    } catch (IOException | JsonCodecException exception) {
       throw new LearningStoreException("Could not read learning store " + path, exception);
     }
   }
 
   @Override
-  public void save(final Path projectRoot, final LearningLedger ledger)
-      throws LearningStoreException {
+  public void save(final Path projectRoot, final LearningLedger ledger) {
     final Path directory = projectRoot.resolve(DIRECTORY);
     final Path target = directory.resolve(FILE);
     final Path temporary = directory.resolve(FILE + "." + System.nanoTime() + ".tmp");
@@ -59,7 +60,7 @@ public final class JsonLearningStore implements LearningStore {
       } catch (AtomicMoveNotSupportedException exception) {
         Files.move(temporary, target, StandardCopyOption.REPLACE_EXISTING);
       }
-    } catch (IOException | RuntimeException exception) {
+    } catch (IOException exception) {
       throw new LearningStoreException("Could not write learning store " + target, exception);
     } finally {
       try {
@@ -82,36 +83,48 @@ public final class JsonLearningStore implements LearningStore {
     if (file.records != null) {
       file.records.forEach(
           (key, value) -> {
-            if (value == null) {
-              throw new LearningStoreException("Learning record must not be null");
+            final LearningRecord record = toRecord(value);
+            if (!key.equals(record.key())) {
+              throw new LearningStoreException("Learning record key does not match its value");
             }
-            try {
-              final LearningRecord record =
-                  new LearningRecord(
-                      value.key,
-                      value.gate,
-                      value.status,
-                      value.summary,
-                      value.occurrences,
-                      LearningState.valueOf(value.state),
-                      Instant.parse(value.firstSeen),
-                      Instant.parse(value.lastSeen),
-                      value.prompted);
-              if (!key.equals(record.key())) {
-                throw new LearningStoreException("Learning record key does not match its value");
-              }
-              records.put(key, record);
-            } catch (LearningStoreException exception) {
-              throw exception;
-            } catch (RuntimeException exception) {
-              throw new LearningStoreException("Invalid learning record", exception);
-            }
+            records.put(key, record);
           });
     }
     try {
       return new LearningLedger(file.formatVersion, records);
-    } catch (RuntimeException exception) {
+    } catch (IllegalArgumentException exception) {
       throw new LearningStoreException("Invalid learning ledger", exception);
+    }
+  }
+
+  private static LearningRecord toRecord(final RecordDto value) {
+    if (value == null) {
+      throw new LearningStoreException("Learning record must not be null");
+    }
+    if (Stream.of(
+            value.key,
+            value.gate,
+            value.status,
+            value.summary,
+            value.state,
+            value.firstSeen,
+            value.lastSeen)
+        .anyMatch(Objects::isNull)) {
+      throw new LearningStoreException("Invalid learning record: missing field");
+    }
+    try {
+      return new LearningRecord(
+          value.key,
+          value.gate,
+          value.status,
+          value.summary,
+          value.occurrences,
+          LearningState.valueOf(value.state),
+          Instant.parse(value.firstSeen),
+          Instant.parse(value.lastSeen),
+          value.prompted);
+    } catch (IllegalArgumentException | DateTimeParseException exception) {
+      throw new LearningStoreException("Invalid learning record", exception);
     }
   }
 

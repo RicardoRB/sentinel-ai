@@ -10,11 +10,14 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodType;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import javax.inject.Inject;
 
 /** libc-backed raw terminal adapter for macOS and Linux. */
 public final class PosixRawTerminal implements RawTerminal {
   private static final int STDIN = 0;
+  private static final int INT_FLAG_BYTES = Integer.BYTES;
   private final Layout layout;
 
   @Inject
@@ -23,19 +26,20 @@ public final class PosixRawTerminal implements RawTerminal {
   }
 
   PosixRawTerminal(final String osName) {
-    final String os = osName.toLowerCase(Locale.ROOT);
-    Layout detected =
-        os.contains("mac") || os.contains("darwin")
-            ? Layout.MAC
-            : os.contains("linux") ? Layout.LINUX : null;
+    layout = detectLayout(osName);
+  }
+
+  /** Returns the termios layout for a supported OS and 64-bit architecture, or {@code null}. */
+  private static Layout detectLayout(final String osName) {
     final String architecture = System.getProperty("os.arch", "").toLowerCase(Locale.ROOT);
-    if (!("x86_64".equals(architecture)
-        || "amd64".equals(architecture)
-        || "aarch64".equals(architecture)
-        || "arm64".equals(architecture))) {
-      detected = null;
+    if (!Set.of("x86_64", "amd64", "aarch64", "arm64").contains(architecture)) {
+      return null;
     }
-    layout = detected;
+    final String os = osName.toLowerCase(Locale.ROOT);
+    if (os.contains("mac") || os.contains("darwin")) {
+      return Layout.MAC;
+    }
+    return os.contains("linux") ? Layout.LINUX : null;
   }
 
   @Override
@@ -92,10 +96,10 @@ public final class PosixRawTerminal implements RawTerminal {
       final MemorySegment raw = arena.allocate(layout.size);
       raw.copyFrom(saved);
       final long flags =
-          layout.flagBytes == 4
+          layout.flagBytes == INT_FLAG_BYTES
               ? Integer.toUnsignedLong(raw.get(ValueLayout.JAVA_INT, layout.flagOffset))
               : raw.get(ValueLayout.JAVA_LONG, layout.flagOffset);
-      if (layout.flagBytes == 4) {
+      if (layout.flagBytes == INT_FLAG_BYTES) {
         raw.set(ValueLayout.JAVA_INT, layout.flagOffset, (int) (flags & ~layout.disableFlags));
       } else {
         raw.set(ValueLayout.JAVA_LONG, layout.flagOffset, flags & ~layout.disableFlags);
@@ -133,7 +137,7 @@ public final class PosixRawTerminal implements RawTerminal {
     private final MethodHandle read;
     private final MethodHandle tcsetattr;
     private final MemorySegment byteBuffer;
-    private boolean closed;
+    private final AtomicBoolean closed = new AtomicBoolean();
 
     Session(
         final Arena arena,
@@ -141,7 +145,7 @@ public final class PosixRawTerminal implements RawTerminal {
         final MethodHandle read,
         final MethodHandle tcsetattr) {
       this.arena = arena;
-      this.savedAttributes = savedAttributes;
+      this.savedAttributes = savedAttributes.clone();
       this.read = read;
       this.tcsetattr = tcsetattr;
       byteBuffer = arena.allocate(1);
@@ -160,25 +164,19 @@ public final class PosixRawTerminal implements RawTerminal {
     }
 
     @Override
-    @SuppressWarnings("PMD.AvoidCatchingThrowable")
-    public synchronized void close() {
-      if (closed) {
+    public void close() {
+      if (!closed.compareAndSet(false, true)) {
         return;
       }
-      closed = true;
-      try {
-        restoreAttributes(arena, savedAttributes, tcsetattr);
-      } finally {
-        arena.close();
+      try (Arena owned = arena) {
+        restoreAttributes(owned, savedAttributes, tcsetattr);
       }
     }
 
-    @SuppressWarnings("PMD.AvoidCatchingThrowable")
-    private synchronized void restoreOnShutdown() {
-      if (closed) {
+    private void restoreOnShutdown() {
+      if (!closed.compareAndSet(false, true)) {
         return;
       }
-      closed = true;
       try (Arena shutdownArena = Arena.ofConfined()) {
         restoreAttributes(shutdownArena, savedAttributes, tcsetattr);
       }
@@ -189,12 +187,14 @@ public final class PosixRawTerminal implements RawTerminal {
         final Arena targetArena, final byte[] savedAttributes, final MethodHandle tcsetattr) {
       final MemorySegment saved = targetArena.allocate(savedAttributes.length);
       saved.copyFrom(MemorySegment.ofArray(savedAttributes));
+      final int status;
       try {
-        if ((int) tcsetattr.invokeExact(STDIN, 0, saved) != 0) {
-          throw new IllegalStateException("Could not restore terminal attributes.");
-        }
+        status = (int) tcsetattr.invokeExact(STDIN, 0, saved);
       } catch (Throwable failure) {
         throw new IllegalStateException("Native terminal restoration failed.", failure);
+      }
+      if (status != 0) {
+        throw new IllegalStateException("Could not restore terminal attributes.");
       }
     }
   }

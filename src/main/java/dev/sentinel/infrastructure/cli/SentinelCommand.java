@@ -35,7 +35,9 @@ public class SentinelCommand implements Callable<Integer> {
   @Inject
   public SentinelCommand() {}
 
+  // Without a Picocli spec there is no command-line writer to print usage to.
   @Override
+  @SuppressWarnings("PMD.SystemPrintln")
   public Integer call() {
     if (spec == null) {
       System.err.println("Usage: sentinel [COMMAND]");

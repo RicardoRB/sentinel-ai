@@ -10,6 +10,7 @@ import java.util.List;
  * through a shell. Implementations must not throw for a command that fails or cannot be started;
  * they report that through the {@link CommandResult}.
  */
+@FunctionalInterface
 public interface CommandExecutor {
 
   default CommandResult execute(final Command command) {

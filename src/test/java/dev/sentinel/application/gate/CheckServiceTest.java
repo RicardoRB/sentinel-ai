@@ -165,11 +165,10 @@ class CheckServiceTest {
             """);
     final List<String> executed = new ArrayList<>();
     final CommandExecutor executor =
-        (CommandExecutor)
-            (command, root) -> {
-              executed.add(command.getFirst());
-              return new CommandResult(0, "", "", Duration.ZERO);
-            };
+        (command, root) -> {
+          executed.add(command.getFirst());
+          return new CommandResult(0, "", "", Duration.ZERO);
+        };
     final CheckService checks =
         new CheckService(
             new ProjectDetector(new FileSystemProjectInspection()),

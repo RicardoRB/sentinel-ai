@@ -124,7 +124,7 @@ class LearningServiceTest {
     }
 
     @Override
-    public Optional<LearningLedger> load(Path projectRoot) throws LearningStoreException {
+    public Optional<LearningLedger> load(Path projectRoot) {
       if (failure != null) {
         throw failure;
       }
@@ -132,7 +132,7 @@ class LearningServiceTest {
     }
 
     @Override
-    public void save(Path projectRoot, final LearningLedger ledger) throws LearningStoreException {
+    public void save(Path projectRoot, final LearningLedger ledger) {
       saveCalls++;
       saved = ledger;
     }

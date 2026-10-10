@@ -7,7 +7,7 @@ public record LearningPrompt(String key, String gate, int occurrences, String su
     Objects.requireNonNull(key);
     Objects.requireNonNull(gate);
     Objects.requireNonNull(summary);
-    if (occurrences < 1) {
+    if (occurrences <= 0) {
       throw new IllegalArgumentException("Prompt occurrences must be positive");
     }
   }

@@ -243,10 +243,9 @@ class CoverageExpansionTest {
   @Test
   void gateDomainCoversPassFailureSkippedAndExecutionError() {
     final CommandExecutor executor =
-        (CommandExecutor)
-            (command, root) ->
-                new CommandResult(
-                    "fail".equals(command.getFirst()) ? 1 : 0, "out", "err", Duration.ofMillis(2));
+        (command, root) ->
+            new CommandResult(
+                "fail".equals(command.getFirst()) ? 1 : 0, "out", "err", Duration.ofMillis(2));
     assertThat(new CommandQualityGate("custom", executor, List.of("ok")).execute(PROJECT).status())
         .isEqualTo(GateStatus.PASSED);
     assertThat(
@@ -344,9 +343,8 @@ class CoverageExpansionTest {
   @Test
   void processAgentRunnerAddsTaskAndReportsSuccessOrFailure() {
     final CommandExecutor executor =
-        (CommandExecutor)
-            (command, root) ->
-                new CommandResult(command.contains("fail") ? 1 : 0, "out", "err", Duration.ZERO);
+        (command, root) ->
+            new CommandResult(command.contains("fail") ? 1 : 0, "out", "err", Duration.ZERO);
     final ProcessAgentRunner runner =
         new ProcessAgentRunner(executor, Path.of("/tmp"), List.of("agent"));
     assertThat(runner.id()).isEqualTo("external");
@@ -379,7 +377,7 @@ class CoverageExpansionTest {
                  command = "compile"
                 """);
     final CommandExecutor executor =
-        (CommandExecutor) (command, path) -> new CommandResult(0, "ok", "", Duration.ZERO);
+        (command, path) -> new CommandResult(0, "ok", "", Duration.ZERO);
     final CheckService service =
         new CheckService(
             new ProjectDetector(new FileSystemProjectInspection()),

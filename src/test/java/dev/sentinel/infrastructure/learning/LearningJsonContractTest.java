@@ -188,7 +188,7 @@ class LearningJsonContractTest {
 
   private static String fixture(final String name) throws IOException {
     try (InputStream stream =
-        LearningJsonContractTest.class.getClassLoader().getResourceAsStream(CONTRACTS + name)) {
+        Thread.currentThread().getContextClassLoader().getResourceAsStream(CONTRACTS + name)) {
       assertThat(stream).as(CONTRACTS + name).isNotNull();
       return new String(stream.readAllBytes(), StandardCharsets.UTF_8).strip();
     }

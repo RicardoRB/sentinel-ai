@@ -13,6 +13,8 @@ public record LearningRecord(
     Instant firstSeen,
     Instant lastSeen,
     boolean prompted) {
+  public static final int MAX_SUMMARY_LENGTH = 200;
+
   public LearningRecord {
     Objects.requireNonNull(key);
     Objects.requireNonNull(gate);
@@ -24,10 +26,10 @@ public record LearningRecord(
     if (key.isBlank() || gate.isBlank() || status.isBlank()) {
       throw new IllegalArgumentException("Learning record identity must not be blank");
     }
-    if (summary.length() > 200) {
+    if (summary.length() > MAX_SUMMARY_LENGTH) {
       throw new IllegalArgumentException("Learning summary must be at most 200 characters");
     }
-    if (occurrences < 1) {
+    if (occurrences <= 0) {
       throw new IllegalArgumentException("Learning occurrences must be positive");
     }
     if (lastSeen.isBefore(firstSeen)) {

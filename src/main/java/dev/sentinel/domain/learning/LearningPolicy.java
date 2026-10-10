@@ -17,7 +17,7 @@ public final class LearningPolicy {
       final CheckReport report,
       final int threshold,
       final Instant now) {
-    if (threshold < 1) {
+    if (threshold <= 0) {
       throw new IllegalArgumentException("Learning threshold must be at least 1");
     }
     final Map<String, LearningRecord> records = new LinkedHashMap<>(ledger.records());
@@ -30,40 +30,38 @@ public final class LearningPolicy {
         resolve(records, result.name(), threshold, now, prompts);
         continue;
       }
-      final String status = result.status().name();
-      final String key = result.name() + ":" + status;
-      final LearningRecord current = records.get(key);
-      final String summary = truncate(summary(result));
-      if (current == null || current.state() == LearningState.RESOLVED) {
-        records.put(
-            key,
-            new LearningRecord(
-                key,
-                result.name(),
-                status,
-                summary,
-                current == null ? 1 : current.occurrences() + 1,
-                LearningState.FAILING,
-                current == null ? now : current.firstSeen(),
-                now,
-                current != null && current.prompted()));
-      } else {
-        records.put(
-            key,
-            new LearningRecord(
-                key,
-                current.gate(),
-                current.status(),
-                current.summary(),
-                current.occurrences(),
-                LearningState.FAILING,
-                current.firstSeen(),
-                now,
-                current.prompted()));
-      }
+      final String key = result.name() + ":" + result.status().name();
+      records.put(key, failing(key, records.get(key), result, now));
     }
     return new LearningOutcome(
         new LearningLedger(ledger.formatVersion(), records), prompts, List.of());
+  }
+
+  /** Counts a new occurrence after a resolution, or refreshes an ongoing failure. */
+  private static LearningRecord failing(
+      final String key, final LearningRecord current, final GateResult result, final Instant now) {
+    if (current != null && current.state() != LearningState.RESOLVED) {
+      return new LearningRecord(
+          key,
+          current.gate(),
+          current.status(),
+          current.summary(),
+          current.occurrences(),
+          LearningState.FAILING,
+          current.firstSeen(),
+          now,
+          current.prompted());
+    }
+    return new LearningRecord(
+        key,
+        result.name(),
+        result.status().name(),
+        truncate(summary(result)),
+        current == null ? 1 : current.occurrences() + 1,
+        LearningState.FAILING,
+        current == null ? now : current.firstSeen(),
+        now,
+        current != null && current.prompted());
   }
 
   private static void resolve(
@@ -95,6 +93,8 @@ public final class LearningPolicy {
   }
 
   private static String truncate(final String value) {
-    return value.length() <= 200 ? value : value.substring(0, 200);
+    return value.length() <= LearningRecord.MAX_SUMMARY_LENGTH
+        ? value
+        : value.substring(0, LearningRecord.MAX_SUMMARY_LENGTH);
   }
 }

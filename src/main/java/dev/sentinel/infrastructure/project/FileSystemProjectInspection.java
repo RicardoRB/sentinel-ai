@@ -8,10 +8,10 @@ import dev.sentinel.domain.project.ProjectInspection;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Stream;
 import javax.inject.Inject;
 import javax.xml.XMLConstants;
@@ -26,21 +26,41 @@ public final class FileSystemProjectInspection implements ProjectInspection {
   public static final String POM = "pom.xml";
   private static final String SPRING_BOOT_GROUP_ID = "org.springframework.boot";
 
+  /** Build-file markers in precedence order; the first match decides a directory's project. */
+  private static final List<Marker> MARKERS =
+      List.of(
+          new Marker(POM, FileSystemProjectInspection::mavenProject),
+          new Marker(
+              "build.gradle.kts",
+              dir -> new Project(dir, Language.KOTLIN, BuildTool.GRADLE, Framework.NONE)),
+          new Marker(
+              "build.gradle",
+              dir -> new Project(dir, Language.JAVA, BuildTool.GRADLE, Framework.NONE)),
+          new Marker(
+              "tsconfig.json",
+              dir -> new Project(dir, Language.TYPESCRIPT, tool(dir), Framework.NONE)),
+          new Marker(
+              "package.json",
+              dir -> new Project(dir, Language.JAVASCRIPT, tool(dir), Framework.NONE)),
+          new Marker(
+              "pyproject.toml",
+              dir -> new Project(dir, Language.PYTHON, BuildTool.POETRY, Framework.NONE)),
+          new Marker(
+              "requirements.txt",
+              dir -> new Project(dir, Language.PYTHON, BuildTool.PIP, Framework.NONE)),
+          new Marker("go.mod", dir -> new Project(dir, Language.GO, BuildTool.GO, Framework.NONE)),
+          new Marker(
+              "Cargo.toml",
+              dir -> new Project(dir, Language.RUST, BuildTool.CARGO, Framework.NONE)));
+
   @Inject
   public FileSystemProjectInspection() {}
 
   @Override
   public Optional<Project> detect(final Path start) {
     for (Path dir = start.toAbsolutePath().normalize(); dir != null; dir = dir.getParent()) {
-      final Path pom = dir.resolve(POM);
-      if (Files.isRegularFile(pom)) {
-        return Optional.of(
-            new Project(
-                dir,
-                Language.JAVA,
-                BuildTool.MAVEN,
-                detectFramework(pom),
-                Files.isRegularFile(dir.resolve("mvnw"))));
+      if (Files.isRegularFile(dir.resolve(POM))) {
+        return Optional.of(mavenProject(dir));
       }
     }
     return Optional.empty();
@@ -50,18 +70,20 @@ public final class FileSystemProjectInspection implements ProjectInspection {
   public List<Project> discover(final Path start) {
     Path root = start.toAbsolutePath().normalize();
     Path candidate = root;
-    Path parent;
-    while ((parent = candidate.getParent()) != null
-        && !Files.exists(candidate.resolve(".git"))
-        && !Files.exists(candidate.resolve(POM))) {
-      candidate = parent;
+    while (candidate.getParent() != null && !isRepositoryRoot(candidate)) {
+      candidate = candidate.getParent();
     }
-    if (Files.exists(candidate.resolve(".git")) || Files.exists(candidate.resolve(POM))) {
+    if (isRepositoryRoot(candidate)) {
       root = candidate;
     }
-    final List<Project> projects = new ArrayList<>();
+    final List<Project> projects;
     try (Stream<Path> paths = Files.walk(root, 4)) {
-      paths.filter(Files::isDirectory).forEach(dir -> addMarkers(dir, projects));
+      projects =
+          paths
+              .filter(Files::isDirectory)
+              .map(FileSystemProjectInspection::projectAt)
+              .flatMap(Optional::stream)
+              .toList();
     } catch (IOException e) {
       throw new IllegalStateException("Could not scan project roots: " + e.getMessage(), e);
     }
@@ -72,50 +94,32 @@ public final class FileSystemProjectInspection implements ProjectInspection {
         .toList();
   }
 
-  private static void addMarkers(final Path dir, final List<Project> projects) {
-    if (Files.isRegularFile(dir.resolve(POM))) {
-      projects.add(
-          new Project(
-              dir,
-              Language.JAVA,
-              BuildTool.MAVEN,
-              detectFramework(dir.resolve(POM)),
-              Files.isRegularFile(dir.resolve("mvnw"))));
-    } else if (Files.isRegularFile(dir.resolve("build.gradle"))
-        || Files.isRegularFile(dir.resolve("build.gradle.kts"))) {
-      projects.add(
-          new Project(
-              dir,
-              Files.isRegularFile(dir.resolve("build.gradle.kts"))
-                  ? Language.KOTLIN
-                  : Language.JAVA,
-              BuildTool.GRADLE,
-              Framework.NONE));
-    } else if (Files.isRegularFile(dir.resolve("tsconfig.json"))) {
-      projects.add(new Project(dir, Language.TYPESCRIPT, tool(dir), Framework.NONE));
-    } else if (Files.isRegularFile(dir.resolve("package.json"))) {
-      projects.add(new Project(dir, Language.JAVASCRIPT, tool(dir), Framework.NONE));
-    } else if (Files.isRegularFile(dir.resolve("pyproject.toml"))
-        || Files.isRegularFile(dir.resolve("requirements.txt"))) {
-      projects.add(
-          new Project(
-              dir,
-              Language.PYTHON,
-              Files.isRegularFile(dir.resolve("pyproject.toml")) ? BuildTool.POETRY : BuildTool.PIP,
-              Framework.NONE));
-    } else if (Files.isRegularFile(dir.resolve("go.mod"))) {
-      projects.add(new Project(dir, Language.GO, BuildTool.GO, Framework.NONE));
-    } else if (Files.isRegularFile(dir.resolve("Cargo.toml"))) {
-      projects.add(new Project(dir, Language.RUST, BuildTool.CARGO, Framework.NONE));
-    } else {
-      try (Stream<Path> files = Files.list(dir)) {
-        if (files.anyMatch(path -> path.getFileName().toString().endsWith(".csproj"))) {
-          projects.add(new Project(dir, Language.CSHARP, BuildTool.DOTNET, Framework.NONE));
-        }
-      } catch (IOException e) {
-        throw new IllegalStateException("Could not inspect project directory " + dir, e);
+  private static boolean isRepositoryRoot(final Path dir) {
+    return Files.exists(dir.resolve(".git")) || Files.exists(dir.resolve(POM));
+  }
+
+  private static Optional<Project> projectAt(final Path dir) {
+    for (final Marker marker : MARKERS) {
+      if (Files.isRegularFile(dir.resolve(marker.file()))) {
+        return Optional.of(marker.project().apply(dir));
       }
     }
+    try (Stream<Path> files = Files.list(dir)) {
+      return files.anyMatch(path -> path.getFileName().toString().endsWith(".csproj"))
+          ? Optional.of(new Project(dir, Language.CSHARP, BuildTool.DOTNET, Framework.NONE))
+          : Optional.empty();
+    } catch (IOException e) {
+      throw new IllegalStateException("Could not inspect project directory " + dir, e);
+    }
+  }
+
+  private static Project mavenProject(final Path dir) {
+    return new Project(
+        dir,
+        Language.JAVA,
+        BuildTool.MAVEN,
+        detectFramework(dir.resolve(POM)),
+        Files.isRegularFile(dir.resolve("mvnw")));
   }
 
   private static BuildTool tool(final Path dir) {
@@ -150,4 +154,6 @@ public final class FileSystemProjectInspection implements ProjectInspection {
     }
     return Framework.NONE;
   }
+
+  private record Marker(String file, Function<Path, Project> project) {}
 }

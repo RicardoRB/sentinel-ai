@@ -3,6 +3,7 @@ package dev.sentinel.infrastructure.agent;
 import dev.sentinel.domain.agent.AgentIntegration;
 import dev.sentinel.domain.agent.IntegrationResult;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -58,7 +59,7 @@ public final class OpenCodeIntegration implements AgentIntegration {
     try {
       return remove ? remove(command, plugin) : install(command, plugin);
     } catch (IOException e) {
-      throw new RuntimeException("Could not update OpenCode integration: " + e.getMessage(), e);
+      throw new UncheckedIOException("Could not update OpenCode integration: " + e.getMessage(), e);
     }
   }
 

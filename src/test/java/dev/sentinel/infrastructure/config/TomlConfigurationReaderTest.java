@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import dev.sentinel.domain.config.GateConfiguration;
 import dev.sentinel.domain.config.SentinelConfiguration;
 import dev.sentinel.domain.config.SentinelException;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -18,7 +19,7 @@ class TomlConfigurationReaderTest {
 
   @TempDir Path dir;
 
-  private SentinelConfiguration read(final String toml) throws Exception {
+  private SentinelConfiguration read(final String toml) throws IOException {
     final Path file = dir.resolve("sentinel.toml");
     Files.writeString(file, toml);
     return reader.read(file);

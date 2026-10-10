@@ -15,7 +15,13 @@ import dev.sentinel.domain.loop.LoopTerminalState;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.*;
+import java.util.Optional;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import javax.inject.Inject;
 
 public final class QualityLoopService {
@@ -47,46 +53,82 @@ public final class QualityLoopService {
     final List<CheckReport> history = new ArrayList<>();
     String feedback = task;
     for (int iteration = 1; iteration <= config.maxIterations(); iteration++) {
-      final AgentResult agentResult;
-      try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
-        final String agentTask = feedback;
-        final Future<AgentResult> future =
-            executor.submit(() -> agent.run(new AgentRequest(agentTask, config.timeoutSeconds())));
-        try {
-          agentResult = future.get(config.timeoutSeconds(), TimeUnit.SECONDS);
-        } catch (TimeoutException e) {
-          future.cancel(true);
-          return new LoopResult(LoopTerminalState.TIMEOUT, iteration, history, "Agent timeout.");
-        } catch (InterruptedException e) {
-          Thread.currentThread().interrupt();
-          return new LoopResult(LoopTerminalState.TIMEOUT, iteration, history, "Loop interrupted.");
-        } catch (ExecutionException e) {
-          return new LoopResult(
-              LoopTerminalState.AGENT_ERROR, iteration, history, e.getCause().toString());
-        }
+      final Optional<LoopResult> outcome =
+          iterate(agent, feedback, root, config.timeoutSeconds(), iteration, history);
+      if (outcome.isPresent()) {
+        return outcome.get();
       }
-      if (!agentResult.succeeded()) {
-        return new LoopResult(
-            LoopTerminalState.AGENT_ERROR, iteration, history, agentResult.summary());
-      }
-      final CheckReport report;
-      try {
-        report = checks.check(root);
-      } catch (RuntimeException e) {
-        return new LoopResult(LoopTerminalState.GATE_ERROR, iteration, history, e.getMessage());
-      }
-      history.add(report);
-      if (report.passed()) {
-        return new LoopResult(
-            LoopTerminalState.PASSED, iteration, history, "All quality gates passed.");
-      }
-      feedback = feedback(report);
+      feedback = feedback(history.getLast());
     }
     return new LoopResult(
         LoopTerminalState.MAX_ITERATIONS_REACHED,
         config.maxIterations(),
         history,
         "Maximum iterations reached.");
+  }
+
+  /** Runs one agent attempt and quality check; returns a result when the loop must stop. */
+  private Optional<LoopResult> iterate(
+      final AgentRunner agent,
+      final String task,
+      final Path root,
+      final int timeoutSeconds,
+      final int iteration,
+      final List<CheckReport> history) {
+    final AgentResult agentResult;
+    try {
+      agentResult = runAgent(agent, task, timeoutSeconds);
+    } catch (TimeoutException e) {
+      return Optional.of(
+          new LoopResult(LoopTerminalState.TIMEOUT, iteration, history, "Agent timeout."));
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      return Optional.of(
+          new LoopResult(LoopTerminalState.TIMEOUT, iteration, history, "Loop interrupted."));
+    } catch (ExecutionException e) {
+      return Optional.of(
+          new LoopResult(
+              LoopTerminalState.AGENT_ERROR, iteration, history, e.getCause().toString()));
+    }
+    if (!agentResult.succeeded()) {
+      return Optional.of(
+          new LoopResult(LoopTerminalState.AGENT_ERROR, iteration, history, agentResult.summary()));
+    }
+    return checkQuality(root, iteration, history);
+  }
+
+  private static AgentResult runAgent(
+      final AgentRunner agent, final String task, final int timeoutSeconds)
+      throws TimeoutException, InterruptedException, ExecutionException {
+    try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+      final Future<AgentResult> future =
+          executor.submit(() -> agent.run(new AgentRequest(task, timeoutSeconds)));
+      try {
+        return future.get(timeoutSeconds, TimeUnit.SECONDS);
+      } catch (TimeoutException e) {
+        future.cancel(true);
+        throw e;
+      }
+    }
+  }
+
+  // Any gate failure must end the loop as GATE_ERROR rather than escape it.
+  @SuppressWarnings("PMD.AvoidCatchingGenericException")
+  private Optional<LoopResult> checkQuality(
+      final Path root, final int iteration, final List<CheckReport> history) {
+    final CheckReport report;
+    try {
+      report = checks.check(root);
+    } catch (RuntimeException e) {
+      return Optional.of(
+          new LoopResult(LoopTerminalState.GATE_ERROR, iteration, history, e.getMessage()));
+    }
+    history.add(report);
+    return report.passed()
+        ? Optional.of(
+            new LoopResult(
+                LoopTerminalState.PASSED, iteration, history, "All quality gates passed."))
+        : Optional.empty();
   }
 
   private static String feedback(final CheckReport report) {

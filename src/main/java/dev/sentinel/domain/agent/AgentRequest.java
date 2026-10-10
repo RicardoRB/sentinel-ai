@@ -5,7 +5,7 @@ public record AgentRequest(String task, int timeoutSeconds) {
     if (task == null || task.isBlank()) {
       throw new IllegalArgumentException("task must not be blank");
     }
-    if (timeoutSeconds < 1) {
+    if (timeoutSeconds <= 0) {
       throw new IllegalArgumentException("timeoutSeconds must be positive");
     }
   }

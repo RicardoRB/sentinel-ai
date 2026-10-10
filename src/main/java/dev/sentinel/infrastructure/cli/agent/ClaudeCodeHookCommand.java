@@ -23,6 +23,8 @@ import picocli.CommandLine.Spec;
 
 @Command(name = "claude-code", description = "Run the Claude Code edit/write hook.")
 public final class ClaudeCodeHookCommand implements Callable<Integer> {
+  private static final int MIN_LEARN_AFTER = 1;
+
   @Spec private CommandSpec spec;
 
   // Picocli assigns annotated fields reflectively, so they cannot be final.
@@ -47,9 +49,11 @@ public final class ClaudeCodeHookCommand implements Callable<Integer> {
     this.codec = codec;
   }
 
+  // The hook must always answer Claude Code with an exit code, even on unexpected failures.
   @Override
+  @SuppressWarnings("PMD.AvoidCatchingGenericException")
   public Integer call() {
-    if (threshold < 1) {
+    if (threshold < MIN_LEARN_AFTER) {
       error().println("--learn-after must be at least 1");
       return ExitCodes.ERROR;
     }
