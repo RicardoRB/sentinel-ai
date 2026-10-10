@@ -21,3 +21,13 @@ inability to initialize (including cancelled or invalid selection).
 On supported macOS and Linux terminals, use Up/Down to move, Space to toggle, and Enter to confirm.
 Press `q`, `Q`, or Ctrl+C to cancel. On Windows, piped input, or when raw terminal mode is unavailable,
 the wizard uses numbered prompts instead.
+## Troubleshooting with verbose diagnostics
+
+Add `--verbose` to the root command or `init` command to route initialization decisions to stderr.
+Diagnostics identify ownership conflicts, applied changes, and rollback outcomes without printing
+file contents:
+
+```console
+sentinel --verbose init
+sentinel init --verbose
+```

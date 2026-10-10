@@ -70,10 +70,11 @@ class SentinelCliIntegrationSupport {
 
   protected int run(final String... args) {
     final CommandLine cli =
-        new CommandLine(component.commands().get(SentinelCommand.class).get(), factory);
-    cli.setOut(new PrintWriter(out, true));
-    cli.setErr(new PrintWriter(err, true));
-    cli.setExecutionExceptionHandler(CommandLineRunnerImpl::handle);
+        CommandLineRunnerImpl.createCommandLine(
+            (SentinelCommand) component.commands().get(SentinelCommand.class).get(),
+            factory,
+            new PrintWriter(out, true),
+            new PrintWriter(err, true));
     return cli.execute(args);
   }
 
@@ -88,6 +89,7 @@ class SentinelCliIntegrationSupport {
     cli.setOut(new PrintWriter(out, true));
     cli.setErr(new PrintWriter(err, true));
     cli.setExecutionExceptionHandler(CommandLineRunnerImpl::handle);
+    cli.setExecutionStrategy(CommandLineRunnerImpl.executionStrategy());
     return cli.execute(args);
   }
 
@@ -114,6 +116,7 @@ class SentinelCliIntegrationSupport {
     cli.setOut(new PrintWriter(out, true));
     cli.setErr(new PrintWriter(err, true));
     cli.setExecutionExceptionHandler(CommandLineRunnerImpl::handle);
+    cli.setExecutionStrategy(CommandLineRunnerImpl.executionStrategy());
     return cli.execute(args);
   }
 }

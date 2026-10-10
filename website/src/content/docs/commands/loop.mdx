@@ -35,3 +35,8 @@ The command prints one result line, for example `PASSED after 2 iteration(s): Al
 
 Exit `0` means `PASSED`; every other state exits `1`. The agent runs with your user's privileges, so
 use the loop only in repositories you trust. See [security](/security/).
+## Verbose diagnostics
+
+Use `sentinel --verbose loop ...` to inspect iteration, agent/check phase, timeout, interruption,
+and terminal-state transitions. Task text, feedback, command arguments, and process output are
+never emitted as application logs.

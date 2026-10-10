@@ -14,3 +14,8 @@ Sentinel-owned files. Claude Code uses `sentinel hook claude-code`; `sentinel` m
 OpenCode's Sentinel-owned command is also removed.
 Review [Claude Code](/integrations/claude-code/) and [OpenCode](/integrations/opencode/) details.
 Exit `0` means success. A conflict or invalid usage returns `2` (Sentinel could not complete the operation).
+## Verbose diagnostics
+
+Use `sentinel --verbose integrate ...` or place `--verbose` after the command. Logs go only to
+stderr and describe integration decisions and outcomes; generated files and their contents are
+not logged.

@@ -8,9 +8,12 @@ import dev.sentinel.domain.config.SentinelException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.inject.Inject;
 
 public final class IntegrationService {
+  private static final Logger LOGGER = Logger.getLogger(IntegrationService.class.getName());
   private final ProjectDetector detector;
   private final List<AgentIntegration> integrations;
 
@@ -27,6 +30,13 @@ public final class IntegrationService {
   }
 
   public IntegrationResult integrate(final String agent, final Path start, final boolean remove) {
+    LOGGER.log(
+        Level.INFO,
+        () ->
+            "event=integration-start agent="
+                + agent
+                + " operation="
+                + (remove ? "remove" : "install"));
     final AgentIntegration adapter =
         integrations.stream()
             .filter(candidate -> candidate.id().equals(agent))
@@ -36,6 +46,8 @@ public final class IntegrationService {
                     new SentinelException(
                         "Unknown agent '" + agent + "'. Supported agents: opencode, claude-code"));
     final Path root = detector.detect(start).orElseThrow(ProjectNotFoundException::new).root();
-    return adapter.integrate(root, remove);
+    final IntegrationResult result = adapter.integrate(root, remove);
+    LOGGER.log(Level.INFO, () -> "event=integration-complete agent=" + agent + " status=completed");
+    return result;
   }
 }

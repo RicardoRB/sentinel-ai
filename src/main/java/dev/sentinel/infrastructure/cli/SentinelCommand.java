@@ -13,6 +13,8 @@ import java.util.concurrent.Callable;
 import javax.inject.Inject;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Model.CommandSpec;
+import picocli.CommandLine.Option;
+import picocli.CommandLine.ScopeType;
 import picocli.CommandLine.Spec;
 
 @Command(
@@ -33,6 +35,12 @@ import picocli.CommandLine.Spec;
 public class SentinelCommand implements Callable<Integer> {
 
   @Spec private CommandSpec spec;
+
+  @Option(
+      names = "--verbose",
+      scope = ScopeType.INHERIT,
+      description = "Enable diagnostic logs on stderr.")
+  private boolean verbose;
 
   @Inject
   public SentinelCommand() {}
