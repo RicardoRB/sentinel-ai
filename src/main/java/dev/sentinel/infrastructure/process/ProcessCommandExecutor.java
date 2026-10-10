@@ -25,11 +25,11 @@ import javax.inject.Inject;
  */
 public class ProcessCommandExecutor implements CommandExecutor {
 
-  @Inject
-  public ProcessCommandExecutor() {}
-
   private static final int EXIT_COULD_NOT_START = -1;
   private static final int EXIT_INTERRUPTED = 130;
+
+  @Inject
+  public ProcessCommandExecutor() {}
 
   @Override
   public CommandResult execute(final List<String> command, final Path workingDirectory) {

@@ -362,7 +362,7 @@ class ArchitectureBoundaryTest {
             .resideInAPackage(sourcePackage)
             .should()
             .dependOnClassesThat(
-                new DescribedPredicate<JavaClass>("match forbidden dependency") {
+                new DescribedPredicate<>("match forbidden dependency") {
                   @Override
                   public boolean test(final JavaClass target) {
                     return forbiddenTarget.test(target.getName());

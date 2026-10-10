@@ -24,7 +24,11 @@ import picocli.CommandLine.Spec;
 @Command(name = "claude-code", description = "Run the Claude Code edit/write hook.")
 public final class ClaudeCodeHookCommand implements Callable<Integer> {
   @Spec private CommandSpec spec;
-  @Mixin private ProjectOptions options = new ProjectOptions();
+
+  // Picocli assigns annotated fields reflectively, so they cannot be final.
+  @SuppressWarnings("PMD.ImmutableField")
+  @Mixin
+  private ProjectOptions options = new ProjectOptions();
 
   @Option(names = "--learn-after", defaultValue = "3")
   private int threshold;

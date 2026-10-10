@@ -39,7 +39,7 @@ class InitServiceTest {
           new PresetRuleFileWriter());
 
   @Test
-  void appliesPresetAndDeduplicatesExplicitGates(final @TempDir Path dir) throws Exception {
+  void appliesPresetAndDeduplicatesExplicitGates(@TempDir final Path dir) throws Exception {
     withPom(dir, PLAIN_POM);
     final InitResult result =
         service.initialize(
@@ -56,7 +56,7 @@ class InitServiceTest {
   }
 
   @Test
-  void rejectsUnknownExplicitGateBeforeWriting(final @TempDir Path dir) throws Exception {
+  void rejectsUnknownExplicitGateBeforeWriting(@TempDir final Path dir) throws Exception {
     withPom(dir, PLAIN_POM);
     assertThatThrownBy(
             () ->
@@ -70,7 +70,7 @@ class InitServiceTest {
   }
 
   @Test
-  void integrationConflictLeavesPresetFilesUntouched(final @TempDir Path dir) throws Exception {
+  void integrationConflictLeavesPresetFilesUntouched(@TempDir final Path dir) throws Exception {
     withPom(dir, PLAIN_POM);
     final AgentIntegration conflict =
         new AgentIntegration() {
@@ -106,7 +106,7 @@ class InitServiceTest {
   }
 
   @Test
-  void createsDefaultConfiguration(final @TempDir Path dir) throws Exception {
+  void createsDefaultConfiguration(@TempDir final Path dir) throws Exception {
     withPom(dir, PLAIN_POM);
 
     final InitResult result = service.init(dir);
@@ -124,7 +124,7 @@ class InitServiceTest {
   }
 
   @Test
-  void neverOverwritesExistingConfiguration(final @TempDir Path dir) throws Exception {
+  void neverOverwritesExistingConfiguration(@TempDir final Path dir) throws Exception {
     withPom(dir, PLAIN_POM);
     Files.writeString(dir.resolve("sentinel.toml"), "version = 1 # mine\n");
 
@@ -135,7 +135,7 @@ class InitServiceTest {
   }
 
   @Test
-  void requiresASupportedProject(final @TempDir Path dir) {
+  void requiresASupportedProject(@TempDir final Path dir) {
     assertThatThrownBy(() -> service.init(dir)).isInstanceOf(ProjectNotFoundException.class);
   }
 }

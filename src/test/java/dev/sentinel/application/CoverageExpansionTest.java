@@ -63,7 +63,7 @@ class CoverageExpansionTest {
       new Project(Path.of("/project"), Language.JAVA, BuildTool.MAVEN, Framework.NONE);
 
   @Test
-  void discoversEverySupportedProjectMarker(final @TempDir Path root) throws IOException {
+  void discoversEverySupportedProjectMarker(@TempDir final Path root) throws IOException {
     Files.createDirectories(root.resolve("maven"));
     Files.writeString(root.resolve("maven/pom.xml"), TestProjects.PLAIN_POM);
     Files.createDirectories(root.resolve("gradle"));
@@ -105,7 +105,7 @@ class CoverageExpansionTest {
   }
 
   @Test
-  void projectDiscoverySelectsPackageManagerMarkers(final @TempDir Path root) throws IOException {
+  void projectDiscoverySelectsPackageManagerMarkers(@TempDir final Path root) throws IOException {
     Files.writeString(root.resolve("package.json"), "{}");
     Files.writeString(root.resolve("pnpm-lock.yaml"), "");
     assertThat(
@@ -125,7 +125,7 @@ class CoverageExpansionTest {
   }
 
   @Test
-  void architectureGeneratorCreatesAndRollsBackAllStyles(final @TempDir Path root)
+  void architectureGeneratorCreatesAndRollsBackAllStyles(@TempDir final Path root)
       throws IOException {
     Files.createDirectories(root.resolve("src/main/java/com/acme"));
     Files.writeString(
@@ -145,7 +145,7 @@ class CoverageExpansionTest {
   }
 
   @Test
-  void architectureGeneratorDefaultsPackageAndPreservesExisting(final @TempDir Path root)
+  void architectureGeneratorDefaultsPackageAndPreservesExisting(@TempDir final Path root)
       throws IOException {
     final ArchitectureTestGenerator generator = new ArchitectureTestGenerator();
     final ArchitectureTestChange change =
@@ -166,7 +166,7 @@ class CoverageExpansionTest {
   }
 
   @Test
-  void pomConfiguratorAddsAndRollsBackAllTools(final @TempDir Path root) throws IOException {
+  void pomConfiguratorAddsAndRollsBackAllTools(@TempDir final Path root) throws IOException {
     TestProjects.withPom(root, TestProjects.PLAIN_POM);
     final InitSetupCatalog catalog = new InitSetupCatalog(new FakeEnvironmentInspection());
     final List<InitGateOption> gates =
@@ -206,7 +206,7 @@ class CoverageExpansionTest {
   }
 
   @Test
-  void presetPomSnippetsUseExternalRuleFilesAndStrictMutation(final @TempDir Path root)
+  void presetPomSnippetsUseExternalRuleFilesAndStrictMutation(@TempDir final Path root)
       throws IOException {
     TestProjects.withPom(root, TestProjects.PLAIN_POM);
     final InitSetupCatalog catalog = new InitSetupCatalog(new FakeEnvironmentInspection());
@@ -225,7 +225,7 @@ class CoverageExpansionTest {
   }
 
   @Test
-  void pomConfiguratorHandlesExistingBuildSections(final @TempDir Path root) throws IOException {
+  void pomConfiguratorHandlesExistingBuildSections(@TempDir final Path root) throws IOException {
     final String pom =
         "<project><build><plugins></plugins></build><dependencies></dependencies></project>";
     Files.writeString(root.resolve("pom.xml"), pom);
@@ -261,7 +261,7 @@ class CoverageExpansionTest {
   }
 
   @Test
-  void configurationAndTokenizerCoverProfilesAndErrors(final @TempDir Path root)
+  void configurationAndTokenizerCoverProfilesAndErrors(@TempDir final Path root)
       throws IOException {
     assertThat(CommandLineTokenizer.tokenize("java -Dname='hello world' app"))
         .containsExactly("java", "-Dname=hello world", "app");
@@ -365,7 +365,7 @@ class CoverageExpansionTest {
   }
 
   @Test
-  void checkServiceSelectsProfilesAndRejectsInvalidOnes(final @TempDir Path root)
+  void checkServiceSelectsProfilesAndRejectsInvalidOnes(@TempDir final Path root)
       throws IOException {
     TestProjects.withPom(root, TestProjects.PLAIN_POM);
     Files.writeString(
@@ -398,7 +398,7 @@ class CoverageExpansionTest {
   }
 
   @Test
-  void commandLineRunnerWiresCommandsAndHandlesKnownAndUnexpectedFailures(final @TempDir Path root)
+  void commandLineRunnerWiresCommandsAndHandlesKnownAndUnexpectedFailures(@TempDir final Path root)
       throws IOException {
     TestProjects.withPom(root, TestProjects.PLAIN_POM);
     final CommandLineRunnerImpl runner = DaggerSentinelComponent.create().commandLineRunner();

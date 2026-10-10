@@ -20,7 +20,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 class InitSetupCatalogTest {
   @Test
-  void exposesStableIntegrationAndGateChoices(final @TempDir Path dir) throws Exception {
+  void exposesStableIntegrationAndGateChoices(@TempDir final Path dir) throws Exception {
     TestProjects.withPom(dir, TestProjects.PLAIN_POM);
     final InitSetupCatalog catalog = new InitSetupCatalog(new FakeEnvironmentInspection());
 
@@ -75,7 +75,7 @@ class InitSetupCatalogTest {
   }
 
   @Test
-  void prefersWrapperWhenSystemMavenIsMissing(final @TempDir Path dir) throws Exception {
+  void prefersWrapperWhenSystemMavenIsMissing(@TempDir final Path dir) throws Exception {
     TestProjects.withPom(dir, TestProjects.PLAIN_POM);
     Files.writeString(dir.resolve("mvnw"), "#!/bin/sh\nexit 0\n");
     final InitGateOption option =
@@ -90,7 +90,7 @@ class InitSetupCatalogTest {
   }
 
   @Test
-  void rejectsUnsupportedChoices(final @TempDir Path dir) throws Exception {
+  void rejectsUnsupportedChoices(@TempDir final Path dir) throws Exception {
     TestProjects.withPom(dir, TestProjects.PLAIN_POM);
     final Project project =
         new ProjectDetector(new FileSystemProjectInspection()).detect(dir).orElseThrow();
@@ -102,7 +102,7 @@ class InitSetupCatalogTest {
   }
 
   @Test
-  void reportsUnavailableMavenWhenWrapperAndSystemToolAreMissing(final @TempDir Path dir)
+  void reportsUnavailableMavenWhenWrapperAndSystemToolAreMissing(@TempDir final Path dir)
       throws Exception {
     TestProjects.withPom(dir, TestProjects.PLAIN_POM);
     final Project project =
@@ -116,7 +116,7 @@ class InitSetupCatalogTest {
   }
 
   @Test
-  void reportsSystemMavenWhenWrapperIsMissing(final @TempDir Path dir) throws Exception {
+  void reportsSystemMavenWhenWrapperIsMissing(@TempDir final Path dir) throws Exception {
     TestProjects.withPom(dir, TestProjects.PLAIN_POM);
     final Project project =
         new ProjectDetector(new FileSystemProjectInspection()).detect(dir).orElseThrow();
@@ -129,7 +129,7 @@ class InitSetupCatalogTest {
   }
 
   @Test
-  void offersBinaryGatesWithPlaceholderTargetAndHints(final @TempDir Path dir) throws Exception {
+  void offersBinaryGatesWithPlaceholderTargetAndHints(@TempDir final Path dir) throws Exception {
     TestProjects.withPom(dir, TestProjects.PLAIN_POM);
     final Project project =
         new ProjectDetector(new FileSystemProjectInspection()).detect(dir).orElseThrow();

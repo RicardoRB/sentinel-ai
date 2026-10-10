@@ -11,6 +11,9 @@ import java.util.Optional;
 import javax.inject.Inject;
 
 public final class DoctorService {
+  private final ProjectDetector detector;
+  private final EnvironmentInspection environment;
+
   public enum Status {
     OK,
     WARNING,
@@ -18,9 +21,6 @@ public final class DoctorService {
   }
 
   public record Finding(String name, Status status, String message) {}
-
-  private final ProjectDetector detector;
-  private final EnvironmentInspection environment;
 
   @Inject
   public DoctorService(final ProjectDetector detector, final EnvironmentInspection environment) {

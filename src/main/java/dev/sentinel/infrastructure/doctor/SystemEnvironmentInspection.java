@@ -13,11 +13,11 @@ import javax.inject.Inject;
 
 /** Reads executable availability and prerequisite markers from the current machine. */
 public final class SystemEnvironmentInspection implements EnvironmentInspection {
-  @Inject
-  public SystemEnvironmentInspection() {}
-
   private static final Set<String> PROBED_EXECUTABLES =
       Set.of("mvn", "java", "git", "claude", "opencode");
+
+  @Inject
+  public SystemEnvironmentInspection() {}
 
   @Override
   public EnvironmentFacts inspect(final Path projectRoot) {

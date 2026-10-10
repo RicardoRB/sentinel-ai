@@ -17,7 +17,7 @@ class ProcessCommandExecutorTest {
   private final ProcessCommandExecutor executor = new ProcessCommandExecutor();
 
   @Test
-  void capturesStdoutStderrExitCodeAndDuration(final @TempDir Path dir) {
+  void capturesStdoutStderrExitCodeAndDuration(@TempDir final Path dir) {
     final CommandResult result =
         executor.execute(List.of("sh", "-c", "echo out; echo err >&2; exit 3"), dir);
 
@@ -29,7 +29,7 @@ class ProcessCommandExecutorTest {
   }
 
   @Test
-  void doesNotInterpretShellMetacharacters(final @TempDir Path dir) {
+  void doesNotInterpretShellMetacharacters(@TempDir final Path dir) {
     final CommandResult result =
         executor.execute(List.of("echo", "a;", "echo", "b", "&&", "$HOME"), dir);
 
@@ -37,7 +37,7 @@ class ProcessCommandExecutorTest {
   }
 
   @Test
-  void runsInWorkingDirectoryAndResolvesRelativeExecutableAgainstIt(final @TempDir Path dir)
+  void runsInWorkingDirectoryAndResolvesRelativeExecutableAgainstIt(@TempDir final Path dir)
       throws Exception {
     final Path script = dir.resolve("run.sh");
     Files.writeString(script, "#!/bin/sh\npwd -P\n");
@@ -50,7 +50,7 @@ class ProcessCommandExecutorTest {
   }
 
   @Test
-  void reportsFailureToStartInsteadOfThrowing(final @TempDir Path dir) {
+  void reportsFailureToStartInsteadOfThrowing(@TempDir final Path dir) {
     final CommandResult result = executor.execute(List.of("./does-not-exist"), dir);
 
     assertThat(result.exitCode()).isNotZero();
@@ -58,7 +58,7 @@ class ProcessCommandExecutorTest {
   }
 
   @Test
-  void handlesLargeOutputWithoutDeadlock(final @TempDir Path dir) {
+  void handlesLargeOutputWithoutDeadlock(@TempDir final Path dir) {
     final CommandResult result =
         executor.execute(
             List.of(
@@ -68,7 +68,7 @@ class ProcessCommandExecutorTest {
             dir);
 
     assertThat(result.exitCode()).isZero();
-    assertThat(result.stdout().lines().count()).isEqualTo(20000);
-    assertThat(result.stderr().lines().count()).isEqualTo(20000);
+    assertThat(result.stdout().lines().count()).isEqualTo(20_000);
+    assertThat(result.stderr().lines().count()).isEqualTo(20_000);
   }
 }

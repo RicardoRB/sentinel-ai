@@ -22,10 +22,10 @@ import org.tomlj.TomlTable;
 
 public class TomlConfigurationReader implements SentinelConfigurationReader {
 
+  private static final String GATES_TABLE = "quality-gates";
+
   @Inject
   public TomlConfigurationReader() {}
-
-  private static final String GATES_TABLE = "quality-gates";
 
   @Override
   public SentinelConfiguration read(final Path file) {

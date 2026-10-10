@@ -18,7 +18,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 class PresetRuleFileWriterTest {
   @Test
-  void writesOwnedFilesAndRestoresCreatedFiles(final @TempDir Path root) throws Exception {
+  void writesOwnedFilesAndRestoresCreatedFiles(@TempDir final Path root) throws Exception {
     TestProjects.withPom(root, TestProjects.PLAIN_POM);
     final Project project = new Project(root, Language.JAVA, BuildTool.MAVEN, Framework.NONE);
     final List<InitGateOption> gates =
@@ -36,7 +36,7 @@ class PresetRuleFileWriterTest {
   }
 
   @Test
-  void preservesUnmarkedFilesAndReplacesMarkedFiles(final @TempDir Path root) throws Exception {
+  void preservesUnmarkedFilesAndReplacesMarkedFiles(@TempDir final Path root) throws Exception {
     TestProjects.withPom(root, TestProjects.PLAIN_POM);
     final Path config = root.resolve("config");
     Files.createDirectories(config);

@@ -67,7 +67,7 @@ class QualityLoopServiceTest {
                     1, Map.of("tests", new GateConfiguration(true, List.of("mvn", "test")))),
             new QualityGateFactory(commands),
             new QualityGateRunner());
-    final List<String> requested = new ArrayList<String>();
+    final List<String> requested = new ArrayList<>();
     final AgentRunnerFactory agents =
         (workingDirectory, arguments) -> {
           assertThat(workingDirectory).isEqualTo(root);
@@ -99,7 +99,7 @@ class QualityLoopServiceTest {
   }
 
   @Test
-  void passesAfterAgentAttempt(final @TempDir Path dir) throws Exception {
+  void passesAfterAgentAttempt(@TempDir final Path dir) throws Exception {
     withPom(dir, PLAIN_POM);
     Files.writeString(
         dir.resolve("sentinel.toml"), "version = 1\n[quality-gates.tests]\ncommand = \"verify\"\n");
@@ -135,7 +135,7 @@ class QualityLoopServiceTest {
   }
 
   @Test
-  void stopsAtMaximumIterations(final @TempDir Path dir) throws Exception {
+  void stopsAtMaximumIterations(@TempDir final Path dir) throws Exception {
     withPom(dir, PLAIN_POM);
     Files.writeString(
         dir.resolve("sentinel.toml"), "version = 1\n[quality-gates.tests]\ncommand = \"verify\"\n");
@@ -171,7 +171,7 @@ class QualityLoopServiceTest {
   }
 
   @Test
-  void distinguishesAgentTimeoutAndFailure(final @TempDir Path dir) throws Exception {
+  void distinguishesAgentTimeoutAndFailure(@TempDir final Path dir) throws Exception {
     withPom(dir, PLAIN_POM);
     Files.writeString(
         dir.resolve("sentinel.toml"), "version = 1\n[quality-gates.tests]\ncommand = \"verify\"\n");
@@ -233,11 +233,11 @@ class QualityLoopServiceTest {
   }
 
   @Test
-  void retriesWithFeedbackUntilSuccess(final @TempDir Path dir) throws Exception {
+  void retriesWithFeedbackUntilSuccess(@TempDir final Path dir) throws Exception {
     withPom(dir, PLAIN_POM);
     Files.writeString(
         dir.resolve("sentinel.toml"), "version = 1\n[quality-gates.tests]\ncommand = \"verify\"\n");
-    final int[] calls = new int[] {0};
+    final int[] calls = {0};
     final CommandExecutor executor =
         (command, root) -> {
           if ("git".equals(command.getFirst())) {
@@ -252,7 +252,7 @@ class QualityLoopServiceTest {
             new TomlConfigurationReader(),
             new QualityGateFactory(executor),
             new QualityGateRunner());
-    final int[] agentCalls = new int[] {0};
+    final int[] agentCalls = {0};
     final AgentRunner agent =
         new AgentRunner() {
           @Override

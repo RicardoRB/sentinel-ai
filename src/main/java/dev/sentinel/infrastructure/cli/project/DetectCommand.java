@@ -23,7 +23,11 @@ import picocli.CommandLine.Spec;
 public class DetectCommand implements Callable<Integer> {
 
   @Spec private CommandSpec spec;
-  @Mixin private ProjectOptions options = new ProjectOptions();
+
+  // Picocli assigns annotated fields reflectively, so they cannot be final.
+  @SuppressWarnings("PMD.ImmutableField")
+  @Mixin
+  private ProjectOptions options = new ProjectOptions();
 
   private final ProjectDetector detector;
 

@@ -27,7 +27,11 @@ import picocli.CommandLine.Spec;
     subcommands = {})
 public final class IntegrateCommand implements Callable<Integer> {
   @Spec private CommandSpec spec;
-  @Mixin private ProjectOptions options = new ProjectOptions();
+
+  // Picocli assigns annotated fields reflectively, so they cannot be final.
+  @SuppressWarnings("PMD.ImmutableField")
+  @Mixin
+  private ProjectOptions options = new ProjectOptions();
 
   @Parameters(
       index = "0",

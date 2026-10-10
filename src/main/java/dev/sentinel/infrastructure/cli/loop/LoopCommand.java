@@ -27,13 +27,12 @@ import picocli.CommandLine.Spec;
 public final class LoopCommand implements Callable<Integer> {
   private final QualityLoopService service;
 
-  @Inject
-  public LoopCommand(final QualityLoopService service) {
-    this.service = service;
-  }
-
   @Spec private CommandSpec spec;
-  @Mixin private ProjectOptions options = new ProjectOptions();
+
+  // Picocli assigns annotated fields reflectively, so they cannot be final.
+  @SuppressWarnings("PMD.ImmutableField")
+  @Mixin
+  private ProjectOptions options = new ProjectOptions();
 
   @Parameters(index = "0", description = "Task passed to the external agent.")
   private String task;
@@ -52,6 +51,11 @@ public final class LoopCommand implements Callable<Integer> {
 
   @Option(names = "--allow-dirty")
   private boolean allowDirty;
+
+  @Inject
+  public LoopCommand(final QualityLoopService service) {
+    this.service = service;
+  }
 
   @Override
   public Integer call() {

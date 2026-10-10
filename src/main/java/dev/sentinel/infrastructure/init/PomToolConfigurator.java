@@ -17,9 +17,6 @@ import javax.inject.Inject;
 
 /** Adds only missing, pinned Maven tool declarations required by selected init gates. */
 public final class PomToolConfigurator implements BuildToolConfiguration {
-  @Inject
-  public PomToolConfigurator() {}
-
   private static final String CHECKSTYLE = "maven-checkstyle-plugin";
   private static final String PMD = "maven-pmd-plugin";
   private static final String SPOTBUGS = "spotbugs-maven-plugin";
@@ -186,6 +183,9 @@ public final class PomToolConfigurator implements BuildToolConfiguration {
                 <version>3.26.0</version>
               </plugin>
             """;
+
+  @Inject
+  public PomToolConfigurator() {}
 
   @Override
   public PomChange apply(final Project project, final List<InitGateOption> gates) {

@@ -28,13 +28,19 @@ import picocli.CommandLine.Spec;
     footer = {"", "Exit codes: 0 = all gates passed, 1 = at least one gate failed, 2 = error"})
 public class CheckCommand implements Callable<Integer> {
 
+  // The constants are the user-facing --format values.
+  @SuppressWarnings("PMD.FieldNamingConventions")
   public enum Format {
     text,
     json
   }
 
   @Spec private CommandSpec spec;
-  @Mixin private ProjectOptions options = new ProjectOptions();
+
+  // Picocli assigns annotated fields reflectively, so they cannot be final.
+  @SuppressWarnings("PMD.ImmutableField")
+  @Mixin
+  private ProjectOptions options = new ProjectOptions();
 
   @Option(
       names = "--format",

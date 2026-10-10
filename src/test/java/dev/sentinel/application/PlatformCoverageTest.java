@@ -14,7 +14,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 class PlatformCoverageTest {
   @Test
-  void discoversMixedRepositoryRoots(final @TempDir Path root) throws Exception {
+  void discoversMixedRepositoryRoots(@TempDir final Path root) throws Exception {
     Files.writeString(root.resolve("package.json"), "{}");
     final Path python = Files.createDirectories(root.resolve("python"));
     Files.writeString(python.resolve("pyproject.toml"), "[tool.poetry]");
@@ -27,7 +27,7 @@ class PlatformCoverageTest {
   }
 
   @Test
-  void projectDiscoveryCarriesMavenWrapperAvailability(final @TempDir Path root) throws Exception {
+  void projectDiscoveryCarriesMavenWrapperAvailability(@TempDir final Path root) throws Exception {
     Files.writeString(root.resolve("pom.xml"), "<project/>");
     Files.writeString(root.resolve("mvnw"), "#!/bin/sh\nexit 0\n");
 

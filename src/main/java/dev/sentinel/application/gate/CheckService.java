@@ -100,7 +100,7 @@ public class CheckService {
       throw new SentinelException(
           "Unknown profiles " + unknown + ". Available profiles: " + configuration.profileNames());
     }
-    final Map<String, GateConfiguration> selected = new LinkedHashMap<String, GateConfiguration>();
+    final Map<String, GateConfiguration> selected = new LinkedHashMap<>();
     configuration
         .gates()
         .forEach(

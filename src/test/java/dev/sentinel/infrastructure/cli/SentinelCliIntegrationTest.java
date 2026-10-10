@@ -123,7 +123,7 @@ class SentinelCliIntegrationTest {
   }
 
   @Test
-  void detectOnUnsupportedDirectoryExitsNonZero(final @TempDir Path empty) {
+  void detectOnUnsupportedDirectoryExitsNonZero(@TempDir final Path empty) {
     assertThat(run("detect", "-C", empty.toString())).isEqualTo(ExitCodes.FAILED);
     assertThat(out.toString().trim()).isEqualTo("No supported project detected.");
   }
@@ -305,7 +305,7 @@ class SentinelCliIntegrationTest {
   }
 
   @Test
-  void checkOutsideAProjectIsAnError(final @TempDir Path empty) {
+  void checkOutsideAProjectIsAnError(@TempDir final Path empty) {
     assertThat(run("check", "-C", empty.toString())).isEqualTo(ExitCodes.ERROR);
     assertThat(err.toString()).contains("No supported project detected.");
   }

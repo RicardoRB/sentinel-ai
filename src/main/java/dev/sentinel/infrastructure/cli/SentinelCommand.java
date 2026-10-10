@@ -30,10 +30,10 @@ import picocli.CommandLine.Spec;
     footer = {"", "Exit codes: 0 = ok, 1 = failed, 2 = error"})
 public class SentinelCommand implements Callable<Integer> {
 
+  @Spec private CommandSpec spec;
+
   @Inject
   public SentinelCommand() {}
-
-  @Spec private CommandSpec spec;
 
   @Override
   public Integer call() {

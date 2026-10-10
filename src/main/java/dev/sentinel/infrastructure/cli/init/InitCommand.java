@@ -49,8 +49,14 @@ public class InitCommand implements Callable<Integer> {
   private static final RawTerminal UNAVAILABLE_TERMINAL = Optional::empty;
 
   @Spec private CommandSpec spec;
-  @Mixin private ProjectOptions options = new ProjectOptions();
 
+  // Picocli assigns annotated fields reflectively, so they cannot be final.
+  @SuppressWarnings("PMD.ImmutableField")
+  @Mixin
+  private ProjectOptions options = new ProjectOptions();
+
+  // Picocli assigns annotated fields reflectively, so they cannot be final.
+  @SuppressWarnings("PMD.ImmutableField")
   @Option(
       names = "--integration",
       split = ",",
@@ -58,6 +64,8 @@ public class InitCommand implements Callable<Integer> {
           "Agent integration(s): none, opencode, or claude-code. Repeat or comma-separate.")
   private List<String> integrations = new ArrayList<>();
 
+  // Picocli assigns annotated fields reflectively, so they cannot be final.
+  @SuppressWarnings("PMD.ImmutableField")
   @Option(
       names = "--gate",
       split = ",",
