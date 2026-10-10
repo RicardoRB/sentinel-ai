@@ -5,7 +5,7 @@
 
     <groupId>dev.sentinel</groupId>
     <artifactId>sentinel-ai</artifactId>
-    <version>0.0.3</version>
+    <version>0.0.4</version>
     <name>sentinel-ai</name>
     <description>Sentinel: a quality gate orchestrator for AI coding agents</description>
 
