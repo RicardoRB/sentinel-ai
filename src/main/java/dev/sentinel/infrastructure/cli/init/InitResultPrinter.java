@@ -1,9 +1,13 @@
 package dev.sentinel.infrastructure.cli.init;
 
+import dev.sentinel.application.init.InitSetupCatalog;
 import dev.sentinel.domain.agent.IntegrationResult;
 import dev.sentinel.domain.init.ArchitectureTestChange;
+import dev.sentinel.domain.init.InitGateOption;
 import dev.sentinel.domain.init.InitResult;
+import dev.sentinel.domain.project.Project;
 import java.io.PrintWriter;
+import java.util.List;
 
 /** Prints the outcome of {@code sentinel init}. */
 final class InitResultPrinter {
@@ -11,6 +15,17 @@ final class InitResultPrinter {
 
   InitResultPrinter(final PrintWriter out) {
     this.out = out;
+  }
+
+  void printSelectedGates(
+      final InitSetupCatalog catalog, final Project project, final List<String> selectedGates) {
+    for (final String selectedGate : selectedGates) {
+      final InitGateOption gateOption = catalog.gate(project, selectedGate);
+      out.printf(
+          "Selected quality gate '%s': %s%n",
+          gateOption.id(), gateOption.available() ? "AVAILABLE" : "UNAVAILABLE");
+      out.println(gateOption.availabilityMessage());
+    }
   }
 
   void print(final InitResult result) {

@@ -3,7 +3,6 @@ package dev.sentinel.infrastructure.cli.init;
 import dev.sentinel.application.init.InitService;
 import dev.sentinel.application.init.InitSetupCatalog;
 import dev.sentinel.domain.config.SentinelConfiguration;
-import dev.sentinel.domain.init.InitGateOption;
 import dev.sentinel.domain.init.InitResult;
 import dev.sentinel.domain.init.InitSelection;
 import dev.sentinel.domain.init.QualityPreset;
@@ -115,22 +114,26 @@ public class InitCommand implements Callable<Integer> {
     if (exists && !overwriteOption && !overwriteApproved(wizard, project)) {
       return printResult(init.init(project.root()));
     }
-    final QualityPreset selectedPreset =
-        preset == null && gates.isEmpty() ? wizard.selectPreset() : requestedPreset;
+    final InitSelection selection = select(wizard, catalog, project, requestedPreset);
+    new InitResultPrinter(output()).printSelectedGates(catalog, project, selection.gates());
+    return printResult(init.initialize(project.root(), selection, overwriteOption || exists));
+  }
+
+  /** Completes the selection, asking only for what the command-line options leave open. */
+  private InitSelection select(
+      final InitWizard wizard,
+      final InitSetupCatalog catalog,
+      final Project project,
+      final QualityPreset requestedPreset) {
+    final boolean gatesGiven = preset != null || !gates.isEmpty();
+    final QualityPreset selectedPreset = gatesGiven ? requestedPreset : wizard.selectPreset();
     final List<String> selectedIntegrations =
         integrations.isEmpty() ? wizard.selectIntegrations(catalog) : integrations;
     final List<String> selectedGates =
-        preset != null || !gates.isEmpty()
-            ? gates
-            : wizard.selectGates(catalog, project, selectedPreset);
+        gatesGiven ? gates : wizard.selectGates(catalog, project, selectedPreset);
     final String selectedArchitecture = resolveArchitecture(wizard, catalog, selectedGates);
-    printSelectedGates(catalog, project, selectedGates);
-    return printResult(
-        init.initialize(
-            project.root(),
-            new InitSelection(
-                selectedIntegrations, selectedGates, selectedArchitecture, selectedPreset),
-            overwriteOption || exists));
+    return new InitSelection(
+        selectedIntegrations, selectedGates, selectedArchitecture, selectedPreset);
   }
 
   private boolean overwriteApproved(final InitWizard wizard, final Project project) {
@@ -149,18 +152,6 @@ public class InitCommand implements Callable<Integer> {
         architecture == null ? wizard.selectArchitecture(catalog) : architecture;
     catalog.architecture(selected);
     return selected;
-  }
-
-  private void printSelectedGates(
-      final InitSetupCatalog catalog, final Project project, final List<String> selectedGates) {
-    for (final String selectedGate : selectedGates) {
-      final InitGateOption gateOption = catalog.gate(project, selectedGate);
-      output()
-          .printf(
-              "Selected quality gate '%s': %s%n",
-              gateOption.id(), gateOption.available() ? "AVAILABLE" : "UNAVAILABLE");
-      output().println(gateOption.availabilityMessage());
-    }
   }
 
   private Optional<RawSession> openRawTerminal() {

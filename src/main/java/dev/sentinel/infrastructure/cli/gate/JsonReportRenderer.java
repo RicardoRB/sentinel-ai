@@ -74,7 +74,9 @@ public class JsonReportRenderer {
     return codec.toPrettyJson(error);
   }
 
+  /** Top-level JSON report; its public fields are the report schema. */
   @JsonType
+  @SuppressWarnings("PMD.DataClass")
   public static final class ReportDto {
     public int schemaVersion;
     public String status;

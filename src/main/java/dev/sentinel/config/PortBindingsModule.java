@@ -31,7 +31,9 @@ import dev.sentinel.infrastructure.project.FileSystemProjectInspection;
 import dev.sentinel.infrastructure.terminal.JdkTerminalCapabilities;
 import dev.sentinel.infrastructure.terminal.PosixRawTerminal;
 
+/** Binds each outbound port to its adapter; one binding per port is inherent to this module. */
 @Module
+@SuppressWarnings({"PMD.ExcessiveImports", "PMD.TooManyMethods"})
 interface PortBindingsModule {
   @Binds
   CommandExecutor commandExecutor(ProcessCommandExecutor implementation);

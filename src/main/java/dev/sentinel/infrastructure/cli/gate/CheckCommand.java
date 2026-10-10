@@ -83,27 +83,12 @@ public class CheckCommand implements Callable<Integer> {
 
   @Override
   public Integer call() {
-    final CheckReport report;
-    try {
-      if (learnAfter != null && learnAfter < 1) {
-        throw new picocli.CommandLine.ParameterException(
-            spec.commandLine(), "--learn-after must be at least 1");
-      }
-      profiles = profiles.stream().map(String::trim).toList();
-      if (format == Format.text) {
-        textRenderer.begin(output());
-        report = service.check(options.directory(), profiles, textRenderer, failFast);
-        // Render the summary after learning so prompts can be placed before diagnostics.
-      } else {
-        report = service.check(options.directory(), profiles, failFast);
-      }
-    } catch (SentinelException e) {
-      if (format == Format.json) {
-        // stdout stays machine-readable; the human message goes to stderr as well.
-        output().println(jsonRenderer.renderError(e.getMessage()));
-      }
-      throw e;
+    if (learnAfter != null && learnAfter < 1) {
+      throw new picocli.CommandLine.ParameterException(
+          spec.commandLine(), "--learn-after must be at least 1");
     }
+    profiles = profiles.stream().map(String::trim).toList();
+    final CheckReport report = runChecks();
     final LearningOutcome learning =
         learnAfter == null ? null : learningService.learn(report, learnAfter);
     if (learning != null) {
@@ -118,6 +103,23 @@ public class CheckCommand implements Callable<Integer> {
       textRenderer.summary(report, learning);
     }
     return report.passed() ? ExitCodes.OK : ExitCodes.FAILED;
+  }
+
+  private CheckReport runChecks() {
+    try {
+      if (format == Format.text) {
+        textRenderer.begin(output());
+        // Render the summary after learning so prompts can be placed before diagnostics.
+        return service.check(options.directory(), profiles, textRenderer, failFast);
+      }
+      return service.check(options.directory(), profiles, failFast);
+    } catch (SentinelException e) {
+      if (format == Format.json) {
+        // stdout stays machine-readable; the human message goes to stderr as well.
+        output().println(jsonRenderer.renderError(e.getMessage()));
+      }
+      throw e;
+    }
   }
 
   private PrintWriter output() {

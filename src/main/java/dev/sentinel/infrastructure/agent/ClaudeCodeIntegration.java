@@ -68,16 +68,11 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
   }
 
   private IntegrationResult install(final Path settings, final Path hook) throws IOException {
-    IntegrationResult conflict = IntegrationArtifacts.preflight(settings, SETTINGS_MARKER);
+    final IntegrationResult conflict =
+        IntegrationArtifacts.preflight(settings, SETTINGS_MARKER, hook, HOOK_MARKER);
     if (conflict != null) {
       return conflict;
     }
-    conflict = IntegrationArtifacts.preflight(hook, HOOK_MARKER);
-    if (conflict != null) {
-      return conflict;
-    }
-
-    final List<String> changed = new ArrayList<>();
     final IntegrationResult settingsResult =
         IntegrationArtifacts.installOrRefresh(
             settings, SETTINGS_MARKER, SETTINGS, "Updated Sentinel Claude Code integration.");
@@ -93,20 +88,13 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
     if (Files.exists(hook)) {
       makeExecutable(hook);
     }
-    if (settingsResult.status() == IntegrationResult.Status.CHANGED) {
-      changed.add(settings.toString());
-    }
-    if (hookResult.status() == IntegrationResult.Status.CHANGED) {
-      changed.add(hook.toString());
-    }
-    return new IntegrationResult(
-        changed.isEmpty()
-            ? IntegrationResult.Status.ALREADY_PRESENT
-            : IntegrationResult.Status.CHANGED,
-        changed,
-        changed.isEmpty()
-            ? "Sentinel Claude Code integration is already present."
-            : "Created Sentinel-owned Claude Code edit/write integration (or refreshed it).");
+    return IntegrationArtifacts.combine(
+        settings,
+        settingsResult,
+        hook,
+        hookResult,
+        "Sentinel Claude Code integration is already present.",
+        "Created Sentinel-owned Claude Code edit/write integration (or refreshed it).");
   }
 
   private IntegrationResult remove(final Path settings, final Path hook) throws IOException {

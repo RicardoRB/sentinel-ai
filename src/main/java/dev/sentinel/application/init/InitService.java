@@ -21,10 +21,9 @@ import dev.sentinel.domain.project.Project;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
+import java.util.stream.Stream;
 import javax.inject.Inject;
 
 public class InitService {
@@ -82,18 +81,7 @@ public class InitService {
         pomTools,
         architectureTests,
         configurationStorage,
-        new RuleFileGeneration() {
-          @Override
-          public RuleFileChange apply(
-              final Project p, final QualityPreset q, final List<InitGateOption> g) {
-            return new RuleFileChange(p.root().resolve("config"), false, Map.of(), List.of());
-          }
-
-          @Override
-          public void rollback(final RuleFileChange c) {
-            // Nothing to restore for the compatibility no-op port.
-          }
-        });
+        new NoRuleFileGeneration());
   }
 
   public InitResult init(final Path start) {
@@ -154,15 +142,17 @@ public class InitService {
 
   /** Returns the preset's gates followed by any additionally selected gates, without duplicates. */
   private List<InitGateOption> resolveGates(final Project project, final InitSelection selection) {
-    final Set<String> gateIds = new LinkedHashSet<>();
-    if (selection.preset() != null) {
-      gateIds.addAll(selection.preset().gates());
-    }
-    gateIds.addAll(selection.gates());
-    if (gateIds.isEmpty()) {
+    final List<InitGateOption> gates =
+        Stream.concat(
+                selection.preset() == null ? Stream.empty() : selection.preset().gates().stream(),
+                selection.gates().stream())
+            .distinct()
+            .map(id -> catalog.gate(project, id))
+            .toList();
+    if (gates.isEmpty()) {
       throw new SentinelException("Select at least one quality gate.");
     }
-    return gateIds.stream().map(id -> catalog.gate(project, id)).toList();
+    return gates;
   }
 
   private void apply(

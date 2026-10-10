@@ -6,12 +6,16 @@ import java.util.Map;
 
 /** Declarative ecosystem defaults; tools remain external and are never installed by Sentinel. */
 public final class LanguageGateRegistry {
+  private static final String TESTS = "tests";
+  private static final String SEMGREP = "semgrep";
+  private static final String GITLEAKS = "gitleaks";
+  private static final String TRIVY = "trivy";
   private static final Map<Language, List<String>> DEFAULTS =
       Map.of(
           Language.JAVA,
               List.of(
                   "compile",
-                  "tests",
+                  TESTS,
                   "coverage",
                   "spotbugs",
                   "checkstyle",
@@ -20,20 +24,20 @@ public final class LanguageGateRegistry {
                   "archunit",
                   "mutation",
                   "format",
-                  "semgrep",
-                  "gitleaks",
+                  SEMGREP,
+                  GITLEAKS,
                   "zap",
-                  "trivy",
+                  TRIVY,
                   "enforcer",
                   "license",
                   "api-compat"),
-          Language.KOTLIN, List.of("compile", "tests", "gitleaks", "semgrep", "trivy"),
-          Language.TYPESCRIPT, List.of("command", "tests", "gitleaks", "semgrep", "trivy"),
-          Language.JAVASCRIPT, List.of("command", "tests", "gitleaks", "semgrep", "trivy"),
-          Language.PYTHON, List.of("tests", "command", "gitleaks", "semgrep", "trivy"),
-          Language.GO, List.of("tests", "command", "gitleaks", "semgrep", "trivy"),
-          Language.RUST, List.of("tests", "command", "gitleaks", "semgrep", "trivy"),
-          Language.CSHARP, List.of("compile", "tests", "gitleaks", "semgrep", "trivy"));
+          Language.KOTLIN, List.of("compile", TESTS, GITLEAKS, SEMGREP, TRIVY),
+          Language.TYPESCRIPT, List.of("command", TESTS, GITLEAKS, SEMGREP, TRIVY),
+          Language.JAVASCRIPT, List.of("command", TESTS, GITLEAKS, SEMGREP, TRIVY),
+          Language.PYTHON, List.of(TESTS, "command", GITLEAKS, SEMGREP, TRIVY),
+          Language.GO, List.of(TESTS, "command", GITLEAKS, SEMGREP, TRIVY),
+          Language.RUST, List.of(TESTS, "command", GITLEAKS, SEMGREP, TRIVY),
+          Language.CSHARP, List.of("compile", TESTS, GITLEAKS, SEMGREP, TRIVY));
 
   public List<String> defaults(final Language language) {
     return DEFAULTS.getOrDefault(language, List.of());
