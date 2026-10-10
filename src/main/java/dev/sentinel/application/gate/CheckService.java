@@ -15,9 +15,12 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.inject.Inject;
 
 public class CheckService {
+  private static final Logger LOGGER = Logger.getLogger(CheckService.class.getName());
 
   private final ProjectDetector detector;
   private final SentinelConfigurationReader configurationReader;
@@ -70,6 +73,13 @@ public class CheckService {
         configurationReader.read(project.root().resolve(SentinelConfiguration.FILE_NAME));
     final SentinelConfiguration selected = selectProfiles(configuration, requestedProfiles);
     final List<QualityGate> gates = gateFactory.create(selected, project);
+    LOGGER.log(
+        Level.INFO,
+        () ->
+            "event=configuration-selected profiles="
+                + selected.profileNames().size()
+                + " gates="
+                + gates.size());
     if (selected.enabledGates().isEmpty()) {
       throw new SentinelException(
           "No quality gates are enabled in "

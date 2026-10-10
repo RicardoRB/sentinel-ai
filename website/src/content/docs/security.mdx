@@ -16,3 +16,13 @@ execute repository-local configuration, so install integrations only in trusted 
 Dynamic scans (`zap`) run only against the target you put in `sentinel.toml`; Sentinel never infers
 or starts one, and you must be authorized to scan it. Secret scanners should run with redaction
 (`gitleaks --redact` is the `init` default) so matched values do not appear in reports or logs.
+## Diagnostic logging
+
+Normal runs remain quiet. With `--verbose`, Sentinel writes invocation-scoped diagnostics to the
+provided stderr stream only. Logs exclude credentials, prompts, configuration and environment
+contents, raw process arguments, and captured process output. Redirect stderr separately when
+collecting diagnostics:
+
+```console
+sentinel --verbose check > report.txt 2> sentinel-diagnostics.log
+```

@@ -13,6 +13,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.inject.Inject;
 
 /**
@@ -24,6 +26,7 @@ import javax.inject.Inject;
  * user's privileges. See "Security" in the README.
  */
 public class ProcessCommandExecutor implements CommandExecutor {
+  private static final Logger LOGGER = Logger.getLogger(ProcessCommandExecutor.class.getName());
 
   private static final int EXIT_COULD_NOT_START = -1;
   private static final int EXIT_INTERRUPTED = 130;
@@ -34,6 +37,8 @@ public class ProcessCommandExecutor implements CommandExecutor {
   @Override
   public CommandResult execute(final List<String> command, final Path workingDirectory) {
     final long start = System.nanoTime();
+    final String executable = command.isEmpty() ? "empty" : command.getFirst();
+    LOGGER.log(Level.FINE, () -> "event=process-start executable=" + executable);
     try {
       final ProcessBuilder builder =
           new ProcessBuilder(resolveExecutable(command, workingDirectory))
@@ -45,13 +50,28 @@ public class ProcessCommandExecutor implements CommandExecutor {
         final Future<String> stderr = readers.submit(() -> read(process.getErrorStream()));
         try {
           final int exitCode = process.waitFor();
-          return new CommandResult(exitCode, stdout.get(), stderr.get(), since(start));
+          final CommandResult result =
+              new CommandResult(exitCode, stdout.get(), stderr.get(), since(start));
+          LOGGER.log(
+              Level.FINE,
+              () -> "event=process-complete executable=" + executable + " status=" + exitCode);
+          return result;
         } catch (InterruptedException e) {
           process.destroyForcibly();
           Thread.currentThread().interrupt();
+          if (LOGGER.isLoggable(Level.WARNING)) {
+            LOGGER.log(
+                Level.WARNING,
+                "event=process-failure executable=" + executable + " category=interrupted");
+          }
           return new CommandResult(EXIT_INTERRUPTED, "", "Interrupted", since(start));
         } catch (ExecutionException e) {
           process.destroyForcibly();
+          if (LOGGER.isLoggable(Level.WARNING)) {
+            LOGGER.log(
+                Level.WARNING,
+                "event=process-failure executable=" + executable + " category=read-failure");
+          }
           return new CommandResult(
               EXIT_COULD_NOT_START,
               "",
@@ -60,6 +80,11 @@ public class ProcessCommandExecutor implements CommandExecutor {
         }
       }
     } catch (IOException e) {
+      if (LOGGER.isLoggable(Level.WARNING)) {
+        LOGGER.log(
+            Level.WARNING,
+            "event=process-failure executable=" + executable + " category=start-failure");
+      }
       return new CommandResult(
           EXIT_COULD_NOT_START,
           "",

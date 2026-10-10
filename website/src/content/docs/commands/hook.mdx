@@ -16,3 +16,8 @@ as `PostToolUse` context. When they fail, or Sentinel cannot run, it writes the 
 Claude Code shows to the agent so it can fix them.
 
 See [Claude Code](/integrations/claude-code/) and [learning](/configuration/learning/).
+## Verbose diagnostics
+
+The inherited `--verbose` option also applies to nested hooks, for example
+`sentinel hook claude-code --verbose`. Diagnostics are written to stderr, leaving the hook JSON
+response on stdout unchanged.

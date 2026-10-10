@@ -23,9 +23,12 @@ import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.inject.Inject;
 
 public final class QualityLoopService {
+  private static final Logger LOGGER = Logger.getLogger(QualityLoopService.class.getName());
   private final CheckService checks;
   private final AgentRunnerFactory agents;
   private final GitStateInspection git;
@@ -45,6 +48,7 @@ public final class QualityLoopService {
     final AgentRunner agent = agents.create(root, request.agentCommand());
     final GitState state = git.inspect(root);
     if (state.dirty() && !config.allowDirty()) {
+      LOGGER.log(Level.INFO, "event=loop-terminal status=dirty-working-tree");
       return new LoopResult(
           LoopTerminalState.GATE_ERROR,
           0,
@@ -54,13 +58,23 @@ public final class QualityLoopService {
     final List<CheckReport> history = new ArrayList<>();
     String feedback = task;
     for (int iteration = 1; iteration <= config.maxIterations(); iteration++) {
+      final int currentIteration = iteration;
+      LOGGER.log(Level.INFO, () -> "event=loop-iteration-start iteration=" + currentIteration);
       final Optional<LoopResult> outcome =
           iterate(agent, feedback, root, config.timeoutSeconds(), iteration, history);
       if (outcome.isPresent()) {
+        LOGGER.log(
+            Level.INFO,
+            () ->
+                "event=loop-terminal iteration="
+                    + currentIteration
+                    + " status="
+                    + outcome.get().state());
         return outcome.get();
       }
       feedback = feedback(history.getLast());
     }
+    LOGGER.log(Level.INFO, "event=loop-terminal status=max-iterations");
     return new LoopResult(
         LoopTerminalState.MAX_ITERATIONS_REACHED,
         config.maxIterations(),
@@ -80,18 +94,22 @@ public final class QualityLoopService {
     try {
       agentResult = runAgent(agent, task, timeoutSeconds);
     } catch (TimeoutException e) {
+      LOGGER.log(Level.WARNING, "event=loop-terminal status=timeout");
       return Optional.of(
           new LoopResult(LoopTerminalState.TIMEOUT, iteration, history, "Agent timeout."));
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
+      LOGGER.log(Level.WARNING, "event=loop-terminal status=interrupted");
       return Optional.of(
           new LoopResult(LoopTerminalState.TIMEOUT, iteration, history, "Loop interrupted."));
     } catch (ExecutionException e) {
+      LOGGER.log(Level.WARNING, "event=loop-terminal status=agent-error");
       return Optional.of(
           new LoopResult(
               LoopTerminalState.AGENT_ERROR, iteration, history, e.getCause().toString()));
     }
     if (!agentResult.succeeded()) {
+      LOGGER.log(Level.INFO, "event=loop-terminal status=agent-error");
       return Optional.of(
           new LoopResult(LoopTerminalState.AGENT_ERROR, iteration, history, agentResult.summary()));
     }
@@ -123,9 +141,11 @@ public final class QualityLoopService {
       report = check.get();
     } catch (InterruptedException interrupted) {
       Thread.currentThread().interrupt();
+      LOGGER.log(Level.WARNING, "event=loop-terminal status=gate-interrupted");
       return Optional.of(
           new LoopResult(LoopTerminalState.GATE_ERROR, iteration, history, "Loop interrupted."));
     } catch (ExecutionException failure) {
+      LOGGER.log(Level.WARNING, "event=loop-terminal status=gate-error");
       final Throwable cause = failure.getCause();
       return Optional.of(
           new LoopResult(
@@ -135,11 +155,13 @@ public final class QualityLoopService {
               cause == null ? failure.getMessage() : cause.getMessage()));
     }
     history.add(report);
-    return report.passed()
-        ? Optional.of(
-            new LoopResult(
-                LoopTerminalState.PASSED, iteration, history, "All quality gates passed."))
-        : Optional.empty();
+    if (report.passed()) {
+      LOGGER.log(Level.INFO, "event=loop-terminal status=passed");
+      return Optional.of(
+          new LoopResult(
+              LoopTerminalState.PASSED, iteration, history, "All quality gates passed."));
+    }
+    return Optional.empty();
   }
 
   private static String feedback(final CheckReport report) {

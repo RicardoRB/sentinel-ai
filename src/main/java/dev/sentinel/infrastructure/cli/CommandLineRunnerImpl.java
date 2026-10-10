@@ -1,6 +1,7 @@
 package dev.sentinel.infrastructure.cli;
 
 import dev.sentinel.domain.config.SentinelException;
+import dev.sentinel.infrastructure.cli.logging.VerboseExecutionStrategy;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
@@ -23,16 +24,35 @@ public class CommandLineRunnerImpl {
   }
 
   public int run(final String... args) {
-    final CommandLine commandLine = new CommandLine(rootCommand, factory);
-    commandLine.setOut(
-        new PrintWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8), true));
-    commandLine.setErr(
-        new PrintWriter(new OutputStreamWriter(System.err, StandardCharsets.UTF_8), true));
-    commandLine.setExecutionExceptionHandler(CommandLineRunnerImpl::handle);
+    return run(
+        new PrintWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8), true),
+        new PrintWriter(new OutputStreamWriter(System.err, StandardCharsets.UTF_8), true),
+        args);
+  }
+
+  public int run(final PrintWriter out, final PrintWriter err, final String... args) {
+    final CommandLine commandLine = createCommandLine(rootCommand, factory, out, err);
     final int exitCode = commandLine.execute(args);
     commandLine.getOut().flush();
     commandLine.getErr().flush();
     return exitCode;
+  }
+
+  public static CommandLine createCommandLine(
+      final SentinelCommand root,
+      final DaggerCommandFactory factory,
+      final PrintWriter out,
+      final PrintWriter err) {
+    final CommandLine commandLine = new CommandLine(root, factory);
+    commandLine.setOut(out);
+    commandLine.setErr(err);
+    commandLine.setExecutionExceptionHandler(CommandLineRunnerImpl::handle);
+    commandLine.setExecutionStrategy(executionStrategy());
+    return commandLine;
+  }
+
+  public static CommandLine.IExecutionStrategy executionStrategy() {
+    return new VerboseExecutionStrategy(new CommandLine.RunLast());
   }
 
   /**

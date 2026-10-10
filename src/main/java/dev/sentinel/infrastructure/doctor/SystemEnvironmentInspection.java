@@ -9,10 +9,14 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.inject.Inject;
 
 /** Reads executable availability and prerequisite markers from the current machine. */
 public final class SystemEnvironmentInspection implements EnvironmentInspection {
+  private static final Logger LOGGER =
+      Logger.getLogger(SystemEnvironmentInspection.class.getName());
   private static final Set<String> PROBED_EXECUTABLES =
       Set.of("mvn", "java", "git", "claude", "opencode");
 
@@ -44,6 +48,9 @@ public final class SystemEnvironmentInspection implements EnvironmentInspection 
                         projectRoot.resolve(".opencode/commands/sentinel-check.md"))),
             "nativeExecutablePresent",
                 Boolean.toString(Files.isExecutable(Path.of("target/sentinel"))));
+    LOGGER.log(
+        Level.INFO,
+        () -> "event=environment-inspection status=complete available=" + available.size());
     return new EnvironmentFacts(available, values);
   }
 }

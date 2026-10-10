@@ -16,6 +16,7 @@
 - Spotless with Google Java Format is the Java formatter; run `./mvnw spotless:apply` to format and `./mvnw spotless:check` to verify. Spring/JPA and code-generation workflows are not configured.
 - Fix the underlying cause of compiler and static-analysis findings. Do not add `@SuppressWarnings`, `@SuppressFBWarnings`, `NOPMD`, exclusions, disable checks, or lower thresholds to make verification pass. Preserve behavior and test coverage when refactoring. If a finding appears to be a framework limitation or false positive, explain it with evidence and request explicit review before introducing a suppression or workaround.
 - Commands from `sentinel.toml` run from the project root as argument vectors, never through a shell.
+- When implementing or changing operational behavior, add useful JUL diagnostics at meaningful decision and execution boundaries when logs would aid troubleshooting. Keep logs invocation-scoped, stderr-only, and safe: never log secrets, prompts, configuration or environment contents, raw argument vectors, or captured process output.
 
 ## Testing
 

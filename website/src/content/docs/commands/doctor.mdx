@@ -28,3 +28,7 @@ one line per check:
 
 Warnings do not affect the result. Exit `0` means no check reported `ERROR`; exit `2` means at least
 one did.
+## Verbose diagnostics
+
+`sentinel --verbose doctor` explains the inspection phase and safe availability counts on stderr.
+Environment contents and filesystem paths are not included in diagnostics.

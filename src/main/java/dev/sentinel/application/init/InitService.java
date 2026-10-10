@@ -19,10 +19,13 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Stream;
 import javax.inject.Inject;
 
 public class InitService {
+  private static final Logger LOGGER = Logger.getLogger(InitService.class.getName());
 
   static final String DEFAULT_CONFIGURATION =
       """
@@ -102,6 +105,7 @@ public class InitService {
 
   public InitResult initialize(
       final Path start, final InitSelection selection, final boolean overwrite) {
+    LOGGER.log(Level.INFO, () -> "event=initialization-start overwrite=" + overwrite);
     final Project project = project(start);
     installer.validate(selection.integrations());
     final List<InitGateOption> gates = resolveGates(project, selection);
@@ -112,6 +116,7 @@ public class InitService {
     final String originalConfiguration =
         configurationStorage.get().read(configurationFile).orElse(null);
     if (originalConfiguration != null && !overwrite) {
+      LOGGER.log(Level.INFO, "event=initialization-complete status=ownership-conflict");
       return new InitResult(configurationFile, false, gates, List.of());
     }
     final InitChanges changes =
@@ -131,10 +136,12 @@ public class InitService {
         changes.rollback();
       }
       completed = true;
+      LOGGER.log(Level.INFO, "event=initialization-complete status=applied");
       return result;
     } finally {
       if (!completed) {
         changes.rollback();
+        LOGGER.log(Level.WARNING, "event=initialization-rollback status=applied");
         if (originalConfiguration != null) {
           restoreConfiguration(configurationFile, originalConfiguration);
         }
