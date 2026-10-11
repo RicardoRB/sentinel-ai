@@ -21,3 +21,8 @@ description: Sentinel process exit status meanings.
 
 For scripts, combine the exit status with `check --format json` to inspect individual results.
 JSON mode keeps stdout machine-readable; diagnostics are written to stderr.
+
+`UNAVAILABLE` means an enabled gate could not start its configured executable; it is still a
+reported gate failure and therefore exits `1`. `EXECUTION_ERROR` means a process started but was
+interrupted or its output could not be captured; it also exits `1`. Exit `2` is reserved for
+configuration or Sentinel setup errors that prevent a normal report.

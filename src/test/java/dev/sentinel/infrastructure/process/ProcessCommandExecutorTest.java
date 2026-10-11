@@ -55,6 +55,18 @@ class ProcessCommandExecutorTest {
 
     assertThat(result.exitCode()).isNotZero();
     assertThat(result.stderr()).contains("Could not start");
+    assertThat(result.executionError()).startsWith("PROCESS_START_FAILURE");
+  }
+
+  @Test
+  void reportsProjectRelativeNonExecutableAsStartFailure(@TempDir final Path dir) throws Exception {
+    final Path script = dir.resolve("not-executable.sh");
+    Files.writeString(script, "#!/bin/sh\nexit 0\n");
+
+    final CommandResult result = executor.execute(List.of("./not-executable.sh"), dir);
+
+    assertThat(result.exitCode()).isEqualTo(-1);
+    assertThat(result.executionError()).isEqualTo("PROCESS_START_FAILURE");
   }
 
   @Test

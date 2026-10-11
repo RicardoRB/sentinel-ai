@@ -1,0 +1,16 @@
+package dev.sentinel.domain.init;
+
+import java.nio.file.Path;
+
+/** Outcome of a project-local tool installation attempt. */
+public record ToolInstallationResult(
+    String tool,
+    boolean installed,
+    Path executable,
+    String message,
+    ToolInstallationChange change) {
+  public ToolInstallationResult(
+      final String tool, final boolean installed, final Path executable, final String message) {
+    this(tool, installed, executable, message, null);
+  }
+}

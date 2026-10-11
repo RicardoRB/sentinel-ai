@@ -25,6 +25,7 @@ one line per check:
 | `configuration` | `OK` / `ERROR` | `sentinel.toml` exists in the project root; otherwise run `sentinel init`. |
 | `integration` | `OK` / `WARNING` | The OpenCode command `.opencode/commands/sentinel-check.md` exists. The Claude Code integration is not checked yet. |
 | `native` | `OK` / `WARNING` | `target/sentinel` exists in the current directory. This is a development check for the Sentinel repository. |
+| `openspec` / `openspec-archived` | `OK` / `ERROR` | For each enabled registration, the configured executable and project-root `openspec/` directory are available. |
 
 Warnings do not affect the result. Exit `0` means no check reported `ERROR`; exit `2` means at least
 one did.
@@ -32,3 +33,8 @@ one did.
 
 `sentinel --verbose doctor` explains the inspection phase and safe availability counts on stderr.
 Environment contents and filesystem paths are not included in diagnostics.
+
+OpenSpec diagnosis is conditional and read-only: doctor inspects only enabled registrations in
+configured profiles. It never runs validation, installs a tool, creates an `openspec/` directory,
+or reads artifact contents. Relative executable paths are resolved against the target root; bare
+names use PATH and absolute paths are used as supplied.

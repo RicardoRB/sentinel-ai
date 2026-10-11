@@ -28,7 +28,7 @@ final class ConfigurationTemplate {
           .append(gate.id())
           .append("]\nenabled = true\ncommand = \"")
           .append(escape(command.getFirst()))
-          .append(' ')
+          .append(command.size() > 1 ? " " : "")
           .append(goal)
           .append("\"\n");
     }

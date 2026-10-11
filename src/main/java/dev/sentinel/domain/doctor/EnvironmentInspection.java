@@ -6,4 +6,16 @@ import java.nio.file.Path;
 @FunctionalInterface
 public interface EnvironmentInspection {
   EnvironmentFacts inspect(Path projectRoot);
+
+  /** Inspects one configured executable without executing it. */
+  default ExecutableObservation inspectExecutable(final Path projectRoot, final String executable) {
+    final boolean available = inspect(projectRoot).hasExecutable(executable);
+    return new ExecutableObservation(
+        executable, Path.of(executable), available, available, available);
+  }
+
+  /** Returns whether the project-root OpenSpec marker is a directory. */
+  default boolean hasOpenSpecDirectory(final Path projectRoot) {
+    return false;
+  }
 }

@@ -6,6 +6,7 @@ import dev.sentinel.domain.gate.SupportedQualityGates;
 import dev.sentinel.domain.init.InitArchitectureOption;
 import dev.sentinel.domain.init.InitGateOption;
 import dev.sentinel.domain.init.InitIntegrationOption;
+import dev.sentinel.domain.init.InitToolOption;
 import dev.sentinel.domain.init.QualityPreset;
 import dev.sentinel.domain.project.Project;
 import java.util.ArrayList;
@@ -27,6 +28,41 @@ public final class InitSetupCatalog {
         new InitIntegrationOption(NO_INTEGRATION, "No agent integration"),
         new InitIntegrationOption("opencode", "OpenCode"),
         new InitIntegrationOption("claude-code", "Claude Code"));
+  }
+
+  public List<InitToolOption> tools() {
+    return List.of(new InitToolOption("openspec", "OpenSpec project validation tool"));
+  }
+
+  public List<String> openSpecValidations() {
+    return List.of("openspec", "openspec-archived");
+  }
+
+  public boolean openSpecAvailable(final Project project) {
+    return environment.inspectExecutable(project.root(), "openspec").usable();
+  }
+
+  public InitGateOption openSpecValidation(
+      final Project project, final String id, final String executable) {
+    if (!openSpecValidations().contains(id)) {
+      throw new SentinelException(
+          "Unknown OpenSpec validation '"
+              + id
+              + "'. Supported validations: openspec, openspec-archived");
+    }
+    final List<String> command =
+        "openspec".equals(id)
+            ? List.of(executable, "validate", "--all", "--strict", "--no-interactive")
+            : List.of(executable, "validate", "--archived", "--no-interactive");
+    final boolean available = environment.inspectExecutable(project.root(), executable).usable();
+    return new InitGateOption(
+        id,
+        "OpenSpec " + ("openspec".equals(id) ? "active" : "archived") + " validation.",
+        command,
+        available,
+        available
+            ? "OpenSpec executable available."
+            : "OpenSpec is unavailable; install it or configure a local executable.");
   }
 
   public List<InitArchitectureOption> architectures() {
@@ -58,7 +94,7 @@ public final class InitSetupCatalog {
             : "Maven is unavailable; install Maven or add a Maven Wrapper before running this gate.";
     final List<InitGateOption> options = new ArrayList<>();
     options.add(
-        option(
+        InitGateOptionFactory.option(
             "tests",
             "Runs the project's tests.",
             mavenAvailable,
@@ -66,7 +102,7 @@ public final class InitSetupCatalog {
             executable,
             "test"));
     options.add(
-        option(
+        InitGateOptionFactory.option(
             "compile",
             "Checks that the project compiles.",
             mavenAvailable,
@@ -74,7 +110,7 @@ public final class InitSetupCatalog {
             executable,
             "compile"));
     options.add(
-        option(
+        InitGateOptionFactory.option(
             "coverage",
             "Enforces minimum test coverage.",
             mavenAvailable,
@@ -82,7 +118,7 @@ public final class InitSetupCatalog {
             executable,
             "jacoco:check"));
     options.add(
-        option(
+        InitGateOptionFactory.option(
             "spotbugs",
             "Finds potential bugs through static analysis.",
             mavenAvailable,
@@ -90,7 +126,7 @@ public final class InitSetupCatalog {
             executable,
             "spotbugs:check"));
     options.add(
-        option(
+        InitGateOptionFactory.option(
             "checkstyle",
             "Checks source style and formatting rules.",
             mavenAvailable,
@@ -98,7 +134,7 @@ public final class InitSetupCatalog {
             executable,
             "checkstyle:check"));
     options.add(
-        option(
+        InitGateOptionFactory.option(
             "pmd",
             "Finds common Java design and implementation problems with PMD.",
             mavenAvailable,
@@ -106,7 +142,7 @@ public final class InitSetupCatalog {
             executable,
             "pmd:check"));
     options.add(
-        option(
+        InitGateOptionFactory.option(
             "sonar",
             "Checks code quality, smells, and duplication.",
             mavenAvailable,
@@ -114,7 +150,7 @@ public final class InitSetupCatalog {
             executable,
             "sonar"));
     options.add(
-        option(
+        InitGateOptionFactory.option(
             "dependency-check",
             "Scans dependencies for known CVEs.",
             mavenAvailable,
@@ -122,7 +158,7 @@ public final class InitSetupCatalog {
             executable,
             "dependency-check:check"));
     options.add(
-        option(
+        InitGateOptionFactory.option(
             "archunit",
             "Checks architecture rules with ArchitectureTest.",
             mavenAvailable,
@@ -131,7 +167,7 @@ public final class InitSetupCatalog {
             "-Dtest=ArchitectureTest",
             "test"));
     options.add(
-        option(
+        InitGateOptionFactory.option(
             "mutation",
             "Measures test strength with mutation testing.",
             mavenAvailable,
@@ -139,7 +175,7 @@ public final class InitSetupCatalog {
             executable,
             "pitest:mutationCoverage"));
     options.add(
-        option(
+        InitGateOptionFactory.option(
             "format",
             "Checks formatting with Spotless and google-java-format.",
             mavenAvailable,
@@ -147,21 +183,24 @@ public final class InitSetupCatalog {
             executable,
             "spotless:check"));
     options.add(
-        binaryOption(
+        InitGateOptionFactory.binaryOption(
+            environment,
             project,
             "semgrep",
             "Runs SAST and custom security rules with Semgrep.",
             List.of("semgrep", "scan", "--config", "p/java", "--error"),
             "Install Semgrep (needs network access to fetch the p/java ruleset)."));
     options.add(
-        binaryOption(
+        InitGateOptionFactory.binaryOption(
+            environment,
             project,
             "gitleaks",
             "Detects committed secrets with Gitleaks.",
             List.of("gitleaks", "detect", "--no-banner", "--redact"),
             "Install Gitleaks."));
     options.add(
-        binaryOption(
+        InitGateOptionFactory.binaryOption(
+            environment,
             project,
             "zap",
             "Runs an OWASP ZAP baseline DAST scan against a running application.",
@@ -170,14 +209,15 @@ public final class InitSetupCatalog {
                 + SupportedQualityGates.ZAP_TARGET_PLACEHOLDER
                 + " with a target you are authorized to scan before running."));
     options.add(
-        binaryOption(
+        InitGateOptionFactory.binaryOption(
+            environment,
             project,
             "trivy",
             "Scans dependencies, containers, and IaC with Trivy.",
             List.of("trivy", "fs", "--exit-code", "1", "."),
             "Install Trivy."));
     options.add(
-        option(
+        InitGateOptionFactory.option(
             "enforcer",
             "Enforces dependency and build rules with Maven Enforcer.",
             mavenAvailable,
@@ -185,7 +225,7 @@ public final class InitSetupCatalog {
             executable,
             "enforcer:enforce"));
     options.add(
-        option(
+        InitGateOptionFactory.option(
             "license",
             "Checks dependency license compliance with the License Maven Plugin.",
             mavenAvailable,
@@ -193,7 +233,7 @@ public final class InitSetupCatalog {
             executable,
             "license:add-third-party"));
     options.add(
-        option(
+        InitGateOptionFactory.option(
             "api-compat",
             "Checks binary/API compatibility between versions with japicmp.",
             mavenAvailable,
@@ -201,7 +241,7 @@ public final class InitSetupCatalog {
             executable,
             "japicmp:cmp"));
     options.add(
-        option(
+        InitGateOptionFactory.option(
             "command",
             "Runs a custom command from sentinel.toml.",
             mavenAvailable,
@@ -224,6 +264,12 @@ public final class InitSetupCatalog {
   }
 
   public InitGateOption gate(final Project project, final String id) {
+    if (openSpecValidations().contains(id)) {
+      throw new SentinelException(
+          "OpenSpec validations are tools, not quality gates. Use --tool openspec and --openspec-validation "
+              + id
+              + ".");
+    }
     return gates(project).stream()
         .filter(option -> option.id().equals(id))
         .findFirst()
@@ -248,28 +294,5 @@ public final class InitSetupCatalog {
             () ->
                 new SentinelException(
                     "Unknown preset '" + id + "'. Supported presets: standard, strict"));
-  }
-
-  private InitGateOption binaryOption(
-      final Project project,
-      final String id,
-      final String description,
-      final List<String> command,
-      final String hint) {
-    final boolean available = environment.inspect(project.root()).hasExecutable(command.getFirst());
-    final String message =
-        available
-            ? "Executable available: " + command.getFirst()
-            : command.getFirst() + " is not on the path. " + hint;
-    return new InitGateOption(id, description, command, available, message);
-  }
-
-  private static InitGateOption option(
-      final String id,
-      final String description,
-      final boolean available,
-      final String message,
-      final String... command) {
-    return new InitGateOption(id, description, List.of(command), available, message);
   }
 }

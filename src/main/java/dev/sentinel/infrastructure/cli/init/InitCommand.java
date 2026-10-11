@@ -58,6 +58,24 @@ public class InitCommand implements Callable<Integer> {
   private List<String> gates;
 
   @Option(
+      names = "--tool",
+      split = ",",
+      description = "Optional project tool(s): openspec. Repeat or comma-separate.")
+  private List<String> tools;
+
+  @Option(
+      names = "--openspec-validation",
+      split = ",",
+      description = "OpenSpec validation(s): openspec, openspec-archived.")
+  private List<String> openSpecValidations;
+
+  @Option(
+      names = "--install-tool",
+      split = ",",
+      description = "Explicitly consent to install a selected project tool.")
+  private List<String> installTools;
+
+  @Option(
       names = "--architecture",
       description =
           "Architecture style for architecture/ArchUnit tests: layered, hexagonal, or clean.")
@@ -120,17 +138,36 @@ public class InitCommand implements Callable<Integer> {
       final InitSetupCatalog catalog,
       final Project project,
       final QualityPreset requestedPreset) {
-    final List<String> selectedOptions = gates == null ? List.of() : gates;
-    final List<String> providedIntegrations = integrations == null ? List.of() : integrations;
+    final List<String> selectedOptions = InitSelectionSupport.gatesOption(gates);
     final boolean gatesGiven = preset != null || !selectedOptions.isEmpty();
-    final QualityPreset selectedPreset = gatesGiven ? requestedPreset : wizard.selectPreset();
+    final QualityPreset selectedPreset =
+        InitSelectionSupport.preset(wizard, requestedPreset, gatesGiven);
     final List<String> selectedIntegrations =
-        providedIntegrations.isEmpty() ? wizard.selectIntegrations(catalog) : providedIntegrations;
+        InitSelectionSupport.integrations(wizard, catalog, integrations);
     final List<String> selectedGates =
-        gatesGiven ? selectedOptions : wizard.selectGates(catalog, project, selectedPreset);
+        InitSelectionSupport.gates(
+            wizard, catalog, project, selectedOptions, selectedPreset, gatesGiven);
     final String selectedArchitecture = resolveArchitecture(wizard, catalog, selectedGates);
+    final boolean toolsGiven = tools != null;
+    final boolean explicitSetup = integrations != null || gates != null || preset != null;
+    final List<String> selectedTools =
+        InitSelectionSupport.tools(wizard, catalog, tools, toolsGiven, explicitSetup);
+    final List<String> selectedValidations =
+        InitSelectionSupport.validations(
+            wizard, catalog, openSpecValidations, explicitSetup, selectedTools);
+    final List<String> selectedInstallTools =
+        InitSelectionSupport.installTools(
+            wizard, catalog, project, installTools, explicitSetup, selectedTools);
+    InitSelectionSupport.validate(
+        catalog, selectedTools, selectedValidations, selectedInstallTools);
     return new InitSelection(
-        selectedIntegrations, selectedGates, selectedArchitecture, selectedPreset);
+        selectedIntegrations,
+        selectedGates,
+        selectedArchitecture,
+        selectedPreset,
+        selectedTools,
+        selectedValidations,
+        selectedInstallTools);
   }
 
   private boolean overwriteApproved(final InitWizard wizard, final Project project) {

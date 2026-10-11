@@ -59,3 +59,23 @@ for being authorized to scan the target.
 The legacy identifiers `architecture` (use `archunit`) and `compliance` (use `enforcer`; license
 checks now use `license`) remain readable for compatibility. Existing configurations need no change. Registry identifiers are validated by Sentinel; the configured command is the
 gate-specific option and must be supplied. See [configuration syntax](/configuration/sentinel-toml/).
+
+## OpenSpec tool validations
+
+OpenSpec is an optional project tool, not a quality-gate menu entry. Configuration may register
+the two validations independently:
+
+```toml
+[quality-gates.openspec]
+enabled = true
+command = ["openspec", "validate", "--all", "--strict", "--no-interactive"]
+
+[quality-gates.openspec-archived]
+enabled = true
+command = ["openspec", "validate", "--archived", "--no-interactive"]
+```
+
+The configured executable is run directly from the target root; relative and absolute paths are
+honored without PATH fallback. Both validations require a project-root `openspec/` directory.
+Missing executables are reported as `UNAVAILABLE`; a missing or non-directory marker is a
+reported `FAILED` result. Check and doctor never install or scaffold OpenSpec.

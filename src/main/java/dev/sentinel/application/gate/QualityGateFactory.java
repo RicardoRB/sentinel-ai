@@ -3,6 +3,7 @@ package dev.sentinel.application.gate;
 import dev.sentinel.domain.config.GateConfiguration;
 import dev.sentinel.domain.config.SentinelConfiguration;
 import dev.sentinel.domain.config.SentinelException;
+import dev.sentinel.domain.doctor.EnvironmentInspection;
 import dev.sentinel.domain.gate.QualityGate;
 import dev.sentinel.domain.gate.SkippedQualityGate;
 import dev.sentinel.domain.gate.SupportedQualityGates;
@@ -19,10 +20,17 @@ public class QualityGateFactory {
   public static final List<String> SUPPORTED_GATES = SupportedQualityGates.IDS;
 
   private final CommandExecutor executor;
+  private final EnvironmentInspection environment;
+
+  public QualityGateFactory(final CommandExecutor executor) {
+    this(executor, null);
+  }
 
   @Inject
-  public QualityGateFactory(final CommandExecutor executor) {
+  public QualityGateFactory(
+      final CommandExecutor executor, final EnvironmentInspection environment) {
     this.executor = executor;
+    this.environment = environment;
   }
 
   public List<QualityGate> create(final SentinelConfiguration configuration) {
@@ -50,6 +58,12 @@ public class QualityGateFactory {
       }
       gates.add(
           switch (id) {
+            case OpenSpecQualityGate.ACTIVE, OpenSpecQualityGate.ARCHIVED -> {
+              if (environment == null) {
+                yield new CommandQualityGate(id, executor, entry.getValue().command());
+              }
+              yield new OpenSpecQualityGate(id, executor, environment, entry.getValue().command());
+            }
             case MavenTestGate.NAME ->
                 new MavenTestGate(executor, testsCommand(entry.getValue().command(), project));
             case "zap" -> {

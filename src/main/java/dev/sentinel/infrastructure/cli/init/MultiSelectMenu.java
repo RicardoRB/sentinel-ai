@@ -37,6 +37,31 @@ public final class MultiSelectMenu {
       final String emptySelectionMessage,
       final IntSupplier keys,
       final PrintWriter out,
+      final Set<Integer> initialSelections,
+      final boolean allowEmpty) {
+    if (!allowEmpty) {
+      return select(title, labels, emptySelectionMessage, keys, out, initialSelections);
+    }
+    if (labels.isEmpty()) {
+      throw new IllegalArgumentException("A menu must have at least one item");
+    }
+    final MenuState menu = new MenuState(labels.size(), initialSelections);
+    render(title, labels, menu, out);
+    while (true) {
+      final Optional<List<Integer>> confirmed = menu.press(keys.getAsInt(), keys);
+      if (confirmed.isPresent()) {
+        return confirmed.get();
+      }
+      render(title, labels, menu, out);
+    }
+  }
+
+  public List<Integer> select(
+      final String title,
+      final List<String> labels,
+      final String emptySelectionMessage,
+      final IntSupplier keys,
+      final PrintWriter out,
       final Set<Integer> initialSelections) {
     if (labels.isEmpty()) {
       throw new IllegalArgumentException("A menu must have at least one item");

@@ -31,7 +31,8 @@ class InitSetupCatalogTest {
             catalog.gates(
                 new ProjectDetector(new FileSystemProjectInspection()).detect(dir).orElseThrow()))
         .extracting(InitGateOption::id)
-        .containsExactlyElementsOf(QualityGateFactory.SUPPORTED_GATES);
+        .doesNotContain("openspec", "openspec-archived");
+    assertThat(QualityGateFactory.SUPPORTED_GATES).contains("openspec", "openspec-archived");
     assertThat(
             catalog.gates(
                 new ProjectDetector(new FileSystemProjectInspection()).detect(dir).orElseThrow()))

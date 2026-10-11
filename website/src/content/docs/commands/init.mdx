@@ -6,7 +6,7 @@ description: Create sentinel.toml and select integrations.
 `sentinel init` creates `sentinel.toml` using an interactive wizard or explicit options.
 
 ```sh
-sentinel init [-C <dir>] [--preset <standard|strict>] [--integration <none|opencode|claude-code>[,...]] [--gate <id>[,...]] [--architecture <style>] [--overwrite]
+sentinel init [-C <dir>] [--preset <standard|strict>] [--integration <none|opencode|claude-code>[,...]] [--gate <id>[,...]] [--tool openspec] [--openspec-validation <openspec|openspec-archived>[,...]] [--install-tool openspec] [--architecture <style>] [--overwrite]
 ```
 
 The gate selector accepts supported [gate IDs](/configuration/gates/). `none` is exclusive with
@@ -21,6 +21,12 @@ inability to initialize (including cancelled or invalid selection).
 On supported macOS and Linux terminals, use Up/Down to move, Space to toggle, and Enter to confirm.
 Press `q`, `Q`, or Ctrl+C to cancel. On Windows, piped input, or when raw terminal mode is unavailable,
 the wizard uses numbered prompts instead.
+
+The wizard has a separate optional Tools screen. OpenSpec, its active validation
+(`openspec validate --all --strict --no-interactive`), and its archived validation
+(`openspec validate --archived --no-interactive`) are unselected by default. Selecting a tool or
+validation is not installation consent. `--install-tool openspec` is explicit consent; without it
+Sentinel only writes selected validations and reports manual remediation.
 ## Troubleshooting with verbose diagnostics
 
 Add `--verbose` to the root command or `init` command to route initialization decisions to stderr.

@@ -29,6 +29,7 @@ public class ProcessCommandExecutor implements CommandExecutor {
   private static final Logger LOGGER = Logger.getLogger(ProcessCommandExecutor.class.getName());
 
   private static final int EXIT_COULD_NOT_START = -1;
+  private static final int EXIT_OUTPUT_CAPTURE_FAILED = -2;
   private static final int EXIT_INTERRUPTED = 130;
 
   @Inject
@@ -64,7 +65,8 @@ public class ProcessCommandExecutor implements CommandExecutor {
                 Level.WARNING,
                 "event=process-failure executable=" + executable + " category=interrupted");
           }
-          return new CommandResult(EXIT_INTERRUPTED, "", "Interrupted", since(start));
+          return new CommandResult(
+              EXIT_INTERRUPTED, "", "Interrupted", since(start), "PROCESS_INTERRUPTED");
         } catch (ExecutionException e) {
           process.destroyForcibly();
           if (LOGGER.isLoggable(Level.WARNING)) {
@@ -73,10 +75,11 @@ public class ProcessCommandExecutor implements CommandExecutor {
                 "event=process-failure executable=" + executable + " category=read-failure");
           }
           return new CommandResult(
-              EXIT_COULD_NOT_START,
+              EXIT_OUTPUT_CAPTURE_FAILED,
               "",
-              "Failed to read process output: " + e.getCause(),
-              since(start));
+              "Failed to read process output",
+              since(start),
+              "OUTPUT_CAPTURE_FAILURE");
         }
       }
     } catch (IOException e) {
@@ -88,8 +91,9 @@ public class ProcessCommandExecutor implements CommandExecutor {
       return new CommandResult(
           EXIT_COULD_NOT_START,
           "",
-          "Could not start " + command + ": " + e.getMessage(),
-          since(start));
+          "Could not start " + executable + ": " + e.getMessage(),
+          since(start),
+          "PROCESS_START_FAILURE");
     }
   }
 

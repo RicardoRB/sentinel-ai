@@ -5,6 +5,7 @@ import dev.sentinel.domain.config.SentinelException;
 import dev.sentinel.domain.init.InitArchitectureOption;
 import dev.sentinel.domain.init.InitGateOption;
 import dev.sentinel.domain.init.InitIntegrationOption;
+import dev.sentinel.domain.init.InitToolOption;
 import dev.sentinel.domain.init.QualityPreset;
 import dev.sentinel.domain.init.RawTerminal.RawSession;
 import dev.sentinel.domain.project.Project;
@@ -40,6 +41,16 @@ final class InitWizard {
       out.println("Keeping existing sentinel.toml. No changes made.");
     }
     return overwrite;
+  }
+
+  boolean confirmOpenSpecInstallation(final Path destination) {
+    out.println("OpenSpec is unavailable and can be installed locally.");
+    out.println("Package: @fission-ai/openspec@1.14.1 (Node.js >=20.19.0)");
+    out.println("Destination: " + destination);
+    out.println("This may access the network and run npm lifecycle scripts.");
+    out.print("Install OpenSpec? [y/N]: ");
+    out.flush();
+    return prompt.confirmInstallation();
   }
 
   QualityPreset selectPreset() {
@@ -112,6 +123,57 @@ final class InitWizard {
         ids, presetGates, "quality-gate", "Select at least one quality gate.");
   }
 
+  List<String> selectTools(final InitSetupCatalog catalog) {
+    if (!prompt.hasMoreInput()) {
+      return List.of();
+    }
+    final List<InitToolOption> choices = catalog.tools();
+    final List<String> ids = choices.stream().map(InitToolOption::id).toList();
+    final Optional<List<String>> fromMenu =
+        menu(
+            "Select optional tools",
+            choices.stream().map(c -> c.id() + " - " + c.description()).toList(),
+            "",
+            Set.of(),
+            ids,
+            true);
+    if (fromMenu.isPresent()) {
+      return fromMenu.get();
+    }
+    out.println("Select optional tools (empty means none):");
+    for (int i = 0; i < choices.size(); i++) {
+      out.printf("> [ ] %d) %s - %s%n", i + 1, choices.get(i).id(), choices.get(i).description());
+    }
+    out.print("Toggle tools with space-separated numbers [1-" + choices.size() + "]: ");
+    out.flush();
+    return prompt.readOptionalSelection(ids, "tool");
+  }
+
+  List<String> selectOpenSpecValidations(final InitSetupCatalog catalog) {
+    if (!prompt.hasMoreInput()) {
+      return List.of();
+    }
+    final List<String> ids = catalog.openSpecValidations();
+    final Optional<List<String>> fromMenu =
+        menu(
+            "Select OpenSpec validations",
+            List.of(
+                "openspec - active strict validation", "openspec-archived - archived validation"),
+            "",
+            Set.of(),
+            ids,
+            true);
+    if (fromMenu.isPresent()) {
+      return fromMenu.get();
+    }
+    out.println("Select OpenSpec validations (empty means none):");
+    out.println("> [ ] 1) openspec - active strict validation");
+    out.println("> [ ] 2) openspec-archived - archived validation");
+    out.print("Toggle validations with space-separated numbers [1-2]: ");
+    out.flush();
+    return prompt.readOptionalSelection(ids, "OpenSpec validation");
+  }
+
   String selectArchitecture(final InitSetupCatalog catalog) {
     final List<InitArchitectureOption> choices = catalog.architectures();
     out.println("Select an architecture style:");
@@ -141,6 +203,16 @@ final class InitWizard {
       final String emptySelectionMessage,
       final Set<Integer> initialSelections,
       final List<String> ids) {
+    return menu(title, labels, emptySelectionMessage, initialSelections, ids, false);
+  }
+
+  private Optional<List<String>> menu(
+      final String title,
+      final List<String> labels,
+      final String emptySelectionMessage,
+      final Set<Integer> initialSelections,
+      final List<String> ids,
+      final boolean allowEmpty) {
     final Optional<RawSession> raw = rawTerminal.get();
     if (raw.isEmpty()) {
       return Optional.empty();
@@ -149,7 +221,13 @@ final class InitWizard {
       return Optional.of(
           new MultiSelectMenu()
                   .select(
-                      title, labels, emptySelectionMessage, session::read, out, initialSelections)
+                      title,
+                      labels,
+                      emptySelectionMessage,
+                      session::read,
+                      out,
+                      initialSelections,
+                      allowEmpty)
                   .stream()
                   .map(ids::get)
                   .toList());

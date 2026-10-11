@@ -24,7 +24,9 @@ public final class SupportedQualityGates {
           "enforcer",
           "license",
           "api-compat",
-          "command");
+          "command",
+          "openspec",
+          "openspec-archived");
   public static final List<String> LEGACY_IDS = List.of("architecture", "compliance");
 
   public static final String ZAP_TARGET_PLACEHOLDER = "<TARGET_URL>";
