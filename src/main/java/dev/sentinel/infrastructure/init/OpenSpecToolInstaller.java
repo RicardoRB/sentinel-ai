@@ -13,6 +13,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Stream;
 import javax.inject.Inject;
 
 /** Installs the reviewed OpenSpec distribution into Sentinel-owned project-local storage. */
@@ -37,6 +38,10 @@ public final class OpenSpecToolInstaller implements ToolInstaller {
     if (!"openspec".equals(tool)) {
       return new ToolInstallationResult(tool, false, null, "Unsupported tool.");
     }
+    return installOpenSpec(projectRoot, tool);
+  }
+
+  private ToolInstallationResult installOpenSpec(final Path projectRoot, final String tool) {
     final Path destination = projectRoot.resolve(DESTINATION);
     final Path executable = destination.resolve("node_modules/.bin/openspec");
     final Path staging = projectRoot.resolve(".sentinel/tools/.openspec-staging");
@@ -68,7 +73,13 @@ public final class OpenSpecToolInstaller implements ToolInstaller {
         return new ToolInstallationResult(
             tool, false, null, "Installed OpenSpec does not support the required validations.");
       }
-      Files.createDirectories(destination.getParent());
+      final Path destinationParent = destination.getParent();
+      if (destinationParent == null) {
+        deleteStaging(staging);
+        return new ToolInstallationResult(
+            tool, false, null, "Could not prepare managed destination.");
+      }
+      Files.createDirectories(destinationParent);
       Files.move(staging, destination, StandardCopyOption.ATOMIC_MOVE);
       Files.writeString(destination.resolve(OWNERSHIP_MARKER), "managed-by: sentinel\n");
       LOGGER.log(Level.INFO, "event=tool-install-complete tool=openspec");
@@ -153,7 +164,7 @@ public final class OpenSpecToolInstaller implements ToolInstaller {
     if (!Files.exists(staging)) {
       return;
     }
-    try (java.util.stream.Stream<Path> paths = Files.walk(staging)) {
+    try (Stream<Path> paths = Files.walk(staging)) {
       paths
           .sorted(Comparator.reverseOrder())
           .forEach(

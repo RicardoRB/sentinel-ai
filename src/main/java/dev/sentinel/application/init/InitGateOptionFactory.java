@@ -2,6 +2,7 @@ package dev.sentinel.application.init;
 
 import dev.sentinel.domain.doctor.EnvironmentInspection;
 import dev.sentinel.domain.init.InitGateOption;
+import dev.sentinel.domain.project.Project;
 import java.util.List;
 
 /** Shared construction helpers for project-aware gate choices. */
@@ -10,7 +11,7 @@ final class InitGateOptionFactory {
 
   static InitGateOption binaryOption(
       final EnvironmentInspection environment,
-      final dev.sentinel.domain.project.Project project,
+      final Project project,
       final String id,
       final String description,
       final List<String> command,

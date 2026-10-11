@@ -8,6 +8,7 @@ import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.function.Supplier;
 import javax.inject.Inject;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
@@ -24,16 +25,16 @@ public final class DoctorCommand implements Callable<Integer> {
   // Picocli assigns annotated fields reflectively, so they cannot be final.
   @Mixin private final ProjectOptions options = new ProjectOptions();
 
-  private final DoctorService service;
+  private final Supplier<DoctorService> service;
 
   @Inject
   public DoctorCommand(final DoctorService service) {
-    this.service = service;
+    this.service = () -> service;
   }
 
   @Override
   public Integer call() {
-    final List<Finding> findings = service.diagnose(options.directory());
+    final List<Finding> findings = service.get().diagnose(options.directory());
     findings.forEach(f -> output().printf("[%s] %-13s %s%n", f.status(), f.name(), f.message()));
     return findings.stream().anyMatch(f -> f.status() == DoctorService.Status.ERROR)
         ? ExitCodes.ERROR
