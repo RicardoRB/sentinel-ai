@@ -8,9 +8,12 @@ import dev.sentinel.domain.init.InitResult;
 import dev.sentinel.domain.project.Project;
 import java.io.PrintWriter;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /** Prints the outcome of {@code sentinel init}. */
 final class InitResultPrinter {
+  private static final Logger LOGGER = Logger.getLogger(InitResultPrinter.class.getName());
   private final PrintWriter out;
 
   InitResultPrinter(final PrintWriter out) {
@@ -24,7 +27,13 @@ final class InitResultPrinter {
       out.printf(
           "Selected quality gate '%s': %s%n",
           gateOption.id(), gateOption.available() ? "AVAILABLE" : "UNAVAILABLE");
-      out.println(gateOption.availabilityMessage());
+      LOGGER.log(
+          Level.INFO,
+          () ->
+              "event=init-gate-availability gate="
+                  + gateOption.id()
+                  + " status="
+                  + (gateOption.available() ? "available" : "unavailable"));
     }
   }
 
