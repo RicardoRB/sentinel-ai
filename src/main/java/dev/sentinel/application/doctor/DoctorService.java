@@ -1,18 +1,25 @@
 package dev.sentinel.application.doctor;
 
 import dev.sentinel.application.project.ProjectDetector;
+import dev.sentinel.domain.config.GateConfiguration;
+import dev.sentinel.domain.config.SentinelConfiguration;
+import dev.sentinel.domain.config.SentinelConfigurationReader;
+import dev.sentinel.domain.config.SentinelException;
 import dev.sentinel.domain.doctor.EnvironmentFacts;
 import dev.sentinel.domain.doctor.EnvironmentInspection;
+import dev.sentinel.domain.doctor.ExecutableObservation;
 import dev.sentinel.domain.project.Project;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import javax.inject.Inject;
 
 public final class DoctorService {
   private final ProjectDetector detector;
   private final EnvironmentInspection environment;
+  private final SentinelConfigurationReader configurationReader;
 
   public enum Status {
     OK,
@@ -23,9 +30,17 @@ public final class DoctorService {
   public record Finding(String name, Status status, String message) {}
 
   @Inject
-  public DoctorService(final ProjectDetector detector, final EnvironmentInspection environment) {
+  public DoctorService(
+      final ProjectDetector detector,
+      final EnvironmentInspection environment,
+      final SentinelConfigurationReader configurationReader) {
     this.detector = detector;
     this.environment = environment;
+    this.configurationReader = configurationReader;
+  }
+
+  public DoctorService(final ProjectDetector detector, final EnvironmentInspection environment) {
+    this(detector, environment, null);
   }
 
   public List<Finding> diagnose(final Path start) {
@@ -69,7 +84,65 @@ public final class DoctorService {
             Status.WARNING,
             "Native executable present.",
             "Build with the native profile."));
+    diagnoseOpenSpec(root, facts, findings);
     return findings;
+  }
+
+  private void diagnoseOpenSpec(
+      final Path root, final EnvironmentFacts facts, final List<Finding> findings) {
+    if (configurationReader == null || !flag(facts, "configurationPresent")) {
+      return;
+    }
+    final SentinelConfiguration configuration;
+    try {
+      configuration = configurationReader.read(root.resolve(SentinelConfiguration.FILE_NAME));
+    } catch (SentinelException e) {
+      findings.add(
+          new Finding(
+              "configuration",
+              Status.ERROR,
+              "Configuration could not be read. Fix sentinel.toml and run doctor again."));
+      return;
+    }
+    configuration.gates().entrySet().stream()
+        .filter(entry -> isOpenSpec(entry.getKey()) && entry.getValue().enabled())
+        .forEach(entry -> addOpenSpecFinding(root, entry, findings));
+  }
+
+  private void addOpenSpecFinding(
+      final Path root,
+      final Map.Entry<String, GateConfiguration> entry,
+      final List<Finding> findings) {
+    final String executable =
+        entry.getValue().command().isEmpty() ? "" : entry.getValue().command().getFirst();
+    final ExecutableObservation observation = environment.inspectExecutable(root, executable);
+    final boolean directory = environment.hasOpenSpecDirectory(root);
+    if (observation.usable() && directory) {
+      findings.add(
+          new Finding(
+              entry.getKey(),
+              Status.OK,
+              "OpenSpec executable and project directory are available."));
+      return;
+    }
+    final String executableMessage =
+        observation.usable() ? "executable available" : "executable unavailable";
+    final String directoryMessage =
+        directory
+            ? "project-root openspec/ directory available"
+            : "project-root openspec/ directory missing";
+    findings.add(
+        new Finding(
+            entry.getKey(),
+            Status.ERROR,
+            executableMessage
+                + "; "
+                + directoryMessage
+                + ". Configure prerequisites before checking."));
+  }
+
+  private static boolean isOpenSpec(final String id) {
+    return "openspec".equals(id) || "openspec-archived".equals(id);
   }
 
   private static boolean flag(final EnvironmentFacts facts, final String name) {

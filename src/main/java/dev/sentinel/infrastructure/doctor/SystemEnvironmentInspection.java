@@ -2,6 +2,7 @@ package dev.sentinel.infrastructure.doctor;
 
 import dev.sentinel.domain.doctor.EnvironmentFacts;
 import dev.sentinel.domain.doctor.EnvironmentInspection;
+import dev.sentinel.domain.doctor.ExecutableObservation;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -52,5 +53,45 @@ public final class SystemEnvironmentInspection implements EnvironmentInspection 
         Level.INFO,
         () -> "event=environment-inspection status=complete available=" + available.size());
     return new EnvironmentFacts(available, values);
+  }
+
+  @Override
+  public ExecutableObservation inspectExecutable(final Path projectRoot, final String executable) {
+    final Path candidate;
+    if (executable.contains("/") || executable.contains(File.separator)) {
+      candidate =
+          Path.of(executable).isAbsolute()
+              ? Path.of(executable)
+              : projectRoot.resolve(executable).normalize();
+    } else {
+      candidate = findOnPath(executable);
+    }
+    if (candidate == null) {
+      return new ExecutableObservation(executable, null, false, false, false);
+    }
+    return new ExecutableObservation(
+        executable,
+        candidate,
+        Files.exists(candidate),
+        Files.isRegularFile(candidate),
+        Files.isExecutable(candidate));
+  }
+
+  @Override
+  public boolean hasOpenSpecDirectory(final Path projectRoot) {
+    return Files.isDirectory(projectRoot.resolve("openspec"));
+  }
+
+  private static Path findOnPath(final String executable) {
+    final String path = System.getenv("PATH");
+    if (path == null) {
+      return null;
+    }
+    return Arrays.stream(path.split(File.pathSeparator))
+        .map(Path::of)
+        .map(directory -> directory.resolve(executable))
+        .filter(Files::exists)
+        .findFirst()
+        .orElse(null);
   }
 }

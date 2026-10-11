@@ -13,6 +13,7 @@ import dev.sentinel.domain.init.InitResult;
 import dev.sentinel.domain.init.InitSelection;
 import dev.sentinel.domain.init.QualityPreset;
 import dev.sentinel.domain.init.RuleFileGeneration;
+import dev.sentinel.domain.init.ToolInstaller;
 import dev.sentinel.domain.project.Project;
 import java.nio.file.Path;
 import java.util.List;
@@ -43,6 +44,7 @@ public class InitService {
   private final ArchitectureTestGeneration architectureTests;
   private final StorageAccess configurationStorage;
   private final RuleFileGeneration ruleFiles;
+  private final ToolInstaller toolInstaller;
 
   @Inject
   public InitService(
@@ -52,7 +54,8 @@ public class InitService {
       final BuildToolConfiguration pomTools,
       final ArchitectureTestGeneration architectureTests,
       final ConfigurationStorage configurationStorage,
-      final RuleFileGeneration ruleFiles) {
+      final RuleFileGeneration ruleFiles,
+      final ToolInstaller toolInstaller) {
     this.detector = detector;
     this.installer = new IntegrationInstaller(integrations, catalog);
     this.catalog = catalog;
@@ -60,6 +63,7 @@ public class InitService {
     this.architectureTests = architectureTests;
     this.configurationStorage = () -> configurationStorage;
     this.ruleFiles = ruleFiles;
+    this.toolInstaller = toolInstaller;
   }
 
   public InitService(
@@ -76,7 +80,27 @@ public class InitService {
         pomTools,
         architectureTests,
         configurationStorage,
-        new NoRuleFileGeneration());
+        new NoRuleFileGeneration(),
+        new UnavailableToolInstaller());
+  }
+
+  public InitService(
+      final ProjectDetector detector,
+      final Set<AgentIntegration> integrations,
+      final InitSetupCatalog catalog,
+      final BuildToolConfiguration pomTools,
+      final ArchitectureTestGeneration architectureTests,
+      final ConfigurationStorage configurationStorage,
+      final RuleFileGeneration ruleFiles) {
+    this(
+        detector,
+        integrations,
+        catalog,
+        pomTools,
+        architectureTests,
+        configurationStorage,
+        ruleFiles,
+        new UnavailableToolInstaller());
   }
 
   public InitResult init(final Path start) {
@@ -108,16 +132,18 @@ public class InitService {
     LOGGER.log(Level.INFO, () -> "event=initialization-start overwrite=" + overwrite);
     final Project project = project(start);
     installer.validate(selection.integrations());
-    final List<InitGateOption> gates = resolveGates(project, selection);
-    if (selection.architecture() != null) {
-      catalog.architecture(selection.architecture());
-    }
     final Path configurationFile = project.root().resolve(SentinelConfiguration.FILE_NAME);
     final String originalConfiguration =
         configurationStorage.get().read(configurationFile).orElse(null);
     if (originalConfiguration != null && !overwrite) {
       LOGGER.log(Level.INFO, "event=initialization-complete status=ownership-conflict");
-      return new InitResult(configurationFile, false, gates, List.of());
+      return new InitResult(configurationFile, false, List.of(), List.of());
+    }
+    final InstallationOutcome installation = installToolIfApproved(project, selection);
+    final String executable = installation.executable();
+    final List<InitGateOption> gates = resolveGates(project, selection, executable);
+    if (selection.architecture() != null) {
+      catalog.architecture(selection.architecture());
     }
     final InitChanges changes =
         new InitChanges(
@@ -129,7 +155,7 @@ public class InitService {
             installer);
     boolean completed = false;
     try {
-      apply(project, selection, gates, changes);
+      changes.apply(project, selection, gates);
       final InitResult result =
           writeConfiguration(configurationFile, gates, selection.preset(), changes, overwrite);
       if (!result.created()) {
@@ -140,6 +166,7 @@ public class InitService {
       return result;
     } finally {
       if (!completed) {
+        toolInstaller.rollbackPath(project.root(), installation.executablePath());
         changes.rollback();
         LOGGER.log(Level.WARNING, "event=initialization-rollback status=applied");
         if (originalConfiguration != null) {
@@ -150,27 +177,43 @@ public class InitService {
   }
 
   /** Returns the preset's gates followed by any additionally selected gates, without duplicates. */
-  private List<InitGateOption> resolveGates(final Project project, final InitSelection selection) {
+  private List<InitGateOption> resolveGates(
+      final Project project, final InitSelection selection, final String openSpecExecutable) {
     final List<InitGateOption> gates =
         Stream.concat(
                 selection.preset() == null ? Stream.empty() : selection.preset().gates().stream(),
-                selection.gates().stream())
+                Stream.concat(selection.gates().stream(), selection.openSpecValidations().stream()))
             .distinct()
-            .map(id -> catalog.gate(project, id))
+            .map(
+                id ->
+                    catalog.openSpecValidations().contains(id)
+                        ? catalog.openSpecValidation(project, id, openSpecExecutable)
+                        : catalog.gate(project, id))
             .toList();
-    if (gates.isEmpty()) {
+    if (gates.isEmpty() && selection.tools().isEmpty()) {
       throw new SentinelException("Select at least one quality gate.");
     }
     return gates;
   }
 
-  private void apply(
-      final Project project,
-      final InitSelection selection,
-      final List<InitGateOption> gates,
-      final InitChanges changes) {
-    changes.apply(project, selection, gates);
+  private InstallationOutcome installToolIfApproved(
+      final Project project, final InitSelection selection) {
+    if (selection.installTools().isEmpty()) {
+      return new InstallationOutcome("openspec", null);
+    }
+    if (!selection.tools().contains("openspec")) {
+      throw new SentinelException(
+          "Installation consent requires selecting the corresponding tool.");
+    }
+    try {
+      final Path executable = toolInstaller.installPath(project.root(), "openspec");
+      return new InstallationOutcome(executable.toString(), executable);
+    } catch (IllegalStateException e) {
+      throw new SentinelException("OpenSpec installation failed: " + e.getMessage(), e);
+    }
   }
+
+  private record InstallationOutcome(String executable, Path executablePath) {}
 
   private InitResult writeConfiguration(
       final Path file,

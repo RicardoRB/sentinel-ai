@@ -27,6 +27,14 @@ final class LinePrompt {
     }
   }
 
+  boolean hasMoreInput() {
+    try {
+      return reader.ready();
+    } catch (IOException e) {
+      return false;
+    }
+  }
+
   /** Returns the next line, cancelling initialization when input ended. */
   String requireLine(final String subject) {
     return readLine(subject).orElseThrow(() -> new SentinelException(INPUT_ENDED));
@@ -40,6 +48,11 @@ final class LinePrompt {
     } catch (IOException e) {
       return false;
     }
+  }
+
+  boolean confirmInstallation() {
+    final String answer = requireLine("OpenSpec installation consent");
+    return "y".equalsIgnoreCase(answer.trim()) || "yes".equalsIgnoreCase(answer.trim());
   }
 
   /**
@@ -63,6 +76,28 @@ final class LinePrompt {
     }
     if (selected.isEmpty()) {
       throw new SentinelException(emptySelectionMessage);
+    }
+    return selected;
+  }
+
+  List<String> readOptionalSelection(final List<String> ids, final String label) {
+    final String value = requireLine("initialization selection");
+    if (value.isBlank()) {
+      return List.of();
+    }
+    return readSelectionValue(ids, value, label);
+  }
+
+  private List<String> readSelectionValue(
+      final List<String> ids, final String value, final String label) {
+    final List<String> selected = new ArrayList<>();
+    for (final String token : value.trim().split("[ ,]+")) {
+      if (!token.isBlank()) {
+        final String id = ids.get(choice(token, ids.size(), label) - 1);
+        if (!selected.contains(id)) {
+          selected.add(id);
+        }
+      }
     }
     return selected;
   }

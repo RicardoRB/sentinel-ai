@@ -43,3 +43,7 @@ When Sentinel cannot run at all (exit `2`), it emits a short error report withou
 ```
 
 Gate commands are direct argument vectors, not shell expressions. See [exit codes](/reference/exit-codes/).
+
+An `UNAVAILABLE` check is unsuccessful even when its executable is missing. An
+`EXECUTION_ERROR` check indicates interruption or output-capture failure; both are represented in
+the report and use check exit code `1`.

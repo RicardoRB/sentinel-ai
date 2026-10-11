@@ -28,3 +28,7 @@ gates are errors.
 **Security:** commands are trusted executable code and run with the current user's privileges in
 the project root. Review `sentinel.toml` as carefully as a build script; do not run checks on
 untrusted repositories outside a sandbox. See [security](/security/).
+
+OpenSpec registrations are optional and independent. Use `openspec` for strict active validation and
+`openspec-archived` for completed-task validation. A configured local executable is resolved from the
+target project root and is never silently replaced by a PATH executable.

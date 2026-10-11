@@ -26,3 +26,11 @@ collecting diagnostics:
 ```console
 sentinel --verbose check > report.txt 2> sentinel-diagnostics.log
 ```
+
+## Optional OpenSpec installation
+
+OpenSpec is never installed by `check` or `doctor`. `init` may install the reviewed
+`@fission-ai/openspec@1.14.1` distribution only after explicit consent, into the project-local
+`.sentinel/tools/openspec` directory. The operation requires Node.js `>=20.19.0`, npm, network
+access, and may execute package lifecycle scripts. It does not modify the project root manifest,
+does not use global installation or `npx`, and refuses an existing unmanaged destination.

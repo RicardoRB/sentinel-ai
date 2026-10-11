@@ -7,9 +7,11 @@ import dev.sentinel.domain.init.BuildToolConfiguration;
 import dev.sentinel.domain.init.ConfigurationStorage;
 import dev.sentinel.domain.init.RawTerminal;
 import dev.sentinel.domain.init.RuleFileGeneration;
+import dev.sentinel.domain.init.ToolInstaller;
 import dev.sentinel.domain.terminal.TerminalCapabilities;
 import dev.sentinel.infrastructure.init.ArchitectureTestGenerator;
 import dev.sentinel.infrastructure.init.FileConfigurationStorage;
+import dev.sentinel.infrastructure.init.OpenSpecToolInstaller;
 import dev.sentinel.infrastructure.init.PomToolConfigurator;
 import dev.sentinel.infrastructure.init.PresetRuleFileWriter;
 import dev.sentinel.infrastructure.terminal.JdkTerminalCapabilities;
@@ -34,4 +36,7 @@ interface InitBindingsModule {
 
   @Binds
   RuleFileGeneration ruleFileGeneration(PresetRuleFileWriter implementation);
+
+  @Binds
+  ToolInstaller toolInstaller(OpenSpecToolInstaller implementation);
 }

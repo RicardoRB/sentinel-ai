@@ -46,7 +46,10 @@ public record GateResult(
   public static GateResult from(
       final String name, final List<String> command, final CommandResult result) {
     final GateStatus status =
-        result.hasExecutionError() && result.exitCode() == -1
+        result.hasExecutionError()
+                && result.exitCode() == -1
+                && (result.executionError().startsWith("PROCESS_START_FAILURE")
+                    || !result.executionError().contains("_"))
             ? GateStatus.UNAVAILABLE
             : result.hasExecutionError()
                 ? GateStatus.EXECUTION_ERROR
