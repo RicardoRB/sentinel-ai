@@ -25,7 +25,8 @@ final class ArchitectureBoundarySupport {
           Map.entry("terminal", Set.of()),
           Map.entry("project", Set.of()),
           Map.entry("json", Set.of()),
-          Map.entry("learning", Set.of("gate")));
+          Map.entry("learning", Set.of("gate")),
+          Map.entry("spec", Set.of()));
   static final Map<String, Set<String>> APPLICATION_ENTRY_POINTS =
       Map.ofEntries(
           Map.entry("loop", Set.of("dev.sentinel.application.gate.CheckService")),
@@ -47,7 +48,16 @@ final class ArchitectureBoundarySupport {
                   "dev.sentinel.application.project.ProjectNotFoundException")),
           Map.entry("doctor", Set.of("dev.sentinel.application.project.ProjectDetector")),
           Map.entry("project", Set.of()),
-          Map.entry("learning", Set.of()));
+          Map.entry("learning", Set.of()),
+          Map.entry(
+              "spec",
+              Set.of(
+                  "dev.sentinel.application.gate.CheckService",
+                  "dev.sentinel.application.gate.OpenSpecPrerequisites",
+                  "dev.sentinel.application.gate.OpenSpecPrerequisites$Problem",
+                  "dev.sentinel.application.gate.OpenSpecQualityGate",
+                  "dev.sentinel.application.project.ProjectDetector",
+                  "dev.sentinel.application.project.ProjectNotFoundException")));
 
   private ArchitectureBoundarySupport() {}
 
@@ -110,6 +120,7 @@ final class ArchitectureBoundarySupport {
                       "dev.sentinel.config.ProjectBindingsModule",
                       "dev.sentinel.config.InitBindingsModule",
                       "dev.sentinel.config.CommandBindingsModule",
+                      "dev.sentinel.config.SpecCommandBindingsModule",
                       "dev.sentinel.config.SentinelProvidesModule")
                   .contains(name);
       case "dev.sentinel.infrastructure.cli" ->

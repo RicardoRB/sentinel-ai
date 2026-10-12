@@ -1,18 +1,55 @@
 ---
 title: Claude Code
-description: Install Sentinel's Claude Code edit/write hook.
+description: Install Sentinel's Claude Code edit and turn-end hooks.
 ---
 
 Install with `sentinel integrate claude-code`. Sentinel creates `.claude/settings.json` and the
-executable `.claude/hooks/sentinel-edit-write`. Its `PostToolUse` hook matches `Edit` and `Write`
-tools and runs `sentinel check --format json` after the operation.
-The generated hook invokes `sentinel hook claude-code --learn-after 3`; ensure `sentinel` is on
-`PATH`. Passing checks with learning prompts return Claude Code `PostToolUse` context, while
-failures are written to stderr with exit code `2`.
+executable `.claude/hooks/sentinel-edit-write`, and registers the same hook for two Claude Code events:
+
+| Event | When | What Sentinel does |
+|---|---|---|
+| `PostToolUse` (`Edit`, `Write`, `MultiEdit`) | After each file edit | Runs the quality check, then validates the edited spec file |
+| `Stop` | When Claude finishes its turn | Runs every configured spec check |
+
+The generated hook runs `sentinel hook claude-code --learn-after 3 --exclude-spec --event-stdin`. Make sure
+`sentinel` is on `PATH`. Claude Code passes each hook event as JSON on stdin, and Sentinel reads only the event
+name, the edited `file_path`, and `stop_hook_active`.
+
+## After each edit
+
+Sentinel runs the `default` profile gates, skipping spec gates (`--exclude-spec`). It then runs
+[targeted spec validation](/commands/spec/) for the edited file. An edit outside `openspec/changes/<change>/`
+or `openspec/specs/` validates nothing extra.
+
+- **Something fails:** a quality gate failure, spec findings, or both are written to stderr with exit code
+  `2`. Claude Code shows them to the agent, which can fix them right away. Learning prompts are included too.
+- **Everything passes:** learning prompts, if any, are returned as `PostToolUse` context, and nothing else is
+  added.
+
+## When the turn ends
+
+On `Stop`, Sentinel runs the enabled `openspec` and `openspec-archived` validations. Code-quality gates do not
+run here.
+
+- **No problems:** the turn ends normally with no output.
+- **First stop with findings:** Sentinel blocks the stop with `{"decision": "block", "reason": ...}`, so Claude
+  receives the findings and keeps working on them.
+- **Claude stops again and findings remain:** Claude Code marks this with `stop_hook_active`. Sentinel then
+  lets the turn end and shows the findings to you as a `systemMessage` instead of sending them to the agent
+  again. Findings are handed to the agent at most once per turn, so a problem the agent cannot fix, such as a
+  missing `openspec` executable, cannot trap it in a loop.
+- **Sentinel itself fails,** for example on an invalid `sentinel.toml`: the error is shown to you and the stop
+  is never blocked.
+
+Projects without an enabled OpenSpec validation see no change: per-edit spec validation and the `Stop` hook do
+nothing.
+
+## Ownership and removal
 
 Generated files contain Sentinel ownership markers. Existing user-owned targets are never
 overwritten; a conflict prevents partial integration. Remove using
 `sentinel integrate claude-code --remove`; only Sentinel-owned generated files are removed and
 unrelated configuration is preserved. The hook executes repository configuration with your user
 privileges. Enable it only in repositories you trust.
-Re-run `sentinel integrate claude-code` to refresh an outdated Sentinel-owned hook.
+Re-run `sentinel integrate claude-code` to refresh an outdated Sentinel-owned hook. Integrations installed by
+earlier versions keep working, but they only run the quality check until you refresh them.

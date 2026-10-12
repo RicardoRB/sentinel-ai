@@ -7,6 +7,7 @@ import dev.sentinel.infrastructure.cli.gate.CheckCommand;
 import dev.sentinel.infrastructure.cli.init.InitCommand;
 import dev.sentinel.infrastructure.cli.loop.LoopCommand;
 import dev.sentinel.infrastructure.cli.project.DetectCommand;
+import dev.sentinel.infrastructure.cli.spec.SpecCommand;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.Callable;
@@ -28,6 +29,7 @@ import picocli.CommandLine.Spec;
       CheckCommand.class,
       IntegrateCommand.class,
       HookCommand.class,
+      SpecCommand.class,
       DoctorCommand.class,
       LoopCommand.class
     },

@@ -4,20 +4,38 @@ description: Agent hook adapters invoked by generated integrations.
 ---
 
 ```sh
-sentinel hook claude-code [-C <dir>] [--learn-after <n>]
+sentinel hook claude-code [-C <dir>] [--learn-after <n>] [--exclude-spec] [--event-stdin]
 ```
 
-`sentinel hook` contains the adapters that generated agent integrations call. You normally do not run
-it yourself: `sentinel integrate claude-code` creates `.claude/hooks/sentinel-edit-write`, which invokes
-`sentinel hook claude-code --learn-after 3` after Claude Code's `Edit` and `Write` tools.
+`sentinel hook` contains the adapters that generated agent integrations call. You normally do not run it
+yourself. `sentinel integrate claude-code` creates `.claude/hooks/sentinel-edit-write`, which runs
+`sentinel hook claude-code --learn-after 3 --exclude-spec --event-stdin` after Claude Code's edit tools and
+when Claude stops.
 
-The adapter runs the `default` profile gates. When they pass, it returns any learning prompts to Claude Code
-as `PostToolUse` context. When they fail, or Sentinel cannot run, it writes the failures to stderr and exits `2`, which
-Claude Code shows to the agent so it can fix them.
+| Option | Effect |
+|---|---|
+| `--learn-after <n>` | Learn recurring quality failures after `n` occurrences (default `3`). |
+| `--exclude-spec` | Skip the `openspec` and `openspec-archived` gates in the quality check, because spec validation runs separately. |
+| `--event-stdin` | Read the Claude Code hook event JSON from stdin. It is ignored when stdin is an interactive terminal. |
+
+Without `--event-stdin`, or when the payload is empty or not valid JSON, the adapter behaves as it always has. It
+runs the `default` profile gates as a `PostToolUse` check. When they pass, it returns any learning prompts as
+`PostToolUse` context. When they fail, or Sentinel cannot run, it writes the failures to stderr and exits `2`,
+which Claude Code shows to the agent so it can fix them.
+
+With an event payload:
+
+- **`PostToolUse`:** after the quality check, the edited `tool_input.file_path` goes through
+  [`spec validate`](/commands/spec/). Spec findings are reported on stderr with exit `2`, alongside any quality
+  failures.
+- **`Stop`:** only the configured spec validations run. Findings block the stop once, using
+  `decision: "block"`. When `stop_hook_active` is true, or Sentinel cannot run, they are shown to the user as a
+  `systemMessage`. The exit code is `0`.
 
 See [Claude Code](/integrations/claude-code/) and [learning](/configuration/learning/).
+
 ## Verbose diagnostics
 
 The inherited `--verbose` option also applies to nested hooks, for example
 `sentinel hook claude-code --verbose`. Diagnostics are written to stderr, leaving the hook JSON
-response on stdout unchanged.
+response on stdout unchanged. They never include findings, payload contents, or command lines.

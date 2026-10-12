@@ -6,7 +6,12 @@ import java.util.Map;
 import javax.inject.Provider;
 
 @Component(
-    modules = {PortBindingsModule.class, CommandBindingsModule.class, SentinelProvidesModule.class})
+    modules = {
+      PortBindingsModule.class,
+      CommandBindingsModule.class,
+      SpecCommandBindingsModule.class,
+      SentinelProvidesModule.class
+    })
 public interface SentinelComponent {
   CommandLineRunnerImpl commandLineRunner();
 

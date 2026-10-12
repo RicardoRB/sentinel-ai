@@ -1,0 +1,86 @@
+---
+title: spec
+description: Validate specification artifacts, targeted to edited files or across configured spec checks.
+---
+
+```sh
+sentinel spec validate [-C <dir>] [--profile <name>[,<name>...]] [--] [<path>...]
+```
+
+`sentinel spec validate` checks a project's specification artifacts and prints findings that a person or a
+coding agent can act on. Any agent integration can call it with the files it just edited. The generated
+[Claude Code](/integrations/claude-code/) and [OpenCode](/integrations/opencode/) integrations do this for you.
+
+Today it supports [OpenSpec](/configuration/gates/). It is a no-op unless an OpenSpec validation is enabled in
+`sentinel.toml`, so projects without OpenSpec see no change.
+
+## Targeted validation: with paths
+
+Pass the files that changed. Paths may be absolute or relative to the project root.
+
+```sh
+sentinel spec validate openspec/changes/add-auth/proposal.md openspec/specs/identity/user-auth/spec.md
+```
+
+Sentinel maps each path to the active item it belongs to and validates every distinct item once:
+
+| Path | Validated item |
+|---|---|
+| `openspec/changes/<change>/**` | Change `<change>` |
+| `openspec/specs/<capability>/spec.md` | Spec `<capability>`, including nested paths such as `identity/user-auth` |
+| `openspec/changes/archive/**` | Nothing; archived changes are not active |
+| Anything else | Nothing |
+
+For each item Sentinel runs the executable configured in the `openspec` registration, from the project root,
+as a direct argument vector:
+
+```sh
+<openspec executable> validate <item> --type <change|spec> --strict --no-interactive
+```
+
+- Targeted validation runs only when the active `openspec` registration is enabled in the selected profiles.
+  Enabling only `openspec-archived` does not turn it on.
+- Paths that leave the project root are ignored, whether through `..` or a symbolic link.
+- Items that no longer exist are skipped silently, for example after a change was deleted or archived during
+  the edit.
+- A missing executable or project-root `openspec/` directory is reported as a finding, and nothing is launched.
+
+## Full validation: without paths
+
+```sh
+sentinel spec validate --profile ci
+```
+
+Without paths, Sentinel runs the enabled `openspec` and `openspec-archived` registrations for the selected
+profiles (default: `default`). It uses the configured commands, prerequisites, and statuses, exactly as
+[`check`](/commands/check/) would. Code-quality gates do not run. If neither registration is enabled, or the
+project has no `sentinel.toml`, there is nothing to do and the command exits `0`.
+
+## Output
+
+Findings are read from both stdout and stderr, because OpenSpec writes validation problems to stderr. They are
+printed on stdout grouped by item, with the most severe first. Validator hints such as `Next steps:` are left out.
+
+```text
+openspec change bad: 1 error, 1 warning
+  ERROR x/spec.md: ADDED "Thing" must include at least one scenario
+  WARNING x/spec.md: ADDED "Thing" should contain SHALL or MUST
+```
+
+Output is bounded so it fits agent hook context limits:
+
+- At most 20 findings are printed per item, followed by `... N more findings omitted` when there are more.
+- The whole output is capped at about 8,000 characters.
+- When a validation fails without recognizable `ERROR`, `WARNING`, or `INFO` lines, a short excerpt of its
+  output is shown instead.
+
+## Exit codes
+
+| Code | Meaning |
+|---|---|
+| `0` | Nothing to report: everything validated, or there was nothing to validate. stdout is empty. |
+| `1` | Findings were printed, or an enabled validation was unsuccessful (including `UNAVAILABLE`). |
+| `2` | Sentinel could not run: no project, invalid configuration, or an unknown profile. The message goes to stderr. |
+
+With `--verbose`, diagnostics on stderr report item counts, kinds, statuses, and durations. They never include
+findings, artifact contents, or command lines.

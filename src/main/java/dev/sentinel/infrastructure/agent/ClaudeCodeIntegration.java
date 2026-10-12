@@ -35,6 +35,16 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
                       }
                     ]
                   }
+                ],
+                "Stop": [
+                  {
+                    "hooks": [
+                      {
+                        "type": "command",
+                        "command": ".claude/hooks/sentinel-edit-write"
+                      }
+                    ]
+                  }
                 ]
               }
             }
@@ -45,8 +55,9 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
       """
             #!/bin/sh
             # %s
-            # Event payload is intentionally ignored; Sentinel checks the current project state.
-            exec sentinel hook claude-code --learn-after 3
+            # Claude Code passes the hook event JSON on stdin. Sentinel reads it to validate edited
+            # spec files after edits and all configured spec checks when the turn ends.
+            exec sentinel hook claude-code --learn-after 3 --exclude-spec --event-stdin
             """
           .replace("%s", HOOK_MARKER);
 

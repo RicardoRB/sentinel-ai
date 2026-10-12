@@ -9,6 +9,7 @@ import dev.sentinel.domain.json.JsonCodec;
 import dev.sentinel.domain.learning.LearningStore;
 import dev.sentinel.domain.loop.GitStateInspection;
 import dev.sentinel.domain.project.ProjectInspection;
+import dev.sentinel.domain.spec.ProjectPaths;
 import dev.sentinel.infrastructure.agent.ProcessAgentRunnerFactory;
 import dev.sentinel.infrastructure.config.TomlConfigurationReader;
 import dev.sentinel.infrastructure.doctor.SystemEnvironmentInspection;
@@ -16,6 +17,7 @@ import dev.sentinel.infrastructure.json.ForyJsonCodec;
 import dev.sentinel.infrastructure.learning.JsonLearningStore;
 import dev.sentinel.infrastructure.loop.GitStateInspector;
 import dev.sentinel.infrastructure.project.FileSystemProjectInspection;
+import dev.sentinel.infrastructure.spec.FileSystemProjectPaths;
 
 @Module
 interface ProjectBindingsModule {
@@ -39,4 +41,7 @@ interface ProjectBindingsModule {
 
   @Binds
   JsonCodec jsonCodec(ForyJsonCodec implementation);
+
+  @Binds
+  ProjectPaths projectPaths(FileSystemProjectPaths implementation);
 }

@@ -1,9 +1,11 @@
 package dev.sentinel.infrastructure.cli.gate;
 
+import dev.sentinel.application.gate.CheckProgressListener;
 import dev.sentinel.application.gate.CheckService;
 import dev.sentinel.application.learning.LearningService;
 import dev.sentinel.domain.config.SentinelException;
 import dev.sentinel.domain.gate.CheckReport;
+import dev.sentinel.domain.gate.SupportedQualityGates;
 import dev.sentinel.domain.learning.LearningOutcome;
 import dev.sentinel.infrastructure.cli.ExitCodes;
 import dev.sentinel.infrastructure.cli.ProjectOptions;
@@ -14,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import javax.inject.Inject;
 import picocli.CommandLine.Command;
@@ -59,6 +62,11 @@ public class CheckCommand implements Callable<Integer> {
 
   @Option(names = "--fail-fast", description = "Stop after the first gate that does not pass.")
   private boolean failFast;
+
+  @Option(
+      names = "--exclude-spec",
+      description = "Skip spec validation gates (openspec, openspec-archived).")
+  private boolean excludeSpec;
 
   @Option(
       names = "--learn-after",
@@ -130,9 +138,11 @@ public class CheckCommand implements Callable<Integer> {
       if (format == Format.TEXT) {
         textRenderer.begin(output());
         // Render the summary after learning so prompts can be placed before diagnostics.
-        return service.check(options.directory(), profiles, textRenderer, failFast);
+        return service.check(
+            options.directory(), profiles, textRenderer, failFast, excludedGates());
       }
-      return service.check(options.directory(), profiles, failFast);
+      return service.check(
+          options.directory(), profiles, CheckProgressListener.NO_OP, failFast, excludedGates());
     } catch (SentinelException e) {
       if (format == Format.JSON) {
         // stdout stays machine-readable; the human message goes to stderr as well.
@@ -140,6 +150,10 @@ public class CheckCommand implements Callable<Integer> {
       }
       throw e;
     }
+  }
+
+  private Set<String> excludedGates() {
+    return excludeSpec ? SupportedQualityGates.specIds() : Set.of();
   }
 
   private PrintWriter output() {

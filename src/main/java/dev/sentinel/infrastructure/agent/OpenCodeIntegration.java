@@ -22,27 +22,87 @@ public final class OpenCodeIntegration implements AgentIntegration {
   private static final String PLUGIN =
       """
             // %s
-            // OpenCode post-tool hook for Edit and Write operations.
-            export default async ({ directory }) => ({
-              "tool.execute.after": async (input, output) => {
-                const tool = String(input?.tool ?? input?.name ?? "").toLowerCase();
-                if (tool !== "edit" && tool !== "write" && tool !== "multiedit" && tool !== "patch") return;
-                 const result = Bun.spawnSync(["sentinel", "check", "--format", "json", "--learn-after", "3"], {
-                  cwd: directory,
-                  stdout: "pipe",
-                  stderr: "pipe"
-                });
-                 const text = new TextDecoder().decode(result.stdout || new Uint8Array());
-                 let report;
-                 try { report = JSON.parse(text); } catch { report = null; }
-                 const prompts = report?.learning?.prompts?.map((prompt) => prompt.instruction).join("\\n") || "";
-                 if (result.exitCode !== 0) {
-                   output.error = (text || new TextDecoder().decode(result.stderr || new Uint8Array())) + (prompts ? "\\n" + prompts : "");
-                   throw new Error(output.error || "Sentinel quality check failed");
-                 }
-                 if (prompts) output.output = (output.output || "") + "\\n" + prompts;
-              }
-            });
+            // OpenCode hooks: quality check and spec validation after edits, spec checks when idle.
+            const EDIT_TOOLS = new Set(["edit", "write", "multiedit", "apply_patch", "patch"]);
+            const FEEDBACK_MARKER = "[sentinel spec validation]";
+            const decode = (bytes) => new TextDecoder().decode(bytes || new Uint8Array());
+
+            const editedPaths = (input, output) => {
+              const args = input?.args ?? {};
+              const files = Array.isArray(output?.metadata?.files) ? output.metadata.files : [];
+              return [args.filePath, args.path, ...files.flatMap((file) => [file?.filePath, file?.movePath])]
+                // Cheap pre-filter; Sentinel decides which paths are active spec items.
+                .filter((path) => typeof path === "string" && path.includes("openspec"));
+            };
+
+            export default async ({ directory, client }) => {
+              const run = (args) => {
+                const result = Bun.spawnSync(["sentinel", ...args], { cwd: directory, stdout: "pipe", stderr: "pipe" });
+                return { code: result.exitCode, stdout: decode(result.stdout), stderr: decode(result.stderr) };
+              };
+              const running = new Set();
+              const delivered = new Set();
+              const toast = (message) =>
+                client?.tui?.showToast?.({ body: { title: "Sentinel", message, variant: "warning" } })?.catch?.(() => {});
+
+              return {
+                "tool.execute.after": async (input, output) => {
+                  const tool = String(input?.tool ?? input?.name ?? "").toLowerCase();
+                  if (!EDIT_TOOLS.has(tool)) return;
+                  const check = run(["check", "--format", "json", "--exclude-spec", "--learn-after", "3"]);
+                  let report;
+                  try { report = JSON.parse(check.stdout); } catch { report = null; }
+                  const prompts = report?.learning?.prompts?.map((prompt) => prompt.instruction).join("\\n") || "";
+                  const failures = [];
+                  if (check.code !== 0) failures.push(check.stdout || check.stderr || "Sentinel quality check failed");
+                  const paths = editedPaths(input, output);
+                  if (paths.length > 0) {
+                    const spec = run(["spec", "validate", "--", ...paths]);
+                    if (spec.code !== 0) failures.push(spec.stdout || spec.stderr || "Sentinel spec validation failed");
+                  }
+                  if (failures.length > 0) {
+                    output.error = failures.join("\\n") + (prompts ? "\\n" + prompts : "");
+                    throw new Error(output.error);
+                  }
+                  if (prompts) output.output = (output.output || "") + "\\n" + prompts;
+                },
+                event: async ({ event }) => {
+                  if (event?.type !== "session.idle") return;
+                  const sessionID = event.properties?.sessionID;
+                  if (!sessionID || running.has(sessionID)) return;
+                  running.add(sessionID);
+                  try {
+                    const proc = Bun.spawn(["sentinel", "spec", "validate"], { cwd: directory, stdout: "pipe", stderr: "pipe" });
+                    const [stdout, stderr, code] = await Promise.all([
+                      new Response(proc.stdout).text(),
+                      new Response(proc.stderr).text(),
+                      proc.exited,
+                    ]);
+                    if (code === 0) return;
+                    const findings = (stdout || stderr || "Sentinel spec validation failed").trim();
+                    if (code === 1 && !delivered.has(sessionID) && client?.session?.prompt) {
+                      delivered.add(sessionID);
+                      // Not awaited: the prompt starts a new agent turn whose idle event is checked again.
+                      client.session
+                        .prompt({ path: { id: sessionID }, body: { parts: [{ type: "text", text: FEEDBACK_MARKER + "\\n" + findings }] } })
+                        .catch(() => toast(findings));
+                    } else {
+                      toast(findings);
+                    }
+                  } catch (error) {
+                    toast("Sentinel spec validation could not run: " + (error?.message ?? error));
+                  } finally {
+                    running.delete(sessionID);
+                  }
+                },
+                "chat.message": async (input, output) => {
+                  const own = (output?.parts ?? []).some(
+                    (part) => part?.type === "text" && String(part.text ?? "").startsWith(FEEDBACK_MARKER),
+                  );
+                  if (!own) delivered.delete(input?.sessionID);
+                },
+              };
+            };
             """
           .replace("%s", PLUGIN_MARKER);
 

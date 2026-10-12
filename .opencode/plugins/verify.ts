@@ -1,4 +1,4 @@
-const EDIT_TOOLS = new Set(["edit", "write", "multiedit", "patch"])
+const EDIT_TOOLS = new Set(["edit", "write", "multiedit", "apply_patch", "patch"])
 
 type ToolInput = Readonly<Record<string, unknown>>
 
