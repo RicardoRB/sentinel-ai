@@ -1,6 +1,8 @@
 package dev.sentinel.application.init;
 
 import dev.sentinel.domain.agent.AgentIntegration;
+import dev.sentinel.domain.agent.IntegrationRequest;
+import dev.sentinel.domain.agent.IntegrationRequest.Guidance;
 import dev.sentinel.domain.agent.IntegrationResult;
 import dev.sentinel.domain.config.SentinelException;
 import java.nio.file.Path;
@@ -63,7 +65,8 @@ final class IntegrationInstaller {
 
   private void rollbackOne(final Path root, final String id) {
     final FutureTask<IntegrationResult> rollback =
-        new FutureTask<>(() -> integration(id).integrate(root, true));
+        new FutureTask<>(
+            () -> integration(id).integrate(root, IntegrationRequest.remove(Guidance.EXCLUDED)));
     rollback.run();
     try {
       rollback.get();
@@ -78,7 +81,7 @@ final class IntegrationInstaller {
     if (integrations.isEmpty()) {
       throw new SentinelException("Agent integrations are unavailable in this runtime.");
     }
-    return integration(id).integrate(root, false);
+    return integration(id).integrate(root, IntegrationRequest.install(Guidance.EXCLUDED));
   }
 
   private AgentIntegration integration(final String id) {

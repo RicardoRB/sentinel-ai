@@ -9,6 +9,7 @@ import dev.sentinel.application.project.ProjectDetector;
 import dev.sentinel.application.project.ProjectNotFoundException;
 import dev.sentinel.domain.FakeEnvironmentInspection;
 import dev.sentinel.domain.agent.AgentIntegration;
+import dev.sentinel.domain.agent.IntegrationRequest;
 import dev.sentinel.domain.agent.IntegrationResult;
 import dev.sentinel.domain.init.InitGateOption;
 import dev.sentinel.domain.init.InitResult;
@@ -80,7 +81,7 @@ class InitServiceTest {
           }
 
           @Override
-          public IntegrationResult integrate(final Path root, final boolean remove) {
+          public IntegrationResult integrate(final Path root, final IntegrationRequest request) {
             return new IntegrationResult(IntegrationResult.Status.CONFLICT, List.of(), "conflict");
           }
         };

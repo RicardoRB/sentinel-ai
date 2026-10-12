@@ -1,14 +1,13 @@
 package dev.sentinel.infrastructure.cli;
 
-import dev.sentinel.application.agent.IntegrationService;
 import dev.sentinel.application.init.InitService;
 import dev.sentinel.application.init.InitSetupCatalog;
 import dev.sentinel.application.project.ProjectDetector;
 import dev.sentinel.config.DaggerSentinelComponent;
 import dev.sentinel.config.SentinelComponent;
 import dev.sentinel.infrastructure.agent.ClaudeCodeIntegration;
+import dev.sentinel.infrastructure.agent.FileSystemOpenSpecSetupInspection;
 import dev.sentinel.infrastructure.agent.OpenCodeIntegration;
-import dev.sentinel.infrastructure.cli.agent.IntegrateCommand;
 import dev.sentinel.infrastructure.cli.init.InitCommand;
 import dev.sentinel.infrastructure.doctor.SystemEnvironmentInspection;
 import dev.sentinel.infrastructure.init.ArchitectureTestGenerator;
@@ -23,7 +22,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermissions;
-import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
@@ -79,18 +77,13 @@ class SentinelCliIntegrationSupport {
   }
 
   protected int runWithInput(final String input, final String... args) {
-    final IntegrateCommand integrate =
-        new IntegrateCommand(
-            new IntegrationService(
-                new ProjectDetector(new FileSystemProjectInspection()),
-                List.of(new OpenCodeIntegration(), new ClaudeCodeIntegration())),
-            new ByteArrayInputStream(input.getBytes(StandardCharsets.UTF_8)));
-    final CommandLine cli = new CommandLine(integrate);
-    cli.setOut(new PrintWriter(out, true));
-    cli.setErr(new PrintWriter(err, true));
-    cli.setExecutionExceptionHandler(CommandLineRunnerImpl::handle);
-    cli.setExecutionStrategy(CommandLineRunnerImpl.executionStrategy());
-    return cli.execute(args);
+    return IntegrateCommandFixture.commandLine(
+            new ByteArrayInputStream(input.getBytes(StandardCharsets.UTF_8)),
+            new FileSystemOpenSpecSetupInspection(),
+            new PrintWriter(out, true),
+            new PrintWriter(err, true),
+            CommandLineRunnerImpl.executionStrategy())
+        .execute(args);
   }
 
   protected void fail() throws IOException {

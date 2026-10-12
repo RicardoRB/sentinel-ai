@@ -1,4 +1,7 @@
 {
+  "resources": [
+    { "glob": "dev/sentinel/agent/sentinel-openspec-workflow/SKILL.md" }
+  ],
   "foreign": {
     "downcalls": [
       { "returnType": "int", "parameterTypes": ["int"] },

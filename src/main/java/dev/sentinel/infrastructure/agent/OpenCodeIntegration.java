@@ -1,14 +1,14 @@
 package dev.sentinel.infrastructure.agent;
 
 import dev.sentinel.domain.agent.AgentIntegration;
+import dev.sentinel.domain.agent.IntegrationRequest;
 import dev.sentinel.domain.agent.IntegrationResult;
+import dev.sentinel.domain.agent.OpenSpecGuidanceLayout;
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Stream;
 
 /** Safe, ownership-marked integration for OpenCode command discovery and edit/write events. */
 public final class OpenCodeIntegration implements AgentIntegration {
@@ -16,6 +16,8 @@ public final class OpenCodeIntegration implements AgentIntegration {
   public static final String PLUGIN_MARKER = "sentinel-owned: opencode-edit-write v1";
   private static final String COMMAND_FILE = ".opencode/commands/sentinel-check.md";
   private static final String PLUGIN_FILE = ".opencode/plugins/sentinel-edit-write.js";
+  public static final String GUIDANCE_FILE =
+      OpenSpecGuidanceLayout.forAgent("opencode").orElseThrow().guidanceFile();
 
   private static final String COMMAND =
       MARKER + "\n\nRun `sentinel check --format json --learn-after 3` and return the result.\n";
@@ -52,80 +54,37 @@ public final class OpenCodeIntegration implements AgentIntegration {
   }
 
   @Override
-  public IntegrationResult integrate(final Path projectRoot, final boolean remove) {
+  public IntegrationResult integrate(final Path projectRoot, final IntegrationRequest request) {
     final Path root = projectRoot.toAbsolutePath().normalize();
-    final Path command = root.resolve(COMMAND_FILE);
-    final Path plugin = root.resolve(PLUGIN_FILE);
+    final List<IntegrationArtifacts.Target> targets = new ArrayList<>();
+    if (request.coversHooks()) {
+      targets.add(new IntegrationArtifacts.Target(root.resolve(COMMAND_FILE), MARKER, COMMAND));
+      targets.add(
+          new IntegrationArtifacts.Target(root.resolve(PLUGIN_FILE), PLUGIN_MARKER, PLUGIN));
+    }
+    if (request.coversGuidance()) {
+      targets.add(
+          new IntegrationArtifacts.Target(
+              root.resolve(GUIDANCE_FILE), OpenSpecGuidance.MARKER, OpenSpecGuidance.content()));
+    }
+    final String subject =
+        request.coversHooks() ? "OpenCode integration" : "OpenCode OpenSpec guidance";
     try {
-      return remove ? remove(command, plugin) : install(command, plugin);
+      return request.removal()
+          ? IntegrationArtifacts.removeAll(
+              targets,
+              root.resolve(".opencode"),
+              "No Sentinel " + subject + " found.",
+              "Removed Sentinel-owned " + subject + ".")
+          : IntegrationArtifacts.installOrRefreshAll(
+              targets,
+              "Sentinel " + subject + " is already present.",
+              request.coversHooks()
+                  ? "Created Sentinel-owned OpenCode command and edit/write integration (or"
+                      + " refreshed it)."
+                  : "Created Sentinel-owned " + subject + " (or refreshed it).");
     } catch (IOException e) {
       throw new UncheckedIOException("Could not update OpenCode integration: " + e.getMessage(), e);
-    }
-  }
-
-  private IntegrationResult install(final Path command, final Path plugin) throws IOException {
-    final IntegrationResult conflict =
-        IntegrationArtifacts.preflight(command, MARKER, plugin, PLUGIN_MARKER);
-    if (conflict != null) {
-      return conflict;
-    }
-    final IntegrationResult commandResult =
-        IntegrationArtifacts.installOrRefresh(
-            command, MARKER, COMMAND, "Updated Sentinel OpenCode integration.");
-    if (commandResult.status() == IntegrationResult.Status.CONFLICT) {
-      return commandResult;
-    }
-    final IntegrationResult pluginResult =
-        IntegrationArtifacts.installOrRefresh(
-            plugin, PLUGIN_MARKER, PLUGIN, "Updated Sentinel OpenCode integration.");
-    if (pluginResult.status() == IntegrationResult.Status.CONFLICT) {
-      return pluginResult;
-    }
-    return IntegrationArtifacts.combine(
-        command,
-        commandResult,
-        plugin,
-        pluginResult,
-        "Sentinel OpenCode integration is already present.",
-        "Created Sentinel-owned OpenCode command and edit/write integration (or refreshed it).");
-  }
-
-  private IntegrationResult remove(final Path command, final Path plugin) throws IOException {
-    IntegrationResult conflict = IntegrationArtifacts.preflight(command, MARKER);
-    if (conflict != null) {
-      return conflict;
-    }
-    conflict = IntegrationArtifacts.preflight(plugin, PLUGIN_MARKER);
-    if (conflict != null) {
-      return conflict;
-    }
-    if (!Files.exists(command) && !Files.exists(plugin)) {
-      return new IntegrationResult(
-          IntegrationResult.Status.NOT_FOUND, List.of(), "No Sentinel OpenCode integration found.");
-    }
-
-    final List<String> removed = new ArrayList<>();
-    if (Files.exists(command)) {
-      Files.delete(command);
-      removed.add(command.toString());
-    }
-    if (Files.exists(plugin)) {
-      Files.delete(plugin);
-      removed.add(plugin.toString());
-    }
-    deleteIfEmpty(plugin.getParent());
-    deleteIfEmpty(command.getParent());
-    return new IntegrationResult(
-        IntegrationResult.Status.REMOVED, removed, "Removed Sentinel-owned OpenCode integration.");
-  }
-
-  private static void deleteIfEmpty(final Path directory) throws IOException {
-    if (directory != null && Files.isDirectory(directory)) {
-      try (Stream<Path> entries = Files.list(directory)) {
-        if (entries.findAny().isEmpty()) {
-          Files.deleteIfExists(directory);
-        }
-      }
     }
   }
 }

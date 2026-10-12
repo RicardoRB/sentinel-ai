@@ -1,6 +1,8 @@
 package dev.sentinel.infrastructure.cli.agent;
 
 import dev.sentinel.application.agent.IntegrationService;
+import dev.sentinel.domain.agent.IntegrationRequest;
+import dev.sentinel.domain.agent.IntegrationRequest.Guidance;
 import dev.sentinel.domain.agent.IntegrationResult;
 import dev.sentinel.domain.config.SentinelException;
 import dev.sentinel.infrastructure.cli.ExitCodes;
@@ -37,8 +39,20 @@ public final class IntegrateCommand implements Callable<Integer> {
       description = "Agent: opencode or claude-code (prompts when omitted)")
   private String agent;
 
-  @Option(names = "--remove", description = "Remove only Sentinel-owned integration content.")
+  @Option(
+      names = "--remove",
+      description =
+          "Remove only Sentinel-owned integration content, including Sentinel-owned OpenSpec"
+              + " guidance.")
   private boolean remove;
+
+  @Option(
+      names = "--openspec-guidance",
+      description =
+          "Also install Sentinel-owned OpenSpec workflow guidance. Requires OpenSpec on PATH and an"
+              + " openspec/ directory set up by a human; Sentinel never installs or initializes"
+              + " OpenSpec. With --remove, remove only the guidance.")
+  private boolean openSpecGuidance;
 
   private final IntegrationService service;
   private final InputStream input;
@@ -58,10 +72,18 @@ public final class IntegrateCommand implements Callable<Integer> {
     if (agent == null || agent.isBlank()) {
       agent = selectAgent();
     }
-    final IntegrationResult result = service.integrate(agent, options.directory(), remove);
+    final IntegrationResult result = service.integrate(agent, options.directory(), request());
     output().printf("%s: %s%n", result.status(), result.message());
     result.changed().forEach(output()::println);
-    return result.status() == IntegrationResult.Status.CONFLICT ? ExitCodes.ERROR : ExitCodes.OK;
+    result.warnings().forEach(warning -> output().printf("WARNING: %s%n", warning));
+    return result.failed() ? ExitCodes.ERROR : ExitCodes.OK;
+  }
+
+  private IntegrationRequest request() {
+    if (remove) {
+      return IntegrationRequest.remove(openSpecGuidance ? Guidance.ONLY : Guidance.INCLUDED);
+    }
+    return IntegrationRequest.install(openSpecGuidance ? Guidance.INCLUDED : Guidance.EXCLUDED);
   }
 
   private String selectAgent() {

@@ -26,6 +26,7 @@ one line per check:
 | `integration` | `OK` / `WARNING` | The OpenCode command `.opencode/commands/sentinel-check.md` exists. The Claude Code integration is not checked yet. |
 | `native` | `OK` / `WARNING` | `target/sentinel` exists in the current directory. This is a development check for the Sentinel repository. |
 | `openspec` / `openspec-archived` | `OK` / `ERROR` | For each enabled registration, the configured executable and project-root `openspec/` directory are available. |
+| `guidance` | `OK` / `WARNING` | Reported once per agent only when Sentinel-owned [OpenSpec guidance](/commands/integrate/#openspec-guidance) is installed. `OK` means `openspec` is on `PATH`, `openspec/` exists, and the agent's official verify workflow is installed. |
 
 Warnings do not affect the result. Exit `0` means no check reported `ERROR`; exit `2` means at least
 one did.
@@ -33,6 +34,18 @@ one did.
 
 `sentinel --verbose doctor` explains the inspection phase and safe availability counts on stderr.
 Environment contents and filesystem paths are not included in diagnostics.
+
+A `guidance` warning names each missing piece and the step a human must run to fix it:
+
+```text
+[WARNING] guidance      claude-code OpenSpec guidance installed. /opsx:verify is not installed; a human must run `openspec config profile`, include verify, then `openspec update`.
+```
+
+| Missing | Remediation (run by a human) |
+|---|---|
+| `openspec` on `PATH` | Install OpenSpec so `openspec` is on `PATH`. |
+| `openspec/` directory | Run `openspec init`. |
+| Verify workflow | Run `openspec config profile`, include verify, then `openspec update`. |
 
 OpenSpec diagnosis is conditional and read-only: doctor inspects only enabled registrations in
 configured profiles. It never runs validation, installs a tool, creates an `openspec/` directory,

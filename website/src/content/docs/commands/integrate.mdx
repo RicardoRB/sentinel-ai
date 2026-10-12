@@ -4,7 +4,7 @@ description: Install or remove agent integrations.
 ---
 
 ```sh
-sentinel integrate <opencode|claude-code> [-C <dir>] [--remove]
+sentinel integrate <opencode|claude-code> [-C <dir>] [--openspec-guidance] [--remove]
 ```
 
 Without an agent argument Sentinel prompts for a choice. Installation is project-local and
@@ -13,7 +13,57 @@ and removal deletes only Sentinel-owned files. Re-running the command refreshes 
 Sentinel-owned files. Claude Code uses `sentinel hook claude-code`; `sentinel` must be on `PATH`.
 OpenCode's Sentinel-owned command is also removed.
 Review [Claude Code](/integrations/claude-code/) and [OpenCode](/integrations/opencode/) details.
-Exit `0` means success. A conflict or invalid usage returns `2` (Sentinel could not complete the operation).
+Exit `0` means success. A conflict, a missing prerequisite, or invalid usage returns `2` (Sentinel
+could not complete the operation).
+
+## OpenSpec guidance
+
+`--openspec-guidance` additionally installs one Sentinel-owned guidance file that tells the agent how
+to work through OpenSpec's official workflows and how they relate to `sentinel check`. It is opt-in
+and installs guidance only: OpenSpec itself stays under OpenSpec's and your control.
+
+| Command | Hook files | Guidance file |
+| --- | --- | --- |
+| `sentinel integrate <agent>` | installed or refreshed | untouched |
+| `sentinel integrate <agent> --openspec-guidance` | installed or refreshed | installed or refreshed |
+| `sentinel integrate <agent> --remove` | removed | removed, if Sentinel owns it |
+| `sentinel integrate <agent> --openspec-guidance --remove` | untouched | removed |
+
+A plain `--remove` also removes Sentinel-owned guidance. Every target is checked before anything is
+written or removed, so a user-owned file at any target is reported as a conflict and nothing changes.
+
+```sh
+sentinel integrate claude-code --openspec-guidance
+sentinel integrate opencode --openspec-guidance --remove
+```
+
+### Setup a human must do first
+
+Sentinel checks these prerequisites by reading the filesystem. It never runs `openspec`, installs
+OpenSpec, creates `openspec/`, or writes `openspec/config.yaml`. Each step below is something a
+person runs; Sentinel only tells you which one is missing.
+
+1. **Install OpenSpec so `openspec` is on `PATH`**, for example `npm install -g @fission-ai/openspec`.
+   The official agent workflows run `openspec` by name, so the project-local copy `sentinel init` can
+   install for the OpenSpec gate does not count. If it is missing, Sentinel writes nothing and exits
+   with `2`.
+2. **Run `openspec init`** in the project root and select your agent. This creates `openspec/` and
+   the official workflows. If `openspec/` is missing, Sentinel writes nothing and exits with `2`.
+3. **Optional: enable `/opsx:verify`.** OpenSpec's default profile does not include it. Run
+   `openspec config profile`, include the verify workflow, then `openspec update`. Without it,
+   Sentinel still installs the guidance and prints a `WARNING:` line naming these commands.
+
+### Where a human approves
+
+The guidance tells the agent to stop for a person twice:
+
+- **Before implementation**, to review and approve the plan created with `/opsx:propose`.
+- **Before archiving**, to approve running `/opsx:archive`. A passing `/opsx:verify` review is
+  advisory and never approves archiving; `sentinel check` must also pass.
+
+Once a plan is approved, the agent must not edit its specs to make failing code pass. If a spec
+looks wrong, the agent asks you before revising it with `/opsx:update`.
+
 ## Verbose diagnostics
 
 Use `sentinel --verbose integrate ...` or place `--verbose` after the command. Logs go only to

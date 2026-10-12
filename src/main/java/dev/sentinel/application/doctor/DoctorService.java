@@ -1,6 +1,7 @@
 package dev.sentinel.application.doctor;
 
 import dev.sentinel.application.project.ProjectDetector;
+import dev.sentinel.domain.agent.OpenSpecGuidanceLayout;
 import dev.sentinel.domain.config.GateConfiguration;
 import dev.sentinel.domain.config.SentinelConfiguration;
 import dev.sentinel.domain.config.SentinelConfigurationReader;
@@ -85,6 +86,7 @@ public final class DoctorService {
             "Native executable present.",
             "Build with the native profile."));
     diagnoseOpenSpec(root, facts, findings);
+    OpenSpecGuidanceLayout.all().forEach(layout -> diagnoseGuidance(root, facts, layout, findings));
     return findings;
   }
 
@@ -139,6 +141,38 @@ public final class DoctorService {
                 + "; "
                 + directoryMessage
                 + ". Configure prerequisites before checking."));
+  }
+
+  private void diagnoseGuidance(
+      final Path root,
+      final EnvironmentFacts facts,
+      final OpenSpecGuidanceLayout layout,
+      final List<Finding> findings) {
+    final String agent = layout.agentId();
+    if (!flag(facts, "openSpecGuidance." + agent)) {
+      return;
+    }
+    final List<String> remediations = new ArrayList<>();
+    if (!facts.hasExecutable("openspec")) {
+      remediations.add(
+          "OpenSpec is not on PATH; a human must install OpenSpec so `openspec` is on PATH.");
+    }
+    if (!environment.hasOpenSpecDirectory(root)) {
+      remediations.add("openspec/ is missing; a human must run `openspec init`.");
+    }
+    if (!flag(facts, "openSpecVerifyWorkflow." + agent)) {
+      remediations.add(
+          "/opsx:verify is not installed; a human must run `openspec config profile`, include"
+              + " verify, then `openspec update`.");
+    }
+    findings.add(
+        remediations.isEmpty()
+            ? new Finding(
+                "guidance", Status.OK, agent + " OpenSpec guidance installed; prerequisites ready.")
+            : new Finding(
+                "guidance",
+                Status.WARNING,
+                agent + " OpenSpec guidance installed. " + String.join(" ", remediations)));
   }
 
   private static boolean isOpenSpec(final String id) {

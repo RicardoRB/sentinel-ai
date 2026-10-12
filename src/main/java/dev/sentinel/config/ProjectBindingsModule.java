@@ -3,12 +3,14 @@ package dev.sentinel.config;
 import dagger.Binds;
 import dagger.Module;
 import dev.sentinel.domain.agent.AgentRunnerFactory;
+import dev.sentinel.domain.agent.OpenSpecSetupInspection;
 import dev.sentinel.domain.config.SentinelConfigurationReader;
 import dev.sentinel.domain.doctor.EnvironmentInspection;
 import dev.sentinel.domain.json.JsonCodec;
 import dev.sentinel.domain.learning.LearningStore;
 import dev.sentinel.domain.loop.GitStateInspection;
 import dev.sentinel.domain.project.ProjectInspection;
+import dev.sentinel.infrastructure.agent.FileSystemOpenSpecSetupInspection;
 import dev.sentinel.infrastructure.agent.ProcessAgentRunnerFactory;
 import dev.sentinel.infrastructure.config.TomlConfigurationReader;
 import dev.sentinel.infrastructure.doctor.SystemEnvironmentInspection;
@@ -33,6 +35,9 @@ interface ProjectBindingsModule {
 
   @Binds
   AgentRunnerFactory agentRunnerFactory(ProcessAgentRunnerFactory implementation);
+
+  @Binds
+  OpenSpecSetupInspection openSpecSetupInspection(FileSystemOpenSpecSetupInspection implementation);
 
   @Binds
   LearningStore learningStore(JsonLearningStore implementation);

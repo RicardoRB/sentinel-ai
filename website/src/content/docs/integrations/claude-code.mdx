@@ -16,3 +16,16 @@ overwritten; a conflict prevents partial integration. Remove using
 unrelated configuration is preserved. The hook executes repository configuration with your user
 privileges. Enable it only in repositories you trust.
 Re-run `sentinel integrate claude-code` to refresh an outdated Sentinel-owned hook.
+
+## OpenSpec guidance
+
+`sentinel integrate claude-code --openspec-guidance` also installs the Sentinel-owned skill
+`.claude/skills/sentinel-openspec-workflow/SKILL.md`. It tells Claude Code to plan and archive
+changes through OpenSpec's official `/opsx:*` workflows, that `sentinel check` decides whether
+implementation is acceptable while `/opsx:verify` is only advisory, and that approved specs must
+not be changed to make failing code pass.
+
+Sentinel does not install, update, or edit OpenSpec's own files. The official
+`.claude/commands/opsx/` commands, `.claude/skills/openspec-*` skills, and `openspec/config.yaml`
+stay under OpenSpec's and your control. See [integrate](/commands/integrate/#openspec-guidance) for
+prerequisites and the steps a human must run.

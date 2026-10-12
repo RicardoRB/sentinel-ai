@@ -1,7 +1,9 @@
 package dev.sentinel.infrastructure.agent;
 
 import dev.sentinel.domain.agent.AgentIntegration;
+import dev.sentinel.domain.agent.IntegrationRequest;
 import dev.sentinel.domain.agent.IntegrationResult;
+import dev.sentinel.domain.agent.OpenSpecGuidanceLayout;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
@@ -11,7 +13,6 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Stream;
 
 /** Ownership-safe Claude Code project hook integration. */
 public final class ClaudeCodeIntegration implements AgentIntegration {
@@ -19,6 +20,8 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
   public static final String HOOK_MARKER = "sentinel-owned: edit-write-guard v1";
   private static final String SETTINGS_FILE = ".claude/settings.json";
   private static final String HOOK_FILE = ".claude/hooks/sentinel-edit-write";
+  public static final String GUIDANCE_FILE =
+      OpenSpecGuidanceLayout.forAgent("claude-code").orElseThrow().guidanceFile();
 
   private static final String SETTINGS =
       """
@@ -56,88 +59,59 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
   }
 
   @Override
-  public IntegrationResult integrate(final Path projectRoot, final boolean remove) {
-    final Path settings = projectRoot.toAbsolutePath().normalize().resolve(SETTINGS_FILE);
-    final Path hook = projectRoot.toAbsolutePath().normalize().resolve(HOOK_FILE);
+  public IntegrationResult integrate(final Path projectRoot, final IntegrationRequest request) {
+    final Path root = projectRoot.toAbsolutePath().normalize();
+    final Path hook = root.resolve(HOOK_FILE);
+    final List<IntegrationArtifacts.Target> targets = new ArrayList<>();
+    if (request.coversHooks()) {
+      targets.add(
+          new IntegrationArtifacts.Target(root.resolve(SETTINGS_FILE), SETTINGS_MARKER, SETTINGS));
+      targets.add(new IntegrationArtifacts.Target(hook, HOOK_MARKER, HOOK));
+    }
+    if (request.coversGuidance()) {
+      targets.add(
+          new IntegrationArtifacts.Target(
+              root.resolve(GUIDANCE_FILE), OpenSpecGuidance.MARKER, OpenSpecGuidance.content()));
+    }
+    final String subject =
+        request.coversHooks() ? "Claude Code integration" : "Claude Code OpenSpec guidance";
     try {
-      return remove ? remove(settings, hook) : install(settings, hook);
+      return request.removal()
+          ? remove(root, targets, subject)
+          : install(hook, targets, subject, request.coversHooks());
     } catch (IOException e) {
       throw new UncheckedIOException(
           "Could not update Claude Code integration: " + e.getMessage(), e);
     }
   }
 
-  private IntegrationResult install(final Path settings, final Path hook) throws IOException {
-    final IntegrationResult conflict =
-        IntegrationArtifacts.preflight(settings, SETTINGS_MARKER, hook, HOOK_MARKER);
-    if (conflict != null) {
-      return conflict;
-    }
-    final IntegrationResult settingsResult =
-        IntegrationArtifacts.installOrRefresh(
-            settings, SETTINGS_MARKER, SETTINGS, "Updated Sentinel Claude Code integration.");
-    if (settingsResult.status() == IntegrationResult.Status.CONFLICT) {
-      return settingsResult;
-    }
-    final IntegrationResult hookResult =
-        IntegrationArtifacts.installOrRefresh(
-            hook, HOOK_MARKER, HOOK, "Updated Sentinel Claude Code integration.");
-    if (hookResult.status() == IntegrationResult.Status.CONFLICT) {
-      return hookResult;
-    }
-    if (Files.exists(hook)) {
+  private static IntegrationResult install(
+      final Path hook,
+      final List<IntegrationArtifacts.Target> targets,
+      final String subject,
+      final boolean hooks)
+      throws IOException {
+    final IntegrationResult result =
+        IntegrationArtifacts.installOrRefreshAll(
+            targets,
+            "Sentinel " + subject + " is already present.",
+            hooks
+                ? "Created Sentinel-owned Claude Code edit/write integration (or refreshed it)."
+                : "Created Sentinel-owned " + subject + " (or refreshed it).");
+    if (hooks && result.status() != IntegrationResult.Status.CONFLICT && Files.exists(hook)) {
       makeExecutable(hook);
     }
-    return IntegrationArtifacts.combine(
-        settings,
-        settingsResult,
-        hook,
-        hookResult,
-        "Sentinel Claude Code integration is already present.",
-        "Created Sentinel-owned Claude Code edit/write integration (or refreshed it).");
+    return result;
   }
 
-  private IntegrationResult remove(final Path settings, final Path hook) throws IOException {
-    IntegrationResult conflict = IntegrationArtifacts.preflight(settings, SETTINGS_MARKER);
-    if (conflict != null) {
-      return conflict;
-    }
-    conflict = IntegrationArtifacts.preflight(hook, HOOK_MARKER);
-    if (conflict != null) {
-      return conflict;
-    }
-    if (!Files.exists(settings) && !Files.exists(hook)) {
-      return new IntegrationResult(
-          IntegrationResult.Status.NOT_FOUND,
-          List.of(),
-          "No Sentinel Claude Code integration found.");
-    }
-
-    final List<String> removed = new ArrayList<>();
-    if (Files.exists(settings)) {
-      Files.delete(settings);
-      removed.add(settings.toString());
-    }
-    if (Files.exists(hook)) {
-      Files.delete(hook);
-      removed.add(hook.toString());
-    }
-    deleteIfEmpty(hook.getParent());
-    deleteIfEmpty(settings.getParent());
-    return new IntegrationResult(
-        IntegrationResult.Status.REMOVED,
-        removed,
-        "Removed Sentinel-owned Claude Code integration.");
-  }
-
-  private static void deleteIfEmpty(final Path directory) throws IOException {
-    if (directory != null && Files.isDirectory(directory)) {
-      try (Stream<Path> entries = Files.list(directory)) {
-        if (entries.findAny().isEmpty()) {
-          Files.deleteIfExists(directory);
-        }
-      }
-    }
+  private static IntegrationResult remove(
+      final Path root, final List<IntegrationArtifacts.Target> targets, final String subject)
+      throws IOException {
+    return IntegrationArtifacts.removeAll(
+        targets,
+        root,
+        "No Sentinel " + subject + " found.",
+        "Removed Sentinel-owned " + subject + ".");
   }
 
   private static void makeExecutable(final Path file) throws IOException {
