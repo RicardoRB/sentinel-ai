@@ -1,7 +1,6 @@
 package dev.sentinel.application.gate;
 
 import dev.sentinel.domain.doctor.EnvironmentInspection;
-import dev.sentinel.domain.doctor.ExecutableObservation;
 import dev.sentinel.domain.gate.GateResult;
 import dev.sentinel.domain.gate.GateStatus;
 import dev.sentinel.domain.gate.QualityGate;
@@ -9,6 +8,7 @@ import dev.sentinel.domain.process.CommandExecutor;
 import dev.sentinel.domain.project.Project;
 import java.time.Duration;
 import java.util.List;
+import java.util.Optional;
 
 /** OpenSpec validation with explicit executable and project-directory prerequisites. */
 public final class OpenSpecQualityGate implements QualityGate {
@@ -41,22 +41,12 @@ public final class OpenSpecQualityGate implements QualityGate {
     if (command.isEmpty()) {
       return failure("OpenSpec validation requires a command.");
     }
-    final String executable = command.getFirst();
-    final ExecutableObservation observation =
-        environment.inspectExecutable(project.root(), executable);
-    final boolean directory = environment.hasOpenSpecDirectory(project.root());
-    if (!observation.usable()) {
-      return unavailable(
-          "OpenSpec executable '"
-              + executable
-              + "' is unavailable. Install OpenSpec or configure an executable path."
-              + (directory
-                  ? ""
-                  : " The project-root openspec/ directory is also missing or not a directory."));
-    }
-    if (!directory) {
-      return failure(
-          "Project-root openspec/ directory is missing or is not a directory. Initialize the project manually.");
+    final Optional<OpenSpecPrerequisites.Problem> problem =
+        OpenSpecPrerequisites.check(environment, project.root(), command.getFirst());
+    if (problem.isPresent()) {
+      return problem.get().unavailable()
+          ? unavailable(problem.get().message())
+          : failure(problem.get().message());
     }
     return GateResult.from(name, command, executor.execute(command, project.root()));
   }

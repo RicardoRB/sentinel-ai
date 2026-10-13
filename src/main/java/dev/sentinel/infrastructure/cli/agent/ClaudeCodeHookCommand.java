@@ -2,19 +2,26 @@ package dev.sentinel.infrastructure.cli.agent;
 
 import dev.sentinel.application.gate.CheckService;
 import dev.sentinel.application.learning.LearningService;
+import dev.sentinel.application.spec.SpecValidationService;
 import dev.sentinel.domain.config.SentinelException;
 import dev.sentinel.domain.gate.CheckReport;
-import dev.sentinel.domain.gate.GateResult;
+import dev.sentinel.domain.gate.SupportedQualityGates;
 import dev.sentinel.domain.json.JsonCodec;
 import dev.sentinel.domain.learning.LearningOutcome;
-import dev.sentinel.domain.learning.LearningPrompt;
+import dev.sentinel.domain.spec.SpecValidationReport;
 import dev.sentinel.infrastructure.cli.ExitCodes;
 import dev.sentinel.infrastructure.cli.ProjectOptions;
+import java.io.InputStream;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
+import java.util.function.BooleanSupplier;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.inject.Inject;
 import org.apache.fory.json.annotation.JsonType;
 import picocli.CommandLine.Command;
@@ -23,8 +30,9 @@ import picocli.CommandLine.Model.CommandSpec;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Spec;
 
-@Command(name = "claude-code", description = "Run the Claude Code edit/write hook.")
+@Command(name = "claude-code", description = "Run the Claude Code edit/write and stop hook.")
 public final class ClaudeCodeHookCommand implements Callable<Integer> {
+  private static final Logger LOGGER = Logger.getLogger(ClaudeCodeHookCommand.class.getName());
   private static final int MIN_LEARN_AFTER = 1;
 
   @Spec private CommandSpec spec;
@@ -35,18 +43,51 @@ public final class ClaudeCodeHookCommand implements Callable<Integer> {
   @Option(names = "--learn-after", defaultValue = "3")
   private int threshold;
 
+  @Option(
+      names = "--exclude-spec",
+      description = "Skip spec gates in the quality check; spec validation runs separately.")
+  private boolean excludeSpec;
+
+  @Option(
+      names = "--event-stdin",
+      description = "Read the Claude Code hook event JSON from stdin (used by generated hooks).")
+  private boolean eventStdin;
+
   private final CheckService checkService;
   private final LearningService learningService;
   private final JsonCodec codec;
+  private final SpecValidationService specService;
+  private final InputStream input;
+  private final BooleanSupplier interactiveInput;
 
   @Inject
   public ClaudeCodeHookCommand(
       final CheckService checkService,
       final LearningService learningService,
-      final JsonCodec codec) {
+      final JsonCodec codec,
+      final SpecValidationService specService) {
+    this(
+        checkService,
+        learningService,
+        codec,
+        specService,
+        System.in,
+        () -> System.console() != null && System.console().isTerminal());
+  }
+
+  public ClaudeCodeHookCommand(
+      final CheckService checkService,
+      final LearningService learningService,
+      final JsonCodec codec,
+      final SpecValidationService specService,
+      final InputStream input,
+      final BooleanSupplier interactiveInput) {
     this.checkService = checkService;
     this.learningService = learningService;
     this.codec = codec;
+    this.specService = specService;
+    this.input = input;
+    this.interactiveInput = interactiveInput;
   }
 
   // The hook must always answer Claude Code with an exit code, even on unexpected failures.
@@ -56,68 +97,83 @@ public final class ClaudeCodeHookCommand implements Callable<Integer> {
       error().println("--learn-after must be at least 1");
       return ExitCodes.ERROR;
     }
-    final FutureTask<Integer> execution = new FutureTask<>(this::executeHook);
+    final ClaudeHookEvent event =
+        eventStdin && !interactiveInput.getAsBoolean()
+            ? ClaudeHookEvent.read(input, codec)
+            : new ClaudeHookEvent();
+    final boolean stop = event.isStop();
+    LOGGER.log(Level.INFO, () -> "event=claude-hook-start kind=" + (stop ? "stop" : "post-tool"));
+    final FutureTask<Integer> execution =
+        new FutureTask<>(() -> stop ? executeStop(event) : executePostToolUse(event));
     execution.run();
     try {
       return execution.get();
     } catch (InterruptedException exception) {
       Thread.currentThread().interrupt();
-      return unexpectedFailure(exception);
+      return stop ? stopFailure(exception) : reportFailure(exception);
     } catch (ExecutionException exception) {
-      return reportFailure(exception.getCause());
+      return stop ? stopFailure(exception.getCause()) : reportFailure(exception.getCause());
     }
   }
 
-  private Integer executeHook() {
-    final CheckReport report = checkService.check(options.directory());
+  private Integer executePostToolUse(final ClaudeHookEvent event) {
+    final Set<String> excluded = excludeSpec ? SupportedQualityGates.specIds() : Set.of();
+    final CheckReport report = checkService.checkExcluding(options.directory(), excluded);
     final LearningOutcome learning = learningService.learn(report, threshold);
-    if (!report.passed()) {
-      error().println(failureSummary(report));
-      learning.prompts().forEach(prompt -> error().println(prompt.instruction()));
-      learning.warnings().forEach(warning -> error().println(warning));
-      return ExitCodes.ERROR;
-    }
-    if (!learning.prompts().isEmpty()) {
-      final HookOutput output = new HookOutput();
-      output.hookSpecificOutput = new HookSpecificOutput();
-      output.hookSpecificOutput.hookEventName = "PostToolUse";
-      output.hookSpecificOutput.additionalContext =
-          learning.prompts().stream()
-              .map(LearningPrompt::instruction)
-              .reduce((a, b) -> a + "\n" + b)
-              .orElse("");
-      output().println(codec.toJson(output));
+    final SpecValidationReport specs =
+        event
+            .editedPath()
+            .map(path -> specService.validatePaths(options.directory(), List.of(), List.of(path)))
+            .orElse(SpecValidationReport.EMPTY);
+    final boolean failed = !report.passed() || specs.hasFindings();
+    if (failed) {
+      ClaudeHookFeedback.failures(report, specs, learning).forEach(error()::println);
+    } else if (!learning.prompts().isEmpty()) {
+      output()
+          .println(
+              ClaudeHookResponses.postToolUseContext(
+                  codec, ClaudeHookFeedback.learningContext(learning)));
     }
     learning.warnings().forEach(warning -> error().println(warning));
+    return failed ? ExitCodes.ERROR : ExitCodes.OK;
+  }
+
+  /**
+   * Delivers turn-end spec findings to the agent once per turn. When Claude Code is already
+   * continuing because of a stop hook, the findings go to the user instead of blocking again.
+   */
+  private Integer executeStop(final ClaudeHookEvent event) {
+    final SpecValidationReport specs =
+        specService.validateConfigured(options.directory(), List.of());
+    if (!specs.hasFindings()) {
+      return ExitCodes.OK;
+    }
+    final String findings = ClaudeHookFeedback.specFindings(specs);
+    if (event.stopHookActive) {
+      LOGGER.log(Level.INFO, "event=claude-stop-reported reason=already-continued");
+      output().println(ClaudeHookResponses.systemMessage(codec, findings));
+    } else {
+      LOGGER.log(Level.INFO, "event=claude-stop-blocked");
+      output().println(ClaudeHookResponses.blockStop(codec, findings));
+    }
+    return ExitCodes.OK;
+  }
+
+  /** A turn-end infrastructure failure is shown to the user and never blocks the agent. */
+  private Integer stopFailure(final Throwable failure) {
+    output().println(ClaudeHookResponses.systemMessage(codec, failureMessage(failure)));
     return ExitCodes.OK;
   }
 
   private Integer reportFailure(final Throwable failure) {
-    return failure instanceof SentinelException exception
-        ? expectedFailure(exception)
-        : unexpectedFailure(failure);
-  }
-
-  private Integer expectedFailure(final SentinelException failure) {
-    error().println("sentinel: " + failure.getMessage());
+    error().println(failureMessage(failure));
     return ExitCodes.ERROR;
   }
 
-  private Integer unexpectedFailure(final Throwable failure) {
-    error().println("sentinel: unexpected error: " + failure.getMessage());
-    return ExitCodes.ERROR;
-  }
-
-  private static String failureSummary(final CheckReport report) {
-    return report.results().stream()
-        .filter(result -> !result.passed() && !"SKIPPED".equals(result.status().name()))
-        .map(ClaudeCodeHookCommand::summary)
-        .reduce((a, b) -> a + System.lineSeparator() + b)
-        .orElse("Sentinel quality check failed");
-  }
-
-  private static String summary(final GateResult result) {
-    return result.name() + ": " + (result.summary() == null ? result.status() : result.summary());
+  private static String failureMessage(final Throwable failure) {
+    return failure instanceof SentinelException
+        ? "sentinel: " + failure.getMessage()
+        : "sentinel: unexpected error: " + failure.getMessage();
   }
 
   private PrintWriter output() {
@@ -132,6 +188,7 @@ public final class ClaudeCodeHookCommand implements Callable<Integer> {
         : spec.commandLine().getErr();
   }
 
+  /** PostToolUse hook output; its JSON shape is a published contract. */
   @JsonType
   public static final class HookOutput {
     public HookSpecificOutput hookSpecificOutput;

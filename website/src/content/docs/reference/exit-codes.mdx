@@ -17,7 +17,8 @@ description: Sentinel process exit status meanings.
 | `integrate` | Installed or removed | — | Conflict or invalid usage |
 | `doctor` | No `ERROR` findings | — | At least one `ERROR` finding |
 | `loop` | `PASSED` | Any other terminal state | Invalid usage |
-| `hook claude-code` | Gates passed | — | Gates failed or could not run (reported to the agent on stderr) |
+| `spec validate` | Nothing to report | Findings or an unsuccessful spec validation | Could not run |
+| `hook claude-code` | Gates passed and no spec findings; always for `Stop` events | — | Gates failed, spec findings, or could not run (reported to the agent on stderr) |
 
 For scripts, combine the exit status with `check --format json` to inspect individual results.
 JSON mode keeps stdout machine-readable; diagnostics are written to stderr.

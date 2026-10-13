@@ -1,17 +1,56 @@
 ---
 title: OpenCode
-description: Install Sentinel's OpenCode edit/write plugin.
+description: Install Sentinel's OpenCode edit and idle plugin.
 ---
 
-Install with `sentinel integrate opencode`. Sentinel retains the
+Install with `sentinel integrate opencode`. Sentinel keeps the
 `.opencode/commands/sentinel-check.md` command and creates
-`.opencode/plugins/sentinel-edit-write.js`. The plugin's `tool.execute.after` handler checks `edit`
-and `write`; a failed or unavailable check is returned as a non-success result with Sentinel output.
-It runs `sentinel check --format json --learn-after 3` from the project directory and appends
-learning prompts to the tool result. Ensure `sentinel` is on `PATH` and re-run integration to
-refresh an outdated Sentinel-owned plugin.
+`.opencode/plugins/sentinel-edit-write.js`. Make sure `sentinel` is on `PATH`. The plugin targets the
+OpenCode 1.x plugin API (verified with OpenCode 1.19) and handles two moments:
+
+| Hook | When | What Sentinel does |
+|---|---|---|
+| `tool.execute.after` | After an `edit`, `write`, `multiedit`, `apply_patch`, or `patch` tool call | Runs the quality check, then validates the edited spec files |
+| `event` (`session.idle`) | When the agent finishes its turn | Runs every configured spec check |
+
+## After each edit
+
+The plugin runs `sentinel check --format json --exclude-spec --learn-after 3` from the project directory. It
+then collects the edited paths:
+
+- `args.filePath` for `edit`, `write`, and `multiedit`;
+- the file and move paths in the `apply_patch` result metadata;
+- `args.path` for the newer `patch` tool.
+
+Paths under `openspec/` are passed to [`sentinel spec validate`](/commands/spec/). A single patch that touches
+several changes validates each of them once.
+
+If the quality check fails or spec validation reports findings, the plugin returns a non-success tool result
+containing the Sentinel output, so the agent sees it immediately. Learning prompts are appended to the tool
+result on success and included in the error on failure.
+
+## When the session becomes idle
+
+The plugin runs `sentinel spec validate` without paths, which runs the enabled `openspec` and
+`openspec-archived` validations.
+
+- **No problems:** nothing happens.
+- **First idle with findings in a turn:** the plugin prompts the session with the findings, prefixed with
+  `[sentinel spec validation]`, so the agent can fix them.
+- **Agent goes idle again and findings remain:** the plugin shows them as a warning toast instead of prompting
+  again. A new message from you allows one more hand-off. The plugin's own prompt doesn't count as a new user
+  turn, so a problem the agent cannot fix can't loop.
+- **Sentinel itself fails:** the error is shown as a toast and never sent to the agent.
+- **Overlapping idle events:** if another idle event arrives while a validation is still running for the same
+  session, it is ignored.
+
+Projects without an enabled OpenSpec validation see no change: spec validation does nothing for them.
+
+## Ownership and removal
 
 Generated files contain ownership markers. User-owned targets are never overwritten and a
 conflict does not enable a partial integration. Remove with
 `sentinel integrate opencode --remove`; only Sentinel-owned generated files are deleted. Hooks
-execute trusted repository configuration with your privileges.
+execute trusted repository configuration with your privileges. Re-run `sentinel integrate opencode` to refresh an
+outdated Sentinel-owned plugin. Earlier plugins did not recognize `apply_patch`, so patch edits went unchecked
+until refreshed.

@@ -4,7 +4,7 @@ description: Run configured quality gates.
 ---
 
 ```sh
-sentinel check [-C <dir>] [--format text|json] [--profile <name>[,...]] [--fail-fast] [--learn-after <n>]
+sentinel check [-C <dir>] [--format text|json] [--profile <name>[,...]] [--fail-fast] [--exclude-spec] [--learn-after <n>]
 ```
 
 Checks run in configuration declaration order. `default` is selected when no profile is provided;
@@ -15,6 +15,13 @@ missing (for example `gitleaks`) is reported as unavailable with install guidanc
 Use `--fail-fast` to stop after the first gate that fails, is unavailable, or encounters an execution
 error. Later selected gates are listed as skipped (`not run (fail-fast)`). Without the option, all
 selected gates run as usual.
+
+Use `--exclude-spec` to skip the spec validation gates, `openspec` and `openspec-archived`, while
+running every other selected gate. The generated agent integrations pass it on each edit because they
+validate specs separately with [`spec validate`](/commands/spec/): the edited change on each edit, and
+everything at the end of the turn. If excluding the spec gates leaves nothing enabled, the check passes
+with an empty report instead of failing with "No quality gates are enabled". Without the option, enabled
+spec gates run like any other gate.
 
 Text output starts with the Sentinel version, then reports each gate as it completes, followed by a
 summary. On an interactive terminal, the running gate line is replaced in place by its final status.

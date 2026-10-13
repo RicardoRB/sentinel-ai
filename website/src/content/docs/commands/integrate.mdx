@@ -12,6 +12,10 @@ idempotent. Generated files are ownership-marked: user-owned conflicting files a
 and removal deletes only Sentinel-owned files. Re-running the command refreshes changed
 Sentinel-owned files. Claude Code uses `sentinel hook claude-code`; `sentinel` must be on `PATH`.
 OpenCode's Sentinel-owned command is also removed.
+Both integrations run the quality check with `--exclude-spec` after each edit and validate edited spec files
+with [`spec validate`](/commands/spec/). When the agent finishes a turn, they run the configured spec checks
+and hand any findings to the agent once per turn. Re-run `sentinel integrate <agent>` after upgrading Sentinel
+to refresh Sentinel-owned files; they are reported as changed.
 Review [Claude Code](/integrations/claude-code/) and [OpenCode](/integrations/opencode/) details.
 Exit `0` means success. A conflict or invalid usage returns `2` (Sentinel could not complete the operation).
 ## Verbose diagnostics
