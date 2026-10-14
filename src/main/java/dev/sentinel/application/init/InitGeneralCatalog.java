@@ -7,6 +7,7 @@ import dev.sentinel.domain.init.InitArchitectureOption;
 import dev.sentinel.domain.init.InitGateOption;
 import dev.sentinel.domain.init.InitIntegrationOption;
 import dev.sentinel.domain.init.QualityPreset;
+import dev.sentinel.domain.project.BuildTool;
 import dev.sentinel.domain.project.Project;
 import java.util.ArrayList;
 import java.util.List;
@@ -49,67 +50,71 @@ public class InitGeneralCatalog {
   }
 
   public List<InitGateOption> gates(final Project project) {
-    final String executable = project.mavenWrapperAvailable() ? "./mvnw" : "mvn";
-    final boolean mavenAvailable =
-        project.mavenWrapperAvailable() || environment.inspect(project.root()).hasExecutable("mvn");
+    final boolean gradle = project.buildTool() == BuildTool.GRADLE;
+    final String executable = project.buildExecutable();
+    final String toolName = gradle ? "Gradle" : "Maven";
+    final String systemExecutable = gradle ? "gradle" : "mvn";
+    final boolean toolAvailable =
+        project.wrapperAvailable()
+            || environment.inspect(project.root()).hasExecutable(systemExecutable);
     final String availability =
-        mavenAvailable
-            ? "Maven command available: " + executable
-            : "Maven is unavailable; install Maven or add a Maven Wrapper before running this gate.";
+        toolAvailable
+            ? toolName + " command available: " + executable
+            : toolName
+                + " is unavailable; install "
+                + toolName
+                + " or add a "
+                + toolName
+                + " Wrapper before running this gate.";
     final List<InitGateOption> options = new ArrayList<>();
     options.add(
         InitGateOptionFactory.option(
-            "tests",
-            "Runs the project's tests.",
-            mavenAvailable,
-            availability,
-            executable,
-            "test"));
+            "tests", "Runs the project's tests.", toolAvailable, availability, executable, "test"));
     options.add(
         InitGateOptionFactory.option(
             "compile",
             "Checks that the project compiles.",
-            mavenAvailable,
+            toolAvailable,
             availability,
             executable,
-            "compile"));
+            task(gradle, "classes", "compile")));
     options.add(
         InitGateOptionFactory.option(
             "coverage",
             "Enforces minimum test coverage.",
-            mavenAvailable,
+            toolAvailable,
             availability + " (minimum coverage is configured in pom.xml.)",
             executable,
-            "jacoco:check"));
+            task(gradle, "jacocoTestReport", "jacoco:check")));
     options.add(
         InitGateOptionFactory.option(
             "spotbugs",
             "Finds potential bugs through static analysis.",
-            mavenAvailable,
+            toolAvailable,
             availability,
             executable,
-            "spotbugs:check"));
+            task(gradle, "spotbugsMain", "spotbugs:check")));
     options.add(
         InitGateOptionFactory.option(
             "checkstyle",
             "Checks source style and formatting rules.",
-            mavenAvailable,
+            toolAvailable,
             availability,
             executable,
-            "checkstyle:check"));
+            task(gradle, "checkstyleMain", "checkstyle:check")));
     options.add(
         InitGateOptionFactory.option(
             "pmd",
             "Finds common Java design and implementation problems with PMD.",
-            mavenAvailable,
+            toolAvailable,
             availability,
             executable,
-            "pmd:check"));
+            task(gradle, "pmdMain", "pmd:check")));
     options.add(
         InitGateOptionFactory.option(
             "sonar",
             "Checks code quality, smells, and duplication.",
-            mavenAvailable,
+            toolAvailable,
             availability,
             executable,
             "sonar"));
@@ -117,35 +122,35 @@ public class InitGeneralCatalog {
         InitGateOptionFactory.option(
             "dependency-check",
             "Scans dependencies for known CVEs.",
-            mavenAvailable,
+            toolAvailable,
             availability,
             executable,
-            "dependency-check:check"));
+            task(gradle, "dependencyCheckAnalyze", "dependency-check:check")));
     options.add(
         InitGateOptionFactory.option(
             "archunit",
             "Checks architecture rules with ArchitectureTest.",
-            mavenAvailable,
+            toolAvailable,
             availability + " (runs only ArchitectureTest.)",
             executable,
-            "-Dtest=ArchitectureTest",
-            "test"));
+            task(gradle, "--tests", "-Dtest=ArchitectureTest"),
+            task(gradle, "*ArchitectureTest", "test")));
     options.add(
         InitGateOptionFactory.option(
             "mutation",
             "Measures test strength with mutation testing.",
-            mavenAvailable,
+            toolAvailable,
             availability,
             executable,
-            "pitest:mutationCoverage"));
+            task(gradle, "pitest", "pitest:mutationCoverage")));
     options.add(
         InitGateOptionFactory.option(
             "format",
             "Checks formatting with Spotless and google-java-format.",
-            mavenAvailable,
+            toolAvailable,
             availability,
             executable,
-            "spotless:check"));
+            task(gradle, "spotlessCheck", "spotless:check")));
     options.add(
         InitGateOptionFactory.binaryOption(
             environment,
@@ -184,31 +189,31 @@ public class InitGeneralCatalog {
         InitGateOptionFactory.option(
             "enforcer",
             "Enforces dependency and build rules with Maven Enforcer.",
-            mavenAvailable,
+            toolAvailable,
             availability + " (dependency and build rules are configured in pom.xml.)",
             executable,
-            "enforcer:enforce"));
+            task(gradle, "check", "enforcer:enforce")));
     options.add(
         InitGateOptionFactory.option(
             "license",
             "Checks dependency license compliance with the License Maven Plugin.",
-            mavenAvailable,
+            toolAvailable,
             availability + " (license policy is configured in pom.xml.)",
             executable,
-            "license:add-third-party"));
+            task(gradle, "licenseMain", "license:add-third-party")));
     options.add(
         InitGateOptionFactory.option(
             "api-compat",
             "Checks binary/API compatibility between versions with japicmp.",
-            mavenAvailable,
+            toolAvailable,
             availability + " (the comparison baseline is configured in pom.xml.)",
             executable,
-            "japicmp:cmp"));
+            task(gradle, "japicmp", "japicmp:cmp")));
     options.add(
         InitGateOptionFactory.option(
             "command",
             "Runs a custom command from sentinel.toml.",
-            mavenAvailable,
+            toolAvailable,
             availability + " (customize the command in sentinel.toml after initialization.)",
             executable,
             "test"));
@@ -220,6 +225,11 @@ public class InitGeneralCatalog {
             true,
             "Source-level mapping analysis; it does not execute tests."));
     return List.copyOf(options);
+  }
+
+  private static String task(
+      final boolean gradle, final String gradleTask, final String mavenTask) {
+    return gradle ? gradleTask : mavenTask;
   }
 
   public InitIntegrationOption integration(final String id) {

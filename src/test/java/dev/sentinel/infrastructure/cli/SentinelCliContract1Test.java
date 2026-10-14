@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnOs;
@@ -46,6 +47,26 @@ class SentinelCliContract1Test extends SentinelCliIntegrationSupport {
     assertThat(run(CHECK, "-C", project.toString())).isEqualTo(ExitCodes.OK);
     assertThat(out.toString())
         .contains("Sentinel dev", "✓ tests", "PASSED", "Quality Gate: PASSED");
+  }
+
+  @Test
+  void detectsAndChecksGradleWrapperProject() throws IOException {
+    Files.delete(project.resolve("pom.xml"));
+    Files.writeString(project.resolve("build.gradle.kts"), "plugins { java }\n");
+    Files.writeString(project.resolve("gradlew"), "#!/bin/sh\nexit 0\n");
+    Files.setPosixFilePermissions(
+        project.resolve("gradlew"), PosixFilePermissions.fromString("rwxr-xr-x"));
+
+    assertThat(run("detect", "-C", project.toString())).isZero();
+    assertThat(out.toString()).contains("Kotlin", "Gradle", project.toString());
+    out.getBuffer().setLength(0);
+
+    assertThat(run(INIT, INTEGRATION_OPTION, NONE, GATE_OPTION, TESTS, "-C", project.toString()))
+        .isZero();
+    assertThat(Files.readString(project.resolve(SENTINEL_TOML))).contains("./gradlew test");
+    out.getBuffer().setLength(0);
+    assertThat(run(CHECK, "-C", project.toString())).isEqualTo(ExitCodes.OK);
+    assertThat(out.toString()).contains("PASSED");
   }
 
   @Test

@@ -8,6 +8,7 @@ import dev.sentinel.domain.gate.QualityGate;
 import dev.sentinel.domain.gate.SkippedQualityGate;
 import dev.sentinel.domain.gate.SupportedQualityGates;
 import dev.sentinel.domain.process.CommandExecutor;
+import dev.sentinel.domain.project.BuildTool;
 import dev.sentinel.domain.project.Project;
 import dev.sentinel.domain.traceability.ScenarioInventory;
 import dev.sentinel.domain.traceability.TestMappingInventory;
@@ -104,11 +105,14 @@ public class QualityGateFactory {
 
   private static List<String> testsCommand(final List<String> configured, final Project project) {
     if (project != null
-        && !project.mavenWrapperAvailable()
+        && !project.wrapperAvailable()
         && !configured.isEmpty()
-        && ("./mvnw".equals(configured.getFirst()) || "mvnw".equals(configured.getFirst()))) {
+        && ("./mvnw".equals(configured.getFirst())
+            || "mvnw".equals(configured.getFirst())
+            || "./gradlew".equals(configured.getFirst())
+            || "gradlew".equals(configured.getFirst()))) {
       final List<String> fallback = new ArrayList<>(configured);
-      fallback.set(0, "mvn");
+      fallback.set(0, project.buildTool() == BuildTool.GRADLE ? "gradle" : "mvn");
       return fallback;
     }
     return configured;

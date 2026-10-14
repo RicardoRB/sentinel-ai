@@ -3,7 +3,7 @@ title: Quick start
 description: Configure and run your first Sentinel check.
 ---
 
-From a supported Maven project, detect the project, create a configuration, and run the gates:
+From a supported Maven or Gradle project, detect the project, create a configuration, and run the gates:
 
 ```bash
 sentinel detect
@@ -12,6 +12,9 @@ sentinel check
 ```
 
 `init` starts an interactive wizard. For non-interactive setup, choose a preset or explicit gates:
+
+Gradle projects use `build.gradle` or `build.gradle.kts`; Sentinel prefers `./gradlew` and falls back
+to `gradle` when no wrapper is available.
 
 ```bash
 sentinel init --preset standard --integration none

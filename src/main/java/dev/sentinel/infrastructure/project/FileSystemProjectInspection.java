@@ -30,12 +30,8 @@ public final class FileSystemProjectInspection implements ProjectInspection {
   private static final List<Marker> MARKERS =
       List.of(
           new Marker(POM, FileSystemProjectInspection::mavenProject),
-          new Marker(
-              "build.gradle.kts",
-              dir -> new Project(dir, Language.KOTLIN, BuildTool.GRADLE, Framework.NONE)),
-          new Marker(
-              "build.gradle",
-              dir -> new Project(dir, Language.JAVA, BuildTool.GRADLE, Framework.NONE)),
+          new Marker("build.gradle.kts", dir -> gradleProject(dir, Language.KOTLIN)),
+          new Marker("build.gradle", dir -> gradleProject(dir, Language.JAVA)),
           new Marker(
               "tsconfig.json",
               dir -> new Project(dir, Language.TYPESCRIPT, tool(dir), Framework.NONE)),
@@ -59,8 +55,9 @@ public final class FileSystemProjectInspection implements ProjectInspection {
   @Override
   public Optional<Project> detect(final Path start) {
     for (Path dir = start.toAbsolutePath().normalize(); dir != null; dir = dir.getParent()) {
-      if (Files.isRegularFile(dir.resolve(POM))) {
-        return Optional.of(mavenProject(dir));
+      final Optional<Project> project = projectAt(dir);
+      if (project.isPresent()) {
+        return project;
       }
     }
     return Optional.empty();
@@ -122,6 +119,15 @@ public final class FileSystemProjectInspection implements ProjectInspection {
         BuildTool.MAVEN,
         detectFramework(dir.resolve(POM)),
         Files.isRegularFile(dir.resolve("mvnw")));
+  }
+
+  private static Project gradleProject(final Path dir, final Language language) {
+    return new Project(
+        dir,
+        language,
+        BuildTool.GRADLE,
+        Framework.NONE,
+        Files.isExecutable(dir.resolve("gradlew")));
   }
 
   private static BuildTool tool(final Path dir) {

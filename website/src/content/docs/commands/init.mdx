@@ -16,6 +16,8 @@ overwrite is confirmed or `--overwrite` is supplied. Initialization does not ins
 gates. `standard` and `strict` presets pre-select their offline gates; `custom` starts with no gates selected. `zap` writes a `<TARGET_URL>` placeholder that you must replace
 with an authorized target before `check` will run it. For `format`, `enforcer`, `license`, `api-compat`, and
 `pmd`, missing Maven plugins are added to `pom.xml` using Sentinel's embedded Java/Maven compatibility catalog.
+For Gradle projects, equivalent pinned plugin declarations are added to `build.gradle` or
+`build.gradle.kts` using the detected DSL, and the Gradle Wrapper is preferred when available.
 Existing compatible plugin versions are preserved. Incompatible managed plugins show the current version,
 selected compatible version, detected constraints, and affected file before asking for consent. `--yes`
 accepts these validated compatibility updates without prompting; it does not bypass unresolved prerequisites

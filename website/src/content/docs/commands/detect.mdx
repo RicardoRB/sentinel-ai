@@ -3,8 +3,9 @@ title: detect
 description: Detect a supported project.
 ---
 
-`sentinel detect` detects the Maven/Java project in the selected directory or nearest parent. It
-reports language, build tool, framework, and project root. Spring Boot is recognised when the pom
+`sentinel detect` detects a supported project in the selected directory or nearest parent. It
+reports language, build tool, framework, and project root. Java and Kotlin Gradle projects are
+recognized from `build.gradle` and `build.gradle.kts`; Spring Boot is recognised when the pom
 references `org.springframework.boot`.
 
 ```sh
