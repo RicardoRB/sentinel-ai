@@ -35,11 +35,13 @@ fast tier as `pre-commit`, while `ci` contains every selected gate. Init does no
 workflow.
 
 Quality hooks are separate from agent integrations and are opt-in. Pass `--quality-hooks` to add
-Sentinel-managed checks to `.git/hooks/pre-commit` and `.git/hooks/pre-push`. The pre-push section
-is inserted after the shebang and before existing user logic; it does not replace the hook. Re-run
-the option to refresh the managed sections. Use `--remove-quality-hooks` to remove only Sentinel's
-marked sections, preserving user content and other Sentinel integrations. A malformed or duplicate
-quality-hook marker is reported as a conflict and left unchanged.
+Sentinel-managed checks to `.git/hooks/pre-commit` and `.git/hooks/pre-push`. Each managed section is
+inserted after the shebang and before existing user logic; it does not replace the hook. The
+pre-commit section runs `sentinel check --profile pre-commit`, and the pre-push section runs
+`sentinel check --profile pre-push`. Re-run the option to refresh the managed sections. Use
+`--remove-quality-hooks` to remove only Sentinel's marked sections, preserving user content,
+executable permissions, and other Sentinel integrations. A malformed or duplicate quality-hook marker
+is reported as a conflict and left unchanged.
 
 On supported macOS and Linux terminals, use Up/Down to move, Space to toggle, and Enter to confirm.
 Press `q`, `Q`, or Ctrl+C to cancel. On Windows, piped input, or when raw terminal mode is unavailable,
