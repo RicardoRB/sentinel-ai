@@ -21,6 +21,7 @@ final class ArchitectureBoundarySupport {
           Map.entry("init", Set.of("agent", "project")),
           Map.entry("loop", Set.of("gate")),
           Map.entry("policy", Set.of("gate")),
+          Map.entry("provenance", Set.of()),
           Map.entry("process", Set.of()),
           Map.entry("terminal", Set.of()),
           Map.entry("project", Set.of()),
@@ -59,6 +60,12 @@ final class ArchitectureBoundarySupport {
                   "dev.sentinel.application.gate.OpenSpecPrerequisites",
                   "dev.sentinel.application.gate.OpenSpecPrerequisites$Problem",
                   "dev.sentinel.application.gate.OpenSpecQualityGate",
+                  "dev.sentinel.application.project.ProjectDetector",
+                  "dev.sentinel.application.project.ProjectNotFoundException")),
+          Map.entry(
+              "provenance",
+              Set.of(
+                  "dev.sentinel.application.gate.CheckService",
                   "dev.sentinel.application.project.ProjectDetector",
                   "dev.sentinel.application.project.ProjectNotFoundException")),
           Map.entry("traceability", Set.of()));
@@ -126,6 +133,7 @@ final class ArchitectureBoundarySupport {
                       "dev.sentinel.config.CommandBindingsModule",
                       "dev.sentinel.config.SpecCommandBindingsModule",
                       "dev.sentinel.config.TraceabilityBindingsModule",
+                      "dev.sentinel.config.ProvenanceBindingsModule",
                       "dev.sentinel.config.SentinelProvidesModule")
                   .contains(name);
       case "dev.sentinel.infrastructure.cli" ->
