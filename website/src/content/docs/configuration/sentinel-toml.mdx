@@ -19,6 +19,14 @@ command = ["./mvnw", "verify"]
 profiles = ["ci", "strict"]
 ```
 
+For Gradle projects, use the Gradle Wrapper when present (or `gradle` when it is not):
+
+```toml
+[quality-gates.tests]
+enabled = true
+command = "./gradlew test"
+```
+
 `command` accepts a string or an array of strings. Arrays preserve exact argument boundaries. A
 string is parsed into arguments; neither form is executed through a shell. Gates without `profiles`
 belong to `default`. Select other profiles using `sentinel check --profile ci,strict`. Legacy

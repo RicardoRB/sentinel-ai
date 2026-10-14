@@ -12,6 +12,7 @@ import dev.sentinel.domain.project.Project;
 import dev.sentinel.infrastructure.project.FileSystemProjectInspection;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -40,6 +41,34 @@ class ProjectDetectorTest {
         .get()
         .extracting(Project::framework)
         .isEqualTo(Framework.SPRING_BOOT);
+  }
+
+  @Test
+  void detectsGradleGroovyProjectAndWrapper(@TempDir final Path dir) throws Exception {
+    Files.writeString(dir.resolve("build.gradle"), "plugins { id 'java' }\n");
+    Files.writeString(dir.resolve("gradlew"), "#!/bin/sh\nexit 0\n");
+    Files.setPosixFilePermissions(
+        dir.resolve("gradlew"), PosixFilePermissions.fromString("rwxr-xr-x"));
+
+    final Project project = detector.detect(dir).orElseThrow();
+
+    assertThat(project.language()).isEqualTo(Language.JAVA);
+    assertThat(project.buildTool()).isEqualTo(BuildTool.GRADLE);
+    assertThat(project.wrapperAvailable()).isTrue();
+    assertThat(project.buildExecutable()).isEqualTo("./gradlew");
+  }
+
+  @Test
+  void detectsGradleKotlinDslWithoutWrapper(@TempDir final Path dir) throws Exception {
+    Files.writeString(
+        dir.resolve("build.gradle.kts"), "plugins { kotlin(\"jvm\") version \"2.0.0\" }\n");
+
+    final Project project = detector.detect(dir).orElseThrow();
+
+    assertThat(project.language()).isEqualTo(Language.KOTLIN);
+    assertThat(project.buildTool()).isEqualTo(BuildTool.GRADLE);
+    assertThat(project.wrapperAvailable()).isFalse();
+    assertThat(project.buildExecutable()).isEqualTo("gradle");
   }
 
   @Test
@@ -87,10 +116,9 @@ class ProjectDetectorTest {
 
   @Test
   void unsupportedProjectIsNotDetected(@TempDir final Path dir) throws Exception {
-    Files.writeString(dir.resolve("package.json"), "{}");
-    Files.writeString(dir.resolve("build.gradle"), "");
+    Files.writeString(dir.resolve("README.md"), "not a project marker\n");
 
-    // TempDir lives under the system temp dir, which has no pom.xml in any parent.
+    // TempDir lives under the system temp dir, which has no supported marker in any parent.
     final Optional<Project> project = detector.detect(dir);
 
     assertThat(project).isEmpty();

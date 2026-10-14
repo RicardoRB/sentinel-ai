@@ -15,10 +15,16 @@ import dev.sentinel.domain.project.Project;
 import dev.sentinel.infrastructure.project.FileSystemProjectInspection;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermissions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 class InitSetupCatalogTest {
+  private static final String OPENSPEC = "openspec";
+  private static final String OPENSPEC_ARCHIVED = "openspec-archived";
+  private static final String COMPILE = "compile";
+  private static final String TESTS = "tests";
+
   @Test
   void exposesStableIntegrationAndGateChoices(@TempDir final Path dir) throws Exception {
     ProjectFixtures.withPom(dir, ProjectFixtures.PLAIN_POM);
@@ -31,8 +37,8 @@ class InitSetupCatalogTest {
             catalog.gates(
                 new ProjectDetector(new FileSystemProjectInspection()).detect(dir).orElseThrow()))
         .extracting(InitGateOption::id)
-        .doesNotContain("openspec", "openspec-archived");
-    assertThat(QualityGateFactory.SUPPORTED_GATES).contains("openspec", "openspec-archived");
+        .doesNotContain(OPENSPEC, OPENSPEC_ARCHIVED);
+    assertThat(QualityGateFactory.SUPPORTED_GATES).contains(OPENSPEC, OPENSPEC_ARCHIVED);
     assertThat(
             catalog.gates(
                 new ProjectDetector(new FileSystemProjectInspection()).detect(dir).orElseThrow()))
@@ -44,7 +50,7 @@ class InitSetupCatalogTest {
     final InitSetupCatalog catalog = new InitSetupCatalog(new FakeEnvironmentInspection());
     assertThat(catalog.presets()).containsExactly(QualityPreset.STANDARD, QualityPreset.STRICT);
     assertThat(QualityPreset.STANDARD.gates())
-        .containsExactly("compile", "tests", "format", "checkstyle", "pmd", "spotbugs", "coverage");
+        .containsExactly(COMPILE, TESTS, "format", "checkstyle", "pmd", "spotbugs", "coverage");
     assertThat(QualityPreset.STRICT.rules().jacocoMinimums())
         .containsEntry("LINE", 0.85)
         .containsEntry("BRANCH", 0.75);
@@ -83,7 +89,7 @@ class InitSetupCatalogTest {
         new InitSetupCatalog(new FakeEnvironmentInspection())
             .gate(
                 new ProjectDetector(new FileSystemProjectInspection()).detect(dir).orElseThrow(),
-                "tests");
+                TESTS);
 
     assertThat(option.command()).containsExactly("./mvnw", "test");
     assertThat(option.available()).isTrue();
@@ -110,7 +116,7 @@ class InitSetupCatalogTest {
         new ProjectDetector(new FileSystemProjectInspection()).detect(dir).orElseThrow();
 
     final InitGateOption option =
-        new InitSetupCatalog(new FakeEnvironmentInspection()).gate(project, "tests");
+        new InitSetupCatalog(new FakeEnvironmentInspection()).gate(project, TESTS);
 
     assertThat(option.available()).isFalse();
     assertThat(option.availabilityMessage()).contains("Maven is unavailable");
@@ -123,10 +129,59 @@ class InitSetupCatalogTest {
         new ProjectDetector(new FileSystemProjectInspection()).detect(dir).orElseThrow();
 
     final InitGateOption option =
-        new InitSetupCatalog(new FakeEnvironmentInspection("mvn")).gate(project, "tests");
+        new InitSetupCatalog(new FakeEnvironmentInspection("mvn")).gate(project, TESTS);
 
     assertThat(option.available()).isTrue();
     assertThat(option.availabilityMessage()).contains("Maven command available: mvn");
+  }
+
+  @Test
+  void usesGradleWrapperAndGradleTasks(@TempDir final Path dir) throws Exception {
+    Files.writeString(dir.resolve("build.gradle"), "plugins { id 'java' }\n");
+    Files.writeString(dir.resolve("gradlew"), "#!/bin/sh\nexit 0\n");
+    Files.setPosixFilePermissions(
+        dir.resolve("gradlew"), PosixFilePermissions.fromString("rwxr-xr-x"));
+    final Project project =
+        new ProjectDetector(new FileSystemProjectInspection()).detect(dir).orElseThrow();
+
+    final InitSetupCatalog catalog = new InitSetupCatalog(new FakeEnvironmentInspection());
+
+    assertThat(catalog.gate(project, TESTS).command()).containsExactly("./gradlew", "test");
+    assertThat(catalog.gate(project, COMPILE).command()).containsExactly("./gradlew", "classes");
+    assertThat(catalog.gate(project, "format").command()).endsWith("spotlessCheck");
+    assertThat(catalog.gate(project, TESTS).availabilityMessage())
+        .contains("Gradle command available: ./gradlew");
+  }
+
+  @Test
+  void usesSystemGradleWhenWrapperIsMissing(@TempDir final Path dir) throws Exception {
+    Files.writeString(dir.resolve("build.gradle.kts"), "plugins { java }\n");
+    final Project project =
+        new ProjectDetector(new FileSystemProjectInspection()).detect(dir).orElseThrow();
+
+    final InitSetupCatalog catalog = new InitSetupCatalog(new FakeEnvironmentInspection("gradle"));
+
+    assertThat(catalog.gate(project, TESTS).command()).containsExactly("gradle", "test");
+    assertThat(catalog.gate(project, TESTS).available()).isTrue();
+  }
+
+  @Test
+  void offersFullGateCatalogForGradle(@TempDir final Path dir) throws Exception {
+    Files.writeString(dir.resolve("build.gradle"), "plugins { id 'java' }\n");
+    final Project project =
+        new ProjectDetector(new FileSystemProjectInspection()).detect(dir).orElseThrow();
+    final InitSetupCatalog catalog = new InitSetupCatalog(new FakeEnvironmentInspection("gradle"));
+
+    assertThat(catalog.gates(project))
+        .extracting(InitGateOption::id)
+        .containsExactlyInAnyOrderElementsOf(
+            QualityGateFactory.SUPPORTED_GATES.stream()
+                .filter(id -> !OPENSPEC.equals(id) && !OPENSPEC_ARCHIVED.equals(id))
+                .toList());
+    assertThat(catalog.gate(project, "coverage").command())
+        .containsExactly("gradle", "jacocoTestReport");
+    assertThat(catalog.gate(project, "dependency-check").command())
+        .containsExactly("gradle", "dependencyCheckAnalyze");
   }
 
   @Test

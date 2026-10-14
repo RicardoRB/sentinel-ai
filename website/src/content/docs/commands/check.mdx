@@ -7,6 +7,10 @@ description: Run configured quality gates.
 sentinel check [-C <dir>] [--format text|json] [--profile <name>[,...]] [--fail-fast] [--exclude-spec] [--learn-after <n>]
 ```
 
+For Maven and Gradle projects, built-in test commands prefer the project wrapper
+(`./mvnw` or `./gradlew`) and fall back to `mvn` or `gradle` when no wrapper is
+available. Commands configured explicitly in `sentinel.toml` are preserved.
+
 Checks run in configuration declaration order. `default` is selected when no profile is provided;
 repeat `--profile` or provide comma-separated names to select the union. At least one enabled gate
 must match. All selected gates run even when an earlier one fails. A gate whose standalone tool is
