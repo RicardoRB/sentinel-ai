@@ -29,7 +29,9 @@ command = "./gradlew test"
 
 `command` accepts a string or an array of strings. Arrays preserve exact argument boundaries. A
 string is parsed into arguments; neither form is executed through a shell. Gates without `profiles`
-belong to `default`. Select other profiles using `sentinel check --profile ci,strict`. Legacy
+belong to `default`. Init-generated configurations assign fast gates to both `default` and
+`pre-commit`, slower local gates to `pre-push`, and every selected gate to `ci`; `pre-push` is
+cumulative. Select other profiles using `sentinel check --profile ci,strict`. Legacy
 top-level `[profiles]` tables are unsupported. Unknown gate IDs and checks with no enabled matching
 gates are errors.
 

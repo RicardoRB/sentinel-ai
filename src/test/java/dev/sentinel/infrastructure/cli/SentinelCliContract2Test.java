@@ -15,7 +15,7 @@ import org.junit.jupiter.api.io.TempDir;
 class SentinelCliContract2Test extends SentinelCliIntegrationSupport {
   @Test
   void checkJsonWritesOnlyJsonToStdout() {
-    assertThat(run(INIT, INTEGRATION_OPTION, NONE, GATE_OPTION, TESTS, "-C", project.toString()))
+    assertThat(run(INIT, INTEGRATION_OPTION, NONE, GATE_OPTION, "format", "-C", project.toString()))
         .isZero();
     out.getBuffer().setLength(0);
 
@@ -26,7 +26,7 @@ class SentinelCliContract2Test extends SentinelCliIntegrationSupport {
 
   @Test
   void loopCommandUsesProductionCompositionAndRuntimeRequestOptions() {
-    assertThat(run(INIT, INTEGRATION_OPTION, NONE, GATE_OPTION, TESTS, "-C", project.toString()))
+    assertThat(run(INIT, INTEGRATION_OPTION, NONE, GATE_OPTION, "format", "-C", project.toString()))
         .isZero();
     out.getBuffer().setLength(0);
 
@@ -52,7 +52,7 @@ class SentinelCliContract2Test extends SentinelCliIntegrationSupport {
   void initDoesNotOverwriteAndExitsCleanly() throws IOException {
     Files.writeString(project.resolve(SENTINEL_TOML), "version = 1\n");
 
-    assertThat(run(INIT, INTEGRATION_OPTION, NONE, GATE_OPTION, TESTS, "-C", project.toString()))
+    assertThat(run(INIT, INTEGRATION_OPTION, NONE, GATE_OPTION, "format", "-C", project.toString()))
         .isZero();
 
     assertThat(out.toString()).contains("already exists");
@@ -76,24 +76,24 @@ class SentinelCliContract2Test extends SentinelCliIntegrationSupport {
 
   @Test
   void initThenFailingCheckExitsWithOne() throws IOException {
-    run(INIT, INTEGRATION_OPTION, NONE, GATE_OPTION, TESTS, "-C", project.toString());
+    run(INIT, INTEGRATION_OPTION, NONE, GATE_OPTION, "format", "-C", project.toString());
     Files.createFile(project.resolve("FAIL"));
     out.getBuffer().setLength(0);
 
     assertThat(run(CHECK, "-C", project.toString())).isEqualTo(ExitCodes.FAILED);
     assertThat(out.toString())
         .contains(
-            "✗ tests",
+            "✗ format",
             "FAILED",
             "Quality Gate: FAILED",
             "Command:",
-            "./mvnw test",
+            "./mvnw spotless:check",
             "BUILD FAILURE");
   }
 
   @Test
   void jsonOutputIsValidJsonAndNothingElse() throws IOException {
-    run(INIT, INTEGRATION_OPTION, NONE, GATE_OPTION, TESTS, "-C", project.toString());
+    run(INIT, INTEGRATION_OPTION, NONE, GATE_OPTION, "format", "-C", project.toString());
     Files.createFile(project.resolve("FAIL"));
     out.getBuffer().setLength(0);
 
@@ -103,7 +103,8 @@ class SentinelCliContract2Test extends SentinelCliIntegrationSupport {
     final JsonTree json = JsonTree.parse(out.toString()); // fails on any extra text
     assertThat(json.get(STATUS).asString()).isEqualTo("FAILED");
     assertThat(json.get(CHECKS).get(0).get("exitCode").asInt()).isEqualTo(1);
-    assertThat(json.get(CHECKS).get(0).get("stdout").asString()).contains("stub mvnw: test");
+    assertThat(json.get(CHECKS).get(0).get("stdout").asString())
+        .contains("stub mvnw: spotless:check");
     assertThat(json.get(CHECKS).get(0).get("stderr").asString()).contains("BUILD FAILURE");
   }
 

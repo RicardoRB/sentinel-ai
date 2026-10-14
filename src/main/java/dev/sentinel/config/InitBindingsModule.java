@@ -5,6 +5,7 @@ import dagger.Module;
 import dev.sentinel.domain.init.ArchitectureTestGeneration;
 import dev.sentinel.domain.init.BuildToolConfiguration;
 import dev.sentinel.domain.init.ConfigurationStorage;
+import dev.sentinel.domain.init.QualityHookGeneration;
 import dev.sentinel.domain.init.RawTerminal;
 import dev.sentinel.domain.init.RuleFileGeneration;
 import dev.sentinel.domain.init.ToolInstaller;
@@ -14,6 +15,7 @@ import dev.sentinel.infrastructure.init.BuildToolConfigurator;
 import dev.sentinel.infrastructure.init.FileConfigurationStorage;
 import dev.sentinel.infrastructure.init.OpenSpecToolInstaller;
 import dev.sentinel.infrastructure.init.PresetRuleFileWriter;
+import dev.sentinel.infrastructure.init.QualityHookInstaller;
 import dev.sentinel.infrastructure.terminal.JdkTerminalCapabilities;
 import dev.sentinel.infrastructure.terminal.PosixRawTerminal;
 
@@ -36,6 +38,9 @@ interface InitBindingsModule {
 
   @Binds
   RuleFileGeneration ruleFileGeneration(PresetRuleFileWriter implementation);
+
+  @Binds
+  QualityHookGeneration qualityHookGeneration(QualityHookInstaller implementation);
 
   @Binds
   ToolInstaller toolInstaller(OpenSpecToolInstaller implementation);

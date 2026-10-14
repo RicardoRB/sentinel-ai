@@ -10,14 +10,17 @@ import dev.sentinel.application.project.ProjectNotFoundException;
 import dev.sentinel.domain.FakeEnvironmentInspection;
 import dev.sentinel.domain.agent.AgentIntegration;
 import dev.sentinel.domain.agent.IntegrationResult;
+import dev.sentinel.domain.config.SentinelConfiguration;
 import dev.sentinel.domain.init.InitGateOption;
 import dev.sentinel.domain.init.InitResult;
 import dev.sentinel.domain.init.InitSelection;
 import dev.sentinel.domain.init.QualityPreset;
+import dev.sentinel.infrastructure.config.TomlConfigurationReader;
 import dev.sentinel.infrastructure.init.ArchitectureTestGenerator;
 import dev.sentinel.infrastructure.init.FileConfigurationStorage;
 import dev.sentinel.infrastructure.init.PomToolConfigurator;
 import dev.sentinel.infrastructure.init.PresetRuleFileWriter;
+import dev.sentinel.infrastructure.init.QualityHookInstaller;
 import dev.sentinel.infrastructure.project.FileSystemProjectInspection;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -27,6 +30,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 class InitServiceTest {
+  private static final String FORMAT = "format";
+  private static final String SENTINEL_TOML = "sentinel.toml";
 
   private final InitService service =
       new InitService(
@@ -53,6 +58,64 @@ class InitServiceTest {
     assertThat(Files.readString(dir.resolve("sentinel.toml")))
         .contains("version = 1\npreset = \"standard\"");
     assertThat(dir.resolve("config/pmd-ruleset.xml")).exists();
+  }
+
+  @Test
+  void generatedConfigurationAssignsCumulativeProfiles(@TempDir final Path dir) throws Exception {
+    withPom(dir, PLAIN_POM);
+
+    service.initialize(
+        dir, new InitSelection(List.of("none"), List.of(FORMAT, "tests", "mutation"), null, null));
+
+    final SentinelConfiguration configuration =
+        new TomlConfigurationReader().read(dir.resolve(SENTINEL_TOML));
+    assertThat(configuration.gates().get(FORMAT).profiles())
+        .containsExactly("default", "pre-commit", "pre-push", "ci");
+    assertThat(configuration.gates().get("tests").profiles()).containsExactly("pre-push", "ci");
+    assertThat(configuration.gates().get("mutation").profiles()).containsExactly("ci");
+    assertThat(configuration.forProfiles(List.of()).gates()).containsOnlyKeys(FORMAT);
+    assertThat(configuration.forProfiles(List.of("pre-commit")).gates()).containsOnlyKeys(FORMAT);
+    assertThat(configuration.forProfiles(List.of("pre-push")).gates())
+        .containsOnlyKeys("format", "tests");
+    assertThat(configuration.forProfiles(List.of("ci")).gates())
+        .containsOnlyKeys("format", "tests", "mutation");
+  }
+
+  @Test
+  void initializesCustomProfilesAndOptInHooks(@TempDir final Path dir) throws Exception {
+    withPom(dir, PLAIN_POM);
+    Files.createDirectories(dir.resolve(".git/hooks"));
+    final InitService qualityService =
+        new InitService(
+            new ProjectDetector(new FileSystemProjectInspection()),
+            Set.of(),
+            new InitSetupCatalog(new FakeEnvironmentInspection(), new QualityHookInstaller()),
+            new PomToolConfigurator(),
+            new ArchitectureTestGenerator(),
+            new FileConfigurationStorage(),
+            new PresetRuleFileWriter(),
+            new UnavailableToolInstaller());
+
+    qualityService.initialize(
+        dir,
+        new InitSelection(
+            List.of("none"),
+            List.of(FORMAT, "mutation"),
+            null,
+            null,
+            List.of(),
+            List.of(),
+            List.of(),
+            true));
+
+    final String configuration = Files.readString(dir.resolve(SENTINEL_TOML));
+    assertThat(configuration)
+        .contains("profiles = [\"default\", \"pre-commit\", \"pre-push\", \"ci\"]")
+        .contains("profiles = [\"ci\"]");
+    assertThat(Files.readString(dir.resolve(".git/hooks/pre-commit")))
+        .contains("sentinel check --profile pre-commit");
+    assertThat(Files.readString(dir.resolve(".git/hooks/pre-push")))
+        .contains("sentinel check --profile pre-push");
   }
 
   @Test

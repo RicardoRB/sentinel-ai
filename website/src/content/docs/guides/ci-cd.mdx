@@ -47,7 +47,7 @@ jobs:
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       - name: Run quality gates
-        run: sentinel check --profile default,ci --format json > sentinel-report.json
+        run: sentinel check --profile ci --format json > sentinel-report.json
 
       - name: Upload Sentinel report
         if: always()
@@ -231,9 +231,10 @@ build. Add a `branches` pipeline for pushes when quality gates should run outsid
 
 ## Shared CI behavior
 
-- **Profiles:** keep fast offline gates in `default` and put networked or slow gates (`zap`, `trivy`,
-  `sonar`, `dependency-check`, `api-compat`, `semgrep`) in a `ci` profile. Select both with
-  `--profile default,ci`.
+- **Profiles:** init-generated configurations put every selected gate in `ci`; use
+  `sentinel check --profile ci` for the complete CI tier. The fast `default` profile is intended for
+  local checks, while `pre-push` is the cumulative local tier. Existing hand-authored configurations
+  may still select multiple profiles, such as `default,ci`, when needed.
 - **Gate evaluation:** all selected gates run and the job gets one verdict. Add `--fail-fast` to stop
   at the first failure.
 - **Exit codes:** `0` means all selected gates passed, `1` means a gate failed, and `2` means Sentinel
@@ -251,6 +252,9 @@ build. Add a `branches` pipeline for pushes when quality gates should run outsid
 - **Artifacts:** retain the JSON report after failures where the provider supports an always/post-failure
   condition. It is diagnostic output; the Sentinel process exit code remains the job verdict.
 - **SARIF:** Sentinel does not support SARIF output yet. Current formats are text and JSON (schema v1).
+
+Init does not generate a provider-specific CI workflow; add the command above to the CI system of
+your choice. SARIF output is not supported yet.
 
 ## Security
 

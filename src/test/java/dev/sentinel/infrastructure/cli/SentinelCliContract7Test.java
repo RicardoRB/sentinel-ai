@@ -12,20 +12,20 @@ import org.junit.jupiter.api.condition.OS;
 class SentinelCliContract7Test extends SentinelCliIntegrationSupport {
   @Test
   void hookFailingCheckExitsTwoAndWritesFailureToStderr() throws IOException {
-    run(INIT, INTEGRATION_OPTION, NONE, GATE_OPTION, TESTS, "-C", project.toString());
+    run(INIT, INTEGRATION_OPTION, NONE, GATE_OPTION, "format", "-C", project.toString());
     fail();
     out.getBuffer().setLength(0);
     err.getBuffer().setLength(0);
 
     assertThat(run("hook", CLAUDE_CODE, LEARN_AFTER, "1", "-C", project.toString()))
         .isEqualTo(ExitCodes.ERROR);
-    assertThat(err.toString()).contains("tests: FAILED");
+    assertThat(err.toString()).contains("format: FAILED");
     assertThat(out.toString()).isEmpty();
   }
 
   @Test
   void hookPassingWithPromptsEmitsPostToolUseJson() throws IOException {
-    run(INIT, INTEGRATION_OPTION, NONE, GATE_OPTION, TESTS, "-C", project.toString());
+    run(INIT, INTEGRATION_OPTION, NONE, GATE_OPTION, "format", "-C", project.toString());
     fail();
     assertThat(run("hook", CLAUDE_CODE, LEARN_AFTER, "1", "-C", project.toString()))
         .isEqualTo(ExitCodes.ERROR);
@@ -39,13 +39,13 @@ class SentinelCliContract7Test extends SentinelCliIntegrationSupport {
     assertThat(hook.get("hookSpecificOutput").get("hookEventName").asString())
         .isEqualTo("PostToolUse");
     final String context = hook.get("hookSpecificOutput").get("additionalContext").asString();
-    assertThat(context).contains("AGENTS.md", TESTS);
+    assertThat(context).contains("AGENTS.md", "format");
     assertThat(out.toString()).doesNotContain("\u001b");
   }
 
   @Test
   void hookPassingWithoutPromptsEmitsNothing() throws IOException {
-    run(INIT, INTEGRATION_OPTION, NONE, GATE_OPTION, TESTS, "-C", project.toString());
+    run(INIT, INTEGRATION_OPTION, NONE, GATE_OPTION, "format", "-C", project.toString());
     out.getBuffer().setLength(0);
     err.getBuffer().setLength(0);
 
