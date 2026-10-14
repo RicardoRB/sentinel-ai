@@ -1,0 +1,16 @@
+{
+  "session_id": "9a1f2c3d-4e5f-4a6b-8c7d-0e1f2a3b4c5d",
+  "transcript_path": "/Users/dev/.claude/projects/-__PROJECT__/9a1f2c3d-4e5f-4a6b-8c7d-0e1f2a3b4c5d.jsonl",
+  "cwd": "__PROJECT__",
+  "permission_mode": "default",
+  "hook_event_name": "PreToolUse",
+  "tool_name": "NotebookEdit",
+  "tool_input": {
+    "notebook_path": "__PROJECT__/openspec/specs/x/analysis.ipynb",
+    "cell_id": "cell-1",
+    "new_source": "print('x')",
+    "cell_type": "code",
+    "edit_mode": "replace"
+  },
+  "tool_use_id": "toolu_01AbCdEfGhIjKlMnOpQrStUv"
+}

@@ -5,6 +5,7 @@ description: Agent hook adapters invoked by generated integrations.
 
 ```sh
 sentinel hook claude-code [-C <dir>] [--learn-after <n>] [--exclude-spec] [--event-stdin]
+sentinel hook claude-code [-C <dir>] --guard-approved-specs --event-stdin
 ```
 
 `sentinel hook` contains the adapters that generated agent integrations call. You normally do not run it
@@ -17,6 +18,7 @@ when Claude stops.
 | `--learn-after <n>` | Learn recurring quality failures after `n` occurrences (default `3`). |
 | `--exclude-spec` | Skip the `openspec` and `openspec-archived` gates in the quality check, because spec validation runs separately. |
 | `--event-stdin` | Read the Claude Code hook event JSON from stdin. It is ignored when stdin is an interactive terminal. |
+| `--guard-approved-specs` | Act as the opt-in `PreToolUse` [approved-artifact guard](#approved-artifact-guard). No quality gates, learning, or spec validation run in this mode. |
 
 Without `--event-stdin`, or when the payload is empty or not valid JSON, the adapter behaves as it always has. It
 runs the `default` profile gates as a `PostToolUse` check. When they pass, it returns any learning prompts as
@@ -33,6 +35,25 @@ With an event payload:
   `systemMessage`. The exit code is `0`.
 
 See [Claude Code](/integrations/claude-code/) and [learning](/configuration/learning/).
+
+## Approved-artifact guard
+
+`sentinel integrate claude-code --guard-approved-specs` creates `.claude/hooks/sentinel-openspec-guard`, which runs
+`sentinel hook claude-code --guard-approved-specs --event-stdin` before Claude Code's `Edit`, `Write`, `MultiEdit`,
+`NotebookEdit`, `Bash`, and `Skill` tool calls. The adapter reads the whole `PreToolUse` payload (up to 16 MiB,
+because a `Write` carries the full file) and passes the edited `file_path` or `notebook_path`, the `Bash` `command`
+(resolved against the payload's `cwd`), or the `Skill` name to the same checks as
+[`spec guard`](/commands/spec/#guarding-approved-artifacts-spec-guard).
+
+| Situation | Output | Exit |
+|---|---|---|
+| Allowed | Nothing, so Claude Code's own permission handling still applies | `0` |
+| Refused | `PreToolUse` JSON with `permissionDecision: "deny"` and the reason as `permissionDecisionReason` | `0` |
+| Payload missing from a pipe, larger than 16 MiB, or not a JSON object | A `deny` stating that Sentinel could not inspect the call | `0` |
+| Sentinel cannot decide, for example outside a detectable project | The problem on stderr; Claude Code treats it as non-blocking | `1` |
+| Any other event, such as `Stop` | Nothing | `0` |
+
+The guard never answers `allow` or `ask`, so it cannot bypass your permission prompts.
 
 ## Verbose diagnostics
 

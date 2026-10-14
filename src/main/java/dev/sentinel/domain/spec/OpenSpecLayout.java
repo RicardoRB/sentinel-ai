@@ -10,11 +10,11 @@ import java.util.Set;
 
 /** Maps project-relative paths to active OpenSpec items without touching the filesystem. */
 public final class OpenSpecLayout {
-  private static final String ROOT = "openspec";
-  private static final String CHANGES = "changes";
-  private static final String SPECS = "specs";
-  private static final String ARCHIVE = "archive";
-  private static final String SPEC_FILE = "spec.md";
+  static final String ROOT = "openspec";
+  static final String CHANGES = "changes";
+  static final String SPECS = "specs";
+  static final String ARCHIVE = "archive";
+  static final String SPEC_FILE = "spec.md";
   private static final String PARENT = "..";
   private static final String CURRENT = ".";
 

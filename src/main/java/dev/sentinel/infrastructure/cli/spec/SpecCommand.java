@@ -10,7 +10,7 @@ import picocli.CommandLine.Spec;
 @Command(
     name = "spec",
     description = "Work with the project's specification artifacts.",
-    subcommands = {SpecValidateCommand.class})
+    subcommands = {SpecValidateCommand.class, SpecGuardCommand.class})
 public final class SpecCommand implements Callable<Integer> {
 
   @Spec private CommandSpec spec;

@@ -8,7 +8,7 @@ import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Stream;
+import java.util.Optional;
 
 /** Common ownership-safe filesystem operations for generated agent integrations. */
 final class IntegrationArtifacts {
@@ -36,17 +36,28 @@ final class IntegrationArtifacts {
     return conflict == null ? preflight(second, secondMarker) : conflict;
   }
 
-  /** Combines two artifact results into one, listing the targets that changed. */
+  /**
+   * Combines artifact results into one, listing the targets that changed or were removed. The first
+   * conflict, if any, is returned as is.
+   */
   static IntegrationResult combine(
-      final Path first,
-      final IntegrationResult firstResult,
-      final Path second,
-      final IntegrationResult secondResult,
+      final List<Map.Entry<Path, IntegrationResult>> results,
       final String presentMessage,
       final String changedMessage) {
+    final Optional<IntegrationResult> conflict =
+        results.stream()
+            .map(Map.Entry::getValue)
+            .filter(result -> result.status() == IntegrationResult.Status.CONFLICT)
+            .findFirst();
+    if (conflict.isPresent()) {
+      return conflict.get();
+    }
     final List<String> changed =
-        Stream.of(Map.entry(first, firstResult), Map.entry(second, secondResult))
-            .filter(entry -> entry.getValue().status() == IntegrationResult.Status.CHANGED)
+        results.stream()
+            .filter(
+                entry ->
+                    entry.getValue().status() == IntegrationResult.Status.CHANGED
+                        || entry.getValue().status() == IntegrationResult.Status.REMOVED)
             .map(entry -> entry.getKey().toString())
             .toList();
     return changed.isEmpty()

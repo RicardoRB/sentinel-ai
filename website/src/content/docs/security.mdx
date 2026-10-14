@@ -16,6 +16,19 @@ execute repository-local configuration, so install integrations only in trusted 
 Dynamic scans (`zap`) run only against the target you put in `sentinel.toml`; Sentinel never infers
 or starts one, and you must be authorized to scan it. Secret scanners should run with redaction
 (`gitleaks --redact` is the `init` default) so matched values do not appear in reports or logs.
+
+## Approved-artifact guard limits
+
+The optional approved-artifact guard protects `openspec/specs/**` and
+`openspec/changes/archive/**` from tool calls that Sentinel can inspect. It is a guardrail, not a
+security boundary. Shell inspection is deliberately heuristic: scripts, variable expansion,
+command substitution, `xargs`, indirect program writes, and hard links are not reliably prevented.
+Working-tree-wide Git operations that do not name a protected path are also outside its scope.
+
+The guard fails open on infrastructure errors such as a missing Sentinel executable or an
+undetectable project, so it must not be treated as enforcement. Use filesystem permissions, branch
+protection, code review, and sandboxing when approved artifacts require real protection. Archiving
+and syncing remain human actions even when the guard is installed.
 ## Diagnostic logging
 
 Normal runs remain quiet. With `--verbose`, Sentinel writes invocation-scoped diagnostics to the

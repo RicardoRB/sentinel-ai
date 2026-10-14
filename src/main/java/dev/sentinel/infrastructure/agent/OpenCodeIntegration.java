@@ -1,6 +1,8 @@
 package dev.sentinel.infrastructure.agent;
 
 import dev.sentinel.domain.agent.AgentIntegration;
+import dev.sentinel.domain.agent.GuardMode;
+import dev.sentinel.domain.agent.IntegrationRequest;
 import dev.sentinel.domain.agent.IntegrationResult;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -8,14 +10,17 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 /** Safe, ownership-marked integration for OpenCode command discovery and edit/write events. */
 public final class OpenCodeIntegration implements AgentIntegration {
   public static final String MARKER = "<!-- sentinel-owned: opencode-quality-check v1 -->";
   public static final String PLUGIN_MARKER = "sentinel-owned: opencode-edit-write v1";
+  public static final String GUARD_MARKER = "sentinel-owned: opencode-openspec-guard v1";
   private static final String COMMAND_FILE = ".opencode/commands/sentinel-check.md";
   private static final String PLUGIN_FILE = ".opencode/plugins/sentinel-edit-write.js";
+  private static final String GUARD_FILE = ".opencode/plugins/sentinel-openspec-guard.js";
 
   private static final String COMMAND =
       MARKER + "\n\nRun `sentinel check --format json --learn-after 3` and return the result.\n";
@@ -106,6 +111,66 @@ public final class OpenCodeIntegration implements AgentIntegration {
             """
           .replace("%s", PLUGIN_MARKER);
 
+  private static final String GUARD_PLUGIN =
+      """
+            // %s
+            // OpenCode pre-tool guard for approved OpenSpec artifacts.
+            const decode = (bytes) => new TextDecoder().decode(bytes || new Uint8Array());
+
+            export default async ({ directory, client }) => {
+              const run = (args, input) => {
+                const result = Bun.spawnSync(["sentinel", ...args], {
+                  cwd: directory,
+                  stdin: input === undefined ? undefined : new TextEncoder().encode(input),
+                  stdout: "pipe",
+                  stderr: "pipe",
+                });
+                return { code: result.exitCode, stdout: decode(result.stdout), stderr: decode(result.stderr) };
+              };
+              const warning = (message) =>
+                client?.tui?.showToast?.({ body: { title: "Sentinel", message, variant: "warning" } })?.catch?.(() => {});
+
+              return {
+                "tool.execute.before": async (input, output) => {
+                  const tool = String(input?.tool ?? input?.name ?? "").toLowerCase();
+                  const args = output?.args ?? {};
+                  let command;
+                  let stdin;
+                  if (tool === "edit" || tool === "write") {
+                    command = ["spec", "guard", "--", args.filePath ?? args.path];
+                  } else if (tool === "apply_patch" || tool === "patch") {
+                    command = ["spec", "guard", "--patch-stdin"];
+                    stdin = args.patchText ?? args.patch;
+                  } else if (tool === "bash") {
+                    command = ["spec", "guard", "--shell-stdin", "--cwd", args.workdir ?? directory];
+                    stdin = args.command;
+                  } else if (tool === "skill") {
+                    command = ["spec", "guard", "--skill", args.name ?? args.skill];
+                  } else {
+                    return;
+                  }
+
+                  if (command.some((value) => value === undefined || value === null)) {
+                    warning("Sentinel approved-artifact guard could not inspect this tool call; proceeding.");
+                    return;
+                  }
+                  let result;
+                  try {
+                    result = run(command, stdin);
+                  } catch (error) {
+                    warning("Sentinel approved-artifact guard could not run: " + (error?.message ?? error));
+                    return;
+                  }
+                  if (result.code === 1) throw new Error(result.stdout.trim() || "Sentinel approved-artifact guard refused the tool call.");
+                  if (result.code !== 0) {
+                    warning(result.stderr.trim() || "Sentinel approved-artifact guard could not decide; proceeding.");
+                  }
+                },
+              };
+            };
+            """
+          .replace("%s", GUARD_MARKER);
+
   @Override
   public String id() {
     return "opencode";
@@ -113,19 +178,32 @@ public final class OpenCodeIntegration implements AgentIntegration {
 
   @Override
   public IntegrationResult integrate(final Path projectRoot, final boolean remove) {
+    return integrate(projectRoot, remove ? IntegrationRequest.REMOVE : IntegrationRequest.INSTALL);
+  }
+
+  @Override
+  public IntegrationResult integrate(final Path projectRoot, final IntegrationRequest request) {
     final Path root = projectRoot.toAbsolutePath().normalize();
     final Path command = root.resolve(COMMAND_FILE);
     final Path plugin = root.resolve(PLUGIN_FILE);
+    final GuardFile guard = new GuardFile(root.resolve(GUARD_FILE), GUARD_MARKER, GUARD_PLUGIN);
     try {
-      return remove ? remove(command, plugin) : install(command, plugin);
+      return request.remove()
+          ? remove(command, plugin, guard)
+          : install(command, plugin, guard, request.guard());
     } catch (IOException e) {
       throw new UncheckedIOException("Could not update OpenCode integration: " + e.getMessage(), e);
     }
   }
 
-  private IntegrationResult install(final Path command, final Path plugin) throws IOException {
-    final IntegrationResult conflict =
+  private IntegrationResult install(
+      final Path command, final Path plugin, final GuardFile guard, final GuardMode mode)
+      throws IOException {
+    IntegrationResult conflict =
         IntegrationArtifacts.preflight(command, MARKER, plugin, PLUGIN_MARKER);
+    if (conflict == null) {
+      conflict = guard.preflight(mode);
+    }
     if (conflict != null) {
       return conflict;
     }
@@ -141,16 +219,21 @@ public final class OpenCodeIntegration implements AgentIntegration {
     if (pluginResult.status() == IntegrationResult.Status.CONFLICT) {
       return pluginResult;
     }
+    final List<Map.Entry<Path, IntegrationResult>> results =
+        new ArrayList<>(
+            List.of(Map.entry(command, commandResult), Map.entry(plugin, pluginResult)));
+    if (guard.enabled(mode)) {
+      results.add(guard.install("Updated Sentinel OpenCode approved-artifact guard."));
+    }
+    guard.remove(mode == GuardMode.DISABLE).ifPresent(results::add);
     return IntegrationArtifacts.combine(
-        command,
-        commandResult,
-        plugin,
-        pluginResult,
+        results,
         "Sentinel OpenCode integration is already present.",
         "Created Sentinel-owned OpenCode command and edit/write integration (or refreshed it).");
   }
 
-  private IntegrationResult remove(final Path command, final Path plugin) throws IOException {
+  private IntegrationResult remove(final Path command, final Path plugin, final GuardFile guard)
+      throws IOException {
     IntegrationResult conflict = IntegrationArtifacts.preflight(command, MARKER);
     if (conflict != null) {
       return conflict;
@@ -159,7 +242,11 @@ public final class OpenCodeIntegration implements AgentIntegration {
     if (conflict != null) {
       return conflict;
     }
-    if (!Files.exists(command) && !Files.exists(plugin)) {
+    conflict = IntegrationArtifacts.preflight(guard.file(), GUARD_MARKER);
+    if (conflict != null) {
+      return conflict;
+    }
+    if (!Files.exists(command) && !Files.exists(plugin) && !guard.installed()) {
       return new IntegrationResult(
           IntegrationResult.Status.NOT_FOUND, List.of(), "No Sentinel OpenCode integration found.");
     }
@@ -173,6 +260,7 @@ public final class OpenCodeIntegration implements AgentIntegration {
       Files.delete(plugin);
       removed.add(plugin.toString());
     }
+    guard.remove(true).ifPresent(entry -> removed.add(entry.getKey().toString()));
     deleteIfEmpty(plugin.getParent());
     deleteIfEmpty(command.getParent());
     return new IntegrationResult(

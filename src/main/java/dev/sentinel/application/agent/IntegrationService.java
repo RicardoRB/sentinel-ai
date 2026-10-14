@@ -3,10 +3,12 @@ package dev.sentinel.application.agent;
 import dev.sentinel.application.project.ProjectDetector;
 import dev.sentinel.application.project.ProjectNotFoundException;
 import dev.sentinel.domain.agent.AgentIntegration;
+import dev.sentinel.domain.agent.IntegrationRequest;
 import dev.sentinel.domain.agent.IntegrationResult;
 import dev.sentinel.domain.config.SentinelException;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -30,13 +32,20 @@ public final class IntegrationService {
   }
 
   public IntegrationResult integrate(final String agent, final Path start, final boolean remove) {
+    return integrate(agent, start, remove ? IntegrationRequest.REMOVE : IntegrationRequest.INSTALL);
+  }
+
+  public IntegrationResult integrate(
+      final String agent, final Path start, final IntegrationRequest request) {
     LOGGER.log(
         Level.INFO,
         () ->
             "event=integration-start agent="
                 + agent
                 + " operation="
-                + (remove ? "remove" : "install"));
+                + (request.remove() ? "remove" : "install")
+                + " guard="
+                + request.guard().name().toLowerCase(Locale.ROOT));
     final AgentIntegration adapter =
         integrations.stream()
             .filter(candidate -> candidate.id().equals(agent))
@@ -46,7 +55,7 @@ public final class IntegrationService {
                     new SentinelException(
                         "Unknown agent '" + agent + "'. Supported agents: opencode, claude-code"));
     final Path root = detector.detect(start).orElseThrow(ProjectNotFoundException::new).root();
-    final IntegrationResult result = adapter.integrate(root, remove);
+    final IntegrationResult result = adapter.integrate(root, request);
     LOGGER.log(Level.INFO, () -> "event=integration-complete agent=" + agent + " status=completed");
     return result;
   }

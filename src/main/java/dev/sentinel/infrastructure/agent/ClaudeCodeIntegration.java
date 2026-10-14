@@ -1,6 +1,8 @@
 package dev.sentinel.infrastructure.agent;
 
 import dev.sentinel.domain.agent.AgentIntegration;
+import dev.sentinel.domain.agent.GuardMode;
+import dev.sentinel.domain.agent.IntegrationRequest;
 import dev.sentinel.domain.agent.IntegrationResult;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -10,6 +12,7 @@ import java.nio.file.attribute.PosixFilePermission;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 
@@ -17,8 +20,11 @@ import java.util.stream.Stream;
 public final class ClaudeCodeIntegration implements AgentIntegration {
   public static final String SETTINGS_MARKER = "sentinel-owned: claude-code-edit-write v1";
   public static final String HOOK_MARKER = "sentinel-owned: edit-write-guard v1";
+  public static final String GUARD_MARKER = "sentinel-owned: openspec-guard v1";
   private static final String SETTINGS_FILE = ".claude/settings.json";
   private static final String HOOK_FILE = ".claude/hooks/sentinel-edit-write";
+  private static final String GUARD_FILE = ".claude/hooks/sentinel-openspec-guard";
+  private static final String UPDATED = "Updated Sentinel Claude Code integration.";
 
   private static final String SETTINGS =
       """
@@ -51,6 +57,35 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
             """
           .replace("%s", SETTINGS_MARKER);
 
+  /** The settings with the opt-in guard registered before every guarded tool runs. */
+  private static final String GUARDED_SETTINGS =
+      SETTINGS.replace(
+          "  \"hooks\": {\n",
+          """
+            "hooks": {
+              "PreToolUse": [
+                {
+                  "matcher": "^(Edit|Write|MultiEdit|NotebookEdit|Bash|Skill)$",
+                  "hooks": [
+                    {
+                      "type": "command",
+                      "command": ".claude/hooks/sentinel-openspec-guard"
+                    }
+                  ]
+                }
+              ],
+          """);
+
+  private static final String GUARD =
+      """
+            #!/bin/sh
+            # %s
+            # Opt-in guard: Claude Code passes each PreToolUse event as JSON on stdin. Sentinel denies
+            # tool calls that would modify approved OpenSpec specs or archived changes.
+            exec sentinel hook claude-code --guard-approved-specs --event-stdin
+            """
+          .replace("%s", GUARD_MARKER);
+
   private static final String HOOK =
       """
             #!/bin/sh
@@ -68,47 +103,65 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
 
   @Override
   public IntegrationResult integrate(final Path projectRoot, final boolean remove) {
-    final Path settings = projectRoot.toAbsolutePath().normalize().resolve(SETTINGS_FILE);
-    final Path hook = projectRoot.toAbsolutePath().normalize().resolve(HOOK_FILE);
+    return integrate(projectRoot, remove ? IntegrationRequest.REMOVE : IntegrationRequest.INSTALL);
+  }
+
+  @Override
+  public IntegrationResult integrate(final Path projectRoot, final IntegrationRequest request) {
+    final Path root = projectRoot.toAbsolutePath().normalize();
+    final Path settings = root.resolve(SETTINGS_FILE);
+    final Path hook = root.resolve(HOOK_FILE);
+    final GuardFile guard = new GuardFile(root.resolve(GUARD_FILE), GUARD_MARKER, GUARD);
     try {
-      return remove ? remove(settings, hook) : install(settings, hook);
+      return request.remove()
+          ? remove(settings, hook, guard)
+          : install(settings, hook, guard, request.guard());
     } catch (IOException e) {
       throw new UncheckedIOException(
           "Could not update Claude Code integration: " + e.getMessage(), e);
     }
   }
 
-  private IntegrationResult install(final Path settings, final Path hook) throws IOException {
-    final IntegrationResult conflict =
+  /**
+   * Installs or refreshes every file after a full conflict preflight. An enabled guard script is
+   * written before the settings that reference it, and a disabled one is deleted after them.
+   */
+  private IntegrationResult install(
+      final Path settings, final Path hook, final GuardFile guard, final GuardMode mode)
+      throws IOException {
+    IntegrationResult conflict =
         IntegrationArtifacts.preflight(settings, SETTINGS_MARKER, hook, HOOK_MARKER);
+    if (conflict == null) {
+      conflict = guard.preflight(mode);
+    }
     if (conflict != null) {
       return conflict;
     }
-    final IntegrationResult settingsResult =
-        IntegrationArtifacts.installOrRefresh(
-            settings, SETTINGS_MARKER, SETTINGS, "Updated Sentinel Claude Code integration.");
-    if (settingsResult.status() == IntegrationResult.Status.CONFLICT) {
-      return settingsResult;
+    final boolean guarded = guard.enabled(mode);
+    final List<Map.Entry<Path, IntegrationResult>> results = new ArrayList<>();
+    if (guarded) {
+      results.add(guard.install(UPDATED));
+      makeExecutable(guard.file());
     }
-    final IntegrationResult hookResult =
-        IntegrationArtifacts.installOrRefresh(
-            hook, HOOK_MARKER, HOOK, "Updated Sentinel Claude Code integration.");
-    if (hookResult.status() == IntegrationResult.Status.CONFLICT) {
-      return hookResult;
-    }
+    results.add(
+        Map.entry(
+            settings,
+            IntegrationArtifacts.installOrRefresh(
+                settings, SETTINGS_MARKER, guarded ? GUARDED_SETTINGS : SETTINGS, UPDATED)));
+    results.add(
+        Map.entry(hook, IntegrationArtifacts.installOrRefresh(hook, HOOK_MARKER, HOOK, UPDATED)));
     if (Files.exists(hook)) {
       makeExecutable(hook);
     }
+    guard.remove(mode == GuardMode.DISABLE).ifPresent(results::add);
     return IntegrationArtifacts.combine(
-        settings,
-        settingsResult,
-        hook,
-        hookResult,
+        results,
         "Sentinel Claude Code integration is already present.",
         "Created Sentinel-owned Claude Code edit/write integration (or refreshed it).");
   }
 
-  private IntegrationResult remove(final Path settings, final Path hook) throws IOException {
+  private IntegrationResult remove(final Path settings, final Path hook, final GuardFile guard)
+      throws IOException {
     IntegrationResult conflict = IntegrationArtifacts.preflight(settings, SETTINGS_MARKER);
     if (conflict != null) {
       return conflict;
@@ -117,7 +170,7 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
     if (conflict != null) {
       return conflict;
     }
-    if (!Files.exists(settings) && !Files.exists(hook)) {
+    if (!Files.exists(settings) && !Files.exists(hook) && !guard.installed()) {
       return new IntegrationResult(
           IntegrationResult.Status.NOT_FOUND,
           List.of(),
@@ -133,6 +186,7 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
       Files.delete(hook);
       removed.add(hook.toString());
     }
+    guard.remove(true).ifPresent(entry -> removed.add(entry.getKey().toString()));
     deleteIfEmpty(hook.getParent());
     deleteIfEmpty(settings.getParent());
     return new IntegrationResult(

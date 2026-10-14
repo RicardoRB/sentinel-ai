@@ -1,0 +1,6 @@
+{
+  "tool": "apply_patch",
+  "args": {
+    "patchText": "*** Begin Patch\n*** Add File: openspec/changes/foo/design.md\n+# Design\n*** Update File: openspec/changes/foo/tasks.md\n@@\n-- [ ] 1.1 Do it\n+- [x] 1.1 Do it\n*** Delete File: openspec/changes/foo/notes.md\n*** End Patch\n"
+  }
+}

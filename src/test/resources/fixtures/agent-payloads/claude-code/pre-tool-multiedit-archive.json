@@ -1,0 +1,23 @@
+{
+  "session_id": "9a1f2c3d-4e5f-4a6b-8c7d-0e1f2a3b4c5d",
+  "transcript_path": "/Users/dev/.claude/projects/-__PROJECT__/9a1f2c3d-4e5f-4a6b-8c7d-0e1f2a3b4c5d.jsonl",
+  "cwd": "__PROJECT__",
+  "permission_mode": "default",
+  "hook_event_name": "PreToolUse",
+  "tool_name": "MultiEdit",
+  "tool_input": {
+    "file_path": "__PROJECT__/openspec/changes/archive/2026-10-05-old/tasks.md",
+    "edits": [
+      {
+        "old_string": "- [ ] 1.1",
+        "new_string": "- [x] 1.1"
+      },
+      {
+        "old_string": "- [ ] 1.2",
+        "new_string": "- [x] 1.2",
+        "replace_all": true
+      }
+    ]
+  },
+  "tool_use_id": "toolu_01AbCdEfGhIjKlMnOpQrStUv"
+}

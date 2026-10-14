@@ -18,6 +18,7 @@ description: Sentinel process exit status meanings.
 | `doctor` | No `ERROR` findings | — | At least one `ERROR` finding |
 | `loop` | `PASSED` | Any other terminal state | Invalid usage |
 | `spec validate` | Nothing to report | Findings or an unsuccessful spec validation | Could not run |
+| `spec guard` | Allowed | Refused; the reason is on stdout | Could not decide |
 | `hook claude-code` | Gates passed and no spec findings; always for `Stop` events | — | Gates failed, spec findings, or could not run (reported to the agent on stderr) |
 
 For scripts, combine the exit status with `check --format json` to inspect individual results.

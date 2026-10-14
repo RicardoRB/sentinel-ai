@@ -5,6 +5,8 @@ import static dev.sentinel.ProjectFixtures.withPom;
 
 import dev.sentinel.application.gate.CheckService;
 import dev.sentinel.application.learning.LearningService;
+import dev.sentinel.application.project.ProjectDetector;
+import dev.sentinel.application.spec.ApprovedArtifactGuardService;
 import dev.sentinel.application.spec.SpecValidationFixtures;
 import dev.sentinel.domain.FakeOpenSpecEnvironment;
 import dev.sentinel.domain.doctor.EnvironmentInspection;
@@ -12,6 +14,8 @@ import dev.sentinel.domain.process.CommandExecutor;
 import dev.sentinel.domain.process.CommandResult;
 import dev.sentinel.infrastructure.json.ForyJsonCodec;
 import dev.sentinel.infrastructure.learning.JsonLearningStore;
+import dev.sentinel.infrastructure.project.FileSystemProjectInspection;
+import dev.sentinel.infrastructure.spec.FileSystemProjectPaths;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -91,6 +95,11 @@ class ClaudeCodeHookTestSupport {
             new LearningService(new JsonLearningStore(codec)),
             codec,
             SpecValidationFixtures.service(executor, environment, checks),
+            new ClaudeGuardHook(
+                new ApprovedArtifactGuardService(
+                    new ProjectDetector(new FileSystemProjectInspection()),
+                    new FileSystemProjectPaths()),
+                codec),
             input,
             () -> interactive);
     final CommandLine cli = new CommandLine(command);

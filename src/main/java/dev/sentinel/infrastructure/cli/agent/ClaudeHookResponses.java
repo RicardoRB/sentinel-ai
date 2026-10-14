@@ -31,6 +31,31 @@ final class ClaudeHookResponses {
     return codec.toJson(output);
   }
 
+  /**
+   * Refuses a tool call before it runs and tells the agent why. Sentinel never answers {@code
+   * allow}, so allowed calls still go through Claude Code's own permission handling.
+   */
+  static String denyPreToolUse(final JsonCodec codec, final String reason) {
+    final PreToolUseOutput output = new PreToolUseOutput();
+    output.hookSpecificOutput = new PreToolUseDecision();
+    output.hookSpecificOutput.hookEventName = "PreToolUse";
+    output.hookSpecificOutput.permissionDecision = "deny";
+    output.hookSpecificOutput.permissionDecisionReason = reason;
+    return codec.toJson(output);
+  }
+
+  @JsonType
+  public static final class PreToolUseOutput {
+    public PreToolUseDecision hookSpecificOutput;
+  }
+
+  @JsonType
+  public static final class PreToolUseDecision {
+    public String hookEventName;
+    public String permissionDecision;
+    public String permissionDecisionReason;
+  }
+
   @JsonType
   public static final class StopBlockOutput {
     public String decision;
