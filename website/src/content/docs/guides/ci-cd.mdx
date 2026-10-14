@@ -57,3 +57,22 @@ SARIF output is not supported yet.
 
 Do not run Sentinel on untrusted pull requests, such as those from forks, without isolation:
 `sentinel.toml` is executable code. See [security](/security/).
+
+## OpenSpec provenance enforcement
+
+The optional pull-request integration must use `actions/checkout@v5` with `fetch-depth: 0`, fetch the pull-request
+base ref, install the tested `@fission-ai/openspec@1.14.1`, and run:
+
+```sh
+sentinel spec enforce --base "origin/$BASE_REF"
+```
+
+Configure that job as a required status check in repository settings. Add a `CODEOWNERS` entry using your own
+placeholders, for example `openspec/** @REPLACE_WITH_TEAM`; Sentinel does not create or approve owners. Enable
+required code-owner review separately in repository settings. Git provenance and archive association establish
+deterministic provenance only; neither proves a human approved the change.
+
+The optional local pre-commit integration writes only Sentinel-owned files. It preserves a user-owned
+`.git/hooks/pre-commit` and reports a conflict with manual chaining guidance rather than overwriting it. Refresh and
+removal affect only files carrying Sentinel ownership markers. `/opsx:verify` is not part of the blocking hook or CI
+command.

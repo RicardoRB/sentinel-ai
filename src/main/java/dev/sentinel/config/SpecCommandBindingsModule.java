@@ -5,6 +5,7 @@ import dagger.Module;
 import dagger.multibindings.ClassKey;
 import dagger.multibindings.IntoMap;
 import dev.sentinel.infrastructure.cli.spec.SpecCommand;
+import dev.sentinel.infrastructure.cli.spec.SpecEnforceCommand;
 import dev.sentinel.infrastructure.cli.spec.SpecGuardCommand;
 import dev.sentinel.infrastructure.cli.spec.SpecValidateCommand;
 
@@ -25,4 +26,9 @@ interface SpecCommandBindingsModule {
   @IntoMap
   @ClassKey(SpecGuardCommand.class)
   Object specGuardCommand(SpecGuardCommand command);
+
+  @Binds
+  @IntoMap
+  @ClassKey(SpecEnforceCommand.class)
+  Object specEnforceCommand(SpecEnforceCommand command);
 }

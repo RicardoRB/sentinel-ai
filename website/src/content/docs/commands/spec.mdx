@@ -6,6 +6,7 @@ description: Validate specification artifacts and guard approved OpenSpec artifa
 ```sh
 sentinel spec validate [-C <dir>] [--profile <name>[,<name>...]] [--] [<path>...]
 sentinel spec guard [-C <dir>] [--cwd <dir>] [--patch-stdin | --shell-stdin | --skill <name>] [--] [<path>...]
+sentinel spec enforce [-C <dir>] --base <revision> [--profile <name>[,<name>...]] [--bootstrap-baseline <declaration>]
 ```
 
 `sentinel spec validate` checks a project's specification artifacts and prints findings that a person or a
@@ -167,3 +168,31 @@ capped at 4,000 characters.
 
 With `--verbose`, diagnostics on stderr report the input kind, target count, refusal reasons, and the decision. They
 never include paths, patch text, or command text.
+
+## Enforcing revision provenance: `spec enforce`
+
+Use the blocking command from a repository checkout:
+
+```sh
+sentinel spec enforce --base origin/main
+```
+
+Sentinel resolves the checked-out `HEAD`, computes `git merge-base` with the explicit base, and compares the
+merge-base OpenSpec snapshot with the candidate. The checkout must contain the base revision and enough history
+for that merge base; shallow or missing history fails with exit code `2` and should be repaired with
+`actions/checkout` `fetch-depth: 0` (or an equivalent fetch).
+
+The command reuses the configured active, archived, and optional JUnit traceability checks. Existing archives are
+immutable. A changed live specification must be exactly produced by one newly added, complete archive; an archive
+name or commit message alone is not sufficient. Exit code `1` means policy findings and exit code `0` means the
+checks pass.
+
+For the first baseline only, a reviewer may explicitly select bootstrap:
+
+```sh
+sentinel spec enforce --base origin/main --bootstrap-baseline "approved initial baseline"
+```
+
+Missing history never implicitly enables bootstrap. Git history and archive provenance are evidence of deterministic
+origin, not proof of human approval; required status checks and code-owner review remain repository settings.
+Generated blocking integrations never invoke `/opsx:verify`, which remains advisory.
