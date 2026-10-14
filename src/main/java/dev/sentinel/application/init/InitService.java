@@ -16,8 +16,7 @@ import dev.sentinel.domain.project.Project;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.FutureTask;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
@@ -37,10 +36,10 @@ public class InitService {
 
   private final ProjectDetector detector;
   private final IntegrationInstaller installer;
-  private final InitSetupCatalog catalog;
+  private final Supplier<InitSetupCatalog> catalog;
   private final BuildToolConfiguration pomTools;
   private final ArchitectureTestGeneration architectureTests;
-  private final StorageAccess configurationStorage;
+  private final Supplier<ConfigurationStorage> configurationStorage;
   private final RuleFileGeneration ruleFiles;
   private final ToolInstaller toolInstaller;
 
@@ -56,7 +55,7 @@ public class InitService {
       final ToolInstaller toolInstaller) {
     this.detector = detector;
     this.installer = new IntegrationInstaller(integrations, catalog);
-    this.catalog = catalog;
+    this.catalog = () -> catalog;
     this.pomTools = pomTools;
     this.architectureTests = architectureTests;
     this.configurationStorage = () -> configurationStorage;
@@ -116,7 +115,7 @@ public class InitService {
   }
 
   public InitSetupCatalog catalog() {
-    return catalog;
+    return catalog.get();
   }
 
   public InitResult initialize(final Path start, final InitSelection selection) {
@@ -142,7 +141,7 @@ public class InitService {
     final String executable = installation.executable();
     final List gates = resolveGates(project, selection, executable);
     if (selection.architecture() != null) {
-      catalog.architecture(selection.architecture());
+      catalog.get().architecture(selection.architecture());
     }
     final InitChanges changes =
         new InitChanges(
@@ -151,7 +150,8 @@ public class InitService {
             architectureTests,
             ruleFiles,
             pomTools,
-            installer);
+            installer,
+            catalog.get().qualityHooks());
     boolean completed = false;
     try {
       changes.apply(project, selection, gates, approval);
@@ -185,9 +185,9 @@ public class InitService {
             .distinct()
             .map(
                 id ->
-                    catalog.openSpecValidations().contains(id)
-                        ? catalog.openSpecValidation(project, id, openSpecExecutable)
-                        : catalog.gate(project, id))
+                    catalog.get().openSpecValidations().contains(id)
+                        ? catalog.get().openSpecValidation(project, id, openSpecExecutable)
+                        : catalog.get().gate(project, id))
             .toList();
     if (gates.isEmpty() && selection.tools().isEmpty()) {
       throw new SentinelException("Select at least one quality gate.");
@@ -233,24 +233,10 @@ public class InitService {
 
   // Cleanup is best effort: any failure here must not hide the original setup failure.
   private void restoreConfiguration(final Path configurationFile, final String original) {
-    final FutureTask<Void> restoration =
-        new FutureTask<>(
-            () -> {
-              configurationStorage.get().restore(configurationFile, original);
-              return null;
-            });
-    restoration.run();
     try {
-      restoration.get();
-    } catch (InterruptedException interrupted) {
-      Thread.currentThread().interrupt();
-    } catch (ExecutionException ignored) {
+      configurationStorage.get().restore(configurationFile, original);
+    } catch (IllegalStateException ignored) {
       // Restoration can be retried manually.
     }
-  }
-
-  @FunctionalInterface
-  private interface StorageAccess {
-    ConfigurationStorage get();
   }
 }

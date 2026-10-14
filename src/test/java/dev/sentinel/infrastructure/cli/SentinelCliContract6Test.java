@@ -59,7 +59,7 @@ class SentinelCliContract6Test extends SentinelCliIntegrationSupport {
 
   @Test
   void checkWithoutLearnAfterCreatesNoSentinelDirectory() {
-    run(INIT, INTEGRATION_OPTION, NONE, GATE_OPTION, TESTS, "-C", project.toString());
+    run(INIT, INTEGRATION_OPTION, NONE, GATE_OPTION, "format", "-C", project.toString());
     out.getBuffer().setLength(0);
 
     assertThat(run(CHECK, "-C", project.toString())).isEqualTo(ExitCodes.OK);
@@ -68,7 +68,7 @@ class SentinelCliContract6Test extends SentinelCliIntegrationSupport {
 
   @Test
   void learnAfterBelowOneIsAUsageError() {
-    run(INIT, INTEGRATION_OPTION, NONE, GATE_OPTION, TESTS, "-C", project.toString());
+    run(INIT, INTEGRATION_OPTION, NONE, GATE_OPTION, "format", "-C", project.toString());
     out.getBuffer().setLength(0);
 
     assertThat(run(CHECK, LEARN_AFTER, "0", "-C", project.toString())).isEqualTo(ExitCodes.ERROR);
@@ -78,7 +78,7 @@ class SentinelCliContract6Test extends SentinelCliIntegrationSupport {
 
   @Test
   void learningPromptEmittedAfterFailPassFailPassInJson() throws IOException {
-    run(INIT, INTEGRATION_OPTION, NONE, GATE_OPTION, TESTS, "-C", project.toString());
+    run(INIT, INTEGRATION_OPTION, NONE, GATE_OPTION, "format", "-C", project.toString());
 
     fail();
     out.getBuffer().setLength(0);
@@ -104,21 +104,21 @@ class SentinelCliContract6Test extends SentinelCliIntegrationSupport {
     assertThat(root.get(STATUS).asString()).isEqualTo("PASSED");
     final JsonTree prompt = root.get("learning").get("prompts");
     assertThat(prompt.size()).isEqualTo(1);
-    assertThat(prompt.get(0).get("gate").asString()).isEqualTo(TESTS);
+    assertThat(prompt.get(0).get("gate").asString()).isEqualTo("format");
     assertThat(prompt.get(0).get("occurrences").asInt()).isEqualTo(2);
     assertThat(prompt.get(0).get("instruction").asString()).contains("AGENTS.md");
 
     final JsonTree ledger =
         JsonTree.parse(Files.readString(project.resolve(".sentinel/learning.json")));
     assertThat(ledger.get("formatVersion").asInt()).isEqualTo(1);
-    assertThat(ledger.get("records").get("tests:FAILED").get("occurrences").asInt()).isEqualTo(2);
-    assertThat(ledger.get("records").get("tests:FAILED").get("prompted").asBoolean()).isTrue();
+    assertThat(ledger.get("records").get("format:FAILED").get("occurrences").asInt()).isEqualTo(2);
+    assertThat(ledger.get("records").get("format:FAILED").get("prompted").asBoolean()).isTrue();
     assertThat(out.toString()).doesNotContain("✓", "\u001b");
   }
 
   @Test
   void learningTextReportShowsSectionAndLeavesAgentsMdUntouched() throws IOException {
-    run(INIT, INTEGRATION_OPTION, NONE, GATE_OPTION, TESTS, "-C", project.toString());
+    run(INIT, INTEGRATION_OPTION, NONE, GATE_OPTION, "format", "-C", project.toString());
     final Path agents = project.resolve("AGENTS.md");
     Files.writeString(agents, "project contract\n");
 
@@ -134,7 +134,7 @@ class SentinelCliContract6Test extends SentinelCliIntegrationSupport {
 
     final String text = out.toString();
     assertThat(text)
-        .contains("Learning", "tests (2 occurrences):", "AGENTS.md", "Quality Gate: PASSED");
+        .contains("Learning", "format (2 occurrences):", "AGENTS.md", "Quality Gate: PASSED");
     assertThat(text.indexOf("Learning")).isGreaterThan(text.indexOf("Quality Gate"));
     assertThat(agents).hasContent("project contract\n");
   }

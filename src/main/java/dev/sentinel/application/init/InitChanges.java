@@ -1,6 +1,7 @@
 package dev.sentinel.application.init;
 
 import dev.sentinel.domain.agent.IntegrationResult;
+import dev.sentinel.domain.config.SentinelException;
 import dev.sentinel.domain.init.ArchitectureTestChange;
 import dev.sentinel.domain.init.ArchitectureTestGeneration;
 import dev.sentinel.domain.init.BuildToolConfiguration;
@@ -8,6 +9,8 @@ import dev.sentinel.domain.init.InitGateOption;
 import dev.sentinel.domain.init.InitResult;
 import dev.sentinel.domain.init.InitSelection;
 import dev.sentinel.domain.init.PomChange;
+import dev.sentinel.domain.init.QualityHookChange;
+import dev.sentinel.domain.init.QualityHookGeneration;
 import dev.sentinel.domain.init.QualityPreset;
 import dev.sentinel.domain.init.RuleFileChange;
 import dev.sentinel.domain.init.RuleFileGeneration;
@@ -24,10 +27,12 @@ final class InitChanges {
   private final RuleFileGeneration ruleFiles;
   private final BuildToolConfiguration pomTools;
   private final IntegrationInstaller installer;
+  private final QualityHookGeneration qualityHooks;
   private final List<IntegrationResult> installed = new ArrayList<>();
   private PomChange pomChange;
   private RuleFileChange ruleFileChange;
   private ArchitectureTestChange architectureTest;
+  private QualityHookChange qualityHookChange;
 
   InitChanges(
       final Path root,
@@ -35,13 +40,15 @@ final class InitChanges {
       final ArchitectureTestGeneration architectureTests,
       final RuleFileGeneration ruleFiles,
       final BuildToolConfiguration pomTools,
-      final IntegrationInstaller installer) {
+      final IntegrationInstaller installer,
+      final QualityHookGeneration qualityHooks) {
     this.root = root;
     this.integrationIds = integrationIds;
     this.architectureTests = architectureTests;
     this.ruleFiles = ruleFiles;
     this.pomTools = pomTools;
     this.installer = installer;
+    this.qualityHooks = qualityHooks;
   }
 
   void apply(
@@ -51,6 +58,12 @@ final class InitChanges {
       final Object approval) {
     final QualityPreset preset = selection.preset();
     installer.install(project.root(), selection.integrations(), installed);
+    if (selection.qualityHooks()) {
+      qualityHookChange = qualityHooks.apply(project.root());
+      if (qualityHookChange.result().status() == IntegrationResult.Status.CONFLICT) {
+        throw new SentinelException(qualityHookChange.result().message());
+      }
+    }
     pomChange = pomTools.apply(project, gates, preset, approval);
     ruleFileChange = ruleFiles.apply(project, preset, gates);
     if (gates.stream().anyMatch(gate -> "archunit".equals(gate.id()))) {
@@ -85,6 +98,7 @@ final class InitChanges {
     architectureTests.rollback(architectureTest);
     ruleFiles.rollback(ruleFileChange);
     pomTools.rollback(pomChange);
+    qualityHooks.rollback(qualityHookChange);
     installer.rollbackNew(root, integrationIds, installed);
   }
 }

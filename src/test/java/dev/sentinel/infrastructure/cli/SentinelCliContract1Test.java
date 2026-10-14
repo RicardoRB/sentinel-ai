@@ -38,14 +38,14 @@ class SentinelCliContract1Test extends SentinelCliIntegrationSupport {
 
   @Test
   void initThenCheckPasses() {
-    assertThat(run(INIT, INTEGRATION_OPTION, NONE, GATE_OPTION, TESTS, "-C", project.toString()))
+    assertThat(run(INIT, INTEGRATION_OPTION, NONE, GATE_OPTION, "format", "-C", project.toString()))
         .isZero();
     assertThat(project.resolve(SENTINEL_TOML)).exists();
 
     out.getBuffer().setLength(0);
     assertThat(run(CHECK, "-C", project.toString())).isEqualTo(ExitCodes.OK);
     assertThat(out.toString())
-        .contains("Sentinel dev", "✓ tests", "PASSED", "Quality Gate: PASSED");
+        .contains("Sentinel dev", "✓ format", "PASSED", "Quality Gate: PASSED");
   }
 
   @Test

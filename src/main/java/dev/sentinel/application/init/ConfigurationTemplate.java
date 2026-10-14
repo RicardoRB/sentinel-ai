@@ -2,6 +2,7 @@ package dev.sentinel.application.init;
 
 import dev.sentinel.domain.gate.SupportedQualityGates;
 import dev.sentinel.domain.init.InitGateOption;
+import dev.sentinel.domain.init.QualityGatePhasePolicy;
 import dev.sentinel.domain.init.QualityPreset;
 import java.util.List;
 
@@ -24,7 +25,17 @@ final class ConfigurationTemplate {
               .map(ConfigurationTemplate::escape)
               .reduce((left, right) -> left + " " + right)
               .orElse("");
-      content.append("\n[quality-gates.").append(gate.id()).append("]\nenabled = true\n");
+      content
+          .append("\n[quality-gates.")
+          .append(gate.id())
+          .append("]\nenabled = true\nprofiles = [")
+          .append(
+              String.join(
+                  ", ",
+                  QualityGatePhasePolicy.profilesFor(gate.id()).stream()
+                      .map(profile -> "\"" + profile + "\"")
+                      .toList()))
+          .append("]\n");
       if (!SupportedQualityGates.TRACEABILITY.equals(gate.id())) {
         content
             .append("command = \"")

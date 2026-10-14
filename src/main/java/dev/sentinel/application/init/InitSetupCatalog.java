@@ -1,21 +1,40 @@
 package dev.sentinel.application.init;
 
+import dev.sentinel.domain.agent.IntegrationResult;
 import dev.sentinel.domain.config.SentinelException;
 import dev.sentinel.domain.doctor.EnvironmentInspection;
 import dev.sentinel.domain.init.InitGateOption;
 import dev.sentinel.domain.init.InitToolOption;
+import dev.sentinel.domain.init.QualityHookGeneration;
 import dev.sentinel.domain.project.Project;
+import java.nio.file.Path;
 import java.util.List;
+import java.util.function.Supplier;
 import javax.inject.Inject;
 
 /** Stable OpenSpec tool choices and project-aware defaults used by init. */
 public final class InitSetupCatalog extends InitGeneralCatalog {
   private final EnvironmentInspection environment;
+  private final Supplier<QualityHookGeneration> qualityHooks;
+
+  public InitSetupCatalog(final EnvironmentInspection environment) {
+    this(environment, new NoQualityHookGeneration());
+  }
 
   @Inject
-  public InitSetupCatalog(final EnvironmentInspection environment) {
+  public InitSetupCatalog(
+      final EnvironmentInspection environment, final QualityHookGeneration qualityHooks) {
     super(environment);
     this.environment = environment;
+    this.qualityHooks = () -> qualityHooks;
+  }
+
+  QualityHookGeneration qualityHooks() {
+    return qualityHooks.get();
+  }
+
+  public IntegrationResult removeQualityHooks(final Path projectRoot) {
+    return qualityHooks.get().remove(projectRoot);
   }
 
   public List<InitToolOption> tools() {

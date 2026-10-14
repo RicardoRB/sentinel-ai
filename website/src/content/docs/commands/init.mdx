@@ -6,7 +6,7 @@ description: Create sentinel.toml and select integrations.
 `sentinel init` creates `sentinel.toml` using an interactive wizard or explicit options.
 
 ```sh
-sentinel init [-C <dir>] [--preset <standard|strict>] [--integration <none|opencode|claude-code>[,...]] [--gate <id>[,...]] [--tool openspec] [--openspec-validation <openspec|openspec-archived>[,...]] [--install-tool openspec] [--architecture <style>] [--overwrite] [--yes]
+sentinel init [-C <dir>] [--preset <standard|strict>] [--integration <none|opencode|claude-code>[,...]] [--quality-hooks] [--remove-quality-hooks] [--gate <id>[,...]] [--tool openspec] [--openspec-validation <openspec|openspec-archived>[,...]] [--install-tool openspec] [--architecture <style>] [--overwrite] [--yes]
 ```
 
 The gate selector accepts supported [gate IDs](/configuration/gates/). `none` is exclusive with
@@ -24,6 +24,20 @@ unchanged and report that the selected gate was not reconfigured. Preset rule fi
 unmarked existing files are preserved and reported. `--gate` adds gates to a preset. `-C <dir>` selects the
 project directory. Exit codes: `0` success, `2` invalid usage or
 inability to initialize (including cancelled or invalid selection).
+
+Init-generated configurations assign gates to cumulative execution phases. Fast gates (`format`,
+`compile`, `checkstyle`, `pmd`, and `gitleaks`) belong to `default`, `pre-commit`, `pre-push`, and
+`ci`. Slower local gates belong to `pre-push` and `ci`; environment-dependent gates belong to `ci`,
+and custom commands belong to `pre-push` and `ci`. The `default` profile is intentionally the same
+fast tier as `pre-commit`, while `ci` contains every selected gate. Init does not generate a CI
+workflow.
+
+Quality hooks are separate from agent integrations and are opt-in. Pass `--quality-hooks` to add
+Sentinel-managed checks to `.git/hooks/pre-commit` and `.git/hooks/pre-push`. The pre-push section
+is inserted after the shebang and before existing user logic; it does not replace the hook. Re-run
+the option to refresh the managed sections. Use `--remove-quality-hooks` to remove only Sentinel's
+marked sections, preserving user content and other Sentinel integrations. A malformed or duplicate
+quality-hook marker is reported as a conflict and left unchanged.
 
 On supported macOS and Linux terminals, use Up/Down to move, Space to toggle, and Enter to confirm.
 Press `q`, `Q`, or Ctrl+C to cancel. On Windows, piped input, or when raw terminal mode is unavailable,

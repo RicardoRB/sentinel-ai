@@ -10,7 +10,8 @@ public record InitSelection(
     QualityPreset preset,
     List<String> tools,
     List<String> openSpecValidations,
-    List<String> installTools) {
+    List<String> installTools,
+    boolean qualityHooks) {
   public InitSelection {
     integrations = List.copyOf(integrations);
     gates = List.copyOf(gates);
@@ -42,6 +43,18 @@ public record InitSelection(
       final List<String> gates,
       final String architecture,
       final QualityPreset preset) {
-    this(integrations, gates, architecture, preset, List.of(), List.of(), List.of());
+    this(integrations, gates, architecture, preset, List.of(), List.of(), List.of(), false);
+  }
+
+  public InitSelection(
+      final List<String> integrations,
+      final List<String> gates,
+      final String architecture,
+      final QualityPreset preset,
+      final List<String> tools,
+      final List<String> openSpecValidations,
+      final List<String> installTools) {
+    this(
+        integrations, gates, architecture, preset, tools, openSpecValidations, installTools, false);
   }
 }

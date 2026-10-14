@@ -86,6 +86,16 @@ public class InitCommand implements Callable<Integer> {
   private String preset;
 
   @Option(
+      names = "--quality-hooks",
+      description = "Install Sentinel pre-commit and pre-push quality hooks.")
+  private Boolean qualityHooks;
+
+  @Option(
+      names = "--remove-quality-hooks",
+      description = "Remove Sentinel-managed quality-hook sections without changing user content.")
+  private boolean removeQualityHooks;
+
+  @Option(
       names = "--overwrite",
       description = "Overwrite an existing sentinel.toml without prompting.")
   private boolean overwriteOption;
@@ -127,6 +137,10 @@ public class InitCommand implements Callable<Integer> {
     final InitService init = service.get();
     final Project project = init.project(options.directory());
     final InitSetupCatalog catalog = init.catalog();
+    if (removeQualityHooks) {
+      output().println(catalog.removeQualityHooks(project.root()).message());
+      return ExitCodes.OK;
+    }
     final QualityPreset requestedPreset = preset == null ? null : catalog.preset(preset);
     final InitWizard wizard = new InitWizard(prompt, this::openRawTerminal, output());
     final boolean exists = init.configurationExists(project);
@@ -175,6 +189,8 @@ public class InitCommand implements Callable<Integer> {
             wizard, catalog, project, installTools, explicitSetup, selectedTools);
     InitSelectionSupport.validate(
         catalog, selectedTools, selectedValidations, selectedInstallTools);
+    final boolean selectedQualityHooks =
+        qualityHooks != null ? qualityHooks : (!explicitSetup && selectQualityHooks(wizard));
     return new InitSelection(
         selectedIntegrations,
         selectedGates,
@@ -182,7 +198,17 @@ public class InitCommand implements Callable<Integer> {
         selectedPreset,
         selectedTools,
         selectedValidations,
-        selectedInstallTools);
+        selectedInstallTools,
+        selectedQualityHooks);
+  }
+
+  private boolean selectQualityHooks(final InitWizard wizard) {
+    if (!wizard.prompt.hasMoreInput()) {
+      return false;
+    }
+    output().print("Install Sentinel pre-commit and pre-push quality hooks? [y/N]: ");
+    output().flush();
+    return wizard.prompt.confirm();
   }
 
   private boolean overwriteApproved(final InitWizard wizard, final Project project) {
