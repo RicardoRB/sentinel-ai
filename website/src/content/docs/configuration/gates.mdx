@@ -57,8 +57,10 @@ comparison baseline, so enable them deliberately (for example in a CI-only profi
 
 Standalone tools (`semgrep`, `gitleaks`, `trivy`, `zap-baseline.py`) must already be on the path; a
 missing tool is reported as unavailable with an install link and other gates still run. Sentinel
-never installs tools. For Maven-backed gates, `init` adds the missing plugin to `pom.xml` and can
-roll the change back.
+never installs those tools. For Maven-backed gates, `init` resolves a version from its embedded
+Java/Maven compatibility catalog before adding a missing plugin to `pom.xml`. Existing compatible
+versions are preserved; incompatible versions require confirmation, or `--yes` for explicit automation.
+Unknown compatibility or an empty compatible catalog result stops before writing and reports remediation.
 
 ## Quality presets
 

@@ -3,12 +3,10 @@ package dev.sentinel.application.init;
 import dev.sentinel.application.project.ProjectDetector;
 import dev.sentinel.application.project.ProjectNotFoundException;
 import dev.sentinel.domain.agent.AgentIntegration;
-import dev.sentinel.domain.config.SentinelConfiguration;
 import dev.sentinel.domain.config.SentinelException;
 import dev.sentinel.domain.init.ArchitectureTestGeneration;
 import dev.sentinel.domain.init.BuildToolConfiguration;
 import dev.sentinel.domain.init.ConfigurationStorage;
-import dev.sentinel.domain.init.InitGateOption;
 import dev.sentinel.domain.init.InitResult;
 import dev.sentinel.domain.init.InitSelection;
 import dev.sentinel.domain.init.QualityPreset;
@@ -105,7 +103,7 @@ public class InitService {
 
   public InitResult init(final Path start) {
     final Project project = project(start);
-    final Path file = project.root().resolve(SentinelConfiguration.FILE_NAME);
+    final Path file = project.root().resolve("sentinel.toml");
     return new InitResult(file, configurationStorage.get().create(file, DEFAULT_CONFIGURATION));
   }
 
@@ -114,9 +112,7 @@ public class InitService {
   }
 
   public boolean configurationExists(final Project project) {
-    return configurationStorage
-        .get()
-        .exists(project.root().resolve(SentinelConfiguration.FILE_NAME));
+    return configurationStorage.get().exists(project.root().resolve("sentinel.toml"));
   }
 
   public InitSetupCatalog catalog() {
@@ -124,15 +120,18 @@ public class InitService {
   }
 
   public InitResult initialize(final Path start, final InitSelection selection) {
-    return initialize(start, selection, false);
+    return initialize(start, selection, false, new Object());
   }
 
   public InitResult initialize(
-      final Path start, final InitSelection selection, final boolean overwrite) {
+      final Path start,
+      final InitSelection selection,
+      final boolean overwrite,
+      final Object approval) {
     LOGGER.log(Level.INFO, () -> "event=initialization-start overwrite=" + overwrite);
     final Project project = project(start);
     installer.validate(selection.integrations());
-    final Path configurationFile = project.root().resolve(SentinelConfiguration.FILE_NAME);
+    final Path configurationFile = project.root().resolve("sentinel.toml");
     final String originalConfiguration =
         configurationStorage.get().read(configurationFile).orElse(null);
     if (originalConfiguration != null && !overwrite) {
@@ -141,7 +140,7 @@ public class InitService {
     }
     final InstallationOutcome installation = installToolIfApproved(project, selection);
     final String executable = installation.executable();
-    final List<InitGateOption> gates = resolveGates(project, selection, executable);
+    final List gates = resolveGates(project, selection, executable);
     if (selection.architecture() != null) {
       catalog.architecture(selection.architecture());
     }
@@ -155,7 +154,7 @@ public class InitService {
             installer);
     boolean completed = false;
     try {
-      changes.apply(project, selection, gates);
+      changes.apply(project, selection, gates, approval);
       final InitResult result =
           writeConfiguration(configurationFile, gates, selection.preset(), changes, overwrite);
       if (!result.created()) {
@@ -177,9 +176,9 @@ public class InitService {
   }
 
   /** Returns the preset's gates followed by any additionally selected gates, without duplicates. */
-  private List<InitGateOption> resolveGates(
+  private List resolveGates(
       final Project project, final InitSelection selection, final String openSpecExecutable) {
-    final List<InitGateOption> gates =
+    final List gates =
         Stream.concat(
                 selection.preset() == null ? Stream.empty() : selection.preset().gates().stream(),
                 Stream.concat(selection.gates().stream(), selection.openSpecValidations().stream()))
@@ -217,7 +216,7 @@ public class InitService {
 
   private InitResult writeConfiguration(
       final Path file,
-      final List<InitGateOption> gates,
+      final List gates,
       final QualityPreset preset,
       final InitChanges changes,
       final boolean overwrite) {

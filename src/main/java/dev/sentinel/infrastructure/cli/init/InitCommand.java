@@ -2,7 +2,7 @@ package dev.sentinel.infrastructure.cli.init;
 
 import dev.sentinel.application.init.InitService;
 import dev.sentinel.application.init.InitSetupCatalog;
-import dev.sentinel.domain.config.SentinelConfiguration;
+import dev.sentinel.domain.init.CompatibilityFinding;
 import dev.sentinel.domain.init.InitResult;
 import dev.sentinel.domain.init.InitSelection;
 import dev.sentinel.domain.init.QualityPreset;
@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.concurrent.Callable;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import javax.inject.Inject;
 import picocli.CommandLine.Command;
@@ -89,6 +90,11 @@ public class InitCommand implements Callable<Integer> {
       description = "Overwrite an existing sentinel.toml without prompting.")
   private boolean overwriteOption;
 
+  @Option(
+      names = "--yes",
+      description = "Accept validated Maven compatibility updates without prompting.")
+  private boolean yesOption;
+
   private final Supplier<InitService> service;
   private final InputStream input;
   private final LinePrompt prompt;
@@ -129,7 +135,16 @@ public class InitCommand implements Callable<Integer> {
     }
     final InitSelection selection = select(wizard, catalog, project, requestedPreset);
     new InitResultPrinter(output()).printSelectedGates(catalog, project, selection.gates());
-    return printResult(init.initialize(project.root(), selection, overwriteOption || exists));
+    final Predicate<Object> approval =
+        new Predicate<>() {
+          @Override
+          public boolean test(final Object object) {
+            return (object instanceof CompatibilityFinding finding)
+                && (yesOption || confirmCompatibility(wizard, output(), finding));
+          }
+        };
+    return printResult(
+        init.initialize(project.root(), selection, overwriteOption || exists, approval));
   }
 
   /** Completes the selection, asking only for what the command-line options leave open. */
@@ -174,7 +189,7 @@ public class InitCommand implements Callable<Integer> {
     if (input.equals(System.in) && System.console() == null) {
       return false;
     }
-    return wizard.confirmOverwrite(project.root().resolve(SentinelConfiguration.FILE_NAME));
+    return wizard.confirmOverwrite(project.root().resolve("sentinel.toml"));
   }
 
   private String resolveArchitecture(
@@ -195,6 +210,21 @@ public class InitCommand implements Callable<Integer> {
       return Optional.empty();
     }
     return rawTerminal.open();
+  }
+
+  private boolean confirmCompatibility(
+      final InitWizard wizard, final PrintWriter out, final CompatibilityFinding finding) {
+    out.println(
+        "Compatibility update proposed for "
+            + finding.artifactId()
+            + ": "
+            + finding.currentVersion()
+            + " -> "
+            + finding.selectedVersion());
+    out.println("Reason: " + finding.message());
+    out.print("Apply this Maven plugin update? [y/N]: ");
+    out.flush();
+    return wizard.prompt.confirm();
   }
 
   private int printResult(final InitResult result) {

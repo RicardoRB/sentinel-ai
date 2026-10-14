@@ -45,10 +45,13 @@ final class InitChanges {
   }
 
   void apply(
-      final Project project, final InitSelection selection, final List<InitGateOption> gates) {
+      final Project project,
+      final InitSelection selection,
+      final List<InitGateOption> gates,
+      final Object approval) {
     final QualityPreset preset = selection.preset();
     installer.install(project.root(), selection.integrations(), installed);
-    pomChange = pomTools.apply(project, gates, preset);
+    pomChange = pomTools.apply(project, gates, preset, approval);
     ruleFileChange = ruleFiles.apply(project, preset, gates);
     if (gates.stream().anyMatch(gate -> "archunit".equals(gate.id()))) {
       architectureTest =
