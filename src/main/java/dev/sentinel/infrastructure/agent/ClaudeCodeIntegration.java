@@ -4,6 +4,8 @@ import dev.sentinel.domain.agent.AgentIntegration;
 import dev.sentinel.domain.agent.GuardMode;
 import dev.sentinel.domain.agent.IntegrationRequest;
 import dev.sentinel.domain.agent.IntegrationResult;
+import dev.sentinel.domain.json.JsonCodec;
+import dev.sentinel.infrastructure.json.ForyJsonCodec;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
@@ -13,8 +15,10 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Stream;
+import javax.inject.Inject;
 
 /** Ownership-safe Claude Code project hook integration. */
 public final class ClaudeCodeIntegration implements AgentIntegration {
@@ -25,6 +29,7 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
   private static final String HOOK_FILE = ".claude/hooks/sentinel-edit-write";
   private static final String GUARD_FILE = ".claude/hooks/sentinel-openspec-guard";
   private static final String UPDATED = "Updated Sentinel Claude Code integration.";
+  private final ClaudeSettingsDocument settingsDocument;
 
   private static final String SETTINGS =
       """
@@ -96,6 +101,15 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
             """
           .replace("%s", HOOK_MARKER);
 
+  public ClaudeCodeIntegration() {
+    this(new ForyJsonCodec());
+  }
+
+  @Inject
+  public ClaudeCodeIntegration(final JsonCodec codec) {
+    settingsDocument = new ClaudeSettingsDocument(Objects.requireNonNull(codec));
+  }
+
   @Override
   public String id() {
     return "claude-code";
@@ -129,25 +143,29 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
   private IntegrationResult install(
       final Path settings, final Path hook, final GuardFile guard, final GuardMode mode)
       throws IOException {
-    IntegrationResult conflict =
-        IntegrationArtifacts.preflight(settings, SETTINGS_MARKER, hook, HOOK_MARKER);
-    if (conflict == null) {
-      conflict = guard.preflight(mode);
+    final IntegrationResult hookConflict = IntegrationArtifacts.preflight(hook, HOOK_MARKER);
+    if (hookConflict != null) {
+      return hookConflict;
     }
-    if (conflict != null) {
-      return conflict;
+    final IntegrationResult guardConflict = guard.preflight(mode);
+    if (guardConflict != null) {
+      return guardConflict;
     }
     final boolean guarded = guard.enabled(mode);
+    final String settingsContent;
+    try {
+      settingsContent =
+          settingsDocument.merge(settings, guarded, SETTINGS_MARKER, SETTINGS, GUARDED_SETTINGS);
+    } catch (ClaudeSettingsDocument.SettingsConflictException e) {
+      return new IntegrationResult(
+          IntegrationResult.Status.CONFLICT, List.of(settings.toString()), e.getMessage());
+    }
     final List<Map.Entry<Path, IntegrationResult>> results = new ArrayList<>();
     if (guarded) {
       results.add(guard.install(UPDATED));
       makeExecutable(guard.file());
     }
-    results.add(
-        Map.entry(
-            settings,
-            IntegrationArtifacts.installOrRefresh(
-                settings, SETTINGS_MARKER, guarded ? GUARDED_SETTINGS : SETTINGS, UPDATED)));
+    results.add(Map.entry(settings, writeSettings(settings, settingsContent)));
     results.add(
         Map.entry(hook, IntegrationArtifacts.installOrRefresh(hook, HOOK_MARKER, HOOK, UPDATED)));
     if (Files.exists(hook)) {
@@ -160,17 +178,35 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
         "Created Sentinel-owned Claude Code edit/write integration (or refreshed it).");
   }
 
+  private static IntegrationResult writeSettings(final Path settings, final String content)
+      throws IOException {
+    if (Files.exists(settings) && Objects.equals(Files.readString(settings), content)) {
+      return new IntegrationResult(
+          IntegrationResult.Status.ALREADY_PRESENT,
+          List.of(),
+          "Sentinel integration is already present.");
+    }
+    Files.createDirectories(
+        Objects.requireNonNull(settings.getParent(), "settings must have a parent"));
+    Files.writeString(settings, content);
+    return new IntegrationResult(
+        IntegrationResult.Status.CHANGED, List.of(settings.toString()), UPDATED);
+  }
+
   private IntegrationResult remove(final Path settings, final Path hook, final GuardFile guard)
       throws IOException {
-    IntegrationResult conflict = IntegrationArtifacts.preflight(settings, SETTINGS_MARKER);
+    final IntegrationResult conflict = IntegrationArtifacts.preflight(hook, HOOK_MARKER);
     if (conflict != null) {
       return conflict;
     }
-    conflict = IntegrationArtifacts.preflight(hook, HOOK_MARKER);
-    if (conflict != null) {
-      return conflict;
+    final ClaudeSettingsDocument.SettingsUpdate update;
+    try {
+      update = settingsDocument.remove(settings, SETTINGS_MARKER);
+    } catch (ClaudeSettingsDocument.SettingsConflictException e) {
+      return new IntegrationResult(
+          IntegrationResult.Status.CONFLICT, List.of(settings.toString()), e.getMessage());
     }
-    if (!Files.exists(settings) && !Files.exists(hook) && !guard.installed()) {
+    if (update == null && !Files.exists(hook) && !guard.installed()) {
       return new IntegrationResult(
           IntegrationResult.Status.NOT_FOUND,
           List.of(),
@@ -178,8 +214,8 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
     }
 
     final List<String> removed = new ArrayList<>();
-    if (Files.exists(settings)) {
-      Files.delete(settings);
+    if (update != null && update.changed()) {
+      Files.writeString(settings, update.content());
       removed.add(settings.toString());
     }
     if (Files.exists(hook)) {

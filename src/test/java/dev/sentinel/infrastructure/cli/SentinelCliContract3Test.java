@@ -16,7 +16,7 @@ class SentinelCliContract3Test extends SentinelCliIntegrationSupport {
   }
 
   @Test
-  void integratesClaudeCodeAndOpenCodeAndRemovesOwnedArtifacts() {
+  void integratesClaudeCodeAndOpenCodeAndRemovesOwnedArtifacts() throws IOException {
     assertThat(run("integrate", CLAUDE_CODE, "-C", project.toString())).isZero();
     assertThat(project.resolve(".claude/settings.json")).exists();
     assertThat(project.resolve(".claude/hooks/sentinel-edit-write")).exists();
@@ -27,7 +27,9 @@ class SentinelCliContract3Test extends SentinelCliIntegrationSupport {
     assertThat(project.resolve(".opencode/plugins/sentinel-edit-write.js")).exists();
 
     assertThat(run("integrate", CLAUDE_CODE, "--remove", "-C", project.toString())).isZero();
-    assertThat(project.resolve(".claude/settings.json")).doesNotExist();
+    assertThat(project.resolve(".claude/settings.json")).exists();
+    assertThat(Files.readString(project.resolve(".claude/settings.json")))
+        .doesNotContain("sentinelOwnership", "sentinel-edit-write");
     assertThat(run("integrate", "opencode", "--remove", "-C", project.toString())).isZero();
     assertThat(project.resolve(".opencode/plugins/sentinel-edit-write.js")).doesNotExist();
   }
