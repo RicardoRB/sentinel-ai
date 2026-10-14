@@ -1,5 +1,6 @@
 package dev.sentinel.application.init;
 
+import dev.sentinel.domain.gate.SupportedQualityGates;
 import dev.sentinel.domain.init.InitGateOption;
 import dev.sentinel.domain.init.QualityPreset;
 import java.util.List;
@@ -23,14 +24,15 @@ final class ConfigurationTemplate {
               .map(ConfigurationTemplate::escape)
               .reduce((left, right) -> left + " " + right)
               .orElse("");
-      content
-          .append("\n[quality-gates.")
-          .append(gate.id())
-          .append("]\nenabled = true\ncommand = \"")
-          .append(escape(command.getFirst()))
-          .append(command.size() > 1 ? " " : "")
-          .append(goal)
-          .append("\"\n");
+      content.append("\n[quality-gates.").append(gate.id()).append("]\nenabled = true\n");
+      if (!SupportedQualityGates.TRACEABILITY.equals(gate.id())) {
+        content
+            .append("command = \"")
+            .append(escape(command.getFirst()))
+            .append(command.size() > 1 ? " " : "")
+            .append(goal)
+            .append("\"\n");
+      }
     }
     return content.toString();
   }

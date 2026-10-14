@@ -9,6 +9,7 @@ import dev.sentinel.domain.doctor.EnvironmentFacts;
 import dev.sentinel.domain.doctor.EnvironmentInspection;
 import dev.sentinel.domain.doctor.ExecutableObservation;
 import dev.sentinel.domain.project.Project;
+import dev.sentinel.domain.traceability.TraceabilityPrerequisites;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -20,6 +21,7 @@ public final class DoctorService {
   private final ProjectDetector detector;
   private final EnvironmentInspection environment;
   private final SentinelConfigurationReader configurationReader;
+  private final TraceabilityPrerequisites traceabilityPrerequisites;
 
   public enum Status {
     OK,
@@ -33,14 +35,23 @@ public final class DoctorService {
   public DoctorService(
       final ProjectDetector detector,
       final EnvironmentInspection environment,
-      final SentinelConfigurationReader configurationReader) {
+      final SentinelConfigurationReader configurationReader,
+      final TraceabilityPrerequisites traceabilityPrerequisites) {
     this.detector = detector;
     this.environment = environment;
     this.configurationReader = configurationReader;
+    this.traceabilityPrerequisites = traceabilityPrerequisites;
   }
 
   public DoctorService(final ProjectDetector detector, final EnvironmentInspection environment) {
-    this(detector, environment, null);
+    this(detector, environment, null, null);
+  }
+
+  public DoctorService(
+      final ProjectDetector detector,
+      final EnvironmentInspection environment,
+      final SentinelConfigurationReader configurationReader) {
+    this(detector, environment, configurationReader, null);
   }
 
   public List<Finding> diagnose(final Path start) {
@@ -85,7 +96,41 @@ public final class DoctorService {
             "Native executable present.",
             "Build with the native profile."));
     diagnoseOpenSpec(root, facts, findings);
+    diagnoseTraceability(root, findings);
     return findings;
+  }
+
+  private void diagnoseTraceability(final Path root, final List<Finding> findings) {
+    if (configurationReader == null || traceabilityPrerequisites == null) {
+      return;
+    }
+    if (!traceabilityEnabled(root)) {
+      return;
+    }
+    final boolean specs = traceabilityPrerequisites.liveSpecsDirectory(root);
+    final boolean tests = traceabilityPrerequisites.javaTestSourceDirectory(root);
+    findings.add(traceabilityFinding(specs, tests));
+  }
+
+  private boolean traceabilityEnabled(final Path root) {
+    final SentinelConfiguration configuration;
+    try {
+      configuration = configurationReader.read(root.resolve(SentinelConfiguration.FILE_NAME));
+    } catch (SentinelException e) {
+      return false;
+    }
+    final GateConfiguration gate = configuration.gates().get("openspec-junit-traceability");
+    return gate != null && gate.enabled();
+  }
+
+  private static Finding traceabilityFinding(final boolean specs, final boolean tests) {
+    final boolean ready = specs && tests;
+    return new Finding(
+        "openspec-junit-traceability",
+        ready ? Status.OK : Status.ERROR,
+        ready
+            ? "Live OpenSpec specs and Java test sources are available."
+            : "Enabled traceability requires openspec/specs/ and src/test/java/.");
   }
 
   private void diagnoseOpenSpec(

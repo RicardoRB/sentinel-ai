@@ -5,6 +5,7 @@ import java.util.Set;
 
 /** Stable configuration identifiers for the built-in quality gates. */
 public final class SupportedQualityGates {
+  public static final String TRACEABILITY = "openspec-junit-traceability";
   public static final List<String> IDS =
       List.of(
           "tests",
@@ -25,6 +26,7 @@ public final class SupportedQualityGates {
           "enforcer",
           "license",
           "api-compat",
+          TRACEABILITY,
           "command",
           "openspec",
           "openspec-archived");
