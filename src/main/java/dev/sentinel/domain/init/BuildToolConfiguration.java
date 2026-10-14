@@ -12,5 +12,13 @@ public interface BuildToolConfiguration {
     return apply(project, gates);
   }
 
+  default PomChange apply(
+      final Project project,
+      final List<InitGateOption> gates,
+      final QualityPreset preset,
+      final Object approval) {
+    return apply(project, gates, preset);
+  }
+
   void rollback(PomChange change);
 }

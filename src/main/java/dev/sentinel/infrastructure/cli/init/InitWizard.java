@@ -20,7 +20,7 @@ import java.util.stream.IntStream;
 
 /** Interactive questions asked by {@code sentinel init} when options do not answer them. */
 final class InitWizard {
-  private final LinePrompt prompt;
+  final LinePrompt prompt;
   private final Supplier<Optional<RawSession>> rawTerminal;
   private final PrintWriter out;
 

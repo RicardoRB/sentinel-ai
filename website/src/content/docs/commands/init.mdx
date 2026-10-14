@@ -6,7 +6,7 @@ description: Create sentinel.toml and select integrations.
 `sentinel init` creates `sentinel.toml` using an interactive wizard or explicit options.
 
 ```sh
-sentinel init [-C <dir>] [--preset <standard|strict>] [--integration <none|opencode|claude-code>[,...]] [--gate <id>[,...]] [--tool openspec] [--openspec-validation <openspec|openspec-archived>[,...]] [--install-tool openspec] [--architecture <style>] [--overwrite]
+sentinel init [-C <dir>] [--preset <standard|strict>] [--integration <none|opencode|claude-code>[,...]] [--gate <id>[,...]] [--tool openspec] [--openspec-validation <openspec|openspec-archived>[,...]] [--install-tool openspec] [--architecture <style>] [--overwrite] [--yes]
 ```
 
 The gate selector accepts supported [gate IDs](/configuration/gates/). `none` is exclusive with
@@ -15,7 +15,14 @@ minimal `ArchitectureTest.java` only if one is absent. Existing configurations a
 overwrite is confirmed or `--overwrite` is supplied. Initialization does not install tools or run
 gates. `standard` and `strict` presets pre-select their offline gates; `custom` starts with no gates selected. `zap` writes a `<TARGET_URL>` placeholder that you must replace
 with an authorized target before `check` will run it. For `format`, `enforcer`, `license`, `api-compat`, and
-`pmd`, missing Maven plugins are added to `pom.xml`. Preset rule files are Sentinel-owned; unmarked existing files are preserved and reported. `--gate` adds gates to a preset. `-C <dir>` selects the project directory. Exit codes: `0` success, `2` invalid usage or
+`pmd`, missing Maven plugins are added to `pom.xml` using Sentinel's embedded Java/Maven compatibility catalog.
+Existing compatible plugin versions are preserved. Incompatible managed plugins show the current version,
+selected compatible version, detected constraints, and affected file before asking for consent. `--yes`
+accepts these validated compatibility updates without prompting; it does not bypass unresolved prerequisites
+or install standalone binaries such as Semgrep, Gitleaks, Trivy, or ZAP. Declined updates leave the POM
+unchanged and report that the selected gate was not reconfigured. Preset rule files are Sentinel-owned;
+unmarked existing files are preserved and reported. `--gate` adds gates to a preset. `-C <dir>` selects the
+project directory. Exit codes: `0` success, `2` invalid usage or
 inability to initialize (including cancelled or invalid selection).
 
 On supported macOS and Linux terminals, use Up/Down to move, Space to toggle, and Enter to confirm.
