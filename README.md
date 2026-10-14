@@ -291,42 +291,22 @@ positive, document the evidence and request explicit review before introducing a
 
 ## 🤖 CI/CD
 
-### GitHub Actions example
+### CI provider integrations
 
-```yaml
-name: Quality gate
-on: [pull_request, push]
+Sentinel works in any CI system that can run a verified native binary. The
+[CI/CD guide](https://ricardorb.github.io/sentinel-ai/guides/ci-cd/) contains copyable examples for
+GitHub Actions, GitLab CI, Jenkins, CircleCI, Azure Pipelines, and Bitbucket Pipelines, including
+installation, release pinning, JSON report artifacts, pull-request status checks, and failure behavior.
 
-jobs:
-  sentinel:
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: '21'          # your project's JDK; the native binary needs none
-          cache: maven
-      - name: Install Sentinel
-        run: |
-          curl -fsSL https://raw.githubusercontent.com/RicardoRB/sentinel-ai/main/install.sh | sh
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-      - name: Run quality gates
-        run: sentinel check --profile default,ci --format json > sentinel-report.json
-      - if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: sentinel-report
-          path: sentinel-report.json
+The common command is:
+
+```sh
+sentinel check --profile default,ci --format json > sentinel-report.json
 ```
 
-- **Quality gate behavior:** all selected gates run, unless you pass `--fail-fast`, and the job
-  gets one verdict.
-- **Exit code behavior:** a non-zero exit (`1` = gate failed, `2` = misconfiguration) fails the step,
-  so the job fails without extra scripting.
-- **PR integration:** mark the job as a **required status check** in branch protection to block
-  merging until the gate passes. The uploaded JSON report holds the details.
-- **SARIF output:** not supported yet. Today the formats are text and JSON (schema v1).
+Non-zero exits fail the CI step: `1` means a gate failed and `2` means Sentinel could not run. Sentinel
+does not currently provide SARIF output or a reusable `RicardoRB/sentinel-action@v1`; use the documented
+installer and provider-native artifact support for now.
 
 ## 🔌 Integrations
 
