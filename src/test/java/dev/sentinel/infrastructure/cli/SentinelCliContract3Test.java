@@ -50,7 +50,7 @@ class SentinelCliContract3Test extends SentinelCliIntegrationSupport {
 
   @Test
   void rejectsInvalidInteractiveSelectionWithoutWritingFiles() {
-    assertThat(runWithInput("9\n", "-C", project.toString())).isEqualTo(ExitCodes.ERROR);
+    assertThat(runWithInput("11\n", "-C", project.toString())).isEqualTo(ExitCodes.ERROR);
     assertThat(err.toString()).contains("Invalid agent selection");
     assertThat(project.resolve(".claude")).doesNotExist();
     assertThat(project.resolve(".opencode")).doesNotExist();

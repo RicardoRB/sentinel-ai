@@ -6,8 +6,11 @@ description: Create sentinel.toml and select integrations.
 `sentinel init` creates `sentinel.toml` using an interactive wizard or explicit options.
 
 ```sh
-sentinel init [-C <dir>] [--preset <standard|strict>] [--integration <none|opencode|claude-code>[,...]] [--quality-hooks] [--remove-quality-hooks] [--gate <id>[,...]] [--tool openspec] [--openspec-validation <openspec|openspec-archived>[,...]] [--install-tool openspec] [--architecture <style>] [--overwrite] [--yes]
+sentinel init [-C <dir>] [--preset <standard|strict>] [--integration <none|agent>[,...]] [--quality-hooks] [--remove-quality-hooks] [--gate <id>[,...]] [--tool openspec] [--openspec-validation <openspec|openspec-archived>[,...]] [--install-tool openspec] [--architecture <style>] [--overwrite] [--yes]
 ```
+
+`agent` accepts the IDs documented for [`integrate`](/commands/integrate/), including `codex`, `cursor`,
+`copilot`, `gemini`, `windsurf`, `cline`, `factory-droid`, and `amp`.
 
 The gate selector accepts supported [gate IDs](/configuration/gates/). `none` is exclusive with
 agent integrations. `archunit` prompts for Layered, Hexagonal, or Clean architecture and creates a

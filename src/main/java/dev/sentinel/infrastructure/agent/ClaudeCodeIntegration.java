@@ -2,6 +2,7 @@ package dev.sentinel.infrastructure.agent;
 
 import dev.sentinel.domain.agent.AgentIntegration;
 import dev.sentinel.domain.agent.GuardMode;
+import dev.sentinel.domain.agent.IntegrationCapability;
 import dev.sentinel.domain.agent.IntegrationRequest;
 import dev.sentinel.domain.agent.IntegrationResult;
 import dev.sentinel.domain.json.JsonCodec;
@@ -113,6 +114,23 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
   @Override
   public String id() {
     return "claude-code";
+  }
+
+  @Override
+  public Set<IntegrationCapability> capabilities() {
+    return Set.of(
+        IntegrationCapability.PRE_TOOL,
+        IntegrationCapability.POST_EDIT,
+        IntegrationCapability.TURN_END,
+        IntegrationCapability.FEEDBACK,
+        IntegrationCapability.APPROVED_ARTIFACT_GUARD);
+  }
+
+  @Override
+  public boolean installed(final Path projectRoot) {
+    final Path root = projectRoot.toAbsolutePath().normalize();
+    return Files.isRegularFile(root.resolve(SETTINGS_FILE))
+        && Files.isRegularFile(root.resolve(HOOK_FILE));
   }
 
   @Override

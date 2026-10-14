@@ -1,6 +1,9 @@
 package dev.sentinel.application.doctor;
 
 import dev.sentinel.application.project.ProjectDetector;
+import dev.sentinel.domain.agent.AgentIntegration;
+import dev.sentinel.domain.agent.IntegrationCapability;
+import dev.sentinel.domain.agent.IntegrationHealth;
 import dev.sentinel.domain.config.GateConfiguration;
 import dev.sentinel.domain.config.SentinelConfiguration;
 import dev.sentinel.domain.config.SentinelConfigurationReader;
@@ -17,6 +20,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import javax.inject.Inject;
 
 public final class DoctorService {
@@ -24,6 +28,7 @@ public final class DoctorService {
   private final EnvironmentInspection environment;
   private final SentinelConfigurationReader configurationReader;
   private final TraceabilityPrerequisites traceabilityPrerequisites;
+  private final Set<AgentIntegration> integrations;
 
   public enum Status {
     OK,
@@ -38,22 +43,32 @@ public final class DoctorService {
       final ProjectDetector detector,
       final EnvironmentInspection environment,
       final SentinelConfigurationReader configurationReader,
-      final TraceabilityPrerequisites traceabilityPrerequisites) {
+      final TraceabilityPrerequisites traceabilityPrerequisites,
+      final Set<AgentIntegration> integrations) {
     this.detector = detector;
     this.environment = environment;
     this.configurationReader = configurationReader;
     this.traceabilityPrerequisites = traceabilityPrerequisites;
+    this.integrations = Set.copyOf(integrations);
   }
 
   public DoctorService(final ProjectDetector detector, final EnvironmentInspection environment) {
-    this(detector, environment, null, null);
+    this(detector, environment, null, null, Set.of());
   }
 
   public DoctorService(
       final ProjectDetector detector,
       final EnvironmentInspection environment,
       final SentinelConfigurationReader configurationReader) {
-    this(detector, environment, configurationReader, null);
+    this(detector, environment, configurationReader, null, Set.of());
+  }
+
+  public DoctorService(
+      final ProjectDetector detector,
+      final EnvironmentInspection environment,
+      final SentinelConfigurationReader configurationReader,
+      final TraceabilityPrerequisites traceabilityPrerequisites) {
+    this(detector, environment, configurationReader, traceabilityPrerequisites, Set.of());
   }
 
   public List<Finding> diagnose(final Path start) {
@@ -94,11 +109,7 @@ public final class DoctorService {
             Status.ERROR,
             "Configuration is present.",
             "Run 'sentinel init'."));
-    findings.add(
-        new Finding(
-            "integration",
-            openCode ? Status.OK : Status.WARNING,
-            "OpenCode integration " + (openCode ? "present." : "not configured.")));
+    diagnoseIntegrations(root, openCode, findings);
     findings.add(
         check(
             "native",
@@ -109,6 +120,51 @@ public final class DoctorService {
     diagnoseOpenSpec(root, facts, findings);
     diagnoseTraceability(root, findings);
     return findings;
+  }
+
+  private void diagnoseIntegrations(
+      final Path root, final boolean legacyOpenCode, final List<Finding> findings) {
+    final List<AgentIntegration> configured =
+        integrations.stream()
+            .filter(adapter -> adapter.health(root).status() != IntegrationHealth.Status.MISSING)
+            .toList();
+    if (configured.isEmpty()) {
+      findings.add(
+          new Finding(
+              "integration",
+              legacyOpenCode ? Status.OK : Status.WARNING,
+              legacyOpenCode
+                  ? "OpenCode integration present."
+                  : "No supported agent integration configured."));
+      return;
+    }
+    final String summary =
+        configured.stream()
+            .map(
+                adapter ->
+                    adapter.id()
+                        + "="
+                        + adapter.health(root).status().name().toLowerCase()
+                        + " ["
+                        + adapter.capabilities().stream()
+                            .map(IntegrationCapability::name)
+                            .sorted()
+                            .toList()
+                        + "]")
+            .sorted()
+            .reduce((left, right) -> left + ", " + right)
+            .orElse("none");
+    final boolean healthy =
+        configured.stream()
+            .allMatch(
+                adapter -> adapter.health(root).status() == IntegrationHealth.Status.INSTALLED);
+    findings.add(
+        new Finding(
+            "integration",
+            healthy ? Status.OK : Status.WARNING,
+            "Configured integrations: "
+                + summary
+                + (healthy ? "." : "; re-run integrate to repair.")));
   }
 
   private void diagnoseTraceability(final Path root, final List<Finding> findings) {

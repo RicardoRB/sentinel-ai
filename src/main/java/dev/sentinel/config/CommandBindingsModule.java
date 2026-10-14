@@ -8,6 +8,7 @@ import dev.sentinel.infrastructure.cli.SentinelCommand;
 import dev.sentinel.infrastructure.cli.agent.ClaudeCodeHookCommand;
 import dev.sentinel.infrastructure.cli.agent.HookCommand;
 import dev.sentinel.infrastructure.cli.agent.IntegrateCommand;
+import dev.sentinel.infrastructure.cli.agent.NativeHookCommand;
 import dev.sentinel.infrastructure.cli.doctor.DoctorCommand;
 import dev.sentinel.infrastructure.cli.gate.CheckCommand;
 import dev.sentinel.infrastructure.cli.init.InitCommand;
@@ -50,6 +51,11 @@ interface CommandBindingsModule {
   @IntoMap
   @ClassKey(ClaudeCodeHookCommand.class)
   Object claudeCodeHookCommand(ClaudeCodeHookCommand command);
+
+  @Binds
+  @IntoMap
+  @ClassKey(NativeHookCommand.class)
+  Object nativeHookCommand(NativeHookCommand command);
 
   @Binds
   @IntoMap

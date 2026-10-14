@@ -5,6 +5,7 @@ import dev.sentinel.application.project.ProjectNotFoundException;
 import dev.sentinel.domain.agent.AgentIntegration;
 import dev.sentinel.domain.agent.IntegrationRequest;
 import dev.sentinel.domain.agent.IntegrationResult;
+import dev.sentinel.domain.agent.SupportedAgents;
 import dev.sentinel.domain.config.SentinelException;
 import java.nio.file.Path;
 import java.util.List;
@@ -53,9 +54,13 @@ public final class IntegrationService {
             .orElseThrow(
                 () ->
                     new SentinelException(
-                        "Unknown agent '" + agent + "'. Supported agents: opencode, claude-code"));
+                        "Unknown agent '"
+                            + agent
+                            + "'. Supported agents: "
+                            + SupportedAgents.idsText()));
     final Path root = detector.detect(start).orElseThrow(ProjectNotFoundException::new).root();
-    final IntegrationResult result = adapter.integrate(root, request);
+    final IntegrationResult result =
+        adapter.integrate(root, request).withCapabilities(adapter.capabilities());
     LOGGER.log(Level.INFO, () -> "event=integration-complete agent=" + agent + " status=completed");
     return result;
   }

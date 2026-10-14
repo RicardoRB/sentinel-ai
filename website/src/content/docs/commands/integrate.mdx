@@ -4,8 +4,11 @@ description: Install or remove agent integrations.
 ---
 
 ```sh
-sentinel integrate <opencode|claude-code> [-C <dir>] [--remove | --[no-]guard-approved-specs]
+sentinel integrate <agent> [-C <dir>] [--remove | --[no-]guard-approved-specs]
 ```
+
+Supported agent IDs are `opencode`, `claude-code`, `codex`, `cursor`, `copilot`, `gemini`,
+`windsurf`, `cline`, `factory-droid`, and `amp`.
 
 Without an agent argument Sentinel prompts for a choice. Installation is project-local and
 idempotent. Generated files are ownership-marked: user-owned conflicting files are not overwritten,
@@ -16,7 +19,8 @@ Both integrations run the quality check with `--exclude-spec` after each edit an
 with [`spec validate`](/commands/spec/). When the agent finishes a turn, they run the configured spec checks
 and hand any findings to the agent once per turn. Re-run `sentinel integrate <agent>` after upgrading Sentinel
 to refresh Sentinel-owned files; they are reported as changed.
-Review [Claude Code](/integrations/claude-code/) and [OpenCode](/integrations/opencode/) details.
+Review the [native harness integrations](/integrations/native-harnesses/), [Claude Code](/integrations/claude-code/),
+and [OpenCode](/integrations/opencode/) details.
 Exit `0` means success. A conflict or invalid usage returns `2` (Sentinel could not complete the operation).
 
 ## Approved-artifact guard (opt-in)

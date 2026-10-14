@@ -1,0 +1,31 @@
+---
+title: Native harness integrations
+description: Project-local integrations for Codex, Cursor, Copilot CLI, Gemini CLI, Windsurf, Cline, Factory Droid, and Amp.
+---
+
+Sentinel supports these project-local integrations:
+
+| ID | Harness | Lifecycle coverage |
+|---|---|---|
+| `codex` | OpenAI Codex CLI | pre-tool, post-tool, feedback, approved-artifact guard |
+| `cursor` | Cursor | pre-tool, file-edit, stop, feedback, approved-artifact guard |
+| `copilot` | GitHub Copilot CLI | pre-tool, post-tool, session, feedback, approved-artifact guard |
+| `gemini` | Gemini CLI | `BeforeTool`, `AfterTool`, agent/session feedback, approved-artifact guard |
+| `windsurf` | Windsurf/Cascade | post-write, post-command, response feedback; no pre-tool enforcement |
+| `cline` | Cline | before/after tool, turn feedback, approved-artifact guard |
+| `factory-droid` | Factory Droid | post-tool, stop/session feedback; no pre-tool enforcement |
+| `amp` | Amp | `tool.call`, `tool.result`, `agent.end`, approved-artifact guard |
+
+Install or remove one integration with:
+
+```sh
+sentinel integrate <agent>
+sentinel integrate <agent> --remove
+```
+
+Generated files are project-local, ownership-marked, idempotent, and refreshed when Sentinel changes.
+User-owned files are preserved as conflicts. The generated wrapper invokes
+`sentinel hook native --agent <agent> --event-stdin`; keep `sentinel` on `PATH`.
+
+Capabilities are reported by `integrate` and `doctor`. Post-event-only harnesses are reported as
+feedback-only; Sentinel does not claim pre-tool blocking where the native lifecycle cannot block.
