@@ -49,6 +49,12 @@ public final class ClaudeCodeHookCommand implements Callable<Integer> {
   private boolean excludeSpec;
 
   @Option(
+      names = "--guard-approved-specs",
+      description =
+          "Act as the PreToolUse guard for approved OpenSpec artifacts; runs no quality checks.")
+  private boolean guard;
+
+  @Option(
       names = "--event-stdin",
       description = "Read the Claude Code hook event JSON from stdin (used by generated hooks).")
   private boolean eventStdin;
@@ -57,6 +63,7 @@ public final class ClaudeCodeHookCommand implements Callable<Integer> {
   private final LearningService learningService;
   private final JsonCodec codec;
   private final SpecValidationService specService;
+  private final ClaudeGuardHook guardHook;
   private final InputStream input;
   private final BooleanSupplier interactiveInput;
 
@@ -65,12 +72,14 @@ public final class ClaudeCodeHookCommand implements Callable<Integer> {
       final CheckService checkService,
       final LearningService learningService,
       final JsonCodec codec,
-      final SpecValidationService specService) {
+      final SpecValidationService specService,
+      final ClaudeGuardHook guardHook) {
     this(
         checkService,
         learningService,
         codec,
         specService,
+        guardHook,
         System.in,
         () -> System.console() != null && System.console().isTerminal());
   }
@@ -80,12 +89,14 @@ public final class ClaudeCodeHookCommand implements Callable<Integer> {
       final LearningService learningService,
       final JsonCodec codec,
       final SpecValidationService specService,
+      final ClaudeGuardHook guardHook,
       final InputStream input,
       final BooleanSupplier interactiveInput) {
     this.checkService = checkService;
     this.learningService = learningService;
     this.codec = codec;
     this.specService = specService;
+    this.guardHook = guardHook;
     this.input = input;
     this.interactiveInput = interactiveInput;
   }
@@ -93,14 +104,15 @@ public final class ClaudeCodeHookCommand implements Callable<Integer> {
   // The hook must always answer Claude Code with an exit code, even on unexpected failures.
   @Override
   public Integer call() {
+    if (guard) {
+      return guardHook.run(options.directory(), readsPayload(), input, output(), error());
+    }
     if (threshold < MIN_LEARN_AFTER) {
       error().println("--learn-after must be at least 1");
       return ExitCodes.ERROR;
     }
     final ClaudeHookEvent event =
-        eventStdin && !interactiveInput.getAsBoolean()
-            ? ClaudeHookEvent.read(input, codec)
-            : new ClaudeHookEvent();
+        readsPayload() ? ClaudeHookEvent.read(input, codec) : new ClaudeHookEvent();
     final boolean stop = event.isStop();
     LOGGER.log(Level.INFO, () -> "event=claude-hook-start kind=" + (stop ? "stop" : "post-tool"));
     final FutureTask<Integer> execution =
@@ -114,6 +126,11 @@ public final class ClaudeCodeHookCommand implements Callable<Integer> {
     } catch (ExecutionException exception) {
       return stop ? stopFailure(exception.getCause()) : reportFailure(exception.getCause());
     }
+  }
+
+  /** Whether stdin carries a hook payload: only when asked to and not an interactive terminal. */
+  private boolean readsPayload() {
+    return eventStdin && !interactiveInput.getAsBoolean();
   }
 
   private Integer executePostToolUse(final ClaudeHookEvent event) {

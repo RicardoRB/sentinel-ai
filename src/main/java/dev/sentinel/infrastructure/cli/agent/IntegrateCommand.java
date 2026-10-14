@@ -1,6 +1,8 @@
 package dev.sentinel.infrastructure.cli.agent;
 
 import dev.sentinel.application.agent.IntegrationService;
+import dev.sentinel.domain.agent.GuardMode;
+import dev.sentinel.domain.agent.IntegrationRequest;
 import dev.sentinel.domain.agent.IntegrationResult;
 import dev.sentinel.domain.config.SentinelException;
 import dev.sentinel.infrastructure.cli.ExitCodes;
@@ -40,6 +42,15 @@ public final class IntegrateCommand implements Callable<Integer> {
   @Option(names = "--remove", description = "Remove only Sentinel-owned integration content.")
   private boolean remove;
 
+  @Option(
+      names = "--guard-approved-specs",
+      negatable = true,
+      description = {
+        "Install the opt-in guard that stops agents from modifying approved OpenSpec specs and",
+        "archived changes; --no-guard-approved-specs removes it. Omit to keep the current state."
+      })
+  private Boolean guard;
+
   private final IntegrationService service;
   private final InputStream input;
 
@@ -55,10 +66,16 @@ public final class IntegrateCommand implements Callable<Integer> {
 
   @Override
   public Integer call() {
+    if (remove && guard != null) {
+      error().println("--remove cannot be combined with --[no-]guard-approved-specs.");
+      return ExitCodes.ERROR;
+    }
     if (agent == null || agent.isBlank()) {
       agent = selectAgent();
     }
-    final IntegrationResult result = service.integrate(agent, options.directory(), remove);
+    final IntegrationResult result =
+        service.integrate(
+            agent, options.directory(), new IntegrationRequest(remove, GuardMode.of(guard)));
     output().printf("%s: %s%n", result.status(), result.message());
     result.changed().forEach(output()::println);
     return result.status() == IntegrationResult.Status.CONFLICT ? ExitCodes.ERROR : ExitCodes.OK;
@@ -89,6 +106,12 @@ public final class IntegrateCommand implements Callable<Integer> {
     } catch (IOException e) {
       throw new SentinelException("Could not read agent selection: " + e.getMessage(), e);
     }
+  }
+
+  private PrintWriter error() {
+    return spec == null
+        ? new PrintWriter(System.err, true, StandardCharsets.UTF_8)
+        : spec.commandLine().getErr();
   }
 
   private PrintWriter output() {

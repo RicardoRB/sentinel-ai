@@ -1,0 +1,6 @@
+{
+  "tool": "apply_patch",
+  "args": {
+    "patchText": "*** Begin Patch\n*** Update File: openspec/changes/foo/proposal.md\n@@ ## Why\n-Old motivation.\n+New motivation.\n*** Update File: openspec/specs/x/spec.md\n@@ ### Requirement: Thing\n-The system SHALL do a thing.\n+The system SHALL do another thing.\n*** End Patch\n"
+  }
+}

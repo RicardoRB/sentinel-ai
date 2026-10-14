@@ -4,7 +4,7 @@ description: Install or remove agent integrations.
 ---
 
 ```sh
-sentinel integrate <opencode|claude-code> [-C <dir>] [--remove]
+sentinel integrate <opencode|claude-code> [-C <dir>] [--remove | --[no-]guard-approved-specs]
 ```
 
 Without an agent argument Sentinel prompts for a choice. Installation is project-local and
@@ -18,6 +18,33 @@ and hand any findings to the agent once per turn. Re-run `sentinel integrate <ag
 to refresh Sentinel-owned files; they are reported as changed.
 Review [Claude Code](/integrations/claude-code/) and [OpenCode](/integrations/opencode/) details.
 Exit `0` means success. A conflict or invalid usage returns `2` (Sentinel could not complete the operation).
+
+## Approved-artifact guard (opt-in)
+
+`--guard-approved-specs` also installs a pre-tool guard. Before the agent edits, patches, deletes, or moves files,
+runs a shell command, or invokes a skill, the guard calls [`spec guard`](/commands/spec/#guarding-approved-artifacts-spec-guard)
+and refuses calls that would modify approved OpenSpec specs (`openspec/specs/**`) or archived changes
+(`openspec/changes/archive/**`). Active changes under `openspec/changes/<change>/` stay editable. Archiving and syncing
+into approved specs are left to a human.
+
+| Command | Guard afterwards |
+|---|---|
+| `sentinel integrate <agent> --guard-approved-specs` | Installed (or refreshed) |
+| `sentinel integrate <agent>` | Unchanged: kept if installed, absent if not |
+| `sentinel integrate <agent> --no-guard-approved-specs` | Removed; the rest of the integration stays installed |
+| `sentinel integrate <agent> --remove` | Removed together with the rest of the integration |
+
+`--remove` cannot be combined with either guard option; that is a usage error (exit `2`).
+
+The guard lives in its own Sentinel-owned file, so whether it is installed is visible in the project and survives
+refreshes. A user-owned file at the guard's path is reported as a conflict when you pass `--guard-approved-specs`,
+and is otherwise left alone. Without the option nothing runs before tool calls, and the guard never changes the
+quality check or spec validation hooks. See the [Claude Code](/integrations/claude-code/#approved-artifact-guard)
+and [OpenCode](/integrations/opencode/#approved-artifact-guard) pages for what each agent covers.
+
+Shell-command filtering is a heuristic, not a security boundary: scripts and other indirect writes are not
+prevented. See [security](/security/).
+
 ## Verbose diagnostics
 
 Use `sentinel --verbose integrate ...` or place `--verbose` after the command. Logs go only to

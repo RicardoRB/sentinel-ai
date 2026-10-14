@@ -1,0 +1,6 @@
+{
+  "tool": "apply_patch",
+  "args": {
+    "patchText": "*** Begin Patch\n*** Update File: openspec/changes/foo/proposal.md\n@@\n- old\n+ new\n*** Update File: openspec/specs/agent-integration/spec.md\n@@\n- old\n+ new\n*** End Patch"
+  }
+}

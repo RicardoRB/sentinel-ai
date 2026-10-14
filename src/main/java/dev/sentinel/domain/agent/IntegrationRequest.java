@@ -1,0 +1,18 @@
+package dev.sentinel.domain.agent;
+
+import java.util.Objects;
+
+/**
+ * What an integration run should do.
+ *
+ * @param remove whether to remove every Sentinel-owned integration file
+ * @param guard what to do with the opt-in approved-artifact guard
+ */
+public record IntegrationRequest(boolean remove, GuardMode guard) {
+  public static final IntegrationRequest INSTALL = new IntegrationRequest(false, GuardMode.KEEP);
+  public static final IntegrationRequest REMOVE = new IntegrationRequest(true, GuardMode.KEEP);
+
+  public IntegrationRequest {
+    Objects.requireNonNull(guard, "guard");
+  }
+}

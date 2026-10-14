@@ -46,6 +46,35 @@ The plugin runs `sentinel spec validate` without paths, which runs the enabled `
 
 Projects without an enabled OpenSpec validation see no change: spec validation does nothing for them.
 
+## Approved-artifact guard
+
+The approved-artifact guard is opt-in. Install it with
+`sentinel integrate opencode --guard-approved-specs`. Sentinel creates the separate,
+Sentinel-owned `.opencode/plugins/sentinel-openspec-guard.js` plugin. It uses OpenCode 1.19's
+`tool.execute.before(input, output)` hook and covers these tools:
+
+| Tool | Values passed to `sentinel spec guard` |
+|---|---|
+| `edit`, `write` | `args.filePath` (or `args.path`) |
+| `apply_patch`, `patch` | `args.patchText` (or `args.patch`) on stdin |
+| `bash` | `args.command` on stdin and `args.workdir` as `--cwd` |
+| `skill` | `args.name` (or `args.skill`) |
+
+Calls that would modify `openspec/specs/**` or `openspec/changes/archive/**`, archive OpenSpec
+changes, or invoke an archive/sync skill throw the refusal returned by Sentinel and are stopped.
+Active changes remain editable. The guard is independent of the post-tool quality and validation
+plugin, and it never replaces OpenCode's own permissions.
+
+If Sentinel cannot decide (for example, it is missing from `PATH`, cannot start, or returns exit
+code `2`), the plugin shows a warning toast and lets the tool call proceed. Uninspectable input is
+a refusal (exit `1`). Shell filtering is a best-effort heuristic, not a security boundary; scripts,
+variable expansion, and other indirect writes are not prevented.
+
+Refreshing `sentinel integrate opencode` keeps the current guard state. Use
+`--no-guard-approved-specs` to remove only this plugin, or `--remove` to remove the complete
+Sentinel-owned integration. The OpenCode plugin API and argument shapes described here are verified
+against OpenCode 1.19.
+
 ## Ownership and removal
 
 Generated files contain ownership markers. User-owned targets are never overwritten and a

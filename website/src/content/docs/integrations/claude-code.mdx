@@ -44,6 +44,41 @@ run here.
 Projects without an enabled OpenSpec validation see no change: per-edit spec validation and the `Stop` hook do
 nothing.
 
+## Approved-artifact guard
+
+The guard is opt-in. Install it with `sentinel integrate claude-code --guard-approved-specs`. Sentinel then
+creates the executable `.claude/hooks/sentinel-openspec-guard` and registers it in `.claude/settings.json` as a
+`PreToolUse` hook for `^(Edit|Write|MultiEdit|NotebookEdit|Bash|Skill)$`. Before each of those tool calls, it runs
+`sentinel hook claude-code --guard-approved-specs --event-stdin`.
+
+| The agent tries to | Result |
+|---|---|
+| Edit or create files under `openspec/changes/<change>/` | Allowed |
+| Read anything, including approved specs and archived changes | Allowed |
+| `Edit`, `Write`, `MultiEdit`, or `NotebookEdit` a file under `openspec/specs/` or `openspec/changes/archive/` | Denied |
+| Run a `Bash` command recognized as `openspec archive`, or one that writes, deletes, or moves a protected path | Denied |
+| Invoke an OpenSpec archive or sync skill, such as `opsx:archive` or `openspec-sync-specs` | Denied |
+
+A denied call returns `permissionDecision: "deny"` with a reason that names the blocked path. For an approved spec,
+the reason gives the delta path to edit instead (`openspec/changes/<change>/specs/<capability>/spec.md`) and lists
+the active changes. Claude receives the reason and can redirect its work.
+
+**Archiving and syncing stay with you.** With the guard installed, Claude cannot complete `/opsx:archive` or
+`/opsx:sync` on its own. Run the command yourself when the change is approved, for example by typing
+`! openspec archive <change>` in Claude Code, which runs it directly in your shell.
+
+**Failures do not block your work.** If `sentinel` is not on `PATH` or Sentinel cannot decide, the hook reports the
+problem on stderr with a non-blocking exit code and the tool call goes ahead. A payload Sentinel cannot read is
+denied, because the guard cannot see what the call would change.
+
+**Know the limits.** Bash filtering is a heuristic, not a security boundary. Scripts, variables, and other indirect
+writes are not prevented. See [`spec guard`](/commands/spec/#guarding-approved-artifacts-spec-guard) and
+[security](/security/).
+
+The guard is independent of the edit and turn-end hooks. It runs whether or not OpenSpec validation is enabled in
+`sentinel.toml`, and installing or removing it does not change them. Re-running `sentinel integrate claude-code`
+keeps the guard as it is. `--no-guard-approved-specs` removes only the guard, and `--remove` removes everything.
+
 ## Ownership and removal
 
 Generated files contain Sentinel ownership markers. Existing user-owned targets are never

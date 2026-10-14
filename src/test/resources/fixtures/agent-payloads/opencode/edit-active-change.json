@@ -1,0 +1,6 @@
+{
+  "tool": "edit",
+  "args": {
+    "filePath": "openspec/changes/foo/design.md"
+  }
+}
