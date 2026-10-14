@@ -22,9 +22,10 @@ curl -fsSL https://raw.githubusercontent.com/RicardoRB/sentinel-ai/main/install.
 
 ## What you can do
 
-- Detect supported Java/Maven projects and initialize configuration from `standard` or `strict` presets.
-- Run configured quality gates as text or machine-readable JSON, locally or in [CI](/guides/ci-cd/).
+- Detect supported Java/Maven and Java/Kotlin Gradle projects and initialize configuration from `standard` or `strict` presets.
+- Run configured quality gates as text or machine-readable JSON, locally or in [CI](/guides/ci-cd/), using cumulative local and complete CI profiles.
 - Install agent hooks that run checks after edits and writes.
+- Opt into managed Git quality hooks for fast pre-commit and cumulative pre-push checks.
 - Drive an external coding agent with [`sentinel loop`](/commands/loop/) until the gates pass.
 - Diagnose setup problems with [`sentinel doctor`](/commands/doctor/).
 
