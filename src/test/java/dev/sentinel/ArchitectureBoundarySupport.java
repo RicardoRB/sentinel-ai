@@ -26,7 +26,8 @@ final class ArchitectureBoundarySupport {
           Map.entry("project", Set.of()),
           Map.entry("json", Set.of()),
           Map.entry("learning", Set.of("gate")),
-          Map.entry("spec", Set.of()));
+          Map.entry("spec", Set.of()),
+          Map.entry("traceability", Set.of()));
   static final Map<String, Set<String>> APPLICATION_ENTRY_POINTS =
       Map.ofEntries(
           Map.entry("loop", Set.of("dev.sentinel.application.gate.CheckService")),
@@ -35,7 +36,9 @@ final class ArchitectureBoundarySupport {
               Set.of(
                   "dev.sentinel.application.project.ProjectDetector",
                   "dev.sentinel.application.project.ProjectDiscovery",
-                  "dev.sentinel.application.project.ProjectNotFoundException")),
+                  "dev.sentinel.application.project.ProjectNotFoundException",
+                  "dev.sentinel.application.traceability.TraceabilityPolicy",
+                  "dev.sentinel.application.gate.OpenSpecJunitTraceabilityGate")),
           Map.entry(
               "init",
               Set.of(
@@ -57,7 +60,8 @@ final class ArchitectureBoundarySupport {
                   "dev.sentinel.application.gate.OpenSpecPrerequisites$Problem",
                   "dev.sentinel.application.gate.OpenSpecQualityGate",
                   "dev.sentinel.application.project.ProjectDetector",
-                  "dev.sentinel.application.project.ProjectNotFoundException")));
+                  "dev.sentinel.application.project.ProjectNotFoundException")),
+          Map.entry("traceability", Set.of()));
 
   private ArchitectureBoundarySupport() {}
 
@@ -121,6 +125,7 @@ final class ArchitectureBoundarySupport {
                       "dev.sentinel.config.InitBindingsModule",
                       "dev.sentinel.config.CommandBindingsModule",
                       "dev.sentinel.config.SpecCommandBindingsModule",
+                      "dev.sentinel.config.TraceabilityBindingsModule",
                       "dev.sentinel.config.SentinelProvidesModule")
                   .contains(name);
       case "dev.sentinel.infrastructure.cli" ->

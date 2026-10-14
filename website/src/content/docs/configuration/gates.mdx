@@ -28,6 +28,27 @@ defines the actual tool invocation; Sentinel does not install gate tools.
 | Dependencies & Compliance | `license` | License Maven Plugin | License compliance. |
 | | `api-compat` | japicmp | Binary/API compatibility between versions. |
 | Custom | `command` | — | Run an arbitrary configured project check. |
+| Traceability | `openspec-junit-traceability` | Sentinel source analysis | Require one explicitly annotated JUnit mapping per live OpenSpec scenario. |
+
+The traceability gate is the one built-in gate that does not need a `command`:
+
+```toml
+[quality-gates.openspec-junit-traceability]
+enabled = true
+```
+
+Each mapping must be directly declared on a `@Test`, `@ParameterizedTest`, or
+`@RepeatedTest` method, using matching exact identities:
+
+```java
+@Tag("spec:identity/user-auth")
+@DisplayName("Successful sign-in")
+@Test
+void signsIn() {}
+```
+
+Only mapping existence is checked; test execution and assertions are not. Empty
+live specs fail with `no scenarios found`, and active-change specs are excluded.
 
 `sentinel init` offers every gate but selects none by default unless a preset is chosen. `zap`, `trivy`, `sonar`,
 `dependency-check`, `api-compat`, and `semgrep` need network access, a running application, or a

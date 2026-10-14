@@ -212,6 +212,13 @@ public class InitGeneralCatalog {
             availability + " (customize the command in sentinel.toml after initialization.)",
             executable,
             "test"));
+    options.add(
+        new InitGateOption(
+            SupportedQualityGates.TRACEABILITY,
+            "Maps live OpenSpec scenarios to explicitly annotated JUnit tests (opt-in).",
+            List.of(),
+            true,
+            "Source-level mapping analysis; it does not execute tests."));
     return List.copyOf(options);
   }
 

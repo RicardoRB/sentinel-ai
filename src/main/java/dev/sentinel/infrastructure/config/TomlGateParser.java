@@ -4,6 +4,7 @@ import dev.sentinel.domain.config.CommandLineTokenizer;
 import dev.sentinel.domain.config.GateConfiguration;
 import dev.sentinel.domain.config.SentinelConfiguration;
 import dev.sentinel.domain.config.SentinelException;
+import dev.sentinel.domain.gate.SupportedQualityGates;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -22,6 +23,9 @@ final class TomlGateParser {
     final Set<String> profiles = profiles(where, gate);
     final boolean enabled = enabled(where, gate);
     if (!gate.contains(COMMAND)) {
+      if (enabled && where.endsWith("." + SupportedQualityGates.TRACEABILITY)) {
+        return new GateConfiguration(true, List.of(), profiles);
+      }
       if (enabled) {
         throw new SentinelException("'" + where + ".command' is required for an enabled gate");
       }
@@ -78,7 +82,8 @@ final class TomlGateParser {
       throw new SentinelException(
           "'" + where + ".command' must be a string or an array of strings");
     }
-    if (command.isEmpty() || command.getFirst().isBlank()) {
+    if ((command.isEmpty() && !where.endsWith("." + SupportedQualityGates.TRACEABILITY))
+        || (!command.isEmpty() && command.getFirst().isBlank())) {
       throw new SentinelException("'" + where + ".command' must not be empty");
     }
     return command;

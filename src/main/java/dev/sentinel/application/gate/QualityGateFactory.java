@@ -9,6 +9,8 @@ import dev.sentinel.domain.gate.SkippedQualityGate;
 import dev.sentinel.domain.gate.SupportedQualityGates;
 import dev.sentinel.domain.process.CommandExecutor;
 import dev.sentinel.domain.project.Project;
+import dev.sentinel.domain.traceability.ScenarioInventory;
+import dev.sentinel.domain.traceability.TestMappingInventory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -16,21 +18,34 @@ import javax.inject.Inject;
 
 /** Resolves the typed built-in gate registry in stable configuration order. */
 public class QualityGateFactory {
+  private static final String ZAP = "zap";
 
   public static final List<String> SUPPORTED_GATES = SupportedQualityGates.IDS;
 
   private final CommandExecutor executor;
   private final EnvironmentInspection environment;
+  private final ScenarioInventory scenarioInventory;
+  private final TestMappingInventory testMappingInventory;
 
   public QualityGateFactory(final CommandExecutor executor) {
-    this(executor, null);
+    this(executor, null, null, null);
+  }
+
+  public QualityGateFactory(
+      final CommandExecutor executor, final EnvironmentInspection environment) {
+    this(executor, environment, null, null);
   }
 
   @Inject
   public QualityGateFactory(
-      final CommandExecutor executor, final EnvironmentInspection environment) {
+      final CommandExecutor executor,
+      final EnvironmentInspection environment,
+      final ScenarioInventory scenarioInventory,
+      final TestMappingInventory testMappingInventory) {
     this.executor = executor;
     this.environment = environment;
+    this.scenarioInventory = scenarioInventory;
+    this.testMappingInventory = testMappingInventory;
   }
 
   public List<QualityGate> create(final SentinelConfiguration configuration) {
@@ -56,24 +71,35 @@ public class QualityGateFactory {
         gates.add(new SkippedQualityGate(id));
         continue;
       }
-      gates.add(
-          switch (id) {
-            case OpenSpecQualityGate.ACTIVE, OpenSpecQualityGate.ARCHIVED -> {
-              if (environment == null) {
-                yield new CommandQualityGate(id, executor, entry.getValue().command());
-              }
-              yield new OpenSpecQualityGate(id, executor, environment, entry.getValue().command());
-            }
-            case MavenTestGate.NAME ->
-                new MavenTestGate(executor, testsCommand(entry.getValue().command(), project));
-            case "zap" -> {
-              ZapTargetValidation.require(id, entry.getValue().command());
-              yield new CommandQualityGate(id, executor, entry.getValue().command());
-            }
-            default -> new CommandQualityGate(id, executor, entry.getValue().command());
-          });
+      gates.add(createGate(id, entry.getValue(), project));
     }
     return gates;
+  }
+
+  private QualityGate createGate(
+      final String id, final GateConfiguration configuration, final Project project) {
+    if (OpenSpecQualityGate.ACTIVE.equals(id) || OpenSpecQualityGate.ARCHIVED.equals(id)) {
+      return environment == null
+          ? new CommandQualityGate(id, executor, configuration.command())
+          : new OpenSpecQualityGate(id, executor, environment, configuration.command());
+    }
+    if (MavenTestGate.NAME.equals(id)) {
+      return new MavenTestGate(executor, testsCommand(configuration.command(), project));
+    }
+    if (OpenSpecJunitTraceabilityGate.NAME.equals(id)) {
+      return traceabilityGate();
+    }
+    if (ZAP.equals(id)) {
+      ZapTargetValidation.require(id, configuration.command());
+    }
+    return new CommandQualityGate(id, executor, configuration.command());
+  }
+
+  private QualityGate traceabilityGate() {
+    if (scenarioInventory == null || testMappingInventory == null) {
+      throw new SentinelException("Traceability gate dependencies are unavailable.");
+    }
+    return new OpenSpecJunitTraceabilityGate(scenarioInventory, testMappingInventory);
   }
 
   private static List<String> testsCommand(final List<String> configured, final Project project) {

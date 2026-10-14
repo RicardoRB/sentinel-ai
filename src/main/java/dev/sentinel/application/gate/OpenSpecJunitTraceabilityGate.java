@@ -1,0 +1,102 @@
+package dev.sentinel.application.gate;
+
+import dev.sentinel.application.traceability.TraceabilityPolicy;
+import dev.sentinel.domain.gate.GateResult;
+import dev.sentinel.domain.gate.GateStatus;
+import dev.sentinel.domain.gate.QualityGate;
+import dev.sentinel.domain.project.Project;
+import dev.sentinel.domain.traceability.MappingObservation;
+import dev.sentinel.domain.traceability.ScenarioDefinition;
+import dev.sentinel.domain.traceability.ScenarioInventory;
+import dev.sentinel.domain.traceability.TestMappingInventory;
+import dev.sentinel.domain.traceability.TraceabilityFinding;
+import dev.sentinel.domain.traceability.TraceabilityInventory;
+import dev.sentinel.domain.traceability.TraceabilityResult;
+import java.time.Duration;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+/** Opt-in source-level mapping evidence; this gate never executes JUnit. */
+public final class OpenSpecJunitTraceabilityGate implements QualityGate {
+  public static final String NAME = "openspec-junit-traceability";
+  private static final Logger LOGGER =
+      Logger.getLogger(OpenSpecJunitTraceabilityGate.class.getName());
+  private final ScenarioInventory scenarios;
+  private final TestMappingInventory mappings;
+  private final TraceabilityPolicy policy;
+
+  public OpenSpecJunitTraceabilityGate(
+      final ScenarioInventory scenarios, final TestMappingInventory mappings) {
+    this(scenarios, mappings, new TraceabilityPolicy());
+  }
+
+  public OpenSpecJunitTraceabilityGate(
+      final ScenarioInventory scenarios,
+      final TestMappingInventory mappings,
+      final TraceabilityPolicy policy) {
+    this.scenarios = scenarios;
+    this.mappings = mappings;
+    this.policy = policy;
+  }
+
+  @Override
+  public String name() {
+    return NAME;
+  }
+
+  @Override
+  public GateResult execute(final Project project) {
+    final TraceabilityInventory<ScenarioDefinition> scenarioInventory =
+        scenarios.inspect(project.root());
+    final TraceabilityInventory<MappingObservation> mappingInventory =
+        mappings.inspect(project.root());
+    LOGGER.log(
+        Level.INFO,
+        () ->
+            "event=traceability-inventory scenarios="
+                + scenarioInventory.entries().size()
+                + " mappings="
+                + mappingInventory.entries().size());
+    final TraceabilityResult result = policy.evaluate(scenarioInventory, mappingInventory);
+    LOGGER.log(
+        Level.INFO,
+        () ->
+            "event=traceability-decision status="
+                + result.status()
+                + " findings="
+                + result.findings().size());
+    final String detail = render(result);
+    final GateStatus status = result.passed() ? GateStatus.PASSED : GateStatus.FAILED;
+    return new GateResult(
+        NAME,
+        status,
+        List.of(),
+        result.passed() ? 0 : 1,
+        Duration.ZERO,
+        "",
+        detail,
+        result.summary(),
+        result.findings().size(),
+        0);
+  }
+
+  private static String render(final TraceabilityResult result) {
+    final StringBuilder output = new StringBuilder(result.summary());
+    for (final TraceabilityFinding finding : result.findings()) {
+      output
+          .append(System.lineSeparator())
+          .append(finding.kind())
+          .append(": ")
+          .append(finding.message());
+      if (finding.location() != null) {
+        output
+            .append(" at ")
+            .append(finding.location().path())
+            .append(':')
+            .append(finding.location().line());
+      }
+    }
+    return output.toString();
+  }
+}
