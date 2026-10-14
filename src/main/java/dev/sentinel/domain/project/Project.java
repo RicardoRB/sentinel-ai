@@ -15,4 +15,18 @@ public record Project(
       final Framework framework) {
     this(root, language, buildTool, framework, false);
   }
+
+  /** Returns whether the wrapper belonging to this project's build tool is available. */
+  public boolean wrapperAvailable() {
+    return mavenWrapperAvailable;
+  }
+
+  /** Returns the wrapper-first executable name for this project's build tool. */
+  public String buildExecutable() {
+    return switch (buildTool) {
+      case MAVEN -> mavenWrapperAvailable ? "./mvnw" : "mvn";
+      case GRADLE -> mavenWrapperAvailable ? "./gradlew" : "gradle";
+      default -> buildTool.displayName();
+    };
+  }
 }

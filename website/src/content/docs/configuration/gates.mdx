@@ -9,7 +9,7 @@ defines the actual tool invocation; Sentinel does not install gate tools.
 
 | Category | ID | Tool | Typical purpose |
 |---|---|---|---|
-| Build & Tests | `compile` | Maven Compiler | Compile the project. |
+| Build & Tests | `compile` | Maven Compiler / Gradle compilation | Compile the project. |
 | | `tests` | JUnit 5 | Run the project's automated tests. |
 | | `coverage` | JaCoCo | Enforce or report test coverage. |
 | | `mutation` | PIT | Run mutation testing. |
@@ -24,8 +24,8 @@ defines the actual tool invocation; Sentinel does not install gate tools.
 | | `zap` | OWASP ZAP | DAST against a running application. |
 | | `trivy` | Trivy | Vulnerabilities in dependencies, containers, and IaC. |
 | Architecture | `archunit` | ArchUnit | Run architecture rules/tests. |
-| | `enforcer` | Maven Enforcer | Dependency and build rules. |
-| Dependencies & Compliance | `license` | License Maven Plugin | License compliance. |
+| | `enforcer` | Maven Enforcer / Gradle checks | Dependency and build rules. |
+| Dependencies & Compliance | `license` | License Maven Plugin / Gradle license plugin | License compliance. |
 | | `api-compat` | japicmp | Binary/API compatibility between versions. |
 | Custom | `command` | — | Run an arbitrary configured project check. |
 | Traceability | `openspec-junit-traceability` | Sentinel source analysis | Require one explicitly annotated JUnit mapping per live OpenSpec scenario. |
@@ -61,6 +61,8 @@ never installs those tools. For Maven-backed gates, `init` resolves a version fr
 Java/Maven compatibility catalog before adding a missing plugin to `pom.xml`. Existing compatible
 versions are preserved; incompatible versions require confirmation, or `--yes` for explicit automation.
 Unknown compatibility or an empty compatible catalog result stops before writing and reports remediation.
+For Gradle projects, the same gate IDs map to Gradle tasks and pinned plugin declarations in either
+the Groovy or Kotlin build script.
 
 ## Quality presets
 

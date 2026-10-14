@@ -8,11 +8,13 @@ import dev.sentinel.domain.config.SentinelException;
 import dev.sentinel.domain.doctor.EnvironmentFacts;
 import dev.sentinel.domain.doctor.EnvironmentInspection;
 import dev.sentinel.domain.doctor.ExecutableObservation;
+import dev.sentinel.domain.project.BuildTool;
 import dev.sentinel.domain.project.Project;
 import dev.sentinel.domain.traceability.TraceabilityPrerequisites;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import javax.inject.Inject;
@@ -63,19 +65,28 @@ public final class DoctorService {
     }
     final Path root = project.get().root();
     final EnvironmentFacts facts = environment.inspect(root);
-    final String mavenMessage =
-        project.get().mavenWrapperAvailable()
-            ? "Maven Wrapper available."
-            : "System Maven is required.";
+    final Project detected = project.get();
+    final String toolName = detected.buildTool().displayName();
+    final String wrapperName =
+        detected.buildTool() == BuildTool.GRADLE ? "Gradle Wrapper" : "Maven Wrapper";
+    final String executable = detected.buildTool() == BuildTool.GRADLE ? "gradle" : "mvn";
+    final String wrapperFlag =
+        detected.buildTool() == BuildTool.GRADLE
+            ? "gradleWrapperAvailable"
+            : "mavenWrapperAvailable";
+    final String toolMessage =
+        flag(facts, wrapperFlag)
+            ? wrapperName + " available."
+            : "System " + toolName + " is required.";
     final boolean openCode = flag(facts, "openCodeCommandPresent");
     findings.add(new Finding("project", Status.OK, root.toString()));
     findings.add(
         check(
-            "maven",
-            flag(facts, "mavenWrapperAvailable") || facts.hasExecutable("mvn"),
+            toolName.toLowerCase(Locale.ROOT),
+            flag(facts, wrapperFlag) || facts.hasExecutable(executable),
             Status.ERROR,
-            mavenMessage,
-            mavenMessage));
+            toolMessage,
+            toolMessage));
     findings.add(
         check(
             "configuration",

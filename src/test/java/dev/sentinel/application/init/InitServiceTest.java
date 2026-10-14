@@ -182,8 +182,19 @@ class InitServiceTest {
 
                 [quality-gates.tests]
                 enabled = true
-                command = "./mvnw test"
+                command = "mvn test"
                 """);
+  }
+
+  @Test
+  void createsGradleDefaultConfiguration(@TempDir final Path dir) throws Exception {
+    Files.writeString(dir.resolve("build.gradle.kts"), "plugins { java }\n");
+
+    final InitResult result = service.init(dir);
+
+    assertThat(result.created()).isTrue();
+    assertThat(Files.readString(dir.resolve("sentinel.toml")))
+        .contains("command = \"gradle test\"");
   }
 
   @Test

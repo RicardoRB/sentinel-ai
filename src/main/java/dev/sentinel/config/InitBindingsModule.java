@@ -11,9 +11,9 @@ import dev.sentinel.domain.init.RuleFileGeneration;
 import dev.sentinel.domain.init.ToolInstaller;
 import dev.sentinel.domain.terminal.TerminalCapabilities;
 import dev.sentinel.infrastructure.init.ArchitectureTestGenerator;
+import dev.sentinel.infrastructure.init.BuildToolConfigurator;
 import dev.sentinel.infrastructure.init.FileConfigurationStorage;
 import dev.sentinel.infrastructure.init.OpenSpecToolInstaller;
-import dev.sentinel.infrastructure.init.PomToolConfigurator;
 import dev.sentinel.infrastructure.init.PresetRuleFileWriter;
 import dev.sentinel.infrastructure.init.QualityHookInstaller;
 import dev.sentinel.infrastructure.terminal.JdkTerminalCapabilities;
@@ -31,7 +31,7 @@ interface InitBindingsModule {
   TerminalCapabilities terminalCapabilities(JdkTerminalCapabilities implementation);
 
   @Binds
-  BuildToolConfiguration buildToolConfiguration(PomToolConfigurator implementation);
+  BuildToolConfiguration buildToolConfiguration(BuildToolConfigurator implementation);
 
   @Binds
   ArchitectureTestGeneration architectureTestGeneration(ArchitectureTestGenerator implementation);

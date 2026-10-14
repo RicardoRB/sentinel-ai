@@ -20,8 +20,8 @@ one line per check:
 
 | Check | Status | Meaning |
 |---|---|---|
-| `project` | `OK` / `ERROR` | A supported Maven project was detected. When none is found, no other check runs. |
-| `maven` | `OK` / `ERROR` | An executable `mvnw` exists in the project root, or `mvn` is on `PATH`. |
+| `project` | `OK` / `ERROR` | A supported project was detected. When none is found, no other check runs. |
+| `maven` / `gradle` | `OK` / `ERROR` | The detected build tool's wrapper exists in the project root, or its executable (`mvn` / `gradle`) is on `PATH`. |
 | `configuration` | `OK` / `ERROR` | `sentinel.toml` exists in the project root; otherwise run `sentinel init`. |
 | `integration` | `OK` / `WARNING` | The OpenCode command `.opencode/commands/sentinel-check.md` exists. The Claude Code integration is not checked yet. |
 | `native` | `OK` / `WARNING` | `target/sentinel` exists in the current directory. This is a development check for the Sentinel repository. |

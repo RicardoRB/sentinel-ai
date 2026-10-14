@@ -3,41 +3,233 @@ title: CI/CD
 description: Run Sentinel quality gates in continuous integration.
 ---
 
-Sentinel is a single binary with deterministic [exit codes](/reference/exit-codes/), so any CI system
-can use it as a quality gate: a non-zero exit fails the job.
+Sentinel is a single native binary with deterministic [exit codes](/reference/exit-codes/), so any CI
+system can use it as a quality gate. The common integration flow is:
+
+1. Check out the repository.
+2. Install the runtime and standalone tools required by your project and configured gates.
+3. Install Sentinel with the verified installer.
+4. Run the selected profiles and preserve the command's exit status.
+5. Upload the JSON report as a diagnostic artifact.
+
+The native Sentinel binary does not require Java, but Java, Maven, Gradle, or other tools may be needed
+by individual gates. Sentinel does not install those tools. A missing executable is reported as
+`UNAVAILABLE` and makes the check unsuccessful.
 
 ## GitHub Actions
 
 ```yaml
 name: Quality gate
-on: [pull_request, push]
+
+on:
+  pull_request:
+  push:
 
 jobs:
   sentinel:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
+
+      # Use the runtime required by your project. This is not required by
+      # the Sentinel native binary itself.
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: '21' # your project's JDK; the native binary needs none
+          java-version: '21'
           cache: maven
+
       - name: Install Sentinel
+        env:
+          SENTINEL_VERSION: v0.0.1
         run: |
           curl -fsSL https://raw.githubusercontent.com/RicardoRB/sentinel-ai/main/install.sh | sh
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
       - name: Run quality gates
-           run: sentinel check --profile ci --format json > sentinel-report.json
-      - if: always()
+        run: sentinel check --profile ci --format json > sentinel-report.json
+
+      - name: Upload Sentinel report
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: sentinel-report
           path: sentinel-report.json
 ```
 
-Pin a release with `SENTINEL_VERSION=v0.0.1` for reproducible builds.
+GitHub's required status checks can block merges until the `sentinel` job passes. Use the runtime setup
+and cache action appropriate for your project; the example uses Maven only as an illustration.
 
-## Behavior in CI
+## GitLab CI
+
+GitLab checks out the repository before the job script. Use a merge-request pipeline rule when Sentinel
+should run for pull requests as well as branch pushes:
+
+```yaml
+stages:
+  - quality
+
+sentinel:
+  image: ubuntu:24.04
+  stage: quality
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH'
+  before_script:
+    - apt-get update -qq
+    - apt-get install -y -qq curl
+    # Install the JDK, build tool, and standalone gate tools required by the project here.
+    - export SENTINEL_VERSION="v0.0.1"
+    - curl -fsSL https://raw.githubusercontent.com/RicardoRB/sentinel-ai/main/install.sh | sh
+    - export PATH="$HOME/.local/bin:$PATH"
+  script:
+    - sentinel check --profile default,ci --format json > sentinel-report.json
+  artifacts:
+    when: always
+    paths:
+      - sentinel-report.json
+```
+
+Configure the job as a required merge-request status in the project's approval or branch protection
+settings. Prefer a project image that already contains the required runtime and tools rather than
+installing them in every job.
+
+## Jenkins
+
+This Declarative Pipeline archives the report even when the shell step fails. The `sh` step's non-zero
+status still fails the build:
+
+```groovy
+pipeline {
+  agent { label 'linux' }
+
+  stages {
+    stage('Checkout') {
+      steps {
+        checkout scm
+      }
+    }
+
+    stage('Sentinel') {
+      steps {
+        sh '''
+          set -eu
+          export SENTINEL_VERSION="v0.0.1"
+          curl -fsSL https://raw.githubusercontent.com/RicardoRB/sentinel-ai/main/install.sh | sh
+          export PATH="$HOME/.local/bin:$PATH"
+          sentinel check --profile default,ci --format json > sentinel-report.json
+        '''
+      }
+    }
+  }
+
+  post {
+    always {
+      archiveArtifacts artifacts: 'sentinel-report.json', allowEmptyArchive: true
+    }
+  }
+}
+```
+
+Provision the JDK, build tool, and standalone gate executables on the agent or in its container image.
+Use Jenkins credentials and environment bindings for private registry or analysis-service credentials;
+do not put secrets in `sentinel.toml` or the pipeline source.
+
+## CircleCI
+
+```yaml
+version: 2.1
+
+jobs:
+  sentinel:
+    machine:
+      image: ubuntu-2404:current
+    steps:
+      - checkout
+      - run:
+          name: Install Sentinel
+          command: |
+            set -eu
+            export SENTINEL_VERSION="v0.0.1"
+            curl -fsSL https://raw.githubusercontent.com/RicardoRB/sentinel-ai/main/install.sh | sh
+            echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$BASH_ENV"
+      - run:
+          name: Run quality gates
+          command: sentinel check --profile default,ci --format json > sentinel-report.json
+      - store_artifacts:
+          path: sentinel-report.json
+          destination: sentinel-report.json
+
+workflows:
+  quality:
+    jobs:
+      - sentinel
+```
+
+CircleCI stores the report as a build artifact. Add a language-specific executor or setup step before
+the Sentinel command when the configured gates need a JDK, build tool, or additional executable.
+
+## Azure Pipelines
+
+```yaml
+trigger:
+  - main
+
+pr:
+  - main
+
+pool:
+  vmImage: ubuntu-24.04
+
+steps:
+  - checkout: self
+
+  # Add the runtime and standalone tools required by the project before this step.
+  - bash: |
+      set -eu
+      export SENTINEL_VERSION="v0.0.1"
+      curl -fsSL https://raw.githubusercontent.com/RicardoRB/sentinel-ai/main/install.sh | sh
+      export PATH="$HOME/.local/bin:$PATH"
+      sentinel check --profile default,ci --format json > sentinel-report.json
+    displayName: Run Sentinel quality gates
+
+  - task: PublishPipelineArtifact@1
+    condition: always()
+    inputs:
+      targetPath: sentinel-report.json
+      artifact: sentinel-report
+      publishLocation: pipeline
+```
+
+Use variable groups or secret variables for credentials needed by networked gates. The publication task
+uses `always()` so the report remains available when the preceding Bash task fails.
+
+## Bitbucket Pipelines
+
+```yaml
+image: ubuntu:24.04
+
+pipelines:
+  pull-requests:
+    '**':
+      - step:
+          name: Sentinel quality gate
+          script:
+            - apt-get update -qq
+            - apt-get install -y -qq curl
+            # Install the runtime and standalone gate tools required by the project here.
+            - export SENTINEL_VERSION="v0.0.1"
+            - curl -fsSL https://raw.githubusercontent.com/RicardoRB/sentinel-ai/main/install.sh | sh
+            - export PATH="$HOME/.local/bin:$PATH"
+            - sentinel check --profile default,ci --format json > sentinel-report.json
+          artifacts:
+            - sentinel-report.json
+```
+
+Bitbucket checks out the repository before running the step and retains declared artifacts for the
+build. Add a `branches` pipeline for pushes when quality gates should run outside pull requests.
+
+## Shared CI behavior
 
 - **Profiles:** init-generated configurations put every selected gate in `ci`; use
   `sentinel check --profile ci` for the complete CI tier. The fast `default` profile is intended for
@@ -45,36 +237,46 @@ Pin a release with `SENTINEL_VERSION=v0.0.1` for reproducible builds.
   may still select multiple profiles, such as `default,ci`, when needed.
 - **Gate evaluation:** all selected gates run and the job gets one verdict. Add `--fail-fast` to stop
   at the first failure.
-- **Exit codes:** `1` means a gate failed and `2` means Sentinel could not run, for example because
-  of invalid configuration. Both fail the step.
+- **Exit codes:** `0` means all selected gates passed, `1` means a gate failed, and `2` means Sentinel
+  could not run, for example because of invalid configuration. Non-zero exits fail the CI step.
 - **Reports:** `--format json` writes only the [JSON report](/reference/json-output/) to stdout, so it
-  can be redirected to a file. Diagnostics go to stderr and remain visible in the job log.
-- **Pull requests:** make the job a required status check in branch protection to block merging
-  until the gates pass.
-- **Tools:** Sentinel never installs gate tools. Install standalone tools such as `gitleaks` or
-  `trivy` in an earlier step; a missing tool is reported as `UNAVAILABLE`.
+  can be redirected to `sentinel-report.json`. Diagnostics go to stderr and remain visible in logs.
+- **Version pinning:** set `SENTINEL_VERSION` to a release tag such as `v0.0.1` for reproducible builds.
+  Leaving it unset installs the latest release.
+- **Working directories:** run Sentinel from the repository root, or configure the provider's working
+  directory so `sentinel.toml` and the project files resolve correctly.
+- **Caches:** cache project dependencies using the provider's normal cache mechanism; do not cache the
+  Sentinel binary as a substitute for checksum verification.
+- **Secrets:** pass credentials through the provider's secret store or environment variables. Never
+  commit them to `sentinel.toml` or a pipeline file.
+- **Artifacts:** retain the JSON report after failures where the provider supports an always/post-failure
+  condition. It is diagnostic output; the Sentinel process exit code remains the job verdict.
+- **SARIF:** Sentinel does not support SARIF output yet. Current formats are text and JSON (schema v1).
 
 Init does not generate a provider-specific CI workflow; add the command above to the CI system of
 your choice. SARIF output is not supported yet.
 
+## Security
+
 Do not run Sentinel on untrusted pull requests, such as those from forks, without isolation:
-`sentinel.toml` is executable code. See [security](/security/).
+`sentinel.toml` is executable trusted code. Use a locked-down runner and do not expose write-capable
+secrets to untrusted jobs. See [security](/security/).
 
 ## OpenSpec provenance enforcement
 
-The optional pull-request integration must use `actions/checkout@v5` with `fetch-depth: 0`, fetch the pull-request
-base ref, install the tested `@fission-ai/openspec@1.14.1`, and run:
+The optional pull-request integration must use a full checkout, fetch the pull-request base ref, install
+the tested `@fission-ai/openspec@1.14.1`, and run:
 
 ```sh
 sentinel spec enforce --base "origin/$BASE_REF"
 ```
 
-Configure that job as a required status check in repository settings. Add a `CODEOWNERS` entry using your own
-placeholders, for example `openspec/** @REPLACE_WITH_TEAM`; Sentinel does not create or approve owners. Enable
-required code-owner review separately in repository settings. Git provenance and archive association establish
+Configure that job as a required status check in repository settings. Add a `CODEOWNERS` entry using
+your own placeholders, for example `openspec/** @REPLACE_WITH_TEAM`; Sentinel does not create or approve
+owners. Enable required code-owner review separately. Git provenance and archive association establish
 deterministic provenance only; neither proves a human approved the change.
 
 The optional local pre-commit integration writes only Sentinel-owned files. It preserves a user-owned
-`.git/hooks/pre-commit` and reports a conflict with manual chaining guidance rather than overwriting it. Refresh and
-removal affect only files carrying Sentinel ownership markers. `/opsx:verify` is not part of the blocking hook or CI
-command.
+`.git/hooks/pre-commit` and reports a conflict with manual chaining guidance rather than overwriting it.
+Refresh and removal affect only files carrying Sentinel ownership markers. `/opsx:verify` is not part of
+the blocking hook or CI command.

@@ -19,7 +19,7 @@ public final class SystemEnvironmentInspection implements EnvironmentInspection 
   private static final Logger LOGGER =
       Logger.getLogger(SystemEnvironmentInspection.class.getName());
   private static final Set<String> PROBED_EXECUTABLES =
-      Set.of("mvn", "java", "git", "claude", "opencode");
+      Set.of("mvn", "gradle", "java", "git", "claude", "opencode");
 
   @Inject
   public SystemEnvironmentInspection() {}
@@ -41,6 +41,8 @@ public final class SystemEnvironmentInspection implements EnvironmentInspection 
         Map.of(
             "mavenWrapperAvailable",
                 Boolean.toString(Files.isExecutable(projectRoot.resolve("mvnw"))),
+            "gradleWrapperAvailable",
+                Boolean.toString(Files.isExecutable(projectRoot.resolve("gradlew"))),
             "configurationPresent",
                 Boolean.toString(Files.isRegularFile(projectRoot.resolve("sentinel.toml"))),
             "openCodeCommandPresent",

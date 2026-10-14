@@ -103,7 +103,9 @@ public class InitService {
   public InitResult init(final Path start) {
     final Project project = project(start);
     final Path file = project.root().resolve("sentinel.toml");
-    return new InitResult(file, configurationStorage.get().create(file, DEFAULT_CONFIGURATION));
+    final String executable = project.buildExecutable();
+    final String configuration = DEFAULT_CONFIGURATION.replace("./mvnw test", executable + " test");
+    return new InitResult(file, configurationStorage.get().create(file, configuration));
   }
 
   public Project project(final Path start) {
