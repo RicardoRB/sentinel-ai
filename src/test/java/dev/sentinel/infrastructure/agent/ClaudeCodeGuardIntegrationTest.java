@@ -107,7 +107,9 @@ class ClaudeCodeGuardIntegrationTest {
 
     assertThat(result.status()).isEqualTo(IntegrationResult.Status.REMOVED);
     assertThat(result.changed()).contains(guard().toString());
-    assertThat(root.resolve(".claude")).doesNotExist();
+    assertThat(settings()).exists();
+    assertThat(JsonTree.parse(Files.readString(settings())).has("sentinelOwnership")).isFalse();
+    assertThat(root.resolve(".claude")).exists();
   }
 
   @Test
@@ -129,6 +131,7 @@ class ClaudeCodeGuardIntegrationTest {
     assertThat(integration.integrate(root, IntegrationRequest.REMOVE).status())
         .isEqualTo(IntegrationResult.Status.REMOVED);
     assertThat(guard()).hasContent("#!/bin/sh\necho mine\n");
+    assertThat(settings()).exists();
   }
 
   @Test

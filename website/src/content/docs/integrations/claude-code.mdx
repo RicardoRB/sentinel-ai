@@ -3,7 +3,7 @@ title: Claude Code
 description: Install Sentinel's Claude Code edit and turn-end hooks.
 ---
 
-Install with `sentinel integrate claude-code`. Sentinel creates `.claude/settings.json` and the
+Install with `sentinel integrate claude-code`. Sentinel creates or updates `.claude/settings.json` and the
 executable `.claude/hooks/sentinel-edit-write`, and registers the same hook for two Claude Code events:
 
 | Event | When | What Sentinel does |
@@ -82,9 +82,14 @@ keeps the guard as it is. `--no-guard-approved-specs` removes only the guard, an
 ## Ownership and removal
 
 Generated files contain Sentinel ownership markers. Existing user-owned targets are never
-overwritten; a conflict prevents partial integration. Remove using
-`sentinel integrate claude-code --remove`; only Sentinel-owned generated files are removed and
-unrelated configuration is preserved. The hook executes repository configuration with your user
-privileges. Enable it only in repositories you trust.
+overwritten; a conflict prevents partial integration. If `.claude/settings.json` already contains valid JSON,
+Sentinel merges its hook registrations into that file and preserves unrelated settings and hooks. It does not
+replace the settings file. Malformed JSON, a non-object settings root, or an incompatible `hooks` structure
+causes a conflict; Sentinel leaves the settings and other integration targets unchanged.
+
+Remove using `sentinel integrate claude-code --remove`. Sentinel removes only its hook registrations and
+ownership marker, deletes its owned hook scripts, and preserves unrelated settings and hooks. The
+`.claude/settings.json` file remains, even if no settings remain in it. The hook executes repository
+configuration with your user privileges. Enable it only in repositories you trust.
 Re-run `sentinel integrate claude-code` to refresh an outdated Sentinel-owned hook. Integrations installed by
 earlier versions keep working, but they only run the quality check until you refresh them.

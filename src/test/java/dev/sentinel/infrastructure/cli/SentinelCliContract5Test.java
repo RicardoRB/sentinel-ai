@@ -29,7 +29,9 @@ class SentinelCliContract5Test extends SentinelCliIntegrationSupport {
 
     assertThat(runInitWithInput("3\n3 2\n1\n", "-C", project.toString()))
         .isEqualTo(ExitCodes.ERROR);
-    assertThat(project.resolve(".claude")).doesNotExist();
+    assertThat(project.resolve(".claude/settings.json")).exists();
+    assertThat(Files.readString(project.resolve(".claude/settings.json")))
+        .doesNotContain("sentinelOwnership", "sentinel-edit-write");
     assertThat(project.resolve(SENTINEL_TOML)).doesNotExist();
     assertThat(target).hasContent("user-owned\n");
   }
