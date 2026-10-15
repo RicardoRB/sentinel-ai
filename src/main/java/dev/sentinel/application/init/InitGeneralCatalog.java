@@ -1,5 +1,6 @@
 package dev.sentinel.application.init;
 
+import dev.sentinel.domain.agent.SupportedAgents;
 import dev.sentinel.domain.config.SentinelException;
 import dev.sentinel.domain.doctor.EnvironmentInspection;
 import dev.sentinel.domain.gate.SupportedQualityGates;
@@ -24,10 +25,12 @@ public class InitGeneralCatalog {
   }
 
   public List<InitIntegrationOption> integrations() {
-    return List.of(
-        new InitIntegrationOption(NO_INTEGRATION, "No agent integration"),
-        new InitIntegrationOption("opencode", "OpenCode"),
-        new InitIntegrationOption("claude-code", "Claude Code"));
+    final List<InitIntegrationOption> options = new ArrayList<>();
+    options.add(new InitIntegrationOption(NO_INTEGRATION, "No agent integration"));
+    SupportedAgents.definitions().stream()
+        .map(definition -> new InitIntegrationOption(definition.id(), definition.label()))
+        .forEach(options::add);
+    return List.copyOf(options);
   }
 
   public List<InitArchitectureOption> architectures() {
@@ -241,7 +244,8 @@ public class InitGeneralCatalog {
                 new SentinelException(
                     "Unknown integration '"
                         + id
-                        + "'. Supported integrations: none, opencode, claude-code"));
+                        + "'. Supported integrations: none, "
+                        + SupportedAgents.idsText()));
   }
 
   public InitGateOption gate(final Project project, final String id) {

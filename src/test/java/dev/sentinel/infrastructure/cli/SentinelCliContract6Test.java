@@ -36,7 +36,7 @@ class SentinelCliContract6Test extends SentinelCliIntegrationSupport {
     out.getBuffer().setLength(0);
     run(INIT, INTEGRATION_OPTION, "opencode", GATE_OPTION, TESTS, "-C", project.toString());
     assertThat(run("doctor", "-C", project.toString())).isZero();
-    assertThat(out.toString()).contains("configuration", "OK", "integration", "OK");
+    assertThat(out.toString()).contains("configuration", "OK", "integration", "OK", "POST_EDIT");
   }
 
   @Test
@@ -50,7 +50,7 @@ class SentinelCliContract6Test extends SentinelCliIntegrationSupport {
 
   @Test
   void interactiveIntegrationRejectsInvalidAndEof() {
-    assertThat(runWithInput("9\n", "-C", project.toString())).isEqualTo(ExitCodes.ERROR);
+    assertThat(runWithInput("11\n", "-C", project.toString())).isEqualTo(ExitCodes.ERROR);
     assertThat(err.toString()).contains("Invalid agent selection");
     err.getBuffer().setLength(0);
     assertThat(runWithInput("", "-C", project.toString())).isEqualTo(ExitCodes.ERROR);

@@ -2,6 +2,7 @@ package dev.sentinel.application.init;
 
 import dev.sentinel.domain.agent.AgentIntegration;
 import dev.sentinel.domain.agent.IntegrationResult;
+import dev.sentinel.domain.agent.SupportedAgents;
 import dev.sentinel.domain.config.SentinelException;
 import java.nio.file.Path;
 import java.util.List;
@@ -78,7 +79,8 @@ final class IntegrationInstaller {
     if (integrations.isEmpty()) {
       throw new SentinelException("Agent integrations are unavailable in this runtime.");
     }
-    return integration(id).integrate(root, false);
+    final AgentIntegration adapter = integration(id);
+    return adapter.integrate(root, false).withCapabilities(adapter.capabilities());
   }
 
   private AgentIntegration integration(final String id) {
@@ -88,6 +90,6 @@ final class IntegrationInstaller {
         .orElseThrow(
             () ->
                 new SentinelException(
-                    "Unknown agent '" + id + "'. Supported agents: opencode, claude-code"));
+                    "Unknown agent '" + id + "'. Supported agents: " + SupportedAgents.idsText()));
   }
 }

@@ -32,7 +32,18 @@ class InitSetupCatalogTest {
 
     assertThat(catalog.integrations())
         .extracting(InitIntegrationOption::id)
-        .containsExactly("none", "opencode", "claude-code");
+        .containsExactly(
+            "none",
+            "opencode",
+            "claude-code",
+            "codex",
+            "cursor",
+            "copilot",
+            "gemini",
+            "windsurf",
+            "cline",
+            "factory-droid",
+            "amp");
     assertThat(
             catalog.gates(
                 new ProjectDetector(new FileSystemProjectInspection()).detect(dir).orElseThrow()))

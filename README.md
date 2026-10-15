@@ -74,7 +74,7 @@ binary that agents call after each write and whose machine-readable verdict they
 | 🚦 **Quality gates** | Compile, tests, JaCoCo coverage, PIT mutation testing, license, API compatibility, custom commands |
 | ⚙️ **CI/CD support** | Deterministic [exit codes](#exit-codes), JSON reports, cumulative profiles (`default`, `pre-commit`, `pre-push`, `ci`), `--fail-fast` |
 | ⚡ **Native executable** | GraalVM native binaries start instantly with no JVM, which suits per-edit hooks |
-| 🤖 **Integrations** | Claude Code and OpenCode edit/write hooks, opt-in Git quality hooks; `sentinel loop` for any CLI agent |
+| 🤖 **Integrations** | Native project-local hooks for Claude Code, OpenCode, Codex, Cursor, Copilot, Gemini, Windsurf, Cline, Factory Droid, and Amp |
 | 📄 **Output formats** | Human-readable text (live progress, `NO_COLOR` aware) and JSON (schema v1) |
 
 ## 🚀 Quick Start
@@ -350,10 +350,19 @@ installer and provider-native artifact support for now.
 ```bash
 sentinel integrate claude-code     # PostToolUse hook on Edit/Write
 sentinel integrate opencode        # tool.execute.after plugin on edit/write
+sentinel integrate codex
+sentinel integrate cursor
+sentinel integrate copilot
+sentinel integrate gemini
+sentinel integrate windsurf
+sentinel integrate cline
+sentinel integrate factory-droid
+sentinel integrate amp
 sentinel integrate opencode --remove
 ```
 
-Integrations are project-local and idempotent, and every generated file is ownership-marked.
+Integrations are project-local and idempotent, and every generated file is ownership-marked. See the
+[native harness integration guide](https://ricardorb.github.io/sentinel-ai/integrations/native-harnesses/).
 Sentinel never overwrites your files, and `--remove` deletes only its own files. See the
 [Claude Code](https://ricardorb.github.io/sentinel-ai/integrations/claude-code/) and
 [OpenCode](https://ricardorb.github.io/sentinel-ai/integrations/opencode/) guides.

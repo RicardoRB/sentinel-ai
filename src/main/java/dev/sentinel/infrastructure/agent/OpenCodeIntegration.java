@@ -2,6 +2,7 @@ package dev.sentinel.infrastructure.agent;
 
 import dev.sentinel.domain.agent.AgentIntegration;
 import dev.sentinel.domain.agent.GuardMode;
+import dev.sentinel.domain.agent.IntegrationCapability;
 import dev.sentinel.domain.agent.IntegrationRequest;
 import dev.sentinel.domain.agent.IntegrationResult;
 import java.io.IOException;
@@ -11,6 +12,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Stream;
 
 /** Safe, ownership-marked integration for OpenCode command discovery and edit/write events. */
@@ -174,6 +176,22 @@ public final class OpenCodeIntegration implements AgentIntegration {
   @Override
   public String id() {
     return "opencode";
+  }
+
+  @Override
+  public Set<IntegrationCapability> capabilities() {
+    return Set.of(
+        IntegrationCapability.POST_EDIT,
+        IntegrationCapability.TURN_END,
+        IntegrationCapability.FEEDBACK,
+        IntegrationCapability.APPROVED_ARTIFACT_GUARD);
+  }
+
+  @Override
+  public boolean installed(final Path projectRoot) {
+    final Path root = projectRoot.toAbsolutePath().normalize();
+    return Files.isRegularFile(root.resolve(COMMAND_FILE))
+        && Files.isRegularFile(root.resolve(PLUGIN_FILE));
   }
 
   @Override

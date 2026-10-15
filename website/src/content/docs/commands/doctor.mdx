@@ -23,7 +23,7 @@ one line per check:
 | `project` | `OK` / `ERROR` | A supported project was detected. When none is found, no other check runs. |
 | `maven` / `gradle` | `OK` / `ERROR` | The detected build tool's wrapper exists in the project root, or its executable (`mvn` / `gradle`) is on `PATH`. |
 | `configuration` | `OK` / `ERROR` | `sentinel.toml` exists in the project root; otherwise run `sentinel init`. |
-| `integration` | `OK` / `WARNING` | The OpenCode command `.opencode/commands/sentinel-check.md` exists. The Claude Code integration is not checked yet. |
+| `integration` | `OK` / `WARNING` | Reports installed project-local agent integrations and their lifecycle capabilities. |
 | `native` | `OK` / `WARNING` | `target/sentinel` exists in the current directory. This is a development check for the Sentinel repository. |
 | `openspec` / `openspec-archived` | `OK` / `ERROR` | For each enabled registration, the configured executable and project-root `openspec/` directory are available. |
 | `openspec-junit-traceability` | `OK` / `ERROR` | When enabled, `openspec/specs/` and `src/test/java/` must exist; doctor does not create them. |
