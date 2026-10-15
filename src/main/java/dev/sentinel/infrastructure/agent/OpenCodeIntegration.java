@@ -29,113 +29,125 @@ public final class OpenCodeIntegration implements AgentIntegration {
   private static final String PLUGIN =
       """
             // %s
-            // OpenCode hooks: quality check and spec validation after edits, spec checks when idle.
+            import { define } from "@opencode/plugin";
+
+            // Native OpenCode V2 quality and idle validation plugin.
+            // V2 hook: tool.execute.after; idle event: session.idle.
             const EDIT_TOOLS = new Set(["edit", "write", "multiedit", "apply_patch", "patch"]);
             const FEEDBACK_MARKER = "[sentinel spec validation]";
             const decode = (bytes) => new TextDecoder().decode(bytes || new Uint8Array());
-
-            const editedPaths = (input, output) => {
-              const args = input?.args ?? {};
-              const files = Array.isArray(output?.metadata?.files) ? output.metadata.files : [];
+            const sessions = new Map();
+            const pathValues = (input, result) => {
+              const args = input ?? {};
+              const files = Array.isArray(result?.metadata?.files) ? result.metadata.files : [];
               return [args.filePath, args.path, ...files.flatMap((file) => [file?.filePath, file?.movePath])]
-                // Cheap pre-filter; Sentinel decides which paths are active spec items.
                 .filter((path) => typeof path === "string" && path.includes("openspec"));
             };
+            const stateFor = (sessionID) => {
+              let state = sessions.get(sessionID);
+              if (!state) {
+                state = { running: false, generation: 0, delivered: false, directory: null, process: null };
+                sessions.set(sessionID, state);
+              }
+              return state;
+            };
+            const diagnostic = (message) => console.warn(`[sentinel] ${String(message).slice(0, 500)}`);
 
-            export default async ({ directory, client }) => {
-              const run = (args) => {
-                const result = Bun.spawnSync(["sentinel", ...args], { cwd: directory, stdout: "pipe", stderr: "pipe" });
-                return { code: result.exitCode, stdout: decode(result.stdout), stderr: decode(result.stderr) };
-              };
-              const running = new Set();
-              const delivered = new Set();
-              const toast = (message) =>
-                client?.tui?.showToast?.({ body: { title: "Sentinel", message, variant: "warning" } })?.catch?.(() => {});
-
-              return {
-                "tool.execute.after": async (input, output) => {
-                  const tool = String(input?.tool ?? input?.name ?? "").toLowerCase();
-                  if (!EDIT_TOOLS.has(tool)) return;
-                  const check = run(["check", "--format", "json", "--exclude-spec", "--learn-after", "3"]);
-                  let report;
-                  try { report = JSON.parse(check.stdout); } catch { report = null; }
+            export default define({
+              id: "sentinel.edit-write",
+              setup: async (ctx) => {
+                const abort = new AbortController();
+                const run = async (args, directory) => {
+                  const proc = Bun.spawn(["sentinel", ...args], { cwd: directory, stdout: "pipe", stderr: "pipe", signal: abort.signal });
+                  const [stdout, stderr, code] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text(), proc.exited]);
+                  return { code, stdout, stderr };
+                };
+                const locationFor = async (sessionID) => {
+                  try {
+                    const session = await ctx.session.get({ sessionID });
+                    const directory = session?.data?.directory ?? session?.directory ?? ctx.location.directory;
+                    return typeof directory === "string" ? directory : null;
+                  } catch (error) {
+                    diagnostic(`session location unavailable: ${error?.message ?? error}`);
+                    return null;
+                  }
+                };
+                const after = await ctx.tool.hook("execute.after", async (event) => {
+                  if (event.status !== "completed" || !EDIT_TOOLS.has(String(event.tool).toLowerCase())) return;
+                  const directory = await locationFor(event.sessionID);
+                  if (!directory) return diagnostic("skipping post-edit validation without a session location");
+                  const check = await run(["check", "--format", "json", "--exclude-spec", "--learn-after", "3"], directory);
+                  let report = null;
+                  try { report = JSON.parse(check.stdout); } catch { /* Sentinel errors are reported below. */ }
                   const prompts = report?.learning?.prompts?.map((prompt) => prompt.instruction).join("\\n") || "";
                   const failures = [];
                   if (check.code !== 0) failures.push(check.stdout || check.stderr || "Sentinel quality check failed");
-                  const paths = editedPaths(input, output);
+                  const paths = pathValues(event.input, event.result);
                   if (paths.length > 0) {
-                    const spec = run(["spec", "validate", "--", ...paths]);
+                    const spec = await run(["spec", "validate", "--", ...paths], directory);
                     if (spec.code !== 0) failures.push(spec.stdout || spec.stderr || "Sentinel spec validation failed");
                   }
-                  if (failures.length > 0) {
-                    output.error = failures.join("\\n") + (prompts ? "\\n" + prompts : "");
-                    throw new Error(output.error);
+                  const feedback = failures.concat(prompts).filter(Boolean).join("\\n");
+                  if (feedback) {
+                    if (event.result && typeof event.result === "object") event.result.output = `${event.result.output || ""}\\n${feedback}`.trim();
+                    if (failures.length > 0) throw new Error(feedback);
                   }
-                  if (prompts) output.output = (output.output || "") + "\\n" + prompts;
-                },
-                event: async ({ event }) => {
-                  if (event?.type !== "session.idle") return;
-                  const sessionID = event.properties?.sessionID;
-                  if (!sessionID || running.has(sessionID)) return;
-                  running.add(sessionID);
+                });
+                const eventStream = ctx.event.subscribe();
+                const subscription = (async () => { for await (const event of eventStream) {
+                  if (abort.signal.aborted || event?.type !== "session.idle") continue;
+                  const sessionID = event.properties?.sessionID ?? event.sessionID;
+                  if (!sessionID) continue;
+                  const state = stateFor(sessionID);
+                  if (state.running || state.delivered) continue;
+                  const directory = await locationFor(sessionID);
+                  if (!directory) { diagnostic("skipping idle validation without a session location"); continue; }
+                  state.running = true; state.directory = directory; const generation = state.generation;
                   try {
-                    const proc = Bun.spawn(["sentinel", "spec", "validate"], { cwd: directory, stdout: "pipe", stderr: "pipe" });
-                    const [stdout, stderr, code] = await Promise.all([
-                      new Response(proc.stdout).text(),
-                      new Response(proc.stderr).text(),
-                      proc.exited,
-                    ]);
-                    if (code === 0) return;
-                    const findings = (stdout || stderr || "Sentinel spec validation failed").trim();
-                    if (code === 1 && !delivered.has(sessionID) && client?.session?.prompt) {
-                      delivered.add(sessionID);
-                      // Not awaited: the prompt starts a new agent turn whose idle event is checked again.
-                      client.session
-                        .prompt({ path: { id: sessionID }, body: { parts: [{ type: "text", text: FEEDBACK_MARKER + "\\n" + findings }] } })
-                        .catch(() => toast(findings));
-                    } else {
-                      toast(findings);
-                    }
+                    const result = await run(["spec", "validate"], directory);
+                    if (result.code === 0) continue;
+                    const findings = (result.stdout || result.stderr || "Sentinel spec validation failed").trim();
+                    if (result.code !== 1) { diagnostic(`idle validation failed: ${result.code}`); continue; }
+                    if (state.generation !== generation || state.directory !== directory || state.delivered) { diagnostic(findings); continue; }
+                    state.delivered = true;
+                    await ctx.session.prompt({ sessionID, prompt: { parts: [{ type: "text", text: `${FEEDBACK_MARKER}\\n${findings}` }] }, metadata: { sentinel: FEEDBACK_MARKER }, delivery: "followup" });
                   } catch (error) {
-                    toast("Sentinel spec validation could not run: " + (error?.message ?? error));
-                  } finally {
-                    running.delete(sessionID);
-                  }
-                },
-                "chat.message": async (input, output) => {
-                  const own = (output?.parts ?? []).some(
-                    (part) => part?.type === "text" && String(part.text ?? "").startsWith(FEEDBACK_MARKER),
-                  );
-                  if (!own) delivered.delete(input?.sessionID);
-                },
-              };
-            };
+                    diagnostic(`idle validation error: ${error?.message ?? error}`);
+                  } finally { state.running = false; }
+                } })().catch((error) => diagnostic(`idle subscription stopped: ${error?.message ?? error}`));
+                const prompt = await ctx.session.hook("prompt", async (event) => {
+                  const state = stateFor(event.sessionID);
+                  if (event.metadata?.sentinel === FEEDBACK_MARKER || event.metadata?.sentinel) return;
+                  state.generation++; state.delivered = false;
+                });
+                return async () => { abort.abort(); sessions.clear(); await after.dispose(); await prompt.dispose(); await subscription; };
+              },
+            });
             """
           .replace("%s", PLUGIN_MARKER);
 
   private static final String GUARD_PLUGIN =
       """
             // %s
-            // OpenCode pre-tool guard for approved OpenSpec artifacts.
+            import { define } from "@opencode/plugin";
+            // Native OpenCode V2 approved-artifact guard.
+            // V2 hook: tool.execute.before.
             const decode = (bytes) => new TextDecoder().decode(bytes || new Uint8Array());
+            const warning = (message) => console.warn(`[sentinel guard] ${String(message).slice(0, 500)}`);
 
-            export default async ({ directory, client }) => {
-              const run = (args, input) => {
-                const result = Bun.spawnSync(["sentinel", ...args], {
-                  cwd: directory,
-                  stdin: input === undefined ? undefined : new TextEncoder().encode(input),
-                  stdout: "pipe",
-                  stderr: "pipe",
-                });
-                return { code: result.exitCode, stdout: decode(result.stdout), stderr: decode(result.stderr) };
-              };
-              const warning = (message) =>
-                client?.tui?.showToast?.({ body: { title: "Sentinel", message, variant: "warning" } })?.catch?.(() => {});
-
-              return {
-                "tool.execute.before": async (input, output) => {
-                  const tool = String(input?.tool ?? input?.name ?? "").toLowerCase();
-                  const args = output?.args ?? {};
+            export default define({
+              id: "sentinel.openspec-guard",
+              setup: async (ctx) => {
+                const run = async (args, input, directory) => {
+                  const proc = Bun.spawn(["sentinel", ...args], { cwd: directory, stdin: input === undefined ? undefined : new TextEncoder().encode(input), stdout: "pipe", stderr: "pipe" });
+                  const [stdout, stderr, code] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text(), proc.exited]);
+                  const exitCode = code;
+                  return { code: exitCode, stdout: decode(new TextEncoder().encode(stdout)), stderr: decode(new TextEncoder().encode(stderr)) };
+                };
+                const before = await ctx.tool.hook("execute.before", async (event) => {
+                  const tool = String(event.tool ?? "").toLowerCase();
+                  const args = event.input ?? {};
+                  const directory = (await ctx.session.get({ sessionID: event.sessionID }))?.data?.directory ?? ctx.location.directory;
                   let command;
                   let stdin;
                   if (tool === "edit" || tool === "write") {
@@ -143,7 +155,7 @@ public final class OpenCodeIntegration implements AgentIntegration {
                   } else if (tool === "apply_patch" || tool === "patch") {
                     command = ["spec", "guard", "--patch-stdin"];
                     stdin = args.patchText ?? args.patch;
-                  } else if (tool === "bash") {
+                  } else if (tool === "shell" || tool === "bash") {
                     command = ["spec", "guard", "--shell-stdin", "--cwd", args.workdir ?? directory];
                     stdin = args.command;
                   } else if (tool === "skill") {
@@ -152,13 +164,10 @@ public final class OpenCodeIntegration implements AgentIntegration {
                     return;
                   }
 
-                  if (command.some((value) => value === undefined || value === null)) {
-                    warning("Sentinel approved-artifact guard could not inspect this tool call; proceeding.");
-                    return;
-                  }
+                  if (command.some((value) => value === undefined || value === null)) command = ["spec", "guard", "--unreadable-input"];
                   let result;
                   try {
-                    result = run(command, stdin);
+                    result = await run(command, stdin, directory);
                   } catch (error) {
                     warning("Sentinel approved-artifact guard could not run: " + (error?.message ?? error));
                     return;
@@ -167,9 +176,10 @@ public final class OpenCodeIntegration implements AgentIntegration {
                   if (result.code !== 0) {
                     warning(result.stderr.trim() || "Sentinel approved-artifact guard could not decide; proceeding.");
                   }
-                },
-              };
-            };
+                });
+                return () => before.dispose();
+              },
+            });
             """
           .replace("%s", GUARD_MARKER);
 

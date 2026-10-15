@@ -5,17 +5,18 @@ description: Install Sentinel's OpenCode edit and idle plugin.
 
 Install with `sentinel integrate opencode`. Sentinel keeps the
 `.opencode/commands/sentinel-check.md` command and creates
-`.opencode/plugins/sentinel-edit-write.js`. Make sure `sentinel` is on `PATH`. The plugin targets the
-OpenCode 1.x plugin API (verified with OpenCode 1.19) and handles two moments:
+`.opencode/plugins/sentinel-edit-write.js`. Make sure `sentinel` is on `PATH`. New artifacts target
+the pinned OpenCode V2 plugin API (`@opencode/plugin` 2.0.29; Bun 1.3.11) and handle two moments:
 
 | Hook | When | What Sentinel does |
 |---|---|---|
-| `tool.execute.after` | After an `edit`, `write`, `multiedit`, `apply_patch`, or `patch` tool call | Runs the quality check, then validates the edited spec files |
-| `event` (`session.idle`) | When the agent finishes its turn | Runs every configured spec check |
+| `ctx.tool.hook("execute.after")` | After a completed `edit`, `write`, `multiedit`, `apply_patch`, or `patch` tool call | Runs the quality check, then validates the edited spec files |
+| `ctx.event.subscribe()` (`session.idle`) | When the agent finishes its turn | Runs every configured spec check |
 
 ## After each edit
 
-The plugin runs `sentinel check --format json --exclude-spec --learn-after 3` from the project directory. It
+The plugin resolves the current session directory with `ctx.session.get` and runs
+`sentinel check --format json --exclude-spec --learn-after 3` there. It
 then collects the edited paths:
 
 - `args.filePath` for `edit`, `write`, and `multiedit`;
@@ -37,10 +38,10 @@ The plugin runs `sentinel spec validate` without paths, which runs the enabled `
 - **No problems:** nothing happens.
 - **First idle with findings in a turn:** the plugin prompts the session with the findings, prefixed with
   `[sentinel spec validation]`, so the agent can fix them.
-- **Agent goes idle again and findings remain:** the plugin shows them as a warning toast instead of prompting
+- **Agent goes idle again and findings remain:** the plugin emits a bounded stderr warning instead of prompting
   again. A new message from you allows one more hand-off. The plugin's own prompt doesn't count as a new user
   turn, so a problem the agent cannot fix can't loop.
-- **Sentinel itself fails:** the error is shown as a toast and never sent to the agent.
+- **Sentinel itself fails:** the bounded stderr diagnostic is never sent to the agent.
 - **Overlapping idle events:** if another idle event arrives while a validation is still running for the same
   session, it is ignored.
 
@@ -50,8 +51,8 @@ Projects without an enabled OpenSpec validation see no change: spec validation d
 
 The approved-artifact guard is opt-in. Install it with
 `sentinel integrate opencode --guard-approved-specs`. Sentinel creates the separate,
-Sentinel-owned `.opencode/plugins/sentinel-openspec-guard.js` plugin. It uses OpenCode 1.19's
-`tool.execute.before(input, output)` hook and covers these tools:
+Sentinel-owned `.opencode/plugins/sentinel-openspec-guard.js` plugin. It uses the V2
+`ctx.tool.hook("execute.before")` registration and covers these tools:
 
 | Tool | Values passed to `sentinel spec guard` |
 |---|---|
@@ -66,14 +67,19 @@ Active changes remain editable. The guard is independent of the post-tool qualit
 plugin, and it never replaces OpenCode's own permissions.
 
 If Sentinel cannot decide (for example, it is missing from `PATH`, cannot start, or returns exit
-code `2`), the plugin shows a warning toast and lets the tool call proceed. Uninspectable input is
+code `2`), the plugin emits a bounded stderr warning and lets the tool call proceed. Uninspectable input is
 a refusal (exit `1`). Shell filtering is a best-effort heuristic, not a security boundary; scripts,
 variable expansion, and other indirect writes are not prevented.
 
 Refreshing `sentinel integrate opencode` keeps the current guard state. Use
 `--no-guard-approved-specs` to remove only this plugin, or `--remove` to remove the complete
-Sentinel-owned integration. The OpenCode plugin API and argument shapes described here are verified
-against OpenCode 1.19.
+Sentinel-owned integration. The deterministic generated-plugin suite is under
+`compatibility/opencode-v2` and runs with `SENTINEL_OPENCODE_FIXTURE=/absolute/path/to/fixture bun test`.
+The opt-in live smoke command is `bun run smoke.ts --fixture /absolute/path/to/trusted-fixture`; missing
+runtime or fixture prerequisites return a non-success result and are not compatibility evidence.
+Installed files alone do not prove runtime activation. This is a breaking V2-only migration: upgrade
+OpenCode before refreshing, reload the project/plugin instance, and verify active IDs
+`sentinel.edit-write` and `sentinel.openspec-guard`.
 
 ## Ownership and removal
 

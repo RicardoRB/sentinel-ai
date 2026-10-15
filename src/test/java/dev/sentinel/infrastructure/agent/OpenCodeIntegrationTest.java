@@ -28,7 +28,11 @@ class OpenCodeIntegrationTest {
     assertThat(Files.readString(root.resolve(PLUGIN_PATH)))
         .contains(
             OpenCodeIntegration.PLUGIN_MARKER,
+            "import { define } from \"@opencode/plugin\"",
+            "id: \"sentinel.edit-write\"",
             "tool.execute.after",
+            "ctx.event.subscribe",
+            "ctx.session.hook(\"prompt\"",
             "sentinel",
             "--learn-after",
             "multiedit",
@@ -78,12 +82,12 @@ class OpenCodeIntegrationTest {
             "new Set([\"edit\", \"write\", \"multiedit\", \"apply_patch\", \"patch\"])",
             "args.filePath",
             "args.path",
-            "output?.metadata?.files",
+            "result?.metadata?.files",
             "file?.filePath",
             "file?.movePath",
             "[\"check\", \"--format\", \"json\", \"--exclude-spec\", \"--learn-after\", \"3\"]",
             "[\"spec\", \"validate\", \"--\", ...paths]",
-            "throw new Error(output.error)");
+            "throw new Error(feedback)");
   }
 
   @Test
@@ -96,18 +100,15 @@ class OpenCodeIntegrationTest {
     assertThat(plugin)
         .contains(
             "event?.type !== \"session.idle\"",
-            "running.has(sessionID)",
-            "running.delete(sessionID)",
-            "Bun.spawn([\"sentinel\", \"spec\", \"validate\"]",
-            "!delivered.has(sessionID)",
-            "client.session",
-            ".prompt({ path: { id: sessionID }",
+            "state.running",
+            "state.delivered",
+            "run([\"spec\", \"validate\"]",
+            "ctx.session.prompt",
+            "metadata: { sentinel: FEEDBACK_MARKER }",
             "const FEEDBACK_MARKER = \"[sentinel spec validation]\"",
-            "showToast",
-            "variant: \"warning\"",
-            "\"chat.message\"",
-            "startsWith(FEEDBACK_MARKER)",
-            "if (!own) delivered.delete(input?.sessionID)");
+            "diagnostic",
+            "state.generation++",
+            "after.dispose");
   }
 
   @Test
@@ -142,6 +143,8 @@ class OpenCodeIntegrationTest {
     assertThat(Files.readString(guard))
         .contains(
             OpenCodeIntegration.GUARD_MARKER,
+            "import { define } from \"@opencode/plugin\"",
+            "id: \"sentinel.openspec-guard\"",
             "tool.execute.before",
             "apply_patch",
             "patchText",
@@ -149,7 +152,9 @@ class OpenCodeIntegrationTest {
             "--shell-stdin",
             "--skill",
             "exitCode",
-            "showToast");
+            "ctx.session.get",
+            "--unreadable-input",
+            "warning");
     assertThat(integration.integrate(root, IntegrationRequest.INSTALL).status())
         .isEqualTo(IntegrationResult.Status.ALREADY_PRESENT);
     assertThat(integration.integrate(root, DISABLE_GUARD).status())
