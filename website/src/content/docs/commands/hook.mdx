@@ -16,13 +16,16 @@ when Claude stops.
 
 The native adapter accepts bounded JSON from the supported harnesses, runs quality checks and targeted
 OpenSpec validation, and translates guard refusals into the harness response shape. Malformed, missing,
-or oversized payloads fail safely and never print payload contents.
+or oversized payloads (over 1 MiB) fail safely and never print payload contents. `--agent` is required
+and must be one of the native harness IDs (`codex`, `cursor`, `copilot`, `gemini`, `windsurf`, `cline`,
+`factory-droid`, `amp`). See [native harness integrations](/integrations/native-harnesses/).
 
 | Option | Effect |
 |---|---|
 | `--learn-after <n>` | Learn recurring quality failures after `n` occurrences (default `3`). |
 | `--exclude-spec` | Skip the `openspec` and `openspec-archived` gates in the quality check, because spec validation runs separately. |
-| `--event-stdin` | Read the Claude Code hook event JSON from stdin. It is ignored when stdin is an interactive terminal. |
+| `--agent <agent>` | (`native` only) Harness whose payload and response format to use. |
+| `--event-stdin` | Read the hook event JSON from stdin. It is ignored when stdin is an interactive terminal. |
 | `--guard-approved-specs` | Act as the opt-in `PreToolUse` [approved-artifact guard](#approved-artifact-guard). No quality gates, learning, or spec validation run in this mode. |
 
 Without `--event-stdin`, or when the payload is empty or not valid JSON, the adapter behaves as it always has. It
