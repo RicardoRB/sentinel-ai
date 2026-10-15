@@ -144,7 +144,7 @@ public final class DoctorService {
                 adapter ->
                     adapter.id()
                         + "="
-                        + adapter.health(root).status().name().toLowerCase()
+                        + adapter.health(root).status().name().toLowerCase(Locale.ROOT)
                         + " ["
                         + adapter.capabilities().stream()
                             .map(IntegrationCapability::name)

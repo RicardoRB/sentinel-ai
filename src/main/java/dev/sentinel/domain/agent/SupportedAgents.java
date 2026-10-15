@@ -5,8 +5,6 @@ import java.util.stream.Collectors;
 
 /** Canonical agent integration identifiers and display names. */
 public final class SupportedAgents {
-  public record Definition(String id, String label) {}
-
   private static final List<Definition> DEFINITIONS =
       List.of(
           new Definition("opencode", "OpenCode"),
@@ -19,6 +17,8 @@ public final class SupportedAgents {
           new Definition("cline", "Cline"),
           new Definition("factory-droid", "Factory Droid"),
           new Definition("amp", "Amp"));
+
+  public record Definition(String id, String label) {}
 
   private SupportedAgents() {}
 

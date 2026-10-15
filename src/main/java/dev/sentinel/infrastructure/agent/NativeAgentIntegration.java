@@ -14,10 +14,14 @@ import java.nio.file.attribute.PosixFilePermission;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 /** Shared ownership-safe installer for native harness hook configurations. */
 public final class NativeAgentIntegration implements AgentIntegration {
+  private static final String AMP = "amp";
+
   public record Definition(
       String id,
       String configFile,
@@ -83,8 +87,7 @@ public final class NativeAgentIntegration implements AgentIntegration {
     final Path config = root.resolve(definition.configFile());
     final Path hook = root.resolve(definition.hookFile());
     try {
-      final IntegrationResult conflict =
-          request.remove() ? firstConflict(config, hook) : firstConflict(config, hook);
+      final IntegrationResult conflict = firstConflict(config, hook);
       if (conflict != null) {
         return conflict.withCapabilities(capabilities());
       }
@@ -103,14 +106,14 @@ public final class NativeAgentIntegration implements AgentIntegration {
       throws IOException {
     final String hookContent = hookContent(guardMode);
     final String configContent = configContent();
-    final List<java.util.Map.Entry<Path, IntegrationResult>> results =
+    final List<Map.Entry<Path, IntegrationResult>> results =
         new ArrayList<>(
             List.of(
-                java.util.Map.entry(
+                Map.entry(
                     config,
                     IntegrationArtifacts.installOrRefresh(
                         config, marker(), configContent, "Updated Sentinel " + id() + " hooks.")),
-                java.util.Map.entry(
+                Map.entry(
                     hook,
                     IntegrationArtifacts.installOrRefresh(
                         hook, marker(), hookContent, "Updated Sentinel " + id() + " hook."))));
@@ -154,7 +157,7 @@ public final class NativeAgentIntegration implements AgentIntegration {
   }
 
   private String configContent() {
-    if ("amp".equals(definition.id())) {
+    if (AMP.equals(definition.id())) {
       return "// "
           + marker()
           + "\n"
@@ -165,13 +168,14 @@ public final class NativeAgentIntegration implements AgentIntegration {
           + "}\n";
     }
     final StringBuilder content =
-        new StringBuilder("{\n  \"sentinelOwnership\": \"")
+        new StringBuilder(256)
+            .append("{\n  \"sentinelOwnership\": \"")
             .append(marker())
             .append("\",\n  \"hooks\": {");
     final String[] events = definition.events().split(",");
     for (int index = 0; index < events.length; index++) {
       if (index > 0) {
-        content.append(",");
+        content.append(',');
       }
       final String event = events[index];
       content.append("\n    \"").append(event).append("\": ");
@@ -199,7 +203,7 @@ public final class NativeAgentIntegration implements AgentIntegration {
         + definition.id()
         + ".\n"
         + "if [ \""
-        + guardMode.name().toLowerCase()
+        + guardMode.name().toLowerCase(Locale.ROOT)
         + "\" = \"enable\" ]; then\n"
         + "  exec sentinel hook native --agent "
         + definition.id()

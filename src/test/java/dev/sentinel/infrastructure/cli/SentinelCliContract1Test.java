@@ -65,7 +65,8 @@ class SentinelCliContract1Test extends SentinelCliIntegrationSupport {
         .isZero();
     assertThat(Files.readString(project.resolve(SENTINEL_TOML))).contains("./gradlew test");
     out.getBuffer().setLength(0);
-    assertThat(run(CHECK, "-C", project.toString())).isEqualTo(ExitCodes.OK);
+    assertThat(run(CHECK, "--profile", "pre-push", "-C", project.toString()))
+        .isEqualTo(ExitCodes.OK);
     assertThat(out.toString()).contains("PASSED");
   }
 

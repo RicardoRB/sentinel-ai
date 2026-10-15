@@ -90,7 +90,7 @@ public final class IntegrateCommand implements Callable<Integer> {
 
   private String selectAgent() {
     output().println("Select an agent integration:");
-    final var agents = SupportedAgents.definitions();
+    final List<SupportedAgents.Definition> agents = SupportedAgents.definitions();
     for (int index = 0; index < agents.size(); index++) {
       output().printf("%d) %s%n", index + 1, agents.get(index).id());
     }
@@ -103,12 +103,7 @@ public final class IntegrateCommand implements Callable<Integer> {
         throw new SentinelException(
             "No agent selected. Pass an agent argument or choose one interactively.");
       }
-      final int selected;
-      try {
-        selected = Integer.parseInt(selection.trim());
-      } catch (NumberFormatException e) {
-        throw invalidSelection(selection, agents.size());
-      }
+      final int selected = parseSelection(selection, agents.size());
       if (selected < 1 || selected > agents.size()) {
         throw invalidSelection(selection, agents.size());
       }
@@ -118,9 +113,23 @@ public final class IntegrateCommand implements Callable<Integer> {
     }
   }
 
+  private static int parseSelection(final String selection, final int size) {
+    try {
+      return Integer.parseInt(selection.trim());
+    } catch (NumberFormatException exception) {
+      throw invalidSelection(selection, size, exception);
+    }
+  }
+
   private static SentinelException invalidSelection(final String selection, final int size) {
+    return invalidSelection(selection, size, null);
+  }
+
+  private static SentinelException invalidSelection(
+      final String selection, final int size, final Throwable cause) {
     return new SentinelException(
-        "Invalid agent selection '" + selection + "'. Choose a number from 1 to " + size + ".");
+        "Invalid agent selection '" + selection + "'. Choose a number from 1 to " + size + ".",
+        cause);
   }
 
   private PrintWriter error() {
