@@ -1,9 +1,12 @@
 package dev.sentinel.infrastructure.cli.agent;
 
+import dev.sentinel.application.agent.NativeHookProtocol;
 import dev.sentinel.application.gate.CheckService;
 import dev.sentinel.application.spec.ApprovedArtifactGuardService;
 import dev.sentinel.application.spec.SpecValidationService;
 import dev.sentinel.domain.agent.AgentIntegration;
+import dev.sentinel.domain.agent.NativeHookInput;
+import dev.sentinel.domain.agent.NativeHookOutcome;
 import dev.sentinel.domain.gate.CheckReport;
 import dev.sentinel.domain.gate.SupportedQualityGates;
 import dev.sentinel.domain.json.JsonCodec;
@@ -22,8 +25,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import javax.inject.Inject;
-import org.apache.fory.json.annotation.JsonProperty;
-import org.apache.fory.json.annotation.JsonType;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Model.CommandSpec;
@@ -83,7 +84,8 @@ public final class NativeHookCommand implements Callable<Integer> {
   @Override
   public Integer call() {
     try {
-      final NativeHookEvent event = eventStdin ? readEvent() : new NativeHookEvent();
+      final NativeHookProtocol protocol = protocol();
+      final NativeHookInput event = eventStdin ? readEvent(protocol) : NativeHookInput.empty();
       if (guard) {
         return evaluateGuard(event);
       }
@@ -98,7 +100,7 @@ public final class NativeHookCommand implements Callable<Integer> {
         final SpecValidationReport full =
             specService.validateConfigured(options.directory(), List.of());
         if (full.hasFindings()) {
-          output().println(feedback(full));
+          output().println(protocol.serialize(NativeHookOutcome.feedback(feedback(full))));
         }
       }
       return ExitCodes.OK;
@@ -109,7 +111,7 @@ public final class NativeHookCommand implements Callable<Integer> {
     }
   }
 
-  private int evaluateGuard(final NativeHookEvent event) {
+  private int evaluateGuard(final NativeHookInput event) {
     try {
       final Optional<GuardRequest> request = guardRequest(event);
       if (request.isEmpty()) {
@@ -117,7 +119,7 @@ public final class NativeHookCommand implements Callable<Integer> {
       }
       final GuardDecision decision = guardService.evaluate(request.get());
       if (!decision.allowed()) {
-        output().println(denyResponse(bounded(decision.reason())));
+        output().println(protocol().serialize(NativeHookOutcome.deny(bounded(decision.reason()))));
       }
       return ExitCodes.OK;
     } catch (RuntimeException exception) {
@@ -126,11 +128,11 @@ public final class NativeHookCommand implements Callable<Integer> {
     }
   }
 
-  private Optional<GuardRequest> guardRequest(final NativeHookEvent event) {
+  private Optional<GuardRequest> guardRequest(final NativeHookInput event) {
     final String tool = event.toolName();
     final Path root = options.directory();
-    final String workingDirectory = event.cwd == null ? "" : event.cwd;
-    if (event.unreadable) {
+    final String workingDirectory = event.workingDirectory();
+    if (event.unreadable()) {
       return Optional.of(GuardRequest.unreadable(root, "tool payload"));
     }
     if (event.path() != null) {
@@ -139,46 +141,39 @@ public final class NativeHookCommand implements Callable<Integer> {
     if (event.patch() != null) {
       return Optional.of(GuardRequest.patch(root, workingDirectory, event.patch()));
     }
-    if (event.command != null && !event.command.isBlank()) {
-      return Optional.of(GuardRequest.shell(root, workingDirectory, event.command));
+    if (event.command() != null && !event.command().isBlank()) {
+      return Optional.of(GuardRequest.shell(root, workingDirectory, event.command()));
     }
-    if (event.skill != null && !event.skill.isBlank()) {
-      return Optional.of(GuardRequest.skill(root, event.skill));
+    if (event.skill() != null && !event.skill().isBlank()) {
+      return Optional.of(GuardRequest.skill(root, event.skill()));
     }
     return tool == null ? Optional.empty() : Optional.of(GuardRequest.unreadable(root, tool));
   }
 
-  private SpecValidationReport validateEditedPath(final NativeHookEvent event) {
+  private SpecValidationReport validateEditedPath(final NativeHookInput event) {
     return event.path() == null
         ? SpecValidationReport.EMPTY
         : specService.validatePaths(options.directory(), List.of(), List.of(event.path()));
   }
 
-  private NativeHookEvent readEvent() {
+  private NativeHookInput readEvent(final NativeHookProtocol protocol) {
     try {
       final byte[] bytes = input.readNBytes(MAX_PAYLOAD_BYTES + 1);
       if (bytes.length > MAX_PAYLOAD_BYTES) {
-        final NativeHookEvent event = new NativeHookEvent();
-        event.unreadable = true;
-        return event;
+        return NativeHookInput.unreadableInput();
       }
       final String payload = new String(bytes, StandardCharsets.UTF_8);
       if (payload.isBlank()) {
-        final NativeHookEvent event = new NativeHookEvent();
-        event.unreadable = true;
-        return event;
+        return NativeHookInput.unreadableInput();
       }
-      return codec.fromJson(payload, NativeHookEvent.class);
+      return protocol.parse(codec, payload);
     } catch (IOException | RuntimeException exception) {
-      final NativeHookEvent event = new NativeHookEvent();
-      event.unreadable = true;
-      return event;
+      return NativeHookInput.unreadableInput();
     }
   }
 
-  private boolean isTurnEnd(final NativeHookEvent event) {
-    return Set.of("stop", "Stop", "SessionEnd", "sessionEnd", "AfterAgent", "agent.end", "turn_end")
-        .contains(event.eventName());
+  private boolean isTurnEnd(final NativeHookInput event) {
+    return protocol().turnEnds(event);
   }
 
   private static String failureText(final CheckReport report, final SpecValidationReport specs) {
@@ -218,16 +213,13 @@ public final class NativeHookCommand implements Callable<Integer> {
         : value.substring(0, MAX_FEEDBACK_CHARS) + "…";
   }
 
-  static String denyResponse(final String agent, final String reason) {
-    return NativeHookResponse.deny(agent, reason);
-  }
-
-  private String denyResponse(final String reason) {
+  private NativeHookProtocol protocol() {
     final Optional<AgentIntegration> integration =
         integrations.stream().filter(candidate -> candidate.id().equals(agent)).findFirst();
     return integration
-        .map(candidate -> candidate.denyResponse(reason))
-        .orElseGet(() -> NativeHookResponse.deny(agent, reason));
+        .filter(NativeHookProtocol.class::isInstance)
+        .map(NativeHookProtocol.class::cast)
+        .orElseThrow(() -> new IllegalArgumentException("Unsupported native hook agent: " + agent));
   }
 
   private PrintWriter output() {
@@ -240,72 +232,5 @@ public final class NativeHookCommand implements Callable<Integer> {
     return spec == null
         ? new PrintWriter(System.err, true, StandardCharsets.UTF_8)
         : spec.commandLine().getErr();
-  }
-
-  @JsonType
-  static final class NativeHookEvent {
-    @JsonProperty("event")
-    String event;
-
-    @JsonProperty("event_name")
-    String eventName;
-
-    @JsonProperty("hook_event_name")
-    String hookEventName;
-
-    @JsonProperty("type")
-    String type;
-
-    @JsonProperty("tool_name")
-    String toolName;
-
-    @JsonProperty("cwd")
-    String cwd;
-
-    @JsonProperty("file_path")
-    String filePath;
-
-    @JsonProperty("path")
-    String path;
-
-    @JsonProperty("command")
-    String command;
-
-    @JsonProperty("patch")
-    String patch;
-
-    @JsonProperty("patchText")
-    String patchText;
-
-    @JsonProperty("skill")
-    String skill;
-
-    @JsonProperty("name")
-    String name;
-
-    boolean unreadable;
-
-    String eventName() {
-      return first(event, eventName, hookEventName, type);
-    }
-
-    String toolName() {
-      return first(toolName, name);
-    }
-
-    String path() {
-      return first(filePath, path);
-    }
-
-    String patch() {
-      return first(patch, patchText);
-    }
-
-    private static String first(final String... values) {
-      for (final String value : values) {
-        if (value != null && !value.isBlank()) return value;
-      }
-      return null;
-    }
   }
 }

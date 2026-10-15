@@ -30,3 +30,13 @@ User-owned files are preserved as conflicts. The generated wrapper invokes
 
 Capabilities are reported by `integrate` and `doctor`. Post-event-only harnesses are reported as
 feedback-only; Sentinel does not claim pre-tool blocking where the native lifecycle cannot block.
+
+Each native adapter parses its own payload aliases and maps its own lifecycle events into Sentinel's
+normalized hook model. Denials are serialized using the harness response envelope: Codex uses
+`hookSpecificOutput`, Cursor uses `permission`, Gemini uses `decision`, and Amp uses
+`reject-and-continue`; the remaining advisory-compatible adapters use their documented decision
+shape. Invalid or oversized payloads are treated as unreadable and never echoed in diagnostics.
+
+Generated artifacts contain a Sentinel ownership marker. Re-running integration refreshes only
+Sentinel-owned artifacts; unmarked files are reported as conflicts and remain unchanged. Removal
+likewise deletes only owned configuration and wrapper files, preserving unrelated project content.

@@ -1,5 +1,6 @@
 package dev.sentinel.infrastructure.agent;
 
+import dev.sentinel.application.agent.NativeHookProtocol;
 import dev.sentinel.domain.agent.AgentIntegration;
 import dev.sentinel.domain.agent.GuardMode;
 import dev.sentinel.domain.agent.IntegrationCapability;
@@ -12,16 +13,28 @@ import java.util.Set;
 /**
  * Shared lifecycle wiring for concrete harness adapters; protocol behavior stays in each adapter.
  */
-public interface NativeHarnessAdapter extends AgentIntegration {
+public interface NativeHarnessAdapter extends AgentIntegration, NativeHookProtocol {
   NativeAgentIntegration.Definition definition();
 
   NativeIntegrationSupport support();
 
   String configContent();
 
-  default String hookContent(final GuardMode guardMode) {
-    return NativeIntegrationTemplates.shellHook(definition(), guardMode);
+  String denyResponse(String reason);
+
+  default NativeArtifactPlan artifactPlan(final Path projectRoot, final GuardMode guardMode) {
+    final Path root = projectRoot.toAbsolutePath().normalize();
+    return new NativeArtifactPlan(
+        id(),
+        root.resolve(definition().configFile()),
+        root.resolve(definition().hookFile()),
+        "sentinel-owned: " + id() + "-native-hooks v1",
+        configContent(),
+        hookContent(guardMode),
+        capabilities());
   }
+
+  String hookContent(GuardMode guardMode);
 
   @Override
   default String id() {
@@ -35,12 +48,12 @@ public interface NativeHarnessAdapter extends AgentIntegration {
 
   @Override
   default boolean installed(final Path projectRoot) {
-    return support().installed(projectRoot);
+    return support().installed(projectRoot, artifactPlan(projectRoot, GuardMode.KEEP));
   }
 
   @Override
   default IntegrationHealth health(final Path projectRoot) {
-    return support().health(projectRoot);
+    return support().health(projectRoot, artifactPlan(projectRoot, GuardMode.KEEP));
   }
 
   @Override
@@ -50,6 +63,6 @@ public interface NativeHarnessAdapter extends AgentIntegration {
 
   @Override
   default IntegrationResult integrate(final Path projectRoot, final IntegrationRequest request) {
-    return support().integrate(projectRoot, request, configContent(), hookContent(request.guard()));
+    return support().integrate(projectRoot, request, artifactPlan(projectRoot, request.guard()));
   }
 }

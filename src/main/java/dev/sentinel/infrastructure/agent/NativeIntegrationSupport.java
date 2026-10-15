@@ -13,26 +13,20 @@ import java.util.Map;
 
 /** Shared ownership-safe filesystem mechanics for project-local native integrations. */
 public final class NativeIntegrationSupport {
-  private final NativeAgentIntegration.Definition definition;
-
-  public NativeIntegrationSupport(final NativeAgentIntegration.Definition definition) {
-    this.definition = definition;
+  public boolean installed(final Path projectRoot, final NativeArtifactPlan plan) {
+    final Path root = projectRoot.toAbsolutePath().normalize();
+    return owned(root.resolve(plan.configPath()), plan.marker())
+        && owned(root.resolve(plan.hookPath()), plan.marker());
   }
 
-  public boolean installed(final Path projectRoot) {
+  public IntegrationHealth health(final Path projectRoot, final NativeArtifactPlan plan) {
     final Path root = projectRoot.toAbsolutePath().normalize();
-    return owned(root.resolve(definition.configFile()), marker())
-        && owned(root.resolve(definition.hookFile()), marker());
-  }
-
-  public IntegrationHealth health(final Path projectRoot) {
-    final Path root = projectRoot.toAbsolutePath().normalize();
-    final Path config = root.resolve(definition.configFile());
-    final Path hook = root.resolve(definition.hookFile());
+    final Path config = root.resolve(plan.configPath());
+    final Path hook = root.resolve(plan.hookPath());
     final boolean configExists = Files.exists(config);
     final boolean hookExists = Files.exists(hook);
-    final boolean configOwned = owned(config, marker());
-    final boolean hookOwned = owned(hook, marker());
+    final boolean configOwned = owned(config, plan.marker());
+    final boolean hookOwned = owned(hook, plan.marker());
     if (!configExists && !hookExists) {
       return new IntegrationHealth(
           IntegrationHealth.Status.MISSING, "Integration is not configured.");
@@ -49,30 +43,26 @@ public final class NativeIntegrationSupport {
   }
 
   public IntegrationResult integrate(
-      final Path projectRoot,
-      final IntegrationRequest request,
-      final String configContent,
-      final String hookContent) {
+      final Path projectRoot, final IntegrationRequest request, final NativeArtifactPlan plan) {
     final Path root = projectRoot.toAbsolutePath().normalize();
-    final Path config = root.resolve(definition.configFile());
-    final Path hook = root.resolve(definition.hookFile());
+    final Path config = root.resolve(plan.configPath());
+    final Path hook = root.resolve(plan.hookPath());
     final NativeIntegrationTransaction transaction;
     try {
       transaction = NativeIntegrationTransaction.capture(config, hook);
     } catch (IOException exception) {
       throw new UncheckedIOException(
-          "Could not snapshot " + definition.id() + " integration: " + exception.getMessage(),
-          exception);
+          "Could not snapshot " + plan.id() + " integration: " + exception.getMessage(), exception);
     }
     try {
-      final IntegrationResult conflict = firstConflict(config, hook);
+      final IntegrationResult conflict = firstConflict(config, hook, plan.marker());
       if (conflict != null) {
-        return conflict.withCapabilities(definition.capabilities());
+        return conflict.withCapabilities(plan.capabilities());
       }
       if (request.remove()) {
-        return remove(config, hook);
+        return remove(plan);
       }
-      return install(config, hook, configContent, hookContent);
+      return install(plan);
     } catch (IOException exception) {
       try {
         transaction.rollback();
@@ -80,70 +70,72 @@ public final class NativeIntegrationSupport {
         exception.addSuppressed(rollbackException);
       }
       throw new UncheckedIOException(
-          "Could not update " + definition.id() + " integration: " + exception.getMessage(),
-          exception);
+          "Could not update " + plan.id() + " integration: " + exception.getMessage(), exception);
     }
   }
 
-  private IntegrationResult install(
-      final Path config, final Path hook, final String configContent, final String hookContent)
-      throws IOException {
+  private IntegrationResult install(final NativeArtifactPlan plan) throws IOException {
+    final Path config = plan.configPath();
+    final Path hook = plan.hookPath();
     final List<Map.Entry<Path, IntegrationResult>> results =
         new ArrayList<>(
             List.of(
                 Map.entry(
                     config,
                     IntegrationArtifacts.installOrRefresh(
-                        config, marker(), configContent, "Updated Sentinel " + id() + " hooks.")),
+                        config,
+                        plan.marker(),
+                        plan.configContent(),
+                        "Updated Sentinel " + plan.id() + " hooks.")),
                 Map.entry(
                     hook,
                     IntegrationArtifacts.installOrRefresh(
-                        hook, marker(), hookContent, "Updated Sentinel " + id() + " hook."))));
+                        hook,
+                        plan.marker(),
+                        plan.hookContent(),
+                        "Updated Sentinel " + plan.id() + " hook."))));
     if (Files.exists(hook)) {
       IntegrationArtifacts.makeExecutable(hook);
     }
     return IntegrationArtifacts.combine(
             results,
-            "Sentinel " + id() + " integration is already present.",
-            "Created Sentinel " + id() + " native hook integration.")
-        .withCapabilities(definition.capabilities());
+            "Sentinel " + plan.id() + " integration is already present.",
+            "Created Sentinel " + plan.id() + " native hook integration.")
+        .withCapabilities(plan.capabilities());
   }
 
-  private IntegrationResult remove(final Path config, final Path hook) throws IOException {
+  private IntegrationResult remove(final NativeArtifactPlan plan) throws IOException {
+    final Path config = plan.configPath();
+    final Path hook = plan.hookPath();
     if (!Files.exists(config) && !Files.exists(hook)) {
       return new IntegrationResult(
               IntegrationResult.Status.NOT_FOUND,
               List.of(),
-              "No Sentinel " + id() + " integration found.")
-          .withCapabilities(definition.capabilities());
+              "No Sentinel " + plan.id() + " integration found.")
+          .withCapabilities(plan.capabilities());
     }
     final List<String> removed = new ArrayList<>();
-    final IntegrationResult configResult = IntegrationArtifacts.remove(config, marker(), "");
+    final IntegrationResult configResult = IntegrationArtifacts.remove(config, plan.marker(), "");
     if (configResult.status() == IntegrationResult.Status.CONFLICT) {
-      return configResult.withCapabilities(definition.capabilities());
+      return configResult.withCapabilities(plan.capabilities());
     }
     removed.addAll(configResult.changed());
-    final IntegrationResult hookResult = IntegrationArtifacts.remove(hook, marker(), "");
+    final IntegrationResult hookResult = IntegrationArtifacts.remove(hook, plan.marker(), "");
     if (hookResult.status() == IntegrationResult.Status.CONFLICT) {
-      return hookResult.withCapabilities(definition.capabilities());
+      return hookResult.withCapabilities(plan.capabilities());
     }
     removed.addAll(hookResult.changed());
     return new IntegrationResult(
-            IntegrationResult.Status.REMOVED, removed, "Removed Sentinel " + id() + " integration.")
-        .withCapabilities(definition.capabilities());
+            IntegrationResult.Status.REMOVED,
+            removed,
+            "Removed Sentinel " + plan.id() + " integration.")
+        .withCapabilities(plan.capabilities());
   }
 
-  private IntegrationResult firstConflict(final Path config, final Path hook) throws IOException {
-    final IntegrationResult configConflict = IntegrationArtifacts.preflight(config, marker());
-    return configConflict == null ? IntegrationArtifacts.preflight(hook, marker()) : configConflict;
-  }
-
-  private String id() {
-    return definition.id();
-  }
-
-  private String marker() {
-    return "sentinel-owned: " + definition.id() + "-native-hooks v1";
+  private IntegrationResult firstConflict(final Path config, final Path hook, final String marker)
+      throws IOException {
+    final IntegrationResult configConflict = IntegrationArtifacts.preflight(config, marker);
+    return configConflict == null ? IntegrationArtifacts.preflight(hook, marker) : configConflict;
   }
 
   private static boolean owned(final Path target, final String marker) {
