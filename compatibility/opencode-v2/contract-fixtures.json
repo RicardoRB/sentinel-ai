@@ -1,0 +1,15 @@
+{
+  "runtime": { "bun": "1.3.11" },
+  "package": { "name": "@opencode/plugin", "version": "2.0.29" },
+  "provenance": [
+    "https://opencode.ai/v2/docs/build/plugins",
+    "https://opencode.ai/v2/docs/build/plugins/migrate-v1",
+    "https://opencode.ai/v2/openapi.json"
+  ],
+  "contracts": {
+    "definition": "define({ id, setup })",
+    "toolHooks": ["execute.before", "execute.after"],
+    "events": ["ctx.event.subscribe()", "session.idle"],
+    "session": ["ctx.session.get", "ctx.session.hook(\"prompt\")", "ctx.session.prompt"]
+  }
+}
