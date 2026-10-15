@@ -23,7 +23,6 @@ public final class AmpIntegration implements NativeHarnessAdapter {
               IntegrationCapability.TURN_END,
               IntegrationCapability.FEEDBACK,
               IntegrationCapability.APPROVED_ARTIFACT_GUARD));
-  private final NativeIntegrationSupport support = new NativeIntegrationSupport();
 
   @Override
   public NativeAgentIntegration.Definition definition() {
@@ -31,14 +30,9 @@ public final class AmpIntegration implements NativeHarnessAdapter {
   }
 
   @Override
-  public NativeIntegrationSupport support() {
-    return support;
-  }
-
-  @Override
   public String configContent() {
     return "// "
-        + marker()
+        + NativeHookText.marker(DEFINITION.id())
         + "\n"
         + "export default function (amp) {\n"
         + "  amp.on('tool.call', async () => ({ action: 'allow' }));\n"
@@ -50,19 +44,14 @@ public final class AmpIntegration implements NativeHarnessAdapter {
   @Override
   public String hookContent(final GuardMode guardMode) {
     return "#!/bin/sh\n# "
-        + marker()
+        + NativeHookText.marker(DEFINITION.id())
         + "\n# Native event adapter for amp.\nif [ \""
         + guardMode.name().toLowerCase(Locale.ROOT)
         + "\" = \"enable\" ]; then\n  exec sentinel hook native --agent amp --guard-approved-specs --event-stdin\nfi\nexec sentinel hook native --agent amp --event-stdin\n";
   }
 
-  private static String marker() {
-    return "sentinel-owned: amp-native-hooks v1";
-  }
-
-  @Override
   public String denyResponse(final String reason) {
-    return "{\"action\":\"reject-and-continue\",\"message\":" + quote(reason) + "}";
+    return "{\"action\":\"reject-and-continue\",\"message\":" + NativeHookText.quote(reason) + "}";
   }
 
   @Override
@@ -76,8 +65,7 @@ public final class AmpIntegration implements NativeHarnessAdapter {
 
   @Override
   public NativeHookInput parse(final JsonCodec codec, final String payload) {
-    final Payload value = codec.fromJson(payload, Payload.class);
-    return value.input();
+    return NativeHookText.parse(codec, payload, Payload.class, Payload::input);
   }
 
   @Override
@@ -131,9 +119,5 @@ public final class AmpIntegration implements NativeHarnessAdapter {
       }
       return null;
     }
-  }
-
-  private static String quote(final String value) {
-    return "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
   }
 }

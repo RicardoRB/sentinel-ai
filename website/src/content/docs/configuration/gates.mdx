@@ -57,7 +57,28 @@ comparison baseline, so enable them deliberately (for example in a CI-only profi
 
 Standalone tools (`semgrep`, `gitleaks`, `trivy`, `zap-baseline.py`) must already be on the path; a
 missing tool is reported as unavailable with an install link and other gates still run. Sentinel
-never installs those tools. For Maven-backed gates, `init` resolves a version from its embedded
+never installs those tools. When a command contains `--report-path <path>` inside the project, Sentinel
+creates the parent directory before running it; the command itself is never changed.
+
+## Structured findings
+
+When `checkstyle`, `pmd`, `gitleaks`, `compile`, or `format` fails, Sentinel turns the tool's output
+into findings with rule, severity, file, line, column, message, and a rule documentation link when
+known. They appear in [JSON](/reference/json-output/) and SARIF output.
+
+| Gate | Source | Maven | Gradle |
+|---|---|---|---|
+| `checkstyle` | XML report | `target/checkstyle-result.xml` | `build/reports/checkstyle/*.xml` |
+| `pmd` | XML report | `target/pmd.xml` | `build/reports/pmd/*.xml` |
+| `gitleaks` | SARIF report | `target/gitleaks.sarif` | `build/gitleaks.sarif` |
+| `compile` | javac messages in the output | | |
+| `format` | Spotless file list in the output (file only, no line) | | |
+
+Only default report locations are read, and only reports written during the current run; an older
+report is ignored. A missing or malformed report never changes the gate result: the gate just has
+no findings. Gitleaks findings never contain the matched secret. Other gates have no findings yet.
+
+For Maven-backed gates, `init` resolves a version from its embedded
 Java/Maven compatibility catalog before adding a missing plugin to `pom.xml`. Existing compatible
 versions are preserved; incompatible versions require confirmation, or `--yes` for explicit automation.
 Unknown compatibility or an empty compatible catalog result stops before writing and reports remediation.

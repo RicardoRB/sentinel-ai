@@ -1,11 +1,15 @@
 package dev.sentinel.application.gate;
 
 import dev.sentinel.domain.gate.CheckReport;
+import dev.sentinel.domain.gate.FindingExtractionException;
+import dev.sentinel.domain.gate.FindingExtractor;
+import dev.sentinel.domain.gate.GateFindings;
 import dev.sentinel.domain.gate.GateResult;
 import dev.sentinel.domain.gate.GateStatus;
 import dev.sentinel.domain.gate.QualityGate;
 import dev.sentinel.domain.project.Project;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -18,8 +22,16 @@ import javax.inject.Inject;
 public class QualityGateRunner {
   private static final Logger LOGGER = Logger.getLogger(QualityGateRunner.class.getName());
 
+  private final FindingExtractor findingExtractor;
+
+  public QualityGateRunner() {
+    this(FindingExtractor.NONE);
+  }
+
   @Inject
-  public QualityGateRunner() {}
+  public QualityGateRunner(final FindingExtractor findingExtractor) {
+    this.findingExtractor = findingExtractor;
+  }
 
   public CheckReport run(final Project project, final List<QualityGate> gates) {
     return run(project, gates, CheckProgressListener.NO_OP, false);
@@ -45,8 +57,9 @@ public class QualityGateRunner {
       final QualityGate gate = gates.get(i);
       listener.gateStarted(gate.name());
       final long start = System.nanoTime();
+      final Instant gateStart = Instant.now();
       LOGGER.log(Level.INFO, () -> "event=gate-start gate=" + gate.name());
-      final GateResult result = gate.execute(project);
+      final GateResult result = withFindings(project, gate.execute(project), gateStart);
       results.add(result);
       listener.gateFinished(result);
       LOGGER.log(
@@ -70,6 +83,40 @@ public class QualityGateRunner {
       }
     }
     return new CheckReport(project, results);
+  }
+
+  /**
+   * Attaches findings to a failed gate. Extraction problems never change the verdict: they are
+   * logged and the gate keeps no findings.
+   */
+  private GateResult withFindings(
+      final Project project, final GateResult result, final Instant gateStart) {
+    if (result.status() != GateStatus.FAILED) {
+      return result;
+    }
+    try {
+      final GateFindings findings =
+          GateFindings.of(findingExtractor.extract(project, result, gateStart));
+      LOGGER.log(
+          Level.INFO,
+          () ->
+              "event=findings-attached gate="
+                  + result.name()
+                  + " total="
+                  + findings.total()
+                  + " truncated="
+                  + findings.truncated());
+      return result.withFindings(findings);
+    } catch (FindingExtractionException exception) {
+      LOGGER.log(
+          Level.WARNING,
+          () ->
+              "event=findings-failed gate="
+                  + result.name()
+                  + " error="
+                  + exception.getClass().getSimpleName());
+      return result;
+    }
   }
 
   private static GateResult skippedByFailFast(final QualityGate gate) {

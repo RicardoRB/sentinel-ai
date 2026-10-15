@@ -5,6 +5,7 @@ import dev.sentinel.domain.config.SentinelConfiguration;
 import dev.sentinel.domain.config.SentinelException;
 import dev.sentinel.domain.doctor.EnvironmentInspection;
 import dev.sentinel.domain.gate.QualityGate;
+import dev.sentinel.domain.gate.ReportDirectories;
 import dev.sentinel.domain.gate.SkippedQualityGate;
 import dev.sentinel.domain.gate.SupportedQualityGates;
 import dev.sentinel.domain.process.CommandExecutor;
@@ -27,6 +28,7 @@ public class QualityGateFactory {
   private final EnvironmentInspection environment;
   private final ScenarioInventory scenarioInventory;
   private final TestMappingInventory testMappingInventory;
+  private final ReportDirectories reportDirectories;
 
   public QualityGateFactory(final CommandExecutor executor) {
     this(executor, null, null, null);
@@ -37,12 +39,22 @@ public class QualityGateFactory {
     this(executor, environment, null, null);
   }
 
-  @Inject
   public QualityGateFactory(
       final CommandExecutor executor,
       final EnvironmentInspection environment,
       final ScenarioInventory scenarioInventory,
       final TestMappingInventory testMappingInventory) {
+    this(executor, environment, scenarioInventory, testMappingInventory, ReportDirectories.NONE);
+  }
+
+  @Inject
+  public QualityGateFactory(
+      final CommandExecutor executor,
+      final EnvironmentInspection environment,
+      final ScenarioInventory scenarioInventory,
+      final TestMappingInventory testMappingInventory,
+      final ReportDirectories reportDirectories) {
+    this.reportDirectories = reportDirectories;
     this.executor = executor;
     this.environment = environment;
     this.scenarioInventory = scenarioInventory;
@@ -93,7 +105,7 @@ public class QualityGateFactory {
     if (ZAP.equals(id)) {
       ZapTargetValidation.require(id, configuration.command());
     }
-    return new CommandQualityGate(id, executor, configuration.command());
+    return new CommandQualityGate(id, executor, configuration.command(), reportDirectories);
   }
 
   private QualityGate traceabilityGate() {

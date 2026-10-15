@@ -127,7 +127,8 @@ No agent integration installed.
 
 ```bash
 sentinel check                 # human-readable report
-sentinel check --format json   # machine-readable report
+sentinel check --format json   # machine-readable report with per-violation findings
+sentinel check --format sarif  # SARIF 2.1.0 for code scanning
 ```
 
 > The analysis command is `sentinel check`. There is no separate `analyze` command.
@@ -189,7 +190,7 @@ command = "./mvnw spotbugs:check"
 enabled = false       # disable a check without deleting it
 
 [quality-gates.gitleaks]
-command = ["gitleaks", "detect", "--redact"]
+command = ["gitleaks", "detect", "--redact", "--report-format", "sarif", "--report-path", "target/gitleaks.sarif"]
 profiles = ["ci"]     # run only with: sentinel check --profile ci
 ```
 
@@ -323,9 +324,10 @@ The common command is:
 sentinel check --profile ci --format json > sentinel-report.json
 ```
 
-Non-zero exits fail the CI step: `1` means a gate failed and `2` means Sentinel could not run. Sentinel
-does not currently provide SARIF output or a reusable `RicardoRB/sentinel-action@v1`; use the documented
-installer and provider-native artifact support for now.
+Non-zero exits fail the CI step: `1` means a gate failed and `2` means Sentinel could not run. For
+GitHub code scanning, write SARIF with `sentinel check --profile ci --format sarif --output sentinel.sarif`
+and upload it with `github/codeql-action/upload-sarif`. Sentinel does not provide a reusable
+`RicardoRB/sentinel-action@v1`; use the documented installer and provider-native artifact support.
 
 ## 🔌 Integrations
 
@@ -466,7 +468,6 @@ See [AGENTS.md](AGENTS.md) for the full conventions.
 **Roadmap:**
 
 - Agent skills bundled with integrations (`sentinel-check`, `sentinel-fix-<gate>`, …)
-- SARIF output for GitHub code scanning
 - Homebrew tap and container image
 
 **Known limitations:**

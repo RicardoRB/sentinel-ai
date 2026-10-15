@@ -16,11 +16,7 @@ import java.util.Set;
 public interface NativeHarnessAdapter extends AgentIntegration, NativeHookProtocol {
   NativeAgentIntegration.Definition definition();
 
-  NativeIntegrationSupport support();
-
   String configContent();
-
-  String denyResponse(String reason);
 
   default NativeArtifactPlan artifactPlan(final Path projectRoot, final GuardMode guardMode) {
     final Path root = projectRoot.toAbsolutePath().normalize();
@@ -28,7 +24,7 @@ public interface NativeHarnessAdapter extends AgentIntegration, NativeHookProtoc
         id(),
         root.resolve(definition().configFile()),
         root.resolve(definition().hookFile()),
-        "sentinel-owned: " + id() + "-native-hooks v1",
+        NativeHookText.marker(id()),
         configContent(),
         hookContent(guardMode),
         capabilities());
@@ -48,12 +44,13 @@ public interface NativeHarnessAdapter extends AgentIntegration, NativeHookProtoc
 
   @Override
   default boolean installed(final Path projectRoot) {
-    return support().installed(projectRoot, artifactPlan(projectRoot, GuardMode.KEEP));
+    return NativeIntegrationSupport.installed(
+        projectRoot, artifactPlan(projectRoot, GuardMode.KEEP));
   }
 
   @Override
   default IntegrationHealth health(final Path projectRoot) {
-    return support().health(projectRoot, artifactPlan(projectRoot, GuardMode.KEEP));
+    return NativeIntegrationSupport.health(projectRoot, artifactPlan(projectRoot, GuardMode.KEEP));
   }
 
   @Override
@@ -63,6 +60,7 @@ public interface NativeHarnessAdapter extends AgentIntegration, NativeHookProtoc
 
   @Override
   default IntegrationResult integrate(final Path projectRoot, final IntegrationRequest request) {
-    return support().integrate(projectRoot, request, artifactPlan(projectRoot, request.guard()));
+    return NativeIntegrationSupport.integrate(
+        projectRoot, request, artifactPlan(projectRoot, request.guard()));
   }
 }

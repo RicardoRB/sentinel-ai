@@ -27,7 +27,10 @@ final class NativeIntegrationTransaction {
       if (snapshot.content() == null) {
         Files.deleteIfExists(snapshot.path());
       } else {
-        Files.createDirectories(snapshot.path().getParent());
+        final Path parent = snapshot.path().getParent();
+        if (parent != null) {
+          Files.createDirectories(parent);
+        }
         Files.writeString(snapshot.path(), snapshot.content());
       }
     }

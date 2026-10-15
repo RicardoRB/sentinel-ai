@@ -55,7 +55,7 @@ class InitServiceTest {
         .extracting(InitGateOption::id)
         .containsExactly(
             "compile", "tests", "format", "checkstyle", "pmd", "spotbugs", "coverage", "gitleaks");
-    assertThat(Files.readString(dir.resolve("sentinel.toml")))
+    assertThat(Files.readString(dir.resolve(SENTINEL_TOML)))
         .contains("version = 1\npreset = \"standard\"");
     assertThat(dir.resolve("config/pmd-ruleset.xml")).exists();
   }
@@ -128,7 +128,7 @@ class InitServiceTest {
                     new InitSelection(
                         List.of("none"), List.of("nope"), null, QualityPreset.STANDARD)))
         .hasMessageContaining("nope");
-    assertThat(dir.resolve("sentinel.toml")).doesNotExist();
+    assertThat(dir.resolve(SENTINEL_TOML)).doesNotExist();
     assertThat(Files.readString(dir.resolve("pom.xml"))).isEqualTo(PLAIN_POM);
   }
 
@@ -163,7 +163,7 @@ class InitServiceTest {
                     new InitSelection(
                         List.of("opencode"), List.of(), null, QualityPreset.STANDARD)))
         .hasMessageContaining("conflicts");
-    assertThat(dir.resolve("sentinel.toml")).doesNotExist();
+    assertThat(dir.resolve(SENTINEL_TOML)).doesNotExist();
     assertThat(dir.resolve("config")).doesNotExist();
     assertThat(Files.readString(dir.resolve("pom.xml"))).isEqualTo(PLAIN_POM);
   }
@@ -175,7 +175,7 @@ class InitServiceTest {
     final InitResult result = service.init(dir);
 
     assertThat(result.created()).isTrue();
-    assertThat(Files.readString(dir.resolve("sentinel.toml")))
+    assertThat(Files.readString(dir.resolve(SENTINEL_TOML)))
         .isEqualTo(
             """
                 version = 1
@@ -193,19 +193,18 @@ class InitServiceTest {
     final InitResult result = service.init(dir);
 
     assertThat(result.created()).isTrue();
-    assertThat(Files.readString(dir.resolve("sentinel.toml")))
-        .contains("command = \"gradle test\"");
+    assertThat(Files.readString(dir.resolve(SENTINEL_TOML))).contains("command = \"gradle test\"");
   }
 
   @Test
   void neverOverwritesExistingConfiguration(@TempDir final Path dir) throws Exception {
     withPom(dir, PLAIN_POM);
-    Files.writeString(dir.resolve("sentinel.toml"), "version = 1 # mine\n");
+    Files.writeString(dir.resolve(SENTINEL_TOML), "version = 1 # mine\n");
 
     final InitResult result = service.init(dir);
 
     assertThat(result.created()).isFalse();
-    assertThat(Files.readString(dir.resolve("sentinel.toml"))).isEqualTo("version = 1 # mine\n");
+    assertThat(Files.readString(dir.resolve(SENTINEL_TOML))).isEqualTo("version = 1 # mine\n");
   }
 
   @Test

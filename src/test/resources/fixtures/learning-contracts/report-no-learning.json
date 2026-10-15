@@ -18,7 +18,10 @@
       "stdout" : "ok\n",
       "stderr" : "",
       "summary" : "PASSED",
-      "output" : "ok\n"
+      "output" : "ok\n",
+      "findings" : [ ],
+      "findingsTotal" : 0,
+      "findingsTruncated" : false
     }
   ],
   "policies" : [

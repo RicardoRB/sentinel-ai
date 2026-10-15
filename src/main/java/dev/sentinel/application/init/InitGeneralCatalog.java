@@ -4,6 +4,7 @@ import dev.sentinel.domain.agent.SupportedAgents;
 import dev.sentinel.domain.config.SentinelException;
 import dev.sentinel.domain.doctor.EnvironmentInspection;
 import dev.sentinel.domain.gate.SupportedQualityGates;
+import dev.sentinel.domain.gate.ToolReports;
 import dev.sentinel.domain.init.InitArchitectureOption;
 import dev.sentinel.domain.init.InitGateOption;
 import dev.sentinel.domain.init.InitIntegrationOption;
@@ -168,7 +169,15 @@ public class InitGeneralCatalog {
             project,
             "gitleaks",
             "Detects committed secrets with Gitleaks.",
-            List.of("gitleaks", "detect", "--no-banner", "--redact"),
+            List.of(
+                "gitleaks",
+                "detect",
+                "--no-banner",
+                "--redact",
+                "--report-format",
+                "sarif",
+                "--report-path",
+                ToolReports.gitleaksSarif(project)),
             "Install Gitleaks."));
     options.add(
         InitGateOptionFactory.binaryOption(

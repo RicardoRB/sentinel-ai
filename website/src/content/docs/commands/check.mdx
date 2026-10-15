@@ -4,7 +4,7 @@ description: Run configured quality gates.
 ---
 
 ```sh
-sentinel check [-C <dir>] [--format text|json] [--profile <name>[,...]] [--fail-fast] [--exclude-spec] [--learn-after <n>]
+sentinel check [-C <dir>] [--format text|json|sarif] [--output <path>] [--profile <name>[,...]] [--fail-fast] [--exclude-spec] [--learn-after <n>]
 ```
 
 For Maven and Gradle projects, built-in test commands prefer the project wrapper
@@ -43,7 +43,27 @@ Quality Gate: FAILED
 ```
 
 Use `--format json` in scripts; only the JSON report goes to stdout and diagnostics go to stderr.
-The format values are exactly `text` and `json`; an unknown value is a usage error. `--learn-after`
+Failed `checkstyle`, `pmd`, `gitleaks`, `compile`, and `format` gates include structured findings
+(rule, file, line, column, message) so agents can fix them without reading raw logs; see
+[structured findings](/configuration/gates/#structured-findings).
+
+Use `--format sarif` for code-scanning tools, CI annotations, and IDEs. Sentinel writes one
+[SARIF 2.1.0](https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html) log with one run per
+executed gate: each finding becomes a located result, and a failed gate without findings becomes one
+result without a location whose rule id is the gate id. At most 50 results are listed per gate; the
+run's `properties.findingsTotal` holds the full count. When Sentinel cannot run at all, SARIF mode
+writes nothing to stdout and reports the error on stderr.
+
+Use `--output <path>` with `--format json` or `--format sarif` to write the report to a file instead
+of stdout; stdout then shows the normal text report, and missing parent directories are created. The
+path is resolved against the current working directory. `--output` with `--format text` is a usage
+error, and a file that cannot be written exits with `2`:
+
+```sh
+sentinel check --profile ci --format sarif --output build/sentinel.sarif
+```
+
+The format values are exactly `text`, `json`, and `sarif`; an unknown value is a usage error. `--learn-after`
 must be at least `1`, and invalid values are reported as usage errors without emitting a partial
 report.
 Learning is opt-in: `--learn-after <n>` records recurring gate failures in `.sentinel/learning.json`.

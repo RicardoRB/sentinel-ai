@@ -1,6 +1,7 @@
 package dev.sentinel.infrastructure.cli.gate;
 
 import dev.sentinel.application.gate.CheckProgressListener;
+import dev.sentinel.application.gate.CheckReportExport;
 import dev.sentinel.application.gate.CheckService;
 import dev.sentinel.application.learning.LearningService;
 import dev.sentinel.domain.config.SentinelException;
@@ -12,6 +13,7 @@ import dev.sentinel.infrastructure.cli.ProjectOptions;
 import dev.sentinel.infrastructure.cli.VersionProvider;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -37,7 +39,8 @@ public class CheckCommand implements Callable<Integer> {
   // The constants are the user-facing --format values.
   public enum Format {
     TEXT,
-    JSON
+    JSON,
+    SARIF
   }
 
   @Spec private CommandSpec spec;
@@ -74,10 +77,19 @@ public class CheckCommand implements Callable<Integer> {
       description = "Learn recurring failures after n occurrences.")
   private Integer learnAfter;
 
+  @Option(
+      names = "--output",
+      paramLabel = "<path>",
+      description =
+          "Write the json or sarif report to this file and print the text report on stdout.")
+  private Path outputFile;
+
   private final CheckService service;
   private final TextReportRenderer textRenderer;
   private final JsonReportRenderer jsonRenderer;
+  private final SarifReportRenderer sarifRenderer;
   private final LearningService learningService;
+  private final CheckReportExport reportExport;
 
   static final class FormatConverter implements ITypeConverter<Format> {
     @Override
@@ -85,7 +97,8 @@ public class CheckCommand implements Callable<Integer> {
       return switch (value.toLowerCase(Locale.ROOT)) {
         case "text" -> Format.TEXT;
         case "json" -> Format.JSON;
-        default -> throw new IllegalArgumentException("expected text or json");
+        case "sarif" -> Format.SARIF;
+        default -> throw new IllegalArgumentException("expected text, json or sarif");
       };
     }
   }
@@ -93,7 +106,7 @@ public class CheckCommand implements Callable<Integer> {
   static final class FormatCandidates implements Iterable<String> {
     @Override
     public Iterator<String> iterator() {
-      return List.of("text", "json").iterator();
+      return List.of("text", "json", "sarif").iterator();
     }
   }
 
@@ -102,19 +115,20 @@ public class CheckCommand implements Callable<Integer> {
       final CheckService service,
       final TextReportRenderer textRenderer,
       final JsonReportRenderer jsonRenderer,
-      final LearningService learningService) {
+      final SarifReportRenderer sarifRenderer,
+      final LearningService learningService,
+      final CheckReportExport reportExport) {
     this.service = service;
     this.textRenderer = textRenderer;
     this.jsonRenderer = jsonRenderer;
+    this.sarifRenderer = sarifRenderer;
     this.learningService = learningService;
+    this.reportExport = reportExport;
   }
 
   @Override
   public Integer call() {
-    if (learnAfter != null && learnAfter < 1) {
-      throw new picocli.CommandLine.ParameterException(
-          spec.commandLine(), "--learn-after must be at least 1");
-    }
+    validateOptions();
     profiles = profiles.stream().map(String::trim).toList();
     final CheckReport report = runChecks();
     final LearningOutcome learning =
@@ -122,20 +136,47 @@ public class CheckCommand implements Callable<Integer> {
     if (learning != null) {
       learning.warnings().forEach(warning -> error().println(warning));
     }
-    if (format == Format.JSON) {
-      output()
-          .println(
-              jsonRenderer.render(
-                  report, profiles.contains("strict"), failFast, learning, learnAfter));
-    } else {
+    if (showsText()) {
       textRenderer.summary(report, learning);
+    }
+    if (format != Format.TEXT) {
+      publishMachineReport(renderMachineReport(report, learning));
     }
     return report.passed() ? ExitCodes.OK : ExitCodes.FAILED;
   }
 
+  private void validateOptions() {
+    if (learnAfter != null && learnAfter < 1) {
+      throw new picocli.CommandLine.ParameterException(
+          spec.commandLine(), "--learn-after must be at least 1");
+    }
+    if (outputFile != null && format == Format.TEXT) {
+      throw new picocli.CommandLine.ParameterException(
+          spec.commandLine(), "--output requires --format json or --format sarif");
+    }
+  }
+
+  private void publishMachineReport(final String machineReport) {
+    if (outputFile == null) {
+      output().println(machineReport);
+    } else {
+      reportExport.export(outputFile, machineReport + System.lineSeparator());
+    }
+  }
+
+  private boolean showsText() {
+    return format == Format.TEXT || outputFile != null;
+  }
+
+  private String renderMachineReport(final CheckReport report, final LearningOutcome learning) {
+    return format == Format.SARIF
+        ? sarifRenderer.render(report)
+        : jsonRenderer.render(report, profiles.contains("strict"), failFast, learning, learnAfter);
+  }
+
   private CheckReport runChecks() {
     try {
-      if (format == Format.TEXT) {
+      if (showsText()) {
         textRenderer.begin(output());
         // Render the summary after learning so prompts can be placed before diagnostics.
         return service.check(
@@ -144,8 +185,9 @@ public class CheckCommand implements Callable<Integer> {
       return service.check(
           options.directory(), profiles, CheckProgressListener.NO_OP, failFast, excludedGates());
     } catch (SentinelException e) {
-      if (format == Format.JSON) {
+      if (format == Format.JSON && outputFile == null) {
         // stdout stays machine-readable; the human message goes to stderr as well.
+        // SARIF writes nothing: an error object would not be a valid SARIF log.
         output().println(jsonRenderer.renderError(e.getMessage()));
       }
       throw e;

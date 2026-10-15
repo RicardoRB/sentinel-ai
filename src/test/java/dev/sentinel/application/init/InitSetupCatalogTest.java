@@ -193,6 +193,8 @@ class InitSetupCatalogTest {
         .containsExactly("gradle", "jacocoTestReport");
     assertThat(catalog.gate(project, "dependency-check").command())
         .containsExactly("gradle", "dependencyCheckAnalyze");
+    assertThat(catalog.gate(project, "gitleaks").command())
+        .endsWith("--report-format", "sarif", "--report-path", "build/gitleaks.sarif");
   }
 
   @Test
@@ -203,7 +205,16 @@ class InitSetupCatalogTest {
     final InitSetupCatalog catalog = new InitSetupCatalog(new FakeEnvironmentInspection());
 
     assertThat(catalog.gate(project, "zap").command()).contains("-t", "<TARGET_URL>");
-    assertThat(catalog.gate(project, "gitleaks").command()).contains("--redact");
+    assertThat(catalog.gate(project, "gitleaks").command())
+        .containsExactly(
+            "gitleaks",
+            "detect",
+            "--no-banner",
+            "--redact",
+            "--report-format",
+            "sarif",
+            "--report-path",
+            "target/gitleaks.sarif");
     assertThat(catalog.gate(project, "enforcer").command()).endsWith("enforcer:enforce");
     assertThat(catalog.gate(project, "format").command()).endsWith("spotless:check");
     assertThat(catalog.gate(project, "api-compat").command()).endsWith("japicmp:cmp");

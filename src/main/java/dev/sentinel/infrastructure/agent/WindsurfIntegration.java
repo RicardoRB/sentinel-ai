@@ -18,7 +18,6 @@ public final class WindsurfIntegration implements NativeHarnessAdapter {
           ".windsurf/hooks/sentinel.sh",
           "post_write_code,post_run_command,post_cascade_response",
           Set.of(IntegrationCapability.POST_EDIT, IntegrationCapability.FEEDBACK));
-  private final NativeIntegrationSupport support = new NativeIntegrationSupport();
 
   @Override
   public NativeAgentIntegration.Definition definition() {
@@ -26,23 +25,9 @@ public final class WindsurfIntegration implements NativeHarnessAdapter {
   }
 
   @Override
-  public NativeIntegrationSupport support() {
-    return support;
-  }
-
-  @Override
   public String configContent() {
-    return configuration();
-  }
-
-  @Override
-  public String hookContent(final GuardMode guardMode) {
-    return hook(guardMode);
-  }
-
-  private static String configuration() {
     return "{\n  \"sentinelOwnership\": \""
-        + marker()
+        + NativeHookText.marker(DEFINITION.id())
         + "\",\n  \"hooks\": {\n    \"post_write_code\": [{\"type\":\"command\",\"command\":\""
         + DEFINITION.hookFile()
         + "\"}],\n    \"post_run_command\": [{\"type\":\"command\",\"command\":\""
@@ -52,21 +37,17 @@ public final class WindsurfIntegration implements NativeHarnessAdapter {
         + "\"}]\n  }\n}\n";
   }
 
-  private static String hook(final GuardMode guardMode) {
+  @Override
+  public String hookContent(final GuardMode guardMode) {
     return "#!/bin/sh\n# "
-        + marker()
+        + NativeHookText.marker(DEFINITION.id())
         + "\n# Native event adapter for windsurf (guard mode: "
         + guardMode.name().toLowerCase(Locale.ROOT)
         + ").\nexec sentinel hook native --agent windsurf --event-stdin\n";
   }
 
-  private static String marker() {
-    return "sentinel-owned: windsurf-native-hooks v1";
-  }
-
-  @Override
   public String denyResponse(final String reason) {
-    return "{\"decision\":\"deny\",\"reason\":" + quote(reason) + "}";
+    return "{\"decision\":\"deny\",\"reason\":" + NativeHookText.quote(reason) + "}";
   }
 
   @Override
@@ -80,8 +61,7 @@ public final class WindsurfIntegration implements NativeHarnessAdapter {
 
   @Override
   public NativeHookInput parse(final JsonCodec codec, final String payload) {
-    final Payload value = codec.fromJson(payload, Payload.class);
-    return value.input();
+    return NativeHookText.parse(codec, payload, Payload.class, Payload::input);
   }
 
   @Override
@@ -135,9 +115,5 @@ public final class WindsurfIntegration implements NativeHarnessAdapter {
       }
       return null;
     }
-  }
-
-  private static String quote(final String value) {
-    return "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
   }
 }

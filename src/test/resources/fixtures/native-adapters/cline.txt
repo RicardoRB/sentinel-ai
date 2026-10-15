@@ -1,0 +1,47 @@
+== definition
+cline .cline/hooks/sentinel.json .cline/hooks/sentinel.sh beforeTool,afterTool,turn_end [APPROVED_ARTIFACT_GUARD, FEEDBACK, POST_EDIT, PRE_TOOL, TURN_END]
+== config
+{
+  "sentinelOwnership": "sentinel-owned: cline-native-hooks v1",
+  "hooks": {
+    "PreToolUse": [{"matcher":".*","hooks":[{"type":"command","command":".cline/hooks/sentinel.sh"}]}],
+    "PostToolUse": [{"type":"command","command":".cline/hooks/sentinel.sh"}],
+    "TaskCompleted": [{"type":"command","command":".cline/hooks/sentinel.sh"}]
+  }
+}
+
+== hook KEEP
+#!/bin/sh
+# sentinel-owned: cline-native-hooks v1
+# Native event adapter for cline.
+if [ "keep" = "enable" ]; then
+  exec sentinel hook native --agent cline --guard-approved-specs --event-stdin
+fi
+exec sentinel hook native --agent cline --event-stdin
+
+== hook ENABLE
+#!/bin/sh
+# sentinel-owned: cline-native-hooks v1
+# Native event adapter for cline.
+if [ "enable" = "enable" ]; then
+  exec sentinel hook native --agent cline --guard-approved-specs --event-stdin
+fi
+exec sentinel hook native --agent cline --event-stdin
+
+== hook DISABLE
+#!/bin/sh
+# sentinel-owned: cline-native-hooks v1
+# Native event adapter for cline.
+if [ "disable" = "enable" ]; then
+  exec sentinel hook native --agent cline --guard-approved-specs --event-stdin
+fi
+exec sentinel hook native --agent cline --event-stdin
+
+== deny
+{"decision":"deny","reason":"Blocked \"quoted\" \\ path"}
+== feedback
+Fix it
+== error
+Broken
+== allow
+
