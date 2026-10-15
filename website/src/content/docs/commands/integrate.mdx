@@ -13,9 +13,23 @@ Supported agent IDs are `opencode`, `claude-code`, `codex`, `cursor`, `copilot`,
 Without an agent argument Sentinel prompts for a choice. Installation is project-local and
 idempotent. Generated files are ownership-marked: user-owned conflicting files are not overwritten,
 and removal deletes only Sentinel-owned files. Re-running the command refreshes changed
-Sentinel-owned files. Claude Code uses `sentinel hook claude-code`; `sentinel` must be on `PATH`.
+Sentinel-owned files. Claude Code uses `sentinel hook claude-code`, OpenCode uses V2 plugins, and the
+other harnesses use `sentinel hook native --agent <agent>`; `sentinel` must be on `PATH`.
 OpenCode's Sentinel-owned command is also removed.
-Both integrations run the quality check with `--exclude-spec` after each edit and validate edited spec files
+
+On success the command prints the status, the integration's lifecycle capabilities, and each changed file:
+
+```text
+CHANGED: Created Sentinel codex native hook integration.
+Capabilities: [APPROVED_ARTIFACT_GUARD, FEEDBACK, POST_EDIT, PRE_TOOL]
+.codex/hooks.json
+.codex/hooks/sentinel.sh
+```
+
+Statuses are `CHANGED`, `ALREADY_PRESENT`, `REMOVED`, `NOT_FOUND`, and `CONFLICT`. Capabilities are `PRE_TOOL`, `POST_EDIT`, `TURN_END`, `FEEDBACK`, and `APPROVED_ARTIFACT_GUARD`.
+Harnesses without `PRE_TOOL` are advisory-only: they report failures but cannot block a tool call.
+
+Claude Code and OpenCode run the quality check with `--exclude-spec` after each edit and validate edited spec files
 with [`spec validate`](/commands/spec/). When the agent finishes a turn, they run the configured spec checks
 and hand any findings to the agent once per turn. Re-run `sentinel integrate <agent>` after upgrading Sentinel
 to refresh Sentinel-owned files; they are reported as changed. For OpenCode, this refresh is V2-only and

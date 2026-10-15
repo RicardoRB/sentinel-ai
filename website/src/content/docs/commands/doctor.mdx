@@ -14,7 +14,7 @@ one line per check:
 [OK] project       /path/to/project
 [OK] maven         Maven Wrapper available.
 [OK] configuration Configuration is present.
-[WARNING] integration   OpenCode integration not configured.
+[OK] integration   Configured integrations: codex=installed [[APPROVED_ARTIFACT_GUARD, FEEDBACK, POST_EDIT, PRE_TOOL]].
 [OK] native        Native executable present.
 ```
 
@@ -23,7 +23,7 @@ one line per check:
 | `project` | `OK` / `ERROR` | A supported project was detected. When none is found, no other check runs. |
 | `maven` / `gradle` | `OK` / `ERROR` | The detected build tool's wrapper exists in the project root, or its executable (`mvn` / `gradle`) is on `PATH`. |
 | `configuration` | `OK` / `ERROR` | `sentinel.toml` exists in the project root; otherwise run `sentinel init`. |
-| `integration` | `OK` / `WARNING` | Reports installed project-local agent integrations and their lifecycle capabilities. |
+| `integration` | `OK` / `WARNING` | Lists configured project-local agent integrations as `id=status [capabilities]`. Integrations without pre-tool support are marked `advisory-only`. `WARNING` means none is configured (`No supported agent integration configured.`) or one is incomplete or outdated; re-run `sentinel integrate <agent>` to repair it. |
 | `native` | `OK` / `WARNING` | `target/sentinel` exists in the current directory. This is a development check for the Sentinel repository. |
 | `openspec` / `openspec-archived` | `OK` / `ERROR` | For each enabled registration, the configured executable and project-root `openspec/` directory are available. |
 | `openspec-junit-traceability` | `OK` / `ERROR` | When enabled, `openspec/specs/` and `src/test/java/` must exist; doctor does not create them. |

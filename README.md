@@ -43,7 +43,8 @@ tests, style, or architecture often reach review before anyone notices.
 
 **Who it's for:**
 
-- Teams using **AI coding agents** (Claude Code, OpenCode, or any CLI agent) who want every edit
+- Teams using **AI coding agents** (Claude Code, OpenCode, Codex, Cursor, Copilot CLI, Gemini CLI,
+  and more, or any CLI agent) who want every edit
   checked automatically.
 - Java/Maven and Java/Kotlin Gradle teams who want **one quality gate** locally and in CI, instead of a pile of scripts.
 - Tech leads who want an opinionated **`standard` or `strict` baseline** without configuring each
@@ -134,7 +135,7 @@ sentinel check --format json   # machine-readable report
 Expected output on success:
 
 ```text
-Sentinel 0.0.3
+Sentinel 0.0.5
 
 ✓ compile
 ✓ tests
@@ -154,7 +155,7 @@ If something isn't working, run `sentinel doctor`:
 [OK] project       /path/to/your-maven-project
 [OK] maven         Maven Wrapper available.
 [OK] configuration Configuration is present.
-[WARNING] integration   OpenCode integration not configured.
+[WARNING] integration   No supported agent integration configured.
 ```
 
 ## ⚙️ Configuration
@@ -349,8 +350,8 @@ installer and provider-native artifact support for now.
 
 ```bash
 sentinel integrate claude-code     # PostToolUse hook on Edit/Write
-sentinel integrate opencode        # tool.execute.after plugin on edit/write
-sentinel integrate codex
+sentinel integrate opencode        # OpenCode V2 plugins (execute.after + session.idle)
+sentinel integrate codex           # native hooks: Codex, Cursor, Copilot CLI, Gemini CLI, ...
 sentinel integrate cursor
 sentinel integrate copilot
 sentinel integrate gemini
@@ -361,11 +362,18 @@ sentinel integrate amp
 sentinel integrate opencode --remove
 ```
 
-Integrations are project-local and idempotent, and every generated file is ownership-marked. See the
-[native harness integration guide](https://ricardorb.github.io/sentinel-ai/integrations/native-harnesses/).
-Sentinel never overwrites your files, and `--remove` deletes only its own files. See the
-[Claude Code](https://ricardorb.github.io/sentinel-ai/integrations/claude-code/) and
-[OpenCode](https://ricardorb.github.io/sentinel-ai/integrations/opencode/) guides.
+Integrations are project-local and idempotent, and every generated file is ownership-marked.
+Sentinel never overwrites your files, and `--remove` deletes only its own files. `integrate` and
+`doctor` report each integration's lifecycle capabilities (`PRE_TOOL`, `POST_EDIT`, `TURN_END`,
+`FEEDBACK`, `APPROVED_ARTIFACT_GUARD`); Windsurf and Factory Droid have no pre-tool hook, so they
+are advisory-only. Add `--guard-approved-specs` to block edits to approved OpenSpec artifacts.
+
+The OpenCode integration targets the **OpenCode V2 plugin API only**. Upgrade OpenCode before
+re-running `sentinel integrate opencode`, then reload the project.
+
+See the [Claude Code](https://ricardorb.github.io/sentinel-ai/integrations/claude-code/),
+[OpenCode](https://ricardorb.github.io/sentinel-ai/integrations/opencode/), and
+[native harness](https://ricardorb.github.io/sentinel-ai/integrations/native-harnesses/) guides.
 
 To drive any CLI agent until the gates pass:
 
@@ -427,8 +435,11 @@ native-image build working. `ArchitectureBoundaryTest` enforces the layer bounda
 - **A quality gate:** add the ID to the domain vocabulary (`SupportedQualityGates`), implement or
   reuse a `QualityGate`, register it in `QualityGateFactory`, and update `sentinel.toml` examples and
   `website/src/content/docs/configuration/gates.mdx` together.
-- **An agent integration:** implement `AgentIntegration` under `infrastructure/agent`, keep the
-  ownership-marker, conflict, and rollback behavior, and bind it in `config/`.
+- **An agent integration:** add the ID to `SupportedAgents`, then implement `AgentIntegration`
+  under `infrastructure/agent`. For hook-based harnesses, implement `NativeHarnessAdapter` (artifact format,
+  payload parsing, and response envelope) and wrap it in `NativeAgentIntegration`. Keep
+  the ownership-marker, conflict, and rollback behavior, bind it in `config/`, and document it in
+  `website/src/content/docs/integrations/`.
 - **CLI changes** must update the matching pages under [`website/`](website/).
 
 See [AGENTS.md](AGENTS.md) for the full conventions.
@@ -447,7 +458,7 @@ See [AGENTS.md](AGENTS.md) for the full conventions.
 
 | | |
 |---|---|
-| **Current version** | `0.0.3` |
+| **Current version** | `0.0.5` |
 | **Stability** | **Alpha.** The CLI, configuration format, and JSON schema may change before `1.0`. |
 | **Java versions** | Runs on JDK 25 (JAR) or without a JVM (native binary). Analyzes any Java version your Maven build supports. |
 | **Operating systems** | Linux x86_64, macOS (Apple Silicon and Intel), Windows x86_64 |
