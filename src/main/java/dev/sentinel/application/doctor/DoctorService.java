@@ -150,7 +150,10 @@ public final class DoctorService {
                             .map(IntegrationCapability::name)
                             .sorted()
                             .toList()
-                        + "]")
+                        + "]"
+                        + (adapter.capabilities().contains(IntegrationCapability.PRE_TOOL)
+                            ? ""
+                            : " (advisory-only; no pre-tool enforcement)"))
             .sorted()
             .reduce((left, right) -> left + ", " + right)
             .orElse("none");

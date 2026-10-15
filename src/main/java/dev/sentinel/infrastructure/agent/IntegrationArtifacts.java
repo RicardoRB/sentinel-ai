@@ -4,7 +4,10 @@ import dev.sentinel.domain.agent.IntegrationResult;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
+import java.nio.file.attribute.PosixFilePermission;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -16,6 +19,23 @@ final class IntegrationArtifacts {
 
   static boolean owned(final Path target, final String marker) throws IOException {
     return Files.exists(target) && Files.readString(target).contains(marker);
+  }
+
+  static void makeExecutable(final Path file) throws IOException {
+    try {
+      Files.setPosixFilePermissions(
+          file,
+          EnumSet.of(
+              PosixFilePermission.OWNER_READ,
+              PosixFilePermission.OWNER_WRITE,
+              PosixFilePermission.OWNER_EXECUTE,
+              PosixFilePermission.GROUP_READ,
+              PosixFilePermission.GROUP_EXECUTE,
+              PosixFilePermission.OTHERS_READ,
+              PosixFilePermission.OTHERS_EXECUTE));
+    } catch (UnsupportedOperationException ignored) {
+      file.toFile().setExecutable(true, false);
+    }
   }
 
   static IntegrationResult preflight(final Path target, final String marker) throws IOException {
@@ -82,7 +102,7 @@ final class IntegrationArtifacts {
     }
     final Path parent = Objects.requireNonNull(target.getParent(), "target must have a parent");
     Files.createDirectories(parent);
-    Files.writeString(target, content, StandardOpenOption.CREATE_NEW);
+    atomicWrite(target, content);
     return new IntegrationResult(
         IntegrationResult.Status.CHANGED, List.of(target.toString()), message);
   }
@@ -103,7 +123,7 @@ final class IntegrationArtifacts {
             List.of(),
             "Sentinel integration is already present.");
       }
-      Files.writeString(target, content, StandardOpenOption.TRUNCATE_EXISTING);
+      atomicWrite(target, content);
       return new IntegrationResult(
           IntegrationResult.Status.CHANGED, List.of(target.toString()), message);
     }
@@ -124,5 +144,24 @@ final class IntegrationArtifacts {
     Files.delete(target);
     return new IntegrationResult(
         IntegrationResult.Status.REMOVED, List.of(target.toString()), message);
+  }
+
+  private static void atomicWrite(final Path target, final String content) throws IOException {
+    final Path temporary =
+        Files.createTempFile(
+            Objects.requireNonNull(target.getParent(), "target must have a parent"),
+            ".sentinel-",
+            ".tmp");
+    try {
+      Files.writeString(temporary, content, StandardOpenOption.TRUNCATE_EXISTING);
+      try {
+        Files.move(
+            temporary, target, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+      } catch (UnsupportedOperationException exception) {
+        Files.move(temporary, target, StandardCopyOption.REPLACE_EXISTING);
+      }
+    } finally {
+      Files.deleteIfExists(temporary);
+    }
   }
 }
