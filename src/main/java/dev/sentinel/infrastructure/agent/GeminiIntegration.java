@@ -23,7 +23,6 @@ public final class GeminiIntegration implements NativeHarnessAdapter {
               IntegrationCapability.TURN_END,
               IntegrationCapability.FEEDBACK,
               IntegrationCapability.APPROVED_ARTIFACT_GUARD));
-  private final NativeIntegrationSupport support = new NativeIntegrationSupport();
 
   @Override
   public NativeAgentIntegration.Definition definition() {
@@ -31,23 +30,9 @@ public final class GeminiIntegration implements NativeHarnessAdapter {
   }
 
   @Override
-  public NativeIntegrationSupport support() {
-    return support;
-  }
-
-  @Override
   public String configContent() {
-    return configuration();
-  }
-
-  @Override
-  public String hookContent(final GuardMode guardMode) {
-    return hook(guardMode);
-  }
-
-  private static String configuration() {
     return "{\n  \"sentinelOwnership\": \""
-        + marker()
+        + NativeHookText.marker(DEFINITION.id())
         + "\",\n  \"hooks\": {\n    \"BeforeTool\": [{\"matcher\":\".*\",\"hooks\":[{\"type\":\"command\",\"command\":\""
         + DEFINITION.hookFile()
         + "\"}]}],\n    \"AfterTool\": [{\"type\":\"command\",\"command\":\""
@@ -59,21 +44,17 @@ public final class GeminiIntegration implements NativeHarnessAdapter {
         + "\"}]\n  }\n}\n";
   }
 
-  private static String hook(final GuardMode guardMode) {
+  @Override
+  public String hookContent(final GuardMode guardMode) {
     return "#!/bin/sh\n# "
-        + marker()
+        + NativeHookText.marker(DEFINITION.id())
         + "\n# Native event adapter for gemini.\nif [ \""
         + guardMode.name().toLowerCase(Locale.ROOT)
         + "\" = \"enable\" ]; then\n  exec sentinel hook native --agent gemini --guard-approved-specs --event-stdin\nfi\nexec sentinel hook native --agent gemini --event-stdin\n";
   }
 
-  private static String marker() {
-    return "sentinel-owned: gemini-native-hooks v1";
-  }
-
-  @Override
   public String denyResponse(final String reason) {
-    return "{\"decision\":\"deny\",\"reason\":" + quote(reason) + "}";
+    return "{\"decision\":\"deny\",\"reason\":" + NativeHookText.quote(reason) + "}";
   }
 
   @Override
@@ -87,13 +68,12 @@ public final class GeminiIntegration implements NativeHarnessAdapter {
 
   @Override
   public NativeHookInput parse(final JsonCodec codec, final String payload) {
-    final Payload value = codec.fromJson(payload, Payload.class);
-    return value.input();
+    return NativeHookText.parse(codec, payload, Payload.class, Payload::input);
   }
 
   @Override
   public boolean turnEnds(final NativeHookInput input) {
-    return Set.of("AfterAgent", "SessionEnd").contains(input.eventName());
+    return NativeHookText.eventIn(input, Set.of("AfterAgent", "SessionEnd"));
   }
 
   private static final class Payload {
@@ -142,9 +122,5 @@ public final class GeminiIntegration implements NativeHarnessAdapter {
       }
       return null;
     }
-  }
-
-  private static String quote(final String value) {
-    return "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
   }
 }

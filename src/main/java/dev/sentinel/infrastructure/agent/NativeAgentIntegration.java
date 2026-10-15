@@ -4,10 +4,10 @@ import dev.sentinel.domain.agent.IntegrationCapability;
 import java.util.Set;
 
 /** Metadata shared by concrete native harness adapters. */
-public final class NativeAgentIntegration {
-  private NativeAgentIntegration() {}
+public interface NativeAgentIntegration {
 
-  public record Definition(
+  /** Describes a native harness: its id, generated files, hook events and capabilities. */
+  record Definition(
       String id,
       String configFile,
       String hookFile,

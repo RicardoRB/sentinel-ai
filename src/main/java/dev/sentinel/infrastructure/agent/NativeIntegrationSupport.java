@@ -13,13 +13,15 @@ import java.util.Map;
 
 /** Shared ownership-safe filesystem mechanics for project-local native integrations. */
 public final class NativeIntegrationSupport {
-  public boolean installed(final Path projectRoot, final NativeArtifactPlan plan) {
+  private NativeIntegrationSupport() {}
+
+  public static boolean installed(final Path projectRoot, final NativeArtifactPlan plan) {
     final Path root = projectRoot.toAbsolutePath().normalize();
     return owned(root.resolve(plan.configPath()), plan.marker())
         && owned(root.resolve(plan.hookPath()), plan.marker());
   }
 
-  public IntegrationHealth health(final Path projectRoot, final NativeArtifactPlan plan) {
+  public static IntegrationHealth health(final Path projectRoot, final NativeArtifactPlan plan) {
     final Path root = projectRoot.toAbsolutePath().normalize();
     final Path config = root.resolve(plan.configPath());
     final Path hook = root.resolve(plan.hookPath());
@@ -42,7 +44,7 @@ public final class NativeIntegrationSupport {
         IntegrationHealth.Status.PARTIAL, "Integration is partially installed; re-run integrate.");
   }
 
-  public IntegrationResult integrate(
+  public static IntegrationResult integrate(
       final Path projectRoot, final IntegrationRequest request, final NativeArtifactPlan plan) {
     final Path root = projectRoot.toAbsolutePath().normalize();
     final Path config = root.resolve(plan.configPath());
@@ -74,7 +76,7 @@ public final class NativeIntegrationSupport {
     }
   }
 
-  private IntegrationResult install(final NativeArtifactPlan plan) throws IOException {
+  private static IntegrationResult install(final NativeArtifactPlan plan) throws IOException {
     final Path config = plan.configPath();
     final Path hook = plan.hookPath();
     final List<Map.Entry<Path, IntegrationResult>> results =
@@ -104,7 +106,7 @@ public final class NativeIntegrationSupport {
         .withCapabilities(plan.capabilities());
   }
 
-  private IntegrationResult remove(final NativeArtifactPlan plan) throws IOException {
+  private static IntegrationResult remove(final NativeArtifactPlan plan) throws IOException {
     final Path config = plan.configPath();
     final Path hook = plan.hookPath();
     if (!Files.exists(config) && !Files.exists(hook)) {
@@ -132,8 +134,8 @@ public final class NativeIntegrationSupport {
         .withCapabilities(plan.capabilities());
   }
 
-  private IntegrationResult firstConflict(final Path config, final Path hook, final String marker)
-      throws IOException {
+  private static IntegrationResult firstConflict(
+      final Path config, final Path hook, final String marker) throws IOException {
     final IntegrationResult configConflict = IntegrationArtifacts.preflight(config, marker);
     return configConflict == null ? IntegrationArtifacts.preflight(hook, marker) : configConflict;
   }

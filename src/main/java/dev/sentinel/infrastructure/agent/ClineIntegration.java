@@ -23,7 +23,6 @@ public final class ClineIntegration implements NativeHarnessAdapter {
               IntegrationCapability.TURN_END,
               IntegrationCapability.FEEDBACK,
               IntegrationCapability.APPROVED_ARTIFACT_GUARD));
-  private final NativeIntegrationSupport support = new NativeIntegrationSupport();
 
   @Override
   public NativeAgentIntegration.Definition definition() {
@@ -31,23 +30,9 @@ public final class ClineIntegration implements NativeHarnessAdapter {
   }
 
   @Override
-  public NativeIntegrationSupport support() {
-    return support;
-  }
-
-  @Override
   public String configContent() {
-    return configuration();
-  }
-
-  @Override
-  public String hookContent(final GuardMode guardMode) {
-    return hook(guardMode);
-  }
-
-  private static String configuration() {
     return "{\n  \"sentinelOwnership\": \""
-        + marker()
+        + NativeHookText.marker(DEFINITION.id())
         + "\",\n  \"hooks\": {\n    \"PreToolUse\": [{\"matcher\":\".*\",\"hooks\":[{\"type\":\"command\",\"command\":\""
         + DEFINITION.hookFile()
         + "\"}]}],\n    \"PostToolUse\": [{\"type\":\"command\",\"command\":\""
@@ -57,21 +42,17 @@ public final class ClineIntegration implements NativeHarnessAdapter {
         + "\"}]\n  }\n}\n";
   }
 
-  private static String hook(final GuardMode guardMode) {
+  @Override
+  public String hookContent(final GuardMode guardMode) {
     return "#!/bin/sh\n# "
-        + marker()
+        + NativeHookText.marker(DEFINITION.id())
         + "\n# Native event adapter for cline.\nif [ \""
         + guardMode.name().toLowerCase(Locale.ROOT)
         + "\" = \"enable\" ]; then\n  exec sentinel hook native --agent cline --guard-approved-specs --event-stdin\nfi\nexec sentinel hook native --agent cline --event-stdin\n";
   }
 
-  private static String marker() {
-    return "sentinel-owned: cline-native-hooks v1";
-  }
-
-  @Override
   public String denyResponse(final String reason) {
-    return genericDenial(reason);
+    return NativeHookText.genericDenial(reason);
   }
 
   @Override
@@ -85,13 +66,12 @@ public final class ClineIntegration implements NativeHarnessAdapter {
 
   @Override
   public NativeHookInput parse(final JsonCodec codec, final String payload) {
-    final Payload value = codec.fromJson(payload, Payload.class);
-    return value.input();
+    return NativeHookText.parse(codec, payload, Payload.class, Payload::input);
   }
 
   @Override
   public boolean turnEnds(final NativeHookInput input) {
-    return Set.of("TaskCompleted", "turn_end").contains(input.eventName());
+    return NativeHookText.eventIn(input, Set.of("TaskCompleted", "turn_end"));
   }
 
   private static final class Payload {
@@ -140,13 +120,5 @@ public final class ClineIntegration implements NativeHarnessAdapter {
       }
       return null;
     }
-  }
-
-  private static String genericDenial(final String reason) {
-    return "{\"decision\":\"deny\",\"reason\":" + quote(reason) + "}";
-  }
-
-  private static String quote(final String value) {
-    return "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
   }
 }
