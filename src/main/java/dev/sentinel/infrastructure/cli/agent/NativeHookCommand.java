@@ -3,6 +3,7 @@ package dev.sentinel.infrastructure.cli.agent;
 import dev.sentinel.application.gate.CheckService;
 import dev.sentinel.application.spec.ApprovedArtifactGuardService;
 import dev.sentinel.application.spec.SpecValidationService;
+import dev.sentinel.domain.agent.AgentIntegration;
 import dev.sentinel.domain.gate.CheckReport;
 import dev.sentinel.domain.gate.SupportedQualityGates;
 import dev.sentinel.domain.json.JsonCodec;
@@ -51,6 +52,7 @@ public final class NativeHookCommand implements Callable<Integer> {
   private final SpecValidationService specService;
   private final ApprovedArtifactGuardService guardService;
   private final JsonCodec codec;
+  private final Set<AgentIntegration> integrations;
   private final InputStream input;
 
   @Inject
@@ -58,8 +60,9 @@ public final class NativeHookCommand implements Callable<Integer> {
       final CheckService checkService,
       final SpecValidationService specService,
       final ApprovedArtifactGuardService guardService,
-      final JsonCodec codec) {
-    this(checkService, specService, guardService, codec, System.in);
+      final JsonCodec codec,
+      final Set<AgentIntegration> integrations) {
+    this(checkService, specService, guardService, codec, integrations, System.in);
   }
 
   NativeHookCommand(
@@ -67,11 +70,13 @@ public final class NativeHookCommand implements Callable<Integer> {
       final SpecValidationService specService,
       final ApprovedArtifactGuardService guardService,
       final JsonCodec codec,
+      final Set<AgentIntegration> integrations,
       final InputStream input) {
     this.checkService = checkService;
     this.specService = specService;
     this.guardService = guardService;
     this.codec = codec;
+    this.integrations = Set.copyOf(integrations);
     this.input = input;
   }
 
@@ -112,7 +117,7 @@ public final class NativeHookCommand implements Callable<Integer> {
       }
       final GuardDecision decision = guardService.evaluate(request.get());
       if (!decision.allowed()) {
-        output().println(denyResponse(agent, bounded(decision.reason())));
+        output().println(denyResponse(bounded(decision.reason())));
       }
       return ExitCodes.OK;
     } catch (RuntimeException exception) {
@@ -215,6 +220,14 @@ public final class NativeHookCommand implements Callable<Integer> {
 
   static String denyResponse(final String agent, final String reason) {
     return NativeHookResponse.deny(agent, reason);
+  }
+
+  private String denyResponse(final String reason) {
+    final Optional<AgentIntegration> integration =
+        integrations.stream().filter(candidate -> candidate.id().equals(agent)).findFirst();
+    return integration
+        .map(candidate -> candidate.denyResponse(reason))
+        .orElseGet(() -> NativeHookResponse.deny(agent, reason));
   }
 
   private PrintWriter output() {

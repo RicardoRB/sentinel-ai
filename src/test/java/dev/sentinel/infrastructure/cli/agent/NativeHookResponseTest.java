@@ -2,6 +2,14 @@ package dev.sentinel.infrastructure.cli.agent;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import dev.sentinel.infrastructure.agent.AmpIntegration;
+import dev.sentinel.infrastructure.agent.ClineIntegration;
+import dev.sentinel.infrastructure.agent.CodexIntegration;
+import dev.sentinel.infrastructure.agent.CopilotIntegration;
+import dev.sentinel.infrastructure.agent.CursorIntegration;
+import dev.sentinel.infrastructure.agent.FactoryDroidIntegration;
+import dev.sentinel.infrastructure.agent.GeminiIntegration;
+import dev.sentinel.infrastructure.agent.WindsurfIntegration;
 import org.junit.jupiter.api.Test;
 
 class NativeHookResponseTest {
@@ -9,21 +17,21 @@ class NativeHookResponseTest {
 
   @Test
   void translatesDenialsToHarnessNativeShapes() {
-    assertThat(NativeHookCommand.denyResponse("codex", BLOCKED))
+    assertThat(new CodexIntegration().denyResponse(BLOCKED))
         .contains("PreToolUse", "permissionDecision", "deny");
-    assertThat(NativeHookCommand.denyResponse("cursor", BLOCKED))
+    assertThat(new CursorIntegration().denyResponse(BLOCKED))
         .contains("permission", "deny", "agent_message");
-    assertThat(NativeHookCommand.denyResponse("gemini", BLOCKED))
+    assertThat(new GeminiIntegration().denyResponse(BLOCKED))
         .contains("decision", "deny", "reason");
-    assertThat(NativeHookCommand.denyResponse("amp", BLOCKED))
+    assertThat(new AmpIntegration().denyResponse(BLOCKED))
         .contains("reject-and-continue", "blocked");
-    assertThat(NativeHookCommand.denyResponse("copilot", BLOCKED))
+    assertThat(new CopilotIntegration().denyResponse(BLOCKED))
         .contains("decision", "deny", "blocked");
-    assertThat(NativeHookCommand.denyResponse("windsurf", BLOCKED))
+    assertThat(new WindsurfIntegration().denyResponse(BLOCKED))
         .contains("decision", "deny", "blocked");
-    assertThat(NativeHookCommand.denyResponse("cline", BLOCKED))
+    assertThat(new ClineIntegration().denyResponse(BLOCKED))
         .contains("decision", "deny", "blocked");
-    assertThat(NativeHookCommand.denyResponse("factory-droid", BLOCKED))
+    assertThat(new FactoryDroidIntegration().denyResponse(BLOCKED))
         .contains("decision", "deny", "blocked");
   }
 }

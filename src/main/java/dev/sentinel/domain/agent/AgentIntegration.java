@@ -10,6 +10,13 @@ public interface AgentIntegration extends AgentAdapter {
     return Set.of();
   }
 
+  /** Serializes a normalized native-hook denial for this agent's protocol. */
+  default String denyResponse(final String reason) {
+    return "{\"decision\":\"deny\",\"reason\":\""
+        + reason.replace("\\", "\\\\").replace("\"", "\\\"")
+        + "\"}";
+  }
+
   default boolean installed(final Path projectRoot) {
     return false;
   }
