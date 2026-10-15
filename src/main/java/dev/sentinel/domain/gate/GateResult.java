@@ -3,6 +3,7 @@ package dev.sentinel.domain.gate;
 import dev.sentinel.domain.process.CommandResult;
 import java.time.Duration;
 import java.util.List;
+import java.util.Objects;
 
 public record GateResult(
     String name,
@@ -14,10 +15,37 @@ public record GateResult(
     String stderr,
     String summary,
     Integer errors,
-    Integer warnings) {
+    Integer warnings,
+    GateFindings findings) {
 
   public GateResult {
     command = List.copyOf(command);
+    findings = Objects.requireNonNullElse(findings, GateFindings.NONE);
+  }
+
+  public GateResult(
+      final String name,
+      final GateStatus status,
+      final List<String> command,
+      final int exitCode,
+      final Duration duration,
+      final String stdout,
+      final String stderr,
+      final String summary,
+      final Integer errors,
+      final Integer warnings) {
+    this(
+        name,
+        status,
+        command,
+        exitCode,
+        duration,
+        stdout,
+        stderr,
+        summary,
+        errors,
+        warnings,
+        GateFindings.NONE);
   }
 
   public GateResult(
@@ -63,6 +91,22 @@ public record GateResult(
         result.stdout(),
         result.stderr(),
         result.executionError());
+  }
+
+  /** Returns a copy of this result carrying {@code gateFindings}. */
+  public GateResult withFindings(final GateFindings gateFindings) {
+    return new GateResult(
+        name,
+        status,
+        command,
+        exitCode,
+        duration,
+        stdout,
+        stderr,
+        summary,
+        errors,
+        warnings,
+        gateFindings);
   }
 
   public boolean passed() {

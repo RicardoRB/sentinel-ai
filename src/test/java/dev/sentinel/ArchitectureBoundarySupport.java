@@ -134,6 +134,7 @@ final class ArchitectureBoundarySupport {
                       "dev.sentinel.config.SpecCommandBindingsModule",
                       "dev.sentinel.config.TraceabilityBindingsModule",
                       "dev.sentinel.config.ProvenanceBindingsModule",
+                      "dev.sentinel.config.GateBindingsModule",
                       "dev.sentinel.config.SentinelProvidesModule")
                   .contains(name);
       case "dev.sentinel.infrastructure.cli" ->

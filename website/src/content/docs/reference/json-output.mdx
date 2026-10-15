@@ -16,15 +16,48 @@ later compatible versions; existing fields keep their meaning within a schema ve
   "checks": [{
     "name": "string", "status": "PASSED|FAILED|SKIPPED|UNAVAILABLE|EXECUTION_ERROR",
     "command": "string", "exitCode": "number", "durationMs": "number",
-    "stdout": "string", "stderr": "string", "summary": "string", "output": "string"
+    "stdout": "string", "stderr": "string", "summary": "string", "output": "string",
+    "findings": [{
+      "tool": "string", "rule": "string", "severity": "error|warning|note", "message": "string",
+      "file": "string", "line": "number", "column": "number", "helpUri": "string"
+    }],
+    "findingsTotal": "number", "findingsTruncated": "boolean"
   }],
   "policies": [{ "name": "string", "passed": "boolean", "message": "string" }]
 }
 ```
 
 `failFast` is `true` when the run used `--fail-fast`; gates that did not run are listed with status
-`SKIPPED` and summary `not run (fail-fast)`. `output` is `stdout`, or `stderr` when stdout is empty.
+`SKIPPED` and summary `not run (fail-fast)`. `output` is the last 200 lines of `stdout`, or of
+`stderr` when stdout is empty; `stdout` and `stderr` always hold the complete captured text.
 Project values are enum names such as `JAVA`, `MAVEN`, and `SPRING_BOOT`.
+
+## Findings
+
+A failed `checkstyle`, `pmd`, `gitleaks`, `compile`, or `format` gate lists one entry per violation
+in `findings`, in the tool's report order, so an agent can go straight to the file and line. Every
+check has the three findings fields; gates that passed or have no supported source have an empty
+array, `findingsTotal` `0`, and `findingsTruncated` `false`.
+
+```json
+{
+  "tool": "checkstyle", "rule": "MissingJavadocMethod", "severity": "error",
+  "message": "Missing a Javadoc comment.", "file": "src/main/java/com/acme/Foo.java",
+  "line": 42, "column": 5,
+  "helpUri": "https://checkstyle.org/checks/javadoc/missingjavadocmethod.html"
+}
+```
+
+- At most 50 findings are listed per check. `findingsTotal` is the full count and
+  `findingsTruncated` is `true` when entries were left out.
+- `file` is relative to the project root with `/` separators. `file`, `line`, `column`, and
+  `helpUri` are omitted when the tool does not report them; `format` findings name only the file.
+- Gitleaks findings never contain the matched secret.
+- When a report is missing, stale, or unreadable, the check keeps its status and simply has no
+  findings; use `output` as the fallback.
+
+See [quality gates](/configuration/gates/#structured-findings) for where each gate's findings come
+from. Use `--format sarif` for code-scanning tools.
 
 When learning is enabled with `--learn-after <n>`, the additive `learning` object is present:
 

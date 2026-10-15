@@ -1,6 +1,7 @@
 package dev.sentinel.infrastructure.cli.gate;
 
 import dev.sentinel.domain.gate.CheckReport;
+import dev.sentinel.domain.gate.Finding;
 import dev.sentinel.domain.gate.GateResult;
 import dev.sentinel.domain.json.JsonCodec;
 import dev.sentinel.domain.learning.LearningOutcome;
@@ -13,6 +14,7 @@ import javax.inject.Inject;
 import org.apache.fory.json.annotation.JsonType;
 
 public class JsonReportRenderer {
+  static final int OUTPUT_TAIL_LINES = 200;
   private final JsonCodec codec;
 
   @Inject
@@ -123,6 +125,9 @@ public class JsonReportRenderer {
     public String output;
     public Integer errors;
     public Integer warnings;
+    public List<FindingDto> findings;
+    public int findingsTotal;
+    public boolean findingsTruncated;
 
     static CheckDto from(final GateResult result) {
       final CheckDto dto = new CheckDto();
@@ -134,9 +139,46 @@ public class JsonReportRenderer {
       dto.stdout = result.stdout();
       dto.stderr = result.stderr();
       dto.summary = result.summary() == null ? result.status().name() : result.summary();
-      dto.output = result.stdout().isBlank() ? result.stderr() : result.stdout();
+      dto.output = tail(result.stdout().isBlank() ? result.stderr() : result.stdout());
       dto.errors = result.errors();
       dto.warnings = result.warnings();
+      dto.findings = result.findings().items().stream().map(FindingDto::from).toList();
+      dto.findingsTotal = result.findings().total();
+      dto.findingsTruncated = result.findings().truncated();
+      return dto;
+    }
+
+    /** Keeps the last {@link #OUTPUT_TAIL_LINES} lines; full text stays in stdout and stderr. */
+    static String tail(final String text) {
+      final List<String> lines = text.lines().toList();
+      if (lines.size() <= OUTPUT_TAIL_LINES) {
+        return text;
+      }
+      return String.join("\n", lines.subList(lines.size() - OUTPUT_TAIL_LINES, lines.size()));
+    }
+  }
+
+  @JsonType
+  public static final class FindingDto {
+    public String tool;
+    public String rule;
+    public String severity;
+    public String message;
+    public String file;
+    public Integer line;
+    public Integer column;
+    public String helpUri;
+
+    static FindingDto from(final Finding finding) {
+      final FindingDto dto = new FindingDto();
+      dto.tool = finding.tool();
+      dto.rule = finding.ruleId();
+      dto.severity = finding.severity().label();
+      dto.message = finding.message();
+      dto.file = finding.file();
+      dto.line = finding.line();
+      dto.column = finding.column();
+      dto.helpUri = finding.helpUri();
       return dto;
     }
   }

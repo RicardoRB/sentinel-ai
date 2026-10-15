@@ -60,6 +60,31 @@ jobs:
 GitHub's required status checks can block merges until the `sentinel` job passes. Use the runtime setup
 and cache action appropriate for your project; the example uses Maven only as an illustration.
 
+### Code scanning annotations with SARIF
+
+To see findings as pull-request annotations and code-scanning alerts, write a SARIF report and upload
+it. `--output` keeps the readable text report in the job log:
+
+```yaml
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      # ... checkout, runtime, and Sentinel installation as above ...
+      - name: Run quality gates
+        run: sentinel check --profile ci --format sarif --output sentinel.sarif
+
+      - name: Upload SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: sentinel.sarif
+          category: sentinel
+```
+
+Findings carry file locations for `checkstyle`, `pmd`, `gitleaks`, `compile`, and `format`; other
+failed gates appear as one alert without a location.
+
 ## GitLab CI
 
 GitLab checks out the repository before the job script. Use a merge-request pipeline rule when Sentinel
@@ -241,6 +266,7 @@ build. Add a `branches` pipeline for pushes when quality gates should run outsid
   could not run, for example because of invalid configuration. Non-zero exits fail the CI step.
 - **Reports:** `--format json` writes only the [JSON report](/reference/json-output/) to stdout, so it
   can be redirected to `sentinel-report.json`. Diagnostics go to stderr and remain visible in logs.
+  Add `--output <path>` to write the report to a file and keep the text report in the job log.
 - **Version pinning:** set `SENTINEL_VERSION` to a release tag such as `v0.0.1` for reproducible builds.
   Leaving it unset installs the latest release.
 - **Working directories:** run Sentinel from the repository root, or configure the provider's working
@@ -251,10 +277,11 @@ build. Add a `branches` pipeline for pushes when quality gates should run outsid
   commit them to `sentinel.toml` or a pipeline file.
 - **Artifacts:** retain the JSON report after failures where the provider supports an always/post-failure
   condition. It is diagnostic output; the Sentinel process exit code remains the job verdict.
-- **SARIF:** Sentinel does not support SARIF output yet. Current formats are text and JSON (schema v1).
+- **SARIF:** `--format sarif` writes a SARIF 2.1.0 log for code-scanning tools on any provider that
+  accepts SARIF, such as GitHub code scanning.
 
 Init does not generate a provider-specific CI workflow; add the command above to the CI system of
-your choice. SARIF output is not supported yet.
+your choice.
 
 ## Security
 
