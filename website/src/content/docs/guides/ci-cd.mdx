@@ -41,7 +41,7 @@ jobs:
 
       - name: Install Sentinel
         env:
-          SENTINEL_VERSION: v0.0.1
+          SENTINEL_VERSION: v0.0.6
         run: |
           curl -fsSL https://raw.githubusercontent.com/RicardoRB/sentinel-ai/main/install.sh | sh
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
@@ -104,7 +104,7 @@ sentinel:
     - apt-get update -qq
     - apt-get install -y -qq curl
     # Install the JDK, build tool, and standalone gate tools required by the project here.
-    - export SENTINEL_VERSION="v0.0.1"
+    - export SENTINEL_VERSION="v0.0.6"
     - curl -fsSL https://raw.githubusercontent.com/RicardoRB/sentinel-ai/main/install.sh | sh
     - export PATH="$HOME/.local/bin:$PATH"
   script:
@@ -139,7 +139,7 @@ pipeline {
       steps {
         sh '''
           set -eu
-          export SENTINEL_VERSION="v0.0.1"
+          export SENTINEL_VERSION="v0.0.6"
           curl -fsSL https://raw.githubusercontent.com/RicardoRB/sentinel-ai/main/install.sh | sh
           export PATH="$HOME/.local/bin:$PATH"
           sentinel check --profile default,ci --format json > sentinel-report.json
@@ -175,7 +175,7 @@ jobs:
           name: Install Sentinel
           command: |
             set -eu
-            export SENTINEL_VERSION="v0.0.1"
+            export SENTINEL_VERSION="v0.0.6"
             curl -fsSL https://raw.githubusercontent.com/RicardoRB/sentinel-ai/main/install.sh | sh
             echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$BASH_ENV"
       - run:
@@ -212,7 +212,7 @@ steps:
   # Add the runtime and standalone tools required by the project before this step.
   - bash: |
       set -eu
-      export SENTINEL_VERSION="v0.0.1"
+      export SENTINEL_VERSION="v0.0.6"
       curl -fsSL https://raw.githubusercontent.com/RicardoRB/sentinel-ai/main/install.sh | sh
       export PATH="$HOME/.local/bin:$PATH"
       sentinel check --profile default,ci --format json > sentinel-report.json
@@ -243,7 +243,7 @@ pipelines:
             - apt-get update -qq
             - apt-get install -y -qq curl
             # Install the runtime and standalone gate tools required by the project here.
-            - export SENTINEL_VERSION="v0.0.1"
+            - export SENTINEL_VERSION="v0.0.6"
             - curl -fsSL https://raw.githubusercontent.com/RicardoRB/sentinel-ai/main/install.sh | sh
             - export PATH="$HOME/.local/bin:$PATH"
             - sentinel check --profile default,ci --format json > sentinel-report.json
@@ -267,7 +267,7 @@ build. Add a `branches` pipeline for pushes when quality gates should run outsid
 - **Reports:** `--format json` writes only the [JSON report](/reference/json-output/) to stdout, so it
   can be redirected to `sentinel-report.json`. Diagnostics go to stderr and remain visible in logs.
   Add `--output <path>` to write the report to a file and keep the text report in the job log.
-- **Version pinning:** set `SENTINEL_VERSION` to a release tag such as `v0.0.1` for reproducible builds.
+- **Version pinning:** set `SENTINEL_VERSION` to a release tag such as `v0.0.6` for reproducible builds.
   Leaving it unset installs the latest release.
 - **Working directories:** run Sentinel from the repository root, or configure the provider's working
   directory so `sentinel.toml` and the project files resolve correctly.
