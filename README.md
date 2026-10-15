@@ -11,7 +11,7 @@
 [![Docs](https://github.com/RicardoRB/sentinel-ai/actions/workflows/docs.yml/badge.svg)](https://ricardorb.github.io/sentinel-ai/)
 [![Coverage](https://img.shields.io/badge/coverage-%E2%89%A580%25%20enforced-brightgreen)](#development)
 ![Java 25](https://img.shields.io/badge/Java-25-orange)
-[![License](https://img.shields.io/badge/license-not%20yet%20chosen-lightgrey)](#license)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 
 [Documentation](https://ricardorb.github.io/sentinel-ai/) ·
 [Quick start](#-quick-start) ·
@@ -481,10 +481,10 @@ See [AGENTS.md](AGENTS.md) for the full conventions.
 | Channel | Status |
 |---|---|
 | **Install script** (Linux, macOS) | ✅ `curl -fsSL https://raw.githubusercontent.com/RicardoRB/sentinel-ai/main/install.sh \| sh` |
-| **GitHub Releases** | ✅ [Native binaries + SHA-256 checksums](https://github.com/RicardoRB/sentinel-ai/releases) |
-| **Linux** (x86_64) | ✅ `sentinel-linux-x86_64` |
-| **macOS** | ✅ `sentinel-macos-aarch64` (Apple Silicon) · `sentinel-macos-x86_64` (Intel) |
-| **Windows** (x86_64) | ✅ `sentinel-windows-x86_64.exe` |
+| **GitHub Releases** | ✅ [Native archives with `LICENSE` and `NOTICE`, plus SHA-256 checksums](https://github.com/RicardoRB/sentinel-ai/releases) |
+| **Linux** (x86_64) | ✅ `sentinel-linux-x86_64.tar.gz` |
+| **macOS** | ✅ `sentinel-macos-aarch64.tar.gz` (Apple Silicon) · `sentinel-macos-x86_64.tar.gz` (Intel) |
+| **Windows** (x86_64) | ✅ `sentinel-windows-x86_64.zip` |
 | **From source** | ✅ `./mvnw package` (JDK 25) |
 | **Homebrew** | ⏳ Planned |
 | **Docker** | ⏳ Planned |
@@ -494,31 +494,36 @@ See [AGENTS.md](AGENTS.md) for the full conventions.
 ```bash
 # Pin a version and choose the install directory
 curl -fsSL https://raw.githubusercontent.com/RicardoRB/sentinel-ai/main/install.sh \
-  | SENTINEL_VERSION=v0.0.1 SENTINEL_INSTALL_DIR=/usr/local/bin sh
+  | SENTINEL_VERSION=v0.0.6 SENTINEL_INSTALL_DIR=/usr/local/bin sh
 ```
 
 | Variable | Default | Purpose |
 |---|---|---|
 | `SENTINEL_VERSION` | `latest` | Release tag to install |
 | `SENTINEL_INSTALL_DIR` | `~/.local/bin` | Where to put the `sentinel` binary |
+| `SENTINEL_DOC_DIR` | `<install dir parent>/share/doc/sentinel` | Where to put `LICENSE` and `NOTICE` |
 | `SENTINEL_BASE_URL` | GitHub Releases | Download from a mirror |
 
-The script supports Linux x86_64 and macOS (Intel and Apple Silicon).
+The script supports Linux x86_64 and macOS (Intel and Apple Silicon). It installs from the release
+archive and keeps `LICENSE` and `NOTICE`. Releases up to `v0.0.5` predate the archives and can't be
+installed with the script.
 
 **Manual download with verification (macOS):**
 
 ```bash
-curl -fsSLO https://github.com/RicardoRB/sentinel-ai/releases/latest/download/sentinel-macos-aarch64
-curl -fsSLO https://github.com/RicardoRB/sentinel-ai/releases/latest/download/sentinel-macos-aarch64.sha256
-shasum -a 256 -c sentinel-macos-aarch64.sha256
-chmod +x sentinel-macos-aarch64 && sudo mv sentinel-macos-aarch64 /usr/local/bin/sentinel
+curl -fsSLO https://github.com/RicardoRB/sentinel-ai/releases/latest/download/sentinel-macos-aarch64.tar.gz
+curl -fsSLO https://github.com/RicardoRB/sentinel-ai/releases/latest/download/sentinel-macos-aarch64.tar.gz.sha256
+shasum -a 256 -c sentinel-macos-aarch64.tar.gz.sha256
+mkdir sentinel && tar -xzf sentinel-macos-aarch64.tar.gz -C sentinel   # sentinel, LICENSE, NOTICE
+sudo mv sentinel/sentinel /usr/local/bin/sentinel
 ```
 
 **Windows (PowerShell):**
 
 ```powershell
-Invoke-WebRequest -OutFile sentinel.exe https://github.com/RicardoRB/sentinel-ai/releases/latest/download/sentinel-windows-x86_64.exe
-.\sentinel.exe --version
+Invoke-WebRequest -OutFile sentinel.zip https://github.com/RicardoRB/sentinel-ai/releases/latest/download/sentinel-windows-x86_64.zip
+Expand-Archive sentinel.zip -DestinationPath sentinel   # sentinel.exe, LICENSE, NOTICE
+.\sentinel\sentinel.exe --version
 ```
 
 On Windows, the `init` wizard uses numbered prompts instead of arrow-key menus.
@@ -527,15 +532,17 @@ On Windows, the `init` wizard uses numbered prompts instead of arrow-key menus.
 
 ### License
 
-No license has been chosen yet. Until a `LICENSE` file is added, all rights are reserved by the
-author.
+Sentinel is licensed under the [Apache License, Version 2.0](LICENSE). Attribution and
+third-party notices are in [`NOTICE`](NOTICE).
 
 ### Third-party software
 
-Sentinel is built on these open-source libraries, all under the Apache License 2.0:
+Sentinel is built on these open-source libraries under the Apache License 2.0:
 [Picocli](https://picocli.info/), [Dagger](https://dagger.dev/),
-[tomlj](https://github.com/tomlj/tomlj), [Apache Fory](https://fory.apache.org/), and
-`javax.inject`. The quality tools Sentinel orchestrates are separate projects under their own
+[tomlj](https://github.com/tomlj/tomlj), [Apache Fory](https://fory.apache.org/),
+`javax.inject`, `jakarta.inject`, and JSpecify. Apache Fory also brings in
+[Janino](https://github.com/janino-compiler/janino) (BSD 3-Clause). See [`NOTICE`](NOTICE) for the
+required notices. The quality tools Sentinel orchestrates are separate projects under their own
 licenses, and Sentinel does not bundle them.
 
 ### Security

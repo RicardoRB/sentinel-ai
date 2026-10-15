@@ -88,32 +88,45 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          asset="sentinel-${{ matrix.platform }}"
-          cp "${{ matrix.binary }}" "$asset"
-          chmod +x "$asset"
-          shasum -a 256 "$asset" > "$asset.sha256"
+          archive="sentinel-${{ matrix.platform }}.tar.gz"
+          mkdir package
+          cp "${{ matrix.binary }}" LICENSE NOTICE package/
+          chmod +x package/sentinel
+          COPYFILE_DISABLE=1 tar -C package -czf "$archive" sentinel LICENSE NOTICE
+          shasum -a 256 "$archive" > "$archive.sha256"
 
       - name: Prepare Windows release asset
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $asset = "sentinel-${{ matrix.platform }}.exe"
-          Copy-Item "${{ matrix.binary }}" $asset
-          $hash = (Get-FileHash $asset -Algorithm SHA256).Hash.ToLower()
-          "$hash  $asset" | Out-File "$asset.sha256" -Encoding ascii
+          $archive = "sentinel-${{ matrix.platform }}.zip"
+          New-Item -ItemType Directory package | Out-Null
+          Copy-Item "${{ matrix.binary }}", LICENSE, NOTICE package
+          Compress-Archive -Path "package/*" -DestinationPath $archive
+          $hash = (Get-FileHash $archive -Algorithm SHA256).Hash.ToLower()
+          "$hash  $archive" | Out-File "$archive.sha256" -Encoding ascii
 
       - name: Upload platform assets
         uses: actions/upload-artifact@v4
         with:
           name: sentinel-${{ matrix.platform }}
           path: |
-            sentinel-${{ matrix.platform }}*
-            sentinel-${{ matrix.platform }}.exe*
+            sentinel-${{ matrix.platform }}.tar.gz
+            sentinel-${{ matrix.platform }}.zip
+            sentinel-${{ matrix.platform }}.*.sha256
+          if-no-files-found: error
 
   publish:
     needs: build
     runs-on: ubuntu-24.04
     steps:
+      - uses: actions/checkout@v5
+        with:
+          sparse-checkout: |
+            LICENSE
+            NOTICE
+          sparse-checkout-cone-mode: false
+
       - name: Download platform assets
         uses: actions/download-artifact@v4
         with:
@@ -126,7 +139,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          gh release create "$GITHUB_REF_NAME" release-assets/* \
+          gh release create "$GITHUB_REF_NAME" release-assets/* LICENSE NOTICE \
             --repo "$GITHUB_REPOSITORY" \
             --verify-tag \
             --title "$GITHUB_REF_NAME" \

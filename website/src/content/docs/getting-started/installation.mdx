@@ -13,42 +13,49 @@ curl -fsSL https://raw.githubusercontent.com/RicardoRB/sentinel-ai/main/install.
 sentinel --version
 ```
 
-The script detects your OS and CPU, downloads the matching binary from GitHub Releases, verifies its
-SHA-256 checksum, and installs it as `sentinel` in `~/.local/bin`. If that directory is not on your
+The script detects your OS and CPU, downloads the matching release archive from GitHub Releases,
+verifies its SHA-256 checksum, and installs it as `sentinel` in `~/.local/bin`. The archive's
+`LICENSE` and `NOTICE` go to `~/.local/share/doc/sentinel`. Releases up to `v0.0.5` predate the
+archives and can't be installed with the script. If that directory is not on your
 `PATH`, the script prints the line to add to your shell profile. It supports Linux x86_64 and macOS
 (Apple Silicon and Intel).
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `SENTINEL_VERSION` | `latest` | Release tag to install, for example `v0.0.1`. |
+| `SENTINEL_VERSION` | `latest` | Release tag to install, for example `v0.0.6`. |
 | `SENTINEL_INSTALL_DIR` | `~/.local/bin` | Directory for the `sentinel` binary. |
+| `SENTINEL_DOC_DIR` | `<install dir parent>/share/doc/sentinel` | Directory for `LICENSE` and `NOTICE`. |
 | `SENTINEL_BASE_URL` | GitHub Releases | Download base URL, for mirrors. |
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/RicardoRB/sentinel-ai/main/install.sh \
-  | SENTINEL_VERSION=v0.0.1 SENTINEL_INSTALL_DIR=/usr/local/bin sh
+  | SENTINEL_VERSION=v0.0.6 SENTINEL_INSTALL_DIR=/usr/local/bin sh
 ```
 
 ## Manual download
 
-Each [GitHub release](https://github.com/RicardoRB/sentinel-ai/releases) publishes native binaries
-with `.sha256` checksum files:
+Each [GitHub release](https://github.com/RicardoRB/sentinel-ai/releases) publishes a native archive
+per platform with a `.sha256` checksum file. Each archive contains the binary, `LICENSE`, and
+`NOTICE`:
 
 | Platform | Asset |
 |---|---|
-| Linux x86_64 | `sentinel-linux-x86_64` |
-| macOS Apple Silicon | `sentinel-macos-aarch64` |
-| macOS Intel | `sentinel-macos-x86_64` |
-| Windows x86_64 | `sentinel-windows-x86_64.exe` |
+| Linux x86_64 | `sentinel-linux-x86_64.tar.gz` |
+| macOS Apple Silicon | `sentinel-macos-aarch64.tar.gz` |
+| macOS Intel | `sentinel-macos-x86_64.tar.gz` |
+| Windows x86_64 | `sentinel-windows-x86_64.zip` |
+
+`LICENSE` and `NOTICE` are also attached to each release.
 
 ```bash
-curl -fsSLO https://github.com/RicardoRB/sentinel-ai/releases/latest/download/sentinel-macos-aarch64
-curl -fsSLO https://github.com/RicardoRB/sentinel-ai/releases/latest/download/sentinel-macos-aarch64.sha256
-shasum -a 256 -c sentinel-macos-aarch64.sha256
-chmod +x sentinel-macos-aarch64 && mv sentinel-macos-aarch64 ~/.local/bin/sentinel
+curl -fsSLO https://github.com/RicardoRB/sentinel-ai/releases/latest/download/sentinel-macos-aarch64.tar.gz
+curl -fsSLO https://github.com/RicardoRB/sentinel-ai/releases/latest/download/sentinel-macos-aarch64.tar.gz.sha256
+shasum -a 256 -c sentinel-macos-aarch64.tar.gz.sha256
+mkdir sentinel && tar -xzf sentinel-macos-aarch64.tar.gz -C sentinel
+mv sentinel/sentinel ~/.local/bin/sentinel
 ```
 
-On Windows, download `sentinel-windows-x86_64.exe`, rename it to `sentinel.exe`, and place it in a
+On Windows, download `sentinel-windows-x86_64.zip`, extract it, and place `sentinel.exe` in a
 directory on your `PATH`.
 
 ## Build from source
