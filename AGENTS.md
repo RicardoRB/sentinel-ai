@@ -25,8 +25,7 @@
 - Run one test with `./mvnw -Dtest=ClassName#methodName test`.
 - CLI integration tests use the offline fixture `src/test/resources/fixtures/maven-project` and its stub `mvnw`.
 - Use `FakeCommandExecutor` for process tests. Existing test names use descriptive camelCase.
-- `NativeInitTerminalSmokeTest` drives a built executable's `init` wizard through a pseudo-terminal and is skipped unless `-Dsentinel.native.binary` is set: `./mvnw -Dtest=NativeInitTerminalSmokeTest -Dsentinel.native.binary=target/sentinel test` after `native:compile`. Releases run it on Linux and macOS.
-- Pull requests run `.github/workflows/pull-request.yml`: `verify-quality.sh` (quality gates and coverage), the native build, and native checks. The native job runs the `infrastructure/terminal` tests inside a native test image: `./mvnw -Pnative -Dtest='dev/sentinel/infrastructure/terminal/**/*Test' -Dsurefire.failIfNoSpecifiedTests=false test native:test`.
+- `NativeInitTerminalSmokeTest` drives a built executable's `init` wizard through a pseudo-terminal and is skipped unless `-Dsentinel.native.binary` is set: `./mvnw -Dtest=NativeInitTerminalSmokeTest -Dsentinel.native.binary=target/sentinel test` after `native:compile`.
 - PIT, Testcontainers, and OWASP Dependency-Check are not configured; do not invent or claim those checks.
 
 ## Security
