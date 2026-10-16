@@ -7,3 +7,4 @@ openspec/
 website/node_modules/
 website/dist/
 website/.astro/
+graphify-out/
