@@ -1,0 +1,8 @@
+{
+  "sentinelOwnership": "sentinel-owned: copilot-native-hooks v1",
+  "hooks": {
+    "preToolUse": [{"matcher":".*","hooks":[{"type":"command","command":".github/hooks/sentinel.sh"}]}],
+    "postToolUse": [{"type":"command","command":".github/hooks/sentinel.sh"}],
+    "sessionEnd": [{"type":"command","command":".github/hooks/sentinel.sh"}]
+  }
+}

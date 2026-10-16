@@ -94,6 +94,16 @@ describe("live verification prerequisites", () => {
     expect(report.exitCode).toBe(1);
   });
 
+  test("Copilot CLI is blocked on GH_TOKEN once its pinned runtime is present", async () => {
+    const missing = await runLive(["copilot"], options({}));
+    expect(missing.harnesses[0].scenarios[0].reason).toStartWith("missing prerequisite: copilot 1.0.98");
+    const runtime = fakeRuntime("copilot-pinned", "1.0.98");
+    const report = await runLive(["copilot"], options({ SENTINEL_COMPAT_COPILOT_BIN: runtime }));
+    expect(new Set(report.harnesses[0].scenarios.map((s) => s.reason))).toEqual(new Set(["missing prerequisite: GH_TOKEN"]));
+    expect(report.harnesses[0].scenarios.length).toBe(4);
+    expect(report.exitCode).toBe(1);
+  });
+
   test("editor-only harnesses are blocked pending a witnessed procedure", async () => {
     const witnessed: LiveDriver = { harness: "cursor", missingPrerequisites: () => [], scenarios: [{ id: "edit" }] };
     const report = await runLive(["cursor"], options({}, { cursor: witnessed }));

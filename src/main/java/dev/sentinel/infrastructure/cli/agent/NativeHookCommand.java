@@ -19,6 +19,7 @@ import java.io.PrintWriter;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import javax.inject.Inject;
@@ -97,11 +98,17 @@ public final class NativeHookCommand implements Callable<Integer> {
             error());
       }
       final SpecValidationReport specs = validateEditedPath(event);
-      if (!report.passed() || specs.hasFindings()) {
-        error().println(NativeHookMessages.failureText(report, specs));
-        return ExitCodes.ERROR;
+      if (report.passed() && !specs.hasFindings()) {
+        return ExitCodes.OK;
       }
-      return ExitCodes.OK;
+      final String findings = NativeHookMessages.failureText(report, specs);
+      final Optional<String> feedback = protocol.postEditFeedback(findings);
+      if (feedback.isPresent()) {
+        output().println(feedback.get());
+        return ExitCodes.OK;
+      }
+      error().println(findings);
+      return ExitCodes.ERROR;
     } catch (SentinelException | JsonCodecException | UncheckedIOException exception) {
       error()
           .println(

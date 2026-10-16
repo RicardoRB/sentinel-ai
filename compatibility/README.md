@@ -41,7 +41,7 @@ bun test test/
 ## All deterministic suites
 
 `compatibility/run-deterministic.sh [path/to/sentinel]` runs the tooling tests and every harness suite
-(`opencode-v2`, `amp`, `claude-code`, `codex`) against one Sentinel build. The release workflow runs it
+(`opencode-v2`, `amp`, `claude-code`, `codex`, `copilot`) against one Sentinel build. The release workflow runs it
 against each Linux and macOS native executable before publishing, so a broken integration stops the release.
 
 ## Runtime preflight

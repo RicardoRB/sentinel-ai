@@ -10,14 +10,14 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 /**
  * Parses each native adapter's hook payload through its generated JSON codec, which is what the
- * native executable uses. Codex has its own tool_input contract, covered by NativeHookPayloadTest.
+ * native executable uses. Codex and Copilot have their own tool_input contracts, covered by
+ * NativeHookPayloadTest and NativeHookCopilotTest.
  */
 class NativeAdapterPayloadTest {
   static Stream<NativeHarnessAdapter> adapters() {
     return Stream.of(
         new AmpIntegration(),
         new ClineIntegration(),
-        new CopilotIntegration(),
         new CursorIntegration(),
         new FactoryDroidIntegration(),
         new GeminiIntegration(),
