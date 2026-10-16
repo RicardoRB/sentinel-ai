@@ -1,5 +1,5 @@
 import { afterAll, describe, expect, test } from "bun:test";
-import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DRIVERS } from "../drivers";
@@ -199,6 +199,25 @@ describe("live scenario execution", () => {
     expect(report.harnesses[0].scenarios.map((s) => s.outcome)).toEqual(["fail", "fail", "unsupported"]);
     expect(report.exitCode).toBe(1);
   });
+
+  test("the Claude Code driver launches the runtime on the generated settings, and a runtime that runs no hooks fails", async () => {
+    // A stand-in `claude` that records how it was launched but never dispatches hooks.
+    const launches = join(base, "claude-launches");
+    const claude = join(base, "claude-no-hooks");
+    writeFileSync(
+      claude,
+      `#!/bin/sh
+if [ "$1" = "--version" ]; then echo "2.1.292 (Claude Code)"; exit 0; fi
+if grep -q '/.claude/hooks/sentinel' .claude/settings.json 2>/dev/null; then s=settings; else s=none; fi
+printf '%s %s %s\\n' "$1" "$s" "\${CLAUDE_CONFIG_DIR:+isolated}" >> '${launches}'
+`,
+    );
+    chmodSync(claude, 0o755);
+    const report = await runLive(["claude-code"], options({ SENTINEL_COMPAT_CLAUDE_CODE_BIN: claude, ANTHROPIC_API_KEY: "test-key" }));
+    expect(readFileSync(launches, "utf8").trim().split("\n")).toEqual(Array(4).fill("-p settings isolated"));
+    expect(report.harnesses[0].scenarios.map((s) => s.outcome)).toEqual(["fail", "fail", "fail", "fail"]);
+    expect(report.exitCode).toBe(1);
+  }, 120_000);
 });
 
 test("the live command prints a report and exits non-zero for blocked harnesses", async () => {
