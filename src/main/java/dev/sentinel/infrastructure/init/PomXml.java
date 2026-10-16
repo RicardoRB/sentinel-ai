@@ -1,5 +1,6 @@
 package dev.sentinel.infrastructure.init;
 
+import dev.sentinel.domain.config.SentinelException;
 import dev.sentinel.infrastructure.init.PomElements.Element;
 import java.util.List;
 import java.util.Optional;
@@ -35,6 +36,32 @@ final class PomXml {
       return insertChild(pom, project, "project", wrap("dependencies", dependency));
     }
     return insertChild(pom, dependencies.get(), "dependencies", dependency);
+  }
+
+  /**
+   * Replaces the version of {@code artifact}'s project-level plugin declaration. Returns empty when
+   * the plugin is not declared in {@code project/build/plugins}.
+   *
+   * @throws SentinelException when the declaration's version is not exactly {@code current}
+   */
+  static Optional<String> replacePluginVersion(
+      final String pom, final String artifact, final String current, final String selected) {
+    final Optional<Element> plugin =
+        PomElements.child(pom, PomElements.project(pom), "build")
+            .flatMap(build -> PomElements.child(pom, build, "plugins"))
+            .flatMap(plugins -> PomElements.declaration(pom, plugins, artifact));
+    if (plugin.isEmpty()) {
+      return Optional.empty();
+    }
+    final Element version =
+        PomElements.child(pom, plugin.get(), "version")
+            .filter(element -> PomElements.text(pom, element).equals(current))
+            .orElseThrow(
+                () ->
+                    new SentinelException(
+                        "Could not safely update managed Maven plugin " + artifact + "."));
+    return Optional.of(
+        pom.substring(0, version.openEnd()) + selected + pom.substring(version.closeStart()));
   }
 
   private static String insertChild(

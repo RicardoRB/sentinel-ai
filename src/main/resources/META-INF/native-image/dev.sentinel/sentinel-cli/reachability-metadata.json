@@ -1,6 +1,7 @@
 {
   "resources": [
-    { "glob": "dev/sentinel/infrastructure/cli/version.properties" }
+    { "glob": "dev/sentinel/infrastructure/cli/version.properties" },
+    { "bundle": "com.sun.org.apache.xerces.internal.impl.msg.XMLMessages" }
   ],
   "foreign": {
     "downcalls": [

@@ -18,11 +18,11 @@ import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 
@@ -291,6 +291,7 @@ public final class PomToolConfigurator implements BuildToolConfiguration {
                 tool, preset, findings.get(tool.artifact()), approval, updated, tools, warnings);
       }
       if (!tools.isEmpty()) {
+        PomDeclarationValidator.validate(updated, addedDeclarations(original, updated, selected));
         Files.writeString(
             pom, updated, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
       }
@@ -325,6 +326,7 @@ public final class PomToolConfigurator implements BuildToolConfiguration {
         }
       }
       if (!tools.isEmpty()) {
+        PomDeclarationValidator.validate(updated, addedDeclarations(original, updated, selected));
         Files.writeString(
             pom, updated, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
       }
@@ -368,11 +370,7 @@ public final class PomToolConfigurator implements BuildToolConfiguration {
           approval instanceof Predicate<?> rawPredicate
               && ((Predicate<Object>) rawPredicate).test(finding);
       if (accepted) {
-        updated =
-            updateVersion(
-                updated, tool.artifact(), finding.currentVersion(), finding.selectedVersion());
-        tools.add(
-            tool.artifact() + " " + finding.currentVersion() + " -> " + finding.selectedVersion());
+        updated = updateVersion(updated, tool.artifact(), finding, tools, warnings);
       } else {
         warnings.add(
             "Compatibility update declined for "
@@ -391,24 +389,40 @@ public final class PomToolConfigurator implements BuildToolConfiguration {
     return updated;
   }
 
+  /** Declarations for the selected tools that this run added to the pom. */
+  private static List<PomDeclarationValidator.Declaration> addedDeclarations(
+      final String original, final String updated, final Set<String> selected) {
+    return TOOLS.stream()
+        .filter(tool -> selected.contains(tool.gate()))
+        .filter(tool -> !containsArtifact(original, tool.artifact()))
+        .filter(tool -> containsArtifact(updated, tool.artifact()))
+        .map(tool -> new PomDeclarationValidator.Declaration(tool.artifact(), tool.dependency()))
+        .toList();
+  }
+
   private static boolean containsArtifact(final String pom, final String artifactId) {
     return pom.contains("<artifactId>" + artifactId + "</artifactId>");
   }
 
   private static String updateVersion(
-      final String pom, final String artifact, final String current, final String selected) {
-    final String expression =
-        "(<artifactId>"
-            + Pattern.quote(artifact)
-            + "</artifactId>[\\s\\S]*?<version>)"
-            + Pattern.quote(current)
-            + "(</version>)";
-    final String updated =
-        pom.replaceFirst(expression, "$1" + Matcher.quoteReplacement(selected) + "$2");
-    if (updated.equals(pom)) {
-      throw new SentinelException("Could not safely update managed Maven plugin " + artifact + ".");
+      final String pom,
+      final String artifact,
+      final CompatibilityFinding finding,
+      final List<String> tools,
+      final List<String> warnings) {
+    final Optional<String> updated =
+        PomXml.replacePluginVersion(
+            pom, artifact, finding.currentVersion(), finding.selectedVersion());
+    if (updated.isEmpty()) {
+      warnings.add(
+          "Compatibility update skipped for "
+              + artifact
+              + " because it is not declared in the project-level build; selected gate was not"
+              + " reconfigured.");
+      return pom;
     }
-    return updated;
+    tools.add(artifact + " " + finding.currentVersion() + " -> " + finding.selectedVersion());
+    return updated.get();
   }
 
   /**
