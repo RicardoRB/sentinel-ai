@@ -83,6 +83,19 @@ jobs:
       - name: Build native executable
         run: ./mvnw -q -Pnative -DskipTests native:compile
 
+      # The generated harness hooks are POSIX shell scripts and the compatibility manifest pins
+      # Linux and macOS, so the integration checks run on those runners.
+      - name: Set up Bun
+        if: runner.os != 'Windows'
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.11
+
+      - name: Verify agent integrations against the native executable
+        if: runner.os != 'Windows'
+        shell: bash
+        run: compatibility/run-deterministic.sh "${{ matrix.binary }}"
+
       - name: Prepare Unix release asset
         if: runner.os != 'Windows'
         shell: bash

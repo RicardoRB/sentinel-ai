@@ -1,15 +1,34 @@
 {
-  "runtime": { "bun": "1.3.11" },
-  "package": { "name": "@opencode/plugin", "version": "2.0.29" },
+  "runtime": {
+    "bun": "1.3.11",
+    "opencode": "2.0.30"
+  },
+  "package": {
+    "name": "@opencode/plugin",
+    "version": "2.0.30"
+  },
   "provenance": [
     "https://opencode.ai/v2/docs/build/plugins",
     "https://opencode.ai/v2/docs/build/plugins/migrate-v1",
-    "https://opencode.ai/v2/openapi.json"
+    "https://github.com/anomalyco/opencode/blob/v2.0.30/packages/plugin/src/promise/adapter.ts",
+    "https://github.com/anomalyco/opencode/blob/v2.0.30/packages/core/src/tool.ts",
+    "https://github.com/anomalyco/opencode/blob/v2.0.30/packages/core/src/plugin/hooks.ts"
   ],
   "contracts": {
-    "definition": "define({ id, setup })",
-    "toolHooks": ["execute.before", "execute.after"],
-    "events": ["ctx.event.subscribe()", "session.idle"],
-    "session": ["ctx.session.get", "ctx.session.hook(\"prompt\")", "ctx.session.prompt"]
+    "definition": "import { Plugin } from \"@opencode/plugin\"; Plugin.define({ id, setup })",
+    "toolHooks": {
+      "execute.before": "a rejection becomes a Tool.Error that refuses that call alone",
+      "execute.after": "a rejection is a defect; the model sees normalizeContent(result.content, result.output)"
+    },
+    "events": {
+      "subscribe": "ctx.event.subscribe({ signal })",
+      "session.idle": "{ type, data: { sessionID }, location?: { directory } }"
+    },
+    "session": {
+      "get": "SessionInfo with location.directory",
+      "prompt": "{ sessionID, text, metadata?, delivery?: \"steer\" | \"queue\" }",
+      "hook(\"prompt\")": "runs for prompts submitted through session.prompt"
+    },
+    "spawn": "Bun.spawn resolves executables and environment from the host process's startup environment"
   }
 }

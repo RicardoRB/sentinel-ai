@@ -29,12 +29,13 @@ class ClaudeCodeIntegrationTest {
     assertThat(Files.readString(hook))
         .contains(
             ClaudeCodeIntegration.HOOK_MARKER,
-            "exec sentinel hook claude-code --learn-after 3 --exclude-spec --event-stdin");
+            "exec sentinel hook claude-code --learn-after 3 --exclude-spec --event-stdin"
+                + " -C \"${CLAUDE_PROJECT_DIR:-.}\"");
     final JsonTree hooks = JsonTree.parse(Files.readString(settings)).get(HOOKS_KEY);
     assertThat(hooks.get(POST_TOOL_USE).get(0).get(HOOKS_KEY).get(0).get("command").asString())
-        .isEqualTo(EDIT_WRITE_PATH);
+        .isEqualTo("${CLAUDE_PROJECT_DIR}/" + EDIT_WRITE_PATH);
     assertThat(hooks.get("Stop").get(0).get(HOOKS_KEY).get(0).get("command").asString())
-        .isEqualTo(EDIT_WRITE_PATH);
+        .isEqualTo("${CLAUDE_PROJECT_DIR}/" + EDIT_WRITE_PATH);
     assertThat(integration.integrate(root, false).status())
         .isEqualTo(IntegrationResult.Status.ALREADY_PRESENT);
     assertThat(integration.integrate(root, true).status())

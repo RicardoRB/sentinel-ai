@@ -8,6 +8,7 @@ import dev.sentinel.domain.json.JsonCodec;
 import java.util.Locale;
 import java.util.Set;
 import org.apache.fory.json.annotation.JsonProperty;
+import org.apache.fory.json.annotation.JsonType;
 
 /** Native GitHub Copilot CLI hooks integration contract. */
 public final class CopilotIntegration implements NativeHarnessAdapter {
@@ -74,31 +75,32 @@ public final class CopilotIntegration implements NativeHarnessAdapter {
     return NativeHookText.eventIn(input, Set.of("sessionEnd", "SessionEnd"));
   }
 
-  private static final class Payload {
-    String event;
+  @JsonType
+  public static final class Payload {
+    public String event;
 
     @JsonProperty("event_name")
-    String eventNameValue;
+    public String eventNameValue;
 
     @JsonProperty("hook_event_name")
-    String hookEventName;
+    public String hookEventName;
 
-    String type;
+    public String type;
 
     @JsonProperty("tool_name")
-    String toolNameValue;
+    public String toolNameValue;
 
-    String cwd;
+    public String cwd;
 
     @JsonProperty("file_path")
-    String filePath;
+    public String filePath;
 
-    String path;
-    String command;
-    String patch;
-    String patchText;
-    String skill;
-    String name;
+    public String path;
+    public String command;
+    public String patch;
+    public String patchText;
+    public String skill;
+    public String name;
 
     NativeHookInput input() {
       return new NativeHookInput(

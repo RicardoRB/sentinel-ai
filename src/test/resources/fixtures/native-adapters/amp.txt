@@ -2,38 +2,127 @@
 amp .amp/plugins/sentinel.ts .amp/plugins/sentinel.sh tool.call,tool.result,agent.end [APPROVED_ARTIFACT_GUARD, FEEDBACK, POST_EDIT, PRE_TOOL, TURN_END]
 == config
 // sentinel-owned: amp-native-hooks v1
-export default function (amp) {
-  amp.on('tool.call', async () => ({ action: 'allow' }));
-  amp.on('tool.result', async () => undefined);
-  amp.on('agent.end', async () => undefined);
+import { spawn } from "node:child_process";
+import type { PluginAPI } from "@ampcode/plugin";
+
+// Calls .amp/plugins/sentinel.sh: "pre" runs the approved-artifact guard when it is enabled,
+// "post" runs the quality check. Edits and shell commands are identified with Amp's helpers.
+const HOOK = ".amp/plugins/sentinel.sh";
+const MAX = 8192;
+
+export default function (amp: PluginAPI) {
+  const root = amp.system.workspaceRoot ? amp.helpers.filePathFromURI(amp.system.workspaceRoot) : null;
+  const hook = (phase: string, payload: Record<string, unknown>) =>
+    new Promise<{ code: number | null; stdout: string; stderr: string; error?: string }>((resolve) => {
+      if (!root) return resolve({ code: null, stdout: "", stderr: "", error: "Amp has no workspace root" });
+      let stdout = "";
+      let stderr = "";
+      const child = spawn(`${root}/${HOOK}`, [phase], { cwd: root, stdio: ["pipe", "pipe", "pipe"] });
+      child.stdout.on("data", (chunk) => (stdout += chunk));
+      child.stderr.on("data", (chunk) => (stderr += chunk));
+      child.on("error", (error) => resolve({ code: null, stdout, stderr, error: String(error?.message ?? error) }));
+      child.on("close", (code) => resolve({ code, stdout, stderr }));
+      child.stdin.on("error", () => {});
+      child.stdin.end(JSON.stringify(payload));
+    });
+  const modified = (event: Parameters<typeof amp.helpers.filesModifiedByToolCall>[0]) =>
+    (amp.helpers.filesModifiedByToolCall(event) ?? []).map((uri) => amp.helpers.filePathFromURI(uri));
+
+  amp.on("tool.call", async (event, ctx) => {
+    const shell = amp.helpers.shellCommandFromToolCall(event);
+    const payloads = modified(event).map((path) => ({ event: "tool.call", tool_name: event.tool, cwd: root, file_path: path }));
+    if (shell) payloads.push({ event: "tool.call", tool_name: event.tool, cwd: shell.dir ?? root, command: shell.command } as never);
+    for (const payload of payloads) {
+      const result = await hook("pre", payload);
+      if (result.error || result.code !== 0) {
+        // Sentinel could not decide; the call proceeds, as documented.
+        ctx.logger.log(`[sentinel guard] could not decide; allowing: ${(result.error ?? result.stderr).slice(0, 500)}`);
+        continue;
+      }
+      let decision: { action?: string; message?: unknown } | null = null;
+      try { decision = result.stdout.trim() ? JSON.parse(result.stdout) : null; } catch { decision = null; }
+      if (decision?.action === "reject-and-continue") {
+        return { action: "reject-and-continue", message: String(decision.message ?? "Refused by Sentinel.").slice(0, MAX) };
+      }
+    }
+    return { action: "allow" };
+  });
+
+  amp.on("tool.result", async (event, ctx) => {
+    // Failed or cancelled tool calls keep their original result and are not checked.
+    if (event.status !== "done") return;
+    const paths = modified(event);
+    if (paths.length === 0) return;
+    const targets = [paths[0], ...paths.slice(1).filter((path) => path.includes("openspec"))];
+    const feedback: string[] = [];
+    for (const path of targets) {
+      const result = await hook("post", { event: "tool.result", tool_name: event.tool, cwd: root, file_path: path });
+      if (result.error) {
+        ctx.logger.log(`[sentinel] could not run: ${result.error.slice(0, 500)}`);
+        return;
+      }
+      if (result.code !== 0) feedback.push((result.stderr || result.stdout).trim() || "Sentinel validation failed.");
+    }
+    if (feedback.length === 0) return;
+    const original = typeof event.output === "string" ? event.output : JSON.stringify(event.output ?? "");
+    return { status: "done", output: `${original}\n\n${[...new Set(feedback)].join("\n").slice(0, MAX)}` };
+  });
+
+  amp.on("agent.end", async (event, ctx) => {
+    if (event.status !== "done") return;
+    const result = await hook("post", { event: "agent.end", cwd: root });
+    if (result.error) {
+      ctx.logger.log(`[sentinel] could not run: ${result.error.slice(0, 500)}`);
+      return;
+    }
+    const text = (result.code === 0 ? result.stdout : result.stderr || result.stdout).trim();
+    if (!text) return;
+    // One corrective continuation per user message keeps an unfixable finding from looping.
+    return { action: "continue", userMessage: `[sentinel]\n${text.slice(0, MAX)}`, maxContinuations: 1 };
+  });
 }
 
 == hook KEEP
 #!/bin/sh
 # sentinel-owned: amp-native-hooks v1
-# Native event adapter for amp.
-if [ "keep" = "enable" ]; then
-  exec sentinel hook native --agent amp --guard-approved-specs --event-stdin
-fi
-exec sentinel hook native --agent amp --event-stdin
+# Native event adapter for amp. Usage: sentinel.sh pre|post, with the event JSON on stdin.
+# Hooks may run in a subdirectory, so Sentinel always checks the project this file is in.
+cd "$(dirname "$0")/../.." || exit 2
+case "$1" in
+  pre)
+    [ "keep" = "enable" ] || exit 0
+    exec sentinel hook native --agent amp --guard-approved-specs --event-stdin ;;
+  post) exec sentinel hook native --agent amp --event-stdin ;;
+  *) echo "Sentinel hook wrapper: expected pre or post." >&2; exit 2 ;;
+esac
 
 == hook ENABLE
 #!/bin/sh
 # sentinel-owned: amp-native-hooks v1
-# Native event adapter for amp.
-if [ "enable" = "enable" ]; then
-  exec sentinel hook native --agent amp --guard-approved-specs --event-stdin
-fi
-exec sentinel hook native --agent amp --event-stdin
+# Native event adapter for amp. Usage: sentinel.sh pre|post, with the event JSON on stdin.
+# Hooks may run in a subdirectory, so Sentinel always checks the project this file is in.
+cd "$(dirname "$0")/../.." || exit 2
+case "$1" in
+  pre)
+    [ "enable" = "enable" ] || exit 0
+    exec sentinel hook native --agent amp --guard-approved-specs --event-stdin ;;
+  post) exec sentinel hook native --agent amp --event-stdin ;;
+  *) echo "Sentinel hook wrapper: expected pre or post." >&2; exit 2 ;;
+esac
 
 == hook DISABLE
 #!/bin/sh
 # sentinel-owned: amp-native-hooks v1
-# Native event adapter for amp.
-if [ "disable" = "enable" ]; then
-  exec sentinel hook native --agent amp --guard-approved-specs --event-stdin
-fi
-exec sentinel hook native --agent amp --event-stdin
+# Native event adapter for amp. Usage: sentinel.sh pre|post, with the event JSON on stdin.
+# Hooks may run in a subdirectory, so Sentinel always checks the project this file is in.
+cd "$(dirname "$0")/../.." || exit 2
+case "$1" in
+  pre)
+    [ "disable" = "enable" ] || exit 0
+    exec sentinel hook native --agent amp --guard-approved-specs --event-stdin ;;
+  post) exec sentinel hook native --agent amp --event-stdin ;;
+  *) echo "Sentinel hook wrapper: expected pre or post." >&2; exit 2 ;;
+esac
 
 == deny
 {"action":"reject-and-continue","message":"Blocked \"quoted\" \\ path"}

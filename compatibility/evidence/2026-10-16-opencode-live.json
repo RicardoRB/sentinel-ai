@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 1,
+  "level": "automated-live",
+  "success": false,
+  "exitCode": 1,
+  "harnesses": [
+    {
+      "harness": "opencode",
+      "outcome": "blocked",
+      "scenarios": [
+        {
+          "schemaVersion": 1,
+          "harness": "opencode",
+          "scenario": "plugin-activation",
+          "level": "automated-live",
+          "outcome": "pass",
+          "reason": "5 assertions passed",
+          "executedAssertions": 5,
+          "assertions": [
+            {
+              "name": "runtime exited within the deadline",
+              "passed": true
+            },
+            {
+              "name": "runtime discovered sentinel-edit-write.js",
+              "passed": true
+            },
+            {
+              "name": "runtime discovered sentinel-openspec-guard.js",
+              "passed": true
+            },
+            {
+              "name": "sentinel-edit-write.js loaded without error",
+              "passed": true
+            },
+            {
+              "name": "sentinel-openspec-guard.js loaded without error",
+              "passed": true
+            }
+          ],
+          "durationMs": 1342,
+          "runtimeVersion": "2.0.30",
+          "sourceRevision": "1f1ca245f9b5ced68deb15b760e026a6514f8248+dirty"
+        },
+        {
+          "schemaVersion": 1,
+          "harness": "opencode",
+          "scenario": "edit-check-feedback",
+          "level": "automated-live",
+          "outcome": "blocked",
+          "reason": "missing prerequisite: SENTINEL_COMPAT_OPENCODE_MODEL (provider/model), a model provider API key from the credential allowlist",
+          "executedAssertions": 0,
+          "assertions": [],
+          "durationMs": 0,
+          "runtimeVersion": "2.0.30",
+          "sourceRevision": "1f1ca245f9b5ced68deb15b760e026a6514f8248+dirty"
+        },
+        {
+          "schemaVersion": 1,
+          "harness": "opencode",
+          "scenario": "guard-refuses-protected-edit",
+          "level": "automated-live",
+          "outcome": "blocked",
+          "reason": "missing prerequisite: SENTINEL_COMPAT_OPENCODE_MODEL (provider/model), a model provider API key from the credential allowlist",
+          "executedAssertions": 0,
+          "assertions": [],
+          "durationMs": 0,
+          "runtimeVersion": "2.0.30",
+          "sourceRevision": "1f1ca245f9b5ced68deb15b760e026a6514f8248+dirty"
+        },
+        {
+          "schemaVersion": 1,
+          "harness": "opencode",
+          "scenario": "guard-allows-active-change-edit",
+          "level": "automated-live",
+          "outcome": "blocked",
+          "reason": "missing prerequisite: SENTINEL_COMPAT_OPENCODE_MODEL (provider/model), a model provider API key from the credential allowlist",
+          "executedAssertions": 0,
+          "assertions": [],
+          "durationMs": 0,
+          "runtimeVersion": "2.0.30",
+          "sourceRevision": "1f1ca245f9b5ced68deb15b760e026a6514f8248+dirty"
+        },
+        {
+          "schemaVersion": 1,
+          "harness": "opencode",
+          "scenario": "idle-feedback-limit",
+          "level": "automated-live",
+          "outcome": "blocked",
+          "reason": "verification driver is not implemented",
+          "executedAssertions": 0,
+          "assertions": [],
+          "durationMs": 0,
+          "runtimeVersion": "2.0.30",
+          "sourceRevision": "1f1ca245f9b5ced68deb15b760e026a6514f8248+dirty"
+        },
+        {
+          "schemaVersion": 1,
+          "harness": "opencode",
+          "scenario": "reload-cleanup",
+          "level": "automated-live",
+          "outcome": "blocked",
+          "reason": "verification driver is not implemented",
+          "executedAssertions": 0,
+          "assertions": [],
+          "durationMs": 0,
+          "runtimeVersion": "2.0.30",
+          "sourceRevision": "1f1ca245f9b5ced68deb15b760e026a6514f8248+dirty"
+        }
+      ]
+    }
+  ]
+}

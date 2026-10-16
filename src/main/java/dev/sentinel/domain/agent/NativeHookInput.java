@@ -1,6 +1,9 @@
 package dev.sentinel.domain.agent;
 
-/** Harness-neutral event data extracted from a native agent hook payload. */
+/**
+ * Harness-neutral event data extracted from a native agent hook payload. {@code continued} marks a
+ * turn end that the harness is already continuing because of an earlier hook decision.
+ */
 public record NativeHookInput(
     String eventName,
     String toolName,
@@ -9,7 +12,20 @@ public record NativeHookInput(
     String command,
     String patch,
     String skill,
-    boolean unreadable) {
+    boolean unreadable,
+    boolean continued) {
+  public NativeHookInput(
+      final String eventName,
+      final String toolName,
+      final String workingDirectory,
+      final String path,
+      final String command,
+      final String patch,
+      final String skill,
+      final boolean unreadable) {
+    this(eventName, toolName, workingDirectory, path, command, patch, skill, unreadable, false);
+  }
+
   public String eventName() {
     return eventName;
   }

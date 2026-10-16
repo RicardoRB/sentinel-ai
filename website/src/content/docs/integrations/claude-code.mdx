@@ -11,8 +11,11 @@ executable `.claude/hooks/sentinel-edit-write`, and registers the same hook for 
 | `PostToolUse` (`Edit`, `Write`, `MultiEdit`) | After each file edit | Runs the quality check, then validates the edited spec file |
 | `Stop` | When Claude finishes its turn | Runs every configured spec check |
 
-The generated hook runs `sentinel hook claude-code --learn-after 3 --exclude-spec --event-stdin`. Make sure
-`sentinel` is on `PATH`. Claude Code passes each hook event as JSON on stdin, and Sentinel reads only the event
+The generated hook runs `sentinel hook claude-code --learn-after 3 --exclude-spec --event-stdin` for the
+project directory. Make sure `sentinel` is on `PATH`. Claude Code runs hooks in the session's current
+directory, so the registrations point at `${CLAUDE_PROJECT_DIR}/.claude/hooks/...` and the hook passes
+`-C "$CLAUDE_PROJECT_DIR"` to Sentinel. Checks still run for the project after the agent changes into a
+subdirectory. Claude Code passes each hook event as JSON on stdin, and Sentinel reads only the event
 name, the edited `file_path`, and `stop_hook_active`.
 
 ## After each edit
@@ -92,4 +95,21 @@ ownership marker, deletes its owned hook scripts, and preserves unrelated settin
 `.claude/settings.json` file remains, even if no settings remain in it. The hook executes repository
 configuration with your user privileges. Enable it only in repositories you trust.
 Re-run `sentinel integrate claude-code` to refresh an outdated Sentinel-owned hook. Integrations installed by
-earlier versions keep working, but they only run the quality check until you refresh them.
+Sentinel 0.0.7 and earlier registered relative hook paths, which Claude Code can't find once the session's
+directory changes; the hook then fails as a non-blocking error and no check runs. Refreshing replaces those
+registrations in place.
+
+## Verification
+
+The deterministic suite in `compatibility/claude-code` (`bun run test`) runs the generated settings and hook
+scripts the way Claude Code launches them, from a subdirectory and with `CLAUDE_PROJECT_DIR` set, against the
+real Sentinel. It covers edit checks and their exit-2 feedback, learning context, the guard's deny decision,
+uninspectable input, the one-time stop block, and settings merge and removal. It proves the generated files
+match Claude Code's hook contract, not that a running Claude Code loads them.
+
+The opt-in live run, `bun run src/cli.ts live claude-code` from `compatibility/`, runs headless `claude -p`
+turns against Claude Code 2.1.292 in a disposable fixture with an isolated `CLAUDE_CONFIG_DIR`, so no user or
+global settings are loaded. It needs `SENTINEL_COMPAT_CLAUDE_CODE_BIN` (an absolute path to that release) and
+`ANTHROPIC_API_KEY`; without them every scenario is reported as blocked and the command exits non-zero. No
+live run has been recorded yet.
+

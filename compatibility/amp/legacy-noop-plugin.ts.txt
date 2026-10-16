@@ -1,0 +1,7 @@
+// sentinel-owned: amp-native-hooks v1
+export default function (amp) {
+  amp.on('tool.call', async () => ({ action: 'allow' }));
+  amp.on('tool.result', async () => undefined);
+  amp.on('agent.end', async () => undefined);
+}
+

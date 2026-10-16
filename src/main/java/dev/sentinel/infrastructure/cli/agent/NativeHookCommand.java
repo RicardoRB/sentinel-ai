@@ -6,7 +6,6 @@ import dev.sentinel.application.spec.ApprovedArtifactGuardService;
 import dev.sentinel.application.spec.SpecValidationService;
 import dev.sentinel.domain.agent.AgentIntegration;
 import dev.sentinel.domain.agent.NativeHookInput;
-import dev.sentinel.domain.agent.NativeHookOutcome;
 import dev.sentinel.domain.config.SentinelException;
 import dev.sentinel.domain.gate.CheckReport;
 import dev.sentinel.domain.gate.SupportedQualityGates;
@@ -88,20 +87,19 @@ public final class NativeHookCommand implements Callable<Integer> {
       }
       final CheckReport report =
           checkService.checkExcluding(options.directory(), SupportedQualityGates.specIds());
+      if (protocol.turnEnds(event)) {
+        return NativeHookTurnEnd.deliver(
+            protocol,
+            event,
+            report,
+            specService.validateConfigured(options.directory(), List.of()),
+            output(),
+            error());
+      }
       final SpecValidationReport specs = validateEditedPath(event);
       if (!report.passed() || specs.hasFindings()) {
         error().println(NativeHookMessages.failureText(report, specs));
         return ExitCodes.ERROR;
-      }
-      if (protocol.turnEnds(event)) {
-        final SpecValidationReport full =
-            specService.validateConfigured(options.directory(), List.of());
-        if (full.hasFindings()) {
-          output()
-              .println(
-                  protocol.serialize(
-                      NativeHookOutcome.feedback(NativeHookMessages.feedback(full))));
-        }
       }
       return ExitCodes.OK;
     } catch (SentinelException | JsonCodecException | UncheckedIOException exception) {

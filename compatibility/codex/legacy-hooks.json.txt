@@ -1,0 +1,8 @@
+{
+  "sentinelOwnership": "sentinel-owned: codex-native-hooks v1",
+  "hooks": {
+    "PreToolUse": [{"matcher":".*","hooks":[{"type":"command","command":".codex/hooks/sentinel.sh"}]}],
+    "PostToolUse": [{"type":"command","command":".codex/hooks/sentinel.sh"}]
+  }
+}
+

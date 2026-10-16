@@ -20,13 +20,14 @@ public interface NativeHarnessAdapter extends AgentIntegration, NativeHookProtoc
 
   default NativeArtifactPlan artifactPlan(final Path projectRoot, final GuardMode guardMode) {
     final Path root = projectRoot.toAbsolutePath().normalize();
+    final Path hook = root.resolve(definition().hookFile());
     return new NativeArtifactPlan(
         id(),
         root.resolve(definition().configFile()),
-        root.resolve(definition().hookFile()),
+        hook,
         NativeHookText.marker(id()),
         configContent(),
-        hookContent(guardMode),
+        hookContent(NativeIntegrationSupport.resolveGuard(hook, guardMode)),
         capabilities());
   }
 
