@@ -98,14 +98,14 @@
       "discovery": [".cursor/hooks.json"],
       "capabilities": {
         "post-edit": "supported",
-        "feedback": "unsupported",
+        "feedback": "supported",
         "pre-tool-guard": "supported",
         "turn-end": "supported"
       },
       "capabilityNotes": {
         "feedback": "afterFileEdit has no output fields; agent-visible feedback is only possible through the stop hook followup_message."
       },
-      "verification": { "mode": "witnessed", "prerequisites": ["CURSOR_API_KEY", "Cursor editor or headless hook support in cursor-agent"] }
+      "verification": { "mode": "automated", "prerequisites": ["CURSOR_API_KEY"] }
     },
     {
       "id": "copilot",

@@ -120,10 +120,18 @@ describe("live verification prerequisites", () => {
     expect(report.exitCode).toBe(1);
   });
 
+  test("Cursor is blocked on CURSOR_API_KEY once its pinned runtime is present", async () => {
+    const runtime = fakeRuntime("cursor-pinned", "2026.10.14-941492e");
+    const report = await runLive(["cursor"], options({ SENTINEL_COMPAT_CURSOR_BIN: runtime }));
+    expect(new Set(report.harnesses[0].scenarios.map((s) => s.reason))).toEqual(new Set(["missing prerequisite: CURSOR_API_KEY"]));
+    expect(report.harnesses[0].scenarios.length).toBe(4);
+    expect(report.exitCode).toBe(1);
+  });
+
   test("editor-only harnesses are blocked pending a witnessed procedure", async () => {
-    const witnessed: LiveDriver = { harness: "cursor", missingPrerequisites: () => [], scenarios: [{ id: "edit" }] };
-    const report = await runLive(["cursor"], options({}, { cursor: witnessed }));
-    expect(report.harnesses[0].scenarios[0].reason).toBe("missing prerequisite: Cursor requires a witnessed procedure");
+    const witnessed: LiveDriver = { harness: "windsurf", missingPrerequisites: () => [], scenarios: [{ id: "edit" }] };
+    const report = await runLive(["windsurf"], options({}, { windsurf: witnessed }));
+    expect(report.harnesses[0].scenarios[0].reason).toBe("missing prerequisite: Windsurf requires a witnessed procedure");
   });
 
   test("the OpenCode driver reports its unimplemented scenarios as blocked, never passed", () => {

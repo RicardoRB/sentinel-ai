@@ -41,7 +41,7 @@ bun test test/
 ## All deterministic suites
 
 `compatibility/run-deterministic.sh [path/to/sentinel]` runs the tooling tests and every harness suite
-(`opencode-v2`, `amp`, `claude-code`, `codex`, `copilot`, `gemini`, `factory-droid`) against one Sentinel build. The release workflow runs it
+(`opencode-v2`, `amp`, `claude-code`, `codex`, `copilot`, `gemini`, `factory-droid`, `cursor`) against one Sentinel build. The release workflow runs it
 against each Linux and macOS native executable before publishing, so a broken integration stops the release.
 
 ## Runtime preflight
@@ -67,7 +67,7 @@ The command prints one JSON line per harness and exits `1` unless every requeste
 | `opencode` | opencode 2.0.30 | set `SENTINEL_COMPAT_OPENCODE_BIN` | automated | model provider credentials for a bounded smoke turn |
 | `claude-code` | claude 2.1.292 | `bun run src/cli.ts preflight --install claude-code` | automated | `ANTHROPIC_API_KEY` |
 | `codex` | codex 0.163.0 | `bun run src/cli.ts preflight --install codex` | automated | `OPENAI_API_KEY`; hook trust review in the isolated `CODEX_HOME` |
-| `cursor` | cursor-agent 2026.10.14-941492e | set `SENTINEL_COMPAT_CURSOR_BIN` | witnessed | `CURSOR_API_KEY`; Cursor editor or headless hook support in cursor-agent |
+| `cursor` | cursor-agent 2026.10.14-941492e | set `SENTINEL_COMPAT_CURSOR_BIN` | automated | `CURSOR_API_KEY` |
 | `copilot` | copilot 1.0.98 | `bun run src/cli.ts preflight --install copilot` | automated | `GH_TOKEN` with a Copilot subscription |
 | `gemini` | gemini 0.64.0 | `bun run src/cli.ts preflight --install gemini` | automated | `GEMINI_API_KEY` |
 | `windsurf` | windsurf 1.126.0 | set `SENTINEL_COMPAT_WINDSURF_BIN` | witnessed | Windsurf editor installation and a signed-in account |
