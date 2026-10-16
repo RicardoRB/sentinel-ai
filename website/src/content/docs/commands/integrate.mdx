@@ -28,6 +28,11 @@ Capabilities: [APPROVED_ARTIFACT_GUARD, FEEDBACK, POST_EDIT, PRE_TOOL]
 
 Statuses are `CHANGED`, `ALREADY_PRESENT`, `REMOVED`, `NOT_FOUND`, and `CONFLICT`. Capabilities are `PRE_TOOL`, `POST_EDIT`, `TURN_END`, `FEEDBACK`, and `APPROVED_ARTIFACT_GUARD`.
 Harnesses without `PRE_TOOL` are advisory-only: they report failures but cannot block a tool call.
+Harnesses without `FEEDBACK` (Windsurf) show findings to you but cannot pass them to the agent, and
+harnesses without `TURN_END` (Windsurf, Cline) have no check when the agent finishes. See
+[what each integration delivers](/integrations/native-harnesses/#what-each-integration-delivers).
+Capabilities describe what the generated files are built to do; a successful install does not prove the
+harness has loaded them.
 
 Claude Code and OpenCode run the quality check with `--exclude-spec` after each edit and validate edited spec files
 with [`spec validate`](/commands/spec/). When the agent finishes a turn, they run the configured spec checks

@@ -28,7 +28,8 @@ public final class ClineIntegration implements NativeHarnessAdapter {
               IntegrationCapability.PRE_TOOL,
               IntegrationCapability.POST_EDIT,
               IntegrationCapability.FEEDBACK,
-              IntegrationCapability.APPROVED_ARTIFACT_GUARD));
+              IntegrationCapability.APPROVED_ARTIFACT_GUARD),
+          ".cline/hooks/sentinel.sh");
 
   @Override
   public NativeAgentIntegration.Definition definition() {

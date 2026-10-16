@@ -84,6 +84,15 @@ public final class NativeIntegrationSupport {
    * Resolves {@link GuardMode#KEEP} to the state of the installed hook wrapper, so a refresh
    * without a guard option neither enables nor silently disables the guard.
    */
+  static GuardMode resolveGuard(
+      final Path root,
+      final NativeAgentIntegration.Definition definition,
+      final GuardMode requested) {
+    final Path current = root.resolve(definition.hookFile());
+    return resolveGuard(
+        Files.exists(current) ? current : root.resolve(definition.priorHookFile()), requested);
+  }
+
   static GuardMode resolveGuard(final Path hook, final GuardMode requested) {
     if (requested != GuardMode.KEEP) {
       return requested;

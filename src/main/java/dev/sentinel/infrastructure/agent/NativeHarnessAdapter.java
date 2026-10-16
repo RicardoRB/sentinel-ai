@@ -27,7 +27,7 @@ public interface NativeHarnessAdapter extends AgentIntegration, NativeHookProtoc
         hook,
         NativeHookText.marker(id()),
         configContent(),
-        hookContent(NativeIntegrationSupport.resolveGuard(hook, guardMode)),
+        hookContent(NativeIntegrationSupport.resolveGuard(root, definition(), guardMode)),
         capabilities());
   }
 
