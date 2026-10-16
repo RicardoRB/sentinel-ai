@@ -97,9 +97,9 @@ class NativeAgentAdapterContractTest {
             new ClineIntegration(), ".cline/hooks/sentinel.json", ".cline/hooks/sentinel.sh", true),
         Arguments.of(
             new FactoryDroidIntegration(),
-            ".factory/plugins/sentinel.json",
-            ".factory/plugins/sentinel.sh",
-            false),
+            ".factory/hooks.json",
+            ".factory/hooks/sentinel.sh",
+            true),
         Arguments.of(
             new AmpIntegration(), ".amp/plugins/sentinel.ts", ".amp/plugins/sentinel.sh", true));
   }

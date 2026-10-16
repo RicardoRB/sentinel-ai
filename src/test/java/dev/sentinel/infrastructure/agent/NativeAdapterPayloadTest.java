@@ -19,7 +19,6 @@ class NativeAdapterPayloadTest {
         new AmpIntegration(),
         new ClineIntegration(),
         new CursorIntegration(),
-        new FactoryDroidIntegration(),
         new WindsurfIntegration());
   }
 

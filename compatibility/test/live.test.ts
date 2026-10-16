@@ -34,7 +34,7 @@ const options = (env: Record<string, string>, drivers: Record<string, LiveDriver
 
 describe("live verification prerequisites", () => {
   test("a harness without a live driver is blocked as unimplemented", async () => {
-    const report = await runLive(["factory-droid"], options({}));
+    const report = await runLive(["cline"], options({}));
     expect(report.exitCode).toBe(1);
     expect(report.harnesses[0].outcome).toBe("blocked");
     expect(report.harnesses[0].scenarios[0].reason).toBe("verification driver is not implemented");
@@ -108,6 +108,14 @@ describe("live verification prerequisites", () => {
     const runtime = fakeRuntime("gemini-pinned", "0.64.0");
     const report = await runLive(["gemini"], options({ SENTINEL_COMPAT_GEMINI_BIN: runtime }));
     expect(new Set(report.harnesses[0].scenarios.map((s) => s.reason))).toEqual(new Set(["missing prerequisite: GEMINI_API_KEY"]));
+    expect(report.harnesses[0].scenarios.length).toBe(4);
+    expect(report.exitCode).toBe(1);
+  });
+
+  test("Factory Droid is blocked on FACTORY_API_KEY once its pinned runtime is present", async () => {
+    const runtime = fakeRuntime("droid-pinned", "0.243.0");
+    const report = await runLive(["factory-droid"], options({ SENTINEL_COMPAT_FACTORY_DROID_BIN: runtime }));
+    expect(new Set(report.harnesses[0].scenarios.map((s) => s.reason))).toEqual(new Set(["missing prerequisite: FACTORY_API_KEY"]));
     expect(report.harnesses[0].scenarios.length).toBe(4);
     expect(report.exitCode).toBe(1);
   });

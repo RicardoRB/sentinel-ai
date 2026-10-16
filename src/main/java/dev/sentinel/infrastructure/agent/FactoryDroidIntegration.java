@@ -5,55 +5,87 @@ import dev.sentinel.domain.agent.IntegrationCapability;
 import dev.sentinel.domain.agent.NativeHookInput;
 import dev.sentinel.domain.agent.NativeHookOutcome;
 import dev.sentinel.domain.json.JsonCodec;
-import java.util.Locale;
 import java.util.Set;
 import org.apache.fory.json.annotation.JsonProperty;
 import org.apache.fory.json.annotation.JsonType;
 
-/** Advisory native Factory Droid plugin integration contract. */
+/**
+ * Native Factory Droid hooks integration contract, read from droid 0.243.0: the project's {@code
+ * .factory/hooks.json} holds the events at its top level and is validated as a whole, so an invalid
+ * file loads no hooks.
+ */
 public final class FactoryDroidIntegration implements NativeHarnessAdapter {
+  /** Seconds Droid waits for a quality check; the default is 60 seconds. */
+  private static final int CHECK_TIMEOUT_SECONDS = 600;
+
   private static final NativeAgentIntegration.Definition DEFINITION =
       new NativeAgentIntegration.Definition(
           "factory-droid",
-          ".factory/plugins/sentinel.json",
-          ".factory/plugins/sentinel.sh",
-          "PostToolUse,Stop,SessionEnd",
-          Set.of(IntegrationCapability.POST_EDIT, IntegrationCapability.FEEDBACK));
+          ".factory/hooks.json",
+          ".factory/hooks/sentinel.sh",
+          "PreToolUse,PostToolUse,Stop",
+          Set.of(
+              IntegrationCapability.PRE_TOOL,
+              IntegrationCapability.POST_EDIT,
+              IntegrationCapability.TURN_END,
+              IntegrationCapability.FEEDBACK,
+              IntegrationCapability.APPROVED_ARTIFACT_GUARD));
 
   @Override
   public NativeAgentIntegration.Definition definition() {
     return DEFINITION;
   }
 
+  /**
+   * Hook entries accept only {@code type}, {@code command}, {@code timeout} and {@code
+   * preserveRiskLevel}, so the ownership marker is a shell comment at the end of each command.
+   * Commands run in Droid's working directory; the wrapper is resolved from the repository root.
+   */
   @Override
   public String configContent() {
-    return "{\n  \"sentinelOwnership\": \""
+    return "{\n"
+        + "  \"PreToolUse\": ["
+        + group("^(Create|Edit|MultiEdit|ApplyPatch|Execute)$", "pre", 0)
+        + "],\n  \"PostToolUse\": ["
+        + group("^(Create|Edit|MultiEdit|ApplyPatch)$", "post", CHECK_TIMEOUT_SECONDS)
+        + "],\n  \"Stop\": ["
+        + group(null, "post", CHECK_TIMEOUT_SECONDS)
+        + "]\n}\n";
+  }
+
+  private static String group(final String matcher, final String phase, final int timeout) {
+    return "{"
+        + (matcher == null ? "" : "\"matcher\": \"" + matcher + "\", ")
+        + "\"hooks\": [{\"type\": \"command\", \"command\": \"\\\"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/"
+        + DEFINITION.hookFile()
+        + "\\\" "
+        + phase
+        + " # "
         + NativeHookText.marker(DEFINITION.id())
-        + "\",\n  \"hooks\": {\n    \"postToolUse\": [{\"type\":\"command\",\"command\":\""
-        + DEFINITION.hookFile()
-        + "\"}],\n    \"sessionEnd\": [{\"type\":\"command\",\"command\":\""
-        + DEFINITION.hookFile()
-        + "\"}]\n  }\n}\n";
+        + "\""
+        + (timeout == 0 ? "" : ", \"timeout\": " + timeout)
+        + "}]}";
   }
 
   @Override
   public String hookContent(final GuardMode guardMode) {
-    return "#!/bin/sh\n# "
-        + NativeHookText.marker(DEFINITION.id())
-        + "\n# Native event adapter for factory-droid (guard mode: "
-        + guardMode.name().toLowerCase(Locale.ROOT)
-        + ").\nexec sentinel hook native --agent factory-droid --event-stdin\n";
+    return NativeHookText.phaseWrapper(DEFINITION.id(), DEFINITION.hookFile(), guardMode);
   }
 
   public String denyResponse(final String reason) {
-    return "{\"decision\":\"deny\",\"reason\":" + NativeHookText.quote(reason) + "}";
+    return "{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":"
+        + NativeHookText.quote(reason)
+        + "}}";
   }
 
+  /** Post-tool findings exit 2, which Droid feeds to the model; Stop continues with block. */
   @Override
   public String serialize(final NativeHookOutcome outcome) {
     return switch (outcome.kind()) {
       case DENY -> denyResponse(outcome.message());
-      case FEEDBACK, ERROR -> outcome.message();
+      case FEEDBACK ->
+          "{\"decision\":\"block\",\"reason\":" + NativeHookText.quote(outcome.message()) + "}";
+      case ERROR -> outcome.message();
       case ALLOW -> "";
     };
   }
@@ -65,55 +97,48 @@ public final class FactoryDroidIntegration implements NativeHarnessAdapter {
 
   @Override
   public boolean turnEnds(final NativeHookInput input) {
-    return NativeHookText.eventIn(input, Set.of("sessionEnd", "SessionEnd"));
+    return NativeHookText.eventIn(input, Set.of("Stop"));
   }
 
+  /** Droid hook stdin: tool arguments arrive under {@code tool_input}. */
   @JsonType
   public static final class Payload {
-    public String event;
-
-    @JsonProperty("event_name")
-    public String eventNameValue;
-
     @JsonProperty("hook_event_name")
     public String hookEventName;
 
-    public String type;
-
     @JsonProperty("tool_name")
-    public String toolNameValue;
+    public String toolName;
 
     public String cwd;
 
+    @JsonProperty("tool_input")
+    public ToolInput toolInput;
+
+    @JsonProperty("stop_hook_active")
+    public Boolean stopHookActive;
+
+    NativeHookInput input() {
+      final ToolInput arguments = toolInput == null ? new ToolInput() : toolInput;
+      return new NativeHookInput(
+          hookEventName,
+          toolName,
+          cwd == null ? "" : cwd,
+          arguments.filePath,
+          arguments.command,
+          arguments.input,
+          null,
+          false,
+          Boolean.TRUE.equals(stopHookActive));
+    }
+  }
+
+  /** {@code file_path} for Create and Edit, {@code input} (the patch) for ApplyPatch. */
+  @JsonType
+  public static final class ToolInput {
     @JsonProperty("file_path")
     public String filePath;
 
-    public String path;
     public String command;
-    public String patch;
-    public String patchText;
-    public String skill;
-    public String name;
-
-    NativeHookInput input() {
-      return new NativeHookInput(
-          first(event, eventNameValue, hookEventName, type),
-          first(toolNameValue, name),
-          cwd == null ? "" : cwd,
-          first(filePath, path),
-          command,
-          first(patch, patchText),
-          skill,
-          false);
-    }
-
-    private static String first(final String... values) {
-      for (final String value : values) {
-        if (value != null && !value.isBlank()) {
-          return value;
-        }
-      }
-      return null;
-    }
+    public String input;
   }
 }

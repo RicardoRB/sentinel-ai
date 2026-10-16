@@ -32,6 +32,6 @@ class NativeHookResponseTest {
     assertThat(new ClineIntegration().denyResponse(BLOCKED))
         .contains("decision", "deny", "blocked");
     assertThat(new FactoryDroidIntegration().denyResponse(BLOCKED))
-        .contains("decision", "deny", "blocked");
+        .contains("permissionDecision", "deny", "blocked");
   }
 }
