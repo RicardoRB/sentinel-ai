@@ -9,5 +9,11 @@
       { "returnType": "int", "parameterTypes": ["int", "int", "void*"] },
       { "returnType": "long", "parameterTypes": ["int", "void*", "long"] }
     ]
-  }
+  },
+  "reflection": [
+    { "type": { "proxy": ["dev.sentinel.infrastructure.terminal.PosixRawTerminal$Isatty"] } },
+    { "type": { "proxy": ["dev.sentinel.infrastructure.terminal.PosixRawTerminal$Tcgetattr"] } },
+    { "type": { "proxy": ["dev.sentinel.infrastructure.terminal.PosixRawTerminal$Tcsetattr"] } },
+    { "type": { "proxy": ["dev.sentinel.infrastructure.terminal.PosixRawTerminal$NativeRead"] } }
+  ]
 }

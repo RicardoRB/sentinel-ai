@@ -1,0 +1,17 @@
+name: Pull request
+
+# Every pull request must pass the JVM quality gates (including JaCoCo coverage), build the native
+# executable, and pass the native checks before it can merge.
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pull-request-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    uses: ./.github/workflows/verify.yml

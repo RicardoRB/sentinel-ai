@@ -9,6 +9,7 @@
 - Raw-key terminal input uses the `RawTerminal` port and POSIX adapter; do not launch `stty` or another process from CLI code. Route filesystem checks through application use cases and domain ports.
 - `QualityGate` is the extension point; update `QualityGateFactory` and `sentinel.toml` together when adding a gate.
 - `dev.sentinel.config.SentinelComponent` wires Dagger at compile time; preserve the explicit constructor graph for native-image compatibility.
+- Native images contain only classes seen at build time. Do not call APIs that build classes at runtime: `MethodHandleProxies`, `MethodHandles.Lookup#defineHiddenClass` / `defineClass`, and similar (`java.lang.classfile`, custom class loaders). `NativeImageCompatibilityTest` rejects them. Register any `java.lang.reflect.Proxy` interface, reflective type, or FFM downcall in `src/main/resources/META-INF/native-image/dev.sentinel/sentinel-cli/reachability-metadata.json`.
 
 ## Code Style
 
@@ -24,6 +25,7 @@
 - Run one test with `./mvnw -Dtest=ClassName#methodName test`.
 - CLI integration tests use the offline fixture `src/test/resources/fixtures/maven-project` and its stub `mvnw`.
 - Use `FakeCommandExecutor` for process tests. Existing test names use descriptive camelCase.
+- `NativeInitTerminalSmokeTest` drives a built executable's `init` wizard through a pseudo-terminal and is skipped unless `-Dsentinel.native.binary` is set: `./mvnw -Dtest=NativeInitTerminalSmokeTest -Dsentinel.native.binary=target/sentinel test` after `native:compile`.
 - PIT, Testcontainers, and OWASP Dependency-Check are not configured; do not invent or claim those checks.
 
 ## Security

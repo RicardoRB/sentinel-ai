@@ -7,8 +7,8 @@ import java.lang.foreign.Linker;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandleProxies;
 import java.lang.invoke.MethodType;
+import java.lang.reflect.Proxy;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
@@ -109,8 +109,17 @@ public final class PosixRawTerminal implements RawTerminal {
     return tcsetattr.call(STDIN, 0, raw) == 0;
   }
 
+  /**
+   * Binds a downcall handle to a functional interface. {@code MethodHandleProxies} spins hidden
+   * classes at run time, which native images cannot do; JDK dynamic proxies are registered in
+   * {@code reachability-metadata.json} instead.
+   */
   private static <T> T proxy(final Class<T> type, final MethodHandle handle) {
-    return type.cast(MethodHandleProxies.asInterfaceInstance(type, handle));
+    return type.cast(
+        Proxy.newProxyInstance(
+            Thread.currentThread().getContextClassLoader(),
+            new Class<?>[] {type},
+            (instance, method, arguments) -> handle.invokeWithArguments(arguments)));
   }
 
   private static MethodHandle downcall(
