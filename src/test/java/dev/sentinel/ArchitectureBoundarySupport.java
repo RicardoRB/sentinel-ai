@@ -171,6 +171,20 @@ final class ArchitectureBoundarySupport {
             .contains(target);
   }
 
+  /**
+   * APIs that define or load classes at run time. GraalVM native images contain only the classes
+   * seen at build time, so these compile but fail when the executable runs.
+   */
+  static boolean isNativeImageIncompatibleApi(final String target) {
+    return target.startsWith("java.lang.classfile.")
+        || Set.of(
+                "java.lang.invoke.MethodHandleProxies",
+                "java.lang.invoke.MethodHandles$Lookup",
+                "java.net.URLClassLoader",
+                "java.security.SecureClassLoader")
+            .contains(target);
+  }
+
   static boolean isCliExternalEffectApi(final String target) {
     return target.startsWith("java.net.")
         || target.startsWith("java.nio.channels.")

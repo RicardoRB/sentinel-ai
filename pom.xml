@@ -17,6 +17,7 @@
         <dagger.version>2.56.2</dagger.version>
         <javax.inject.version>1</javax.inject.version>
         <fory.version>1.7.6</fory.version>
+        <native-build-tools.version>1.1.14</native-build-tools.version>
         <junit.version>6.0.3</junit.version>
         <assertj.version>3.27.6</assertj.version>
     </properties>
@@ -71,12 +72,23 @@
     <profiles>
         <profile>
             <id>native</id>
+            <dependencies>
+                <!-- Records the JVM-discovered test IDs that native:test compiles into a test image. -->
+                <dependency>
+                    <groupId>org.graalvm.buildtools</groupId>
+                    <artifactId>junit-platform-native</artifactId>
+                    <version>${native-build-tools.version}</version>
+                    <scope>test</scope>
+                </dependency>
+            </dependencies>
             <build>
                 <plugins>
                     <plugin>
                         <groupId>org.graalvm.buildtools</groupId>
                         <artifactId>native-maven-plugin</artifactId>
-                        <version>1.1.14</version>
+                        <version>${native-build-tools.version}</version>
+                        <!-- Lets native:test configure Surefire to record the test IDs it compiles. -->
+                        <extensions>true</extensions>
                         <configuration>
                             <imageName>sentinel</imageName>
                         </configuration>

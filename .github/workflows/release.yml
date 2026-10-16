@@ -83,6 +83,11 @@ jobs:
       - name: Build native executable
         run: ./mvnw -q -Pnative -DskipTests native:compile
 
+      # Exercises the raw-key terminal path, which JVM tests cannot reach without a TTY.
+      - name: Drive init through a pseudo-terminal
+        if: runner.os != 'Windows'
+        run: ./mvnw -B -Dtest=NativeInitTerminalSmokeTest -Dsentinel.native.binary=${{ matrix.binary }} test
+
       # The generated harness hooks are POSIX shell scripts and the compatibility manifest pins
       # Linux and macOS, so the integration checks run on those runners.
       - name: Set up Bun
