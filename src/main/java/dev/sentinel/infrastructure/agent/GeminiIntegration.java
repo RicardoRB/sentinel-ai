@@ -5,19 +5,25 @@ import dev.sentinel.domain.agent.IntegrationCapability;
 import dev.sentinel.domain.agent.NativeHookInput;
 import dev.sentinel.domain.agent.NativeHookOutcome;
 import dev.sentinel.domain.json.JsonCodec;
-import java.util.Locale;
+import java.util.Optional;
 import java.util.Set;
 import org.apache.fory.json.annotation.JsonProperty;
 import org.apache.fory.json.annotation.JsonType;
 
-/** Native Gemini CLI hooks integration contract. */
+/**
+ * Native Gemini CLI hooks integration contract, read from {@code @google/gemini-cli-core} 0.64.0
+ * ({@code hooks/hookRegistry.js}, {@code hooks/hookRunner.js}, {@code core/client.js}).
+ */
 public final class GeminiIntegration implements NativeHarnessAdapter {
+  /** Milliseconds Gemini waits for a quality check; the default is 60 seconds. */
+  private static final int CHECK_TIMEOUT_MILLIS = 600_000;
+
   private static final NativeAgentIntegration.Definition DEFINITION =
       new NativeAgentIntegration.Definition(
           "gemini",
           ".gemini/settings.json",
           ".gemini/hooks/sentinel.sh",
-          "BeforeTool,AfterTool,AfterAgent,SessionEnd",
+          "BeforeTool,AfterTool,AfterAgent",
           Set.of(
               IntegrationCapability.PRE_TOOL,
               IntegrationCapability.POST_EDIT,
@@ -30,41 +36,72 @@ public final class GeminiIntegration implements NativeHarnessAdapter {
     return DEFINITION;
   }
 
+  /**
+   * Gemini discards a definition without a {@code hooks} list, so every event is a matcher group.
+   * Tool matchers are regular expressions over the tool name. The ownership marker is the
+   * documented {@code description} of each hook. Commands run in the session's directory; the
+   * wrapper is resolved from the repository root so a session started in a subdirectory still finds
+   * it.
+   */
   @Override
   public String configContent() {
-    return "{\n  \"sentinelOwnership\": \""
+    return "{\n  \"hooks\": {\n"
+        + "    \"BeforeTool\": ["
+        + group("^(write_file|replace|run_shell_command)$", "pre", 0)
+        + "],\n    \"AfterTool\": ["
+        + group("^(write_file|replace)$", "post", CHECK_TIMEOUT_MILLIS)
+        + "],\n    \"AfterAgent\": ["
+        + group(null, "post", CHECK_TIMEOUT_MILLIS)
+        + "]\n  }\n}\n";
+  }
+
+  private static String group(final String matcher, final String phase, final int timeout) {
+    return "{"
+        + (matcher == null ? "" : "\"matcher\": \"" + matcher + "\", ")
+        + "\"hooks\": [{\"type\": \"command\", \"name\": \"sentinel-"
+        + phase
+        + "\", \"command\": \"\\\"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/"
+        + DEFINITION.hookFile()
+        + "\\\" "
+        + phase
+        + "\""
+        + (timeout == 0 ? "" : ", \"timeout\": " + timeout)
+        + ", \"description\": \""
         + NativeHookText.marker(DEFINITION.id())
-        + "\",\n  \"hooks\": {\n    \"BeforeTool\": [{\"matcher\":\".*\",\"hooks\":[{\"type\":\"command\",\"command\":\""
-        + DEFINITION.hookFile()
-        + "\"}]}],\n    \"AfterTool\": [{\"type\":\"command\",\"command\":\""
-        + DEFINITION.hookFile()
-        + "\"}],\n    \"AfterAgent\": [{\"type\":\"command\",\"command\":\""
-        + DEFINITION.hookFile()
-        + "\"}],\n    \"SessionEnd\": [{\"type\":\"command\",\"command\":\""
-        + DEFINITION.hookFile()
-        + "\"}]\n  }\n}\n";
+        + "\"}]}";
   }
 
   @Override
   public String hookContent(final GuardMode guardMode) {
-    return "#!/bin/sh\n# "
-        + NativeHookText.marker(DEFINITION.id())
-        + "\n# Native event adapter for gemini.\nif [ \""
-        + guardMode.name().toLowerCase(Locale.ROOT)
-        + "\" = \"enable\" ]; then\n  exec sentinel hook native --agent gemini --guard-approved-specs --event-stdin\nfi\nexec sentinel hook native --agent gemini --event-stdin\n";
+    return NativeHookText.phaseWrapper(DEFINITION.id(), DEFINITION.hookFile(), guardMode);
   }
 
   public String denyResponse(final String reason) {
-    return "{\"decision\":\"deny\",\"reason\":" + NativeHookText.quote(reason) + "}";
+    return NativeHookText.genericDenial(reason);
   }
 
+  /** A blocking AfterAgent decision makes Gemini retry the turn with the reason as the prompt. */
   @Override
   public String serialize(final NativeHookOutcome outcome) {
     return switch (outcome.kind()) {
       case DENY -> denyResponse(outcome.message());
-      case FEEDBACK, ERROR -> outcome.message();
+      case FEEDBACK ->
+          "{\"decision\":\"block\",\"reason\":" + NativeHookText.quote(outcome.message()) + "}";
+      case ERROR -> outcome.message();
       case ALLOW -> "";
     };
+  }
+
+  /**
+   * A blocking AfterTool result replaces the tool output with an error, although the edit was
+   * applied, so findings are appended to the result as additional context instead.
+   */
+  @Override
+  public Optional<String> postEditFeedback(final String findings) {
+    return Optional.of(
+        "{\"hookSpecificOutput\":{\"hookEventName\":\"AfterTool\",\"additionalContext\":"
+            + NativeHookText.quote(findings)
+            + "}}");
   }
 
   @Override
@@ -74,55 +111,47 @@ public final class GeminiIntegration implements NativeHarnessAdapter {
 
   @Override
   public boolean turnEnds(final NativeHookInput input) {
-    return NativeHookText.eventIn(input, Set.of("AfterAgent", "SessionEnd"));
+    return NativeHookText.eventIn(input, Set.of("AfterAgent"));
   }
 
+  /** Gemini hook stdin: tool arguments arrive under {@code tool_input}. */
   @JsonType
   public static final class Payload {
-    public String event;
-
-    @JsonProperty("event_name")
-    public String eventNameValue;
-
     @JsonProperty("hook_event_name")
     public String hookEventName;
 
-    public String type;
-
     @JsonProperty("tool_name")
-    public String toolNameValue;
+    public String toolName;
 
     public String cwd;
 
+    @JsonProperty("tool_input")
+    public ToolInput toolInput;
+
+    @JsonProperty("stop_hook_active")
+    public Boolean stopHookActive;
+
+    NativeHookInput input() {
+      final ToolInput arguments = toolInput == null ? new ToolInput() : toolInput;
+      return new NativeHookInput(
+          hookEventName,
+          toolName,
+          cwd == null ? "" : cwd,
+          arguments.filePath,
+          arguments.command,
+          null,
+          null,
+          false,
+          Boolean.TRUE.equals(stopHookActive));
+    }
+  }
+
+  /** {@code file_path} for write_file and replace, {@code command} for run_shell_command. */
+  @JsonType
+  public static final class ToolInput {
     @JsonProperty("file_path")
     public String filePath;
 
-    public String path;
     public String command;
-    public String patch;
-    public String patchText;
-    public String skill;
-    public String name;
-
-    NativeHookInput input() {
-      return new NativeHookInput(
-          first(event, eventNameValue, hookEventName, type),
-          first(toolNameValue, name),
-          cwd == null ? "" : cwd,
-          first(filePath, path),
-          command,
-          first(patch, patchText),
-          skill,
-          false);
-    }
-
-    private static String first(final String... values) {
-      for (final String value : values) {
-        if (value != null && !value.isBlank()) {
-          return value;
-        }
-      }
-      return null;
-    }
   }
 }

@@ -3,6 +3,7 @@ import { ampDriver } from "./amp";
 import { claudeCodeDriver } from "./claude-code";
 import { codexDriver } from "./codex";
 import { copilotDriver } from "./copilot";
+import { geminiDriver } from "./gemini";
 import { opencodeDriver } from "./opencode";
 
 /** Live drivers by harness ID; a harness without one is reported blocked, never skipped. */
@@ -11,5 +12,6 @@ export const DRIVERS: Record<string, LiveDriver> = {
   "claude-code": claudeCodeDriver,
   codex: codexDriver,
   copilot: copilotDriver,
+  gemini: geminiDriver,
   opencode: opencodeDriver,
 };

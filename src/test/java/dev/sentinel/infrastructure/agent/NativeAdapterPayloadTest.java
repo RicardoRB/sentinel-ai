@@ -20,7 +20,6 @@ class NativeAdapterPayloadTest {
         new ClineIntegration(),
         new CursorIntegration(),
         new FactoryDroidIntegration(),
-        new GeminiIntegration(),
         new WindsurfIntegration());
   }
 
