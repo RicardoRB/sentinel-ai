@@ -78,11 +78,26 @@ final class PresetPluginSnippets {
   }
 
   static String pit(final QualityPreset preset) {
-    final String threshold =
-        preset.rules().mutationThreshold() == null
-            ? ""
-            : "<mutationThreshold>" + preset.rules().mutationThreshold() + "</mutationThreshold>";
-    return PomToolConfigurator.PIT_PLUGIN.replace(
-        "</dependencies>", "</dependencies>\n                  " + threshold);
+    if (preset.rules().mutationThreshold() == null) {
+      return PomToolConfigurator.PIT_PLUGIN;
+    }
+    return """
+            <plugin>
+              <groupId>org.pitest</groupId>
+              <artifactId>pitest-maven</artifactId>
+              <version>1.17.4</version>
+              <dependencies>
+                <dependency>
+                  <groupId>org.pitest</groupId>
+                  <artifactId>pitest-junit5-plugin</artifactId>
+                  <version>1.2.1</version>
+                </dependency>
+              </dependencies>
+              <configuration>
+                <mutationThreshold>THRESHOLD</mutationThreshold>
+              </configuration>
+            </plugin>
+          """
+        .replace("THRESHOLD", String.valueOf(preset.rules().mutationThreshold()));
   }
 }

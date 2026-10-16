@@ -411,38 +411,6 @@ public final class PomToolConfigurator implements BuildToolConfiguration {
     return updated;
   }
 
-  private static String addPlugin(final String pom, final String plugin) {
-    if (pom.contains("</plugins>")) {
-      return pom.replaceFirst("</plugins>", Matcher.quoteReplacement(plugin + "  </plugins>"));
-    }
-    if (pom.contains("</build>")) {
-      return pom.replaceFirst(
-          "</build>",
-          Matcher.quoteReplacement("  <plugins>\n" + plugin + "  </plugins>\n</build>"));
-    }
-    if (!pom.contains("</project>")) {
-      throw new SentinelException("Cannot safely update pom.xml: missing </project> element.");
-    }
-    return pom.replaceFirst(
-        "</project>",
-        Matcher.quoteReplacement(
-            "  <build>\n    <plugins>\n" + plugin + "    </plugins>\n  </build>\n</project>"));
-  }
-
-  private static String addDependency(final String pom, final String dependency) {
-    if (pom.contains("</dependencies>")) {
-      return pom.replaceFirst(
-          "</dependencies>", Matcher.quoteReplacement(dependency + "  </dependencies>"));
-    }
-    if (!pom.contains("</project>")) {
-      throw new SentinelException("Cannot safely update pom.xml: missing </project> element.");
-    }
-    return pom.replaceFirst(
-        "</project>",
-        Matcher.quoteReplacement(
-            "  <dependencies>\n" + dependency + "  </dependencies>\n</project>"));
-  }
-
   /**
    * A Maven tool added for a selected gate. Its preset snippet, when present, replaces the default
    * snippet under a quality preset.
@@ -474,7 +442,7 @@ public final class PomToolConfigurator implements BuildToolConfiguration {
               : chosen.replaceFirst(
                   "<version>[^<]+</version>",
                   Matcher.quoteReplacement("<version>" + selectedVersion + "</version>"));
-      return dependency ? addDependency(pom, versioned) : addPlugin(pom, versioned);
+      return dependency ? PomXml.addDependency(pom, versioned) : PomXml.addPlugin(pom, versioned);
     }
   }
 }
