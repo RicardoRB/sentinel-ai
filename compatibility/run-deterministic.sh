@@ -13,7 +13,7 @@ fi
 
 cd "$ROOT"
 bun test test/
-for suite in opencode-v2 amp claude-code codex copilot gemini factory-droid cursor; do
+for suite in opencode-v2 amp claude-code codex copilot gemini factory-droid cursor windsurf; do
   echo "== $suite"
   (cd "$suite" && { [ ! -f bun.lock ] || bun install --frozen-lockfile; } && bun run test)
 done

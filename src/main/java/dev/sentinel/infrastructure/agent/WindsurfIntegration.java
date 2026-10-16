@@ -5,59 +5,81 @@ import dev.sentinel.domain.agent.IntegrationCapability;
 import dev.sentinel.domain.agent.NativeHookInput;
 import dev.sentinel.domain.agent.NativeHookOutcome;
 import dev.sentinel.domain.json.JsonCodec;
-import java.util.Locale;
 import java.util.Set;
 import org.apache.fory.json.annotation.JsonProperty;
 import org.apache.fory.json.annotation.JsonType;
 
-/** Advisory native Windsurf/Cascade hooks integration contract. */
+/**
+ * Native Windsurf (Cascade) hooks integration contract. Pre-hooks block with exit status 2 and the
+ * agent sees stderr; post-hooks cannot reach the agent, so post-write findings are shown to the
+ * user in the Cascade UI and there is no turn-end delivery.
+ */
 public final class WindsurfIntegration implements NativeHarnessAdapter {
   private static final NativeAgentIntegration.Definition DEFINITION =
       new NativeAgentIntegration.Definition(
           "windsurf",
           ".windsurf/hooks.json",
           ".windsurf/hooks/sentinel.sh",
-          "post_write_code,post_run_command,post_cascade_response",
-          Set.of(IntegrationCapability.POST_EDIT, IntegrationCapability.FEEDBACK));
+          "pre_write_code,pre_run_command,post_write_code",
+          Set.of(
+              IntegrationCapability.PRE_TOOL,
+              IntegrationCapability.POST_EDIT,
+              IntegrationCapability.APPROVED_ARTIFACT_GUARD));
 
   @Override
   public NativeAgentIntegration.Definition definition() {
     return DEFINITION;
   }
 
+  /**
+   * Hooks run through {@code bash -c} from the workspace root. The documented hook fields are
+   * {@code command}, {@code powershell}, {@code show_output} and {@code working_directory}, so the
+   * ownership marker is a shell comment at the end of each command.
+   */
   @Override
   public String configContent() {
-    return "{\n  \"sentinelOwnership\": \""
+    return "{\n  \"hooks\": {\n"
+        + "    \"pre_write_code\": ["
+        + hook("pre", false)
+        + "],\n    \"pre_run_command\": ["
+        + hook("pre", false)
+        + "],\n    \"post_write_code\": ["
+        + hook("post", true)
+        + "]\n  }\n}\n";
+  }
+
+  private static String hook(final String phase, final boolean showOutput) {
+    return "{\"command\": \""
+        + DEFINITION.hookFile()
+        + " "
+        + phase
+        + " # "
         + NativeHookText.marker(DEFINITION.id())
-        + "\",\n  \"hooks\": {\n    \"post_write_code\": [{\"type\":\"command\",\"command\":\""
-        + DEFINITION.hookFile()
-        + "\"}],\n    \"post_run_command\": [{\"type\":\"command\",\"command\":\""
-        + DEFINITION.hookFile()
-        + "\"}],\n    \"post_cascade_response\": [{\"type\":\"command\",\"command\":\""
-        + DEFINITION.hookFile()
-        + "\"}]\n  }\n}\n";
+        + "\""
+        + (showOutput ? ", \"show_output\": true" : "")
+        + "}";
   }
 
   @Override
   public String hookContent(final GuardMode guardMode) {
-    return "#!/bin/sh\n# "
-        + NativeHookText.marker(DEFINITION.id())
-        + "\n# Native event adapter for windsurf (guard mode: "
-        + guardMode.name().toLowerCase(Locale.ROOT)
-        + ").\nexec sentinel hook native --agent windsurf --event-stdin\n";
+    return NativeHookText.phaseWrapper(DEFINITION.id(), DEFINITION.hookFile(), guardMode);
   }
 
   public String denyResponse(final String reason) {
-    return "{\"decision\":\"deny\",\"reason\":" + NativeHookText.quote(reason) + "}";
+    return reason;
   }
 
   @Override
   public String serialize(final NativeHookOutcome outcome) {
     return switch (outcome.kind()) {
-      case DENY -> denyResponse(outcome.message());
-      case FEEDBACK, ERROR -> outcome.message();
+      case DENY, FEEDBACK, ERROR -> outcome.message();
       case ALLOW -> "";
     };
+  }
+
+  @Override
+  public boolean deniesWithExitStatus() {
+    return true;
   }
 
   @Override
@@ -67,55 +89,41 @@ public final class WindsurfIntegration implements NativeHarnessAdapter {
 
   @Override
   public boolean turnEnds(final NativeHookInput input) {
-    return "post_cascade_response".equals(input.eventName());
+    return false;
   }
 
+  /** Cascade hook stdin: event data arrives under {@code tool_info}. */
   @JsonType
   public static final class Payload {
-    public String event;
+    @JsonProperty("agent_action_name")
+    public String agentActionName;
 
-    @JsonProperty("event_name")
-    public String eventNameValue;
+    @JsonProperty("tool_info")
+    public ToolInfo toolInfo;
 
-    @JsonProperty("hook_event_name")
-    public String hookEventName;
+    NativeHookInput input() {
+      final ToolInfo info = toolInfo == null ? new ToolInfo() : toolInfo;
+      return new NativeHookInput(
+          agentActionName,
+          agentActionName,
+          info.cwd == null ? "" : info.cwd,
+          info.filePath,
+          info.commandLine,
+          null,
+          null,
+          false);
+    }
+  }
 
-    public String type;
-
-    @JsonProperty("tool_name")
-    public String toolNameValue;
-
-    public String cwd;
-
+  /** {@code file_path} for code events; {@code command_line} and {@code cwd} for commands. */
+  @JsonType
+  public static final class ToolInfo {
     @JsonProperty("file_path")
     public String filePath;
 
-    public String path;
-    public String command;
-    public String patch;
-    public String patchText;
-    public String skill;
-    public String name;
+    @JsonProperty("command_line")
+    public String commandLine;
 
-    NativeHookInput input() {
-      return new NativeHookInput(
-          first(event, eventNameValue, hookEventName, type),
-          first(toolNameValue, name),
-          cwd == null ? "" : cwd,
-          first(filePath, path),
-          command,
-          first(patch, patchText),
-          skill,
-          false);
-    }
-
-    private static String first(final String... values) {
-      for (final String value : values) {
-        if (value != null && !value.isBlank()) {
-          return value;
-        }
-      }
-      return null;
-    }
+    public String cwd;
   }
 }

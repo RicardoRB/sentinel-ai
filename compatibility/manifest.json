@@ -175,11 +175,12 @@
         "post-edit": "supported",
         "feedback": "unsupported",
         "pre-tool-guard": "supported",
-        "turn-end": "supported"
+        "turn-end": "unsupported"
       },
       "capabilityNotes": {
         "feedback": "Post-hook output is shown only in the Cascade UI when show_output is true; it is not delivered to the agent.",
-        "pre-tool-guard": "pre_write_code and pre_run_command block with exit code 2; Sentinel does not currently advertise a Windsurf guard."
+        "pre-tool-guard": "pre_write_code and pre_run_command block with exit code 2, and Cascade shows the agent stderr.",
+        "turn-end": "post_cascade_response is asynchronous and for logging; no hook output continues the conversation."
       },
       "verification": { "mode": "witnessed", "prerequisites": ["Windsurf editor installation and a signed-in account"] }
     },

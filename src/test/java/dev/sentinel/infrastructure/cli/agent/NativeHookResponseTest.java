@@ -27,8 +27,7 @@ class NativeHookResponseTest {
         .contains("reject-and-continue", "blocked");
     assertThat(new CopilotIntegration().denyResponse(BLOCKED))
         .contains("permissionDecision", "deny", "blocked");
-    assertThat(new WindsurfIntegration().denyResponse(BLOCKED))
-        .contains("decision", "deny", "blocked");
+    assertThat(new WindsurfIntegration().denyResponse(BLOCKED)).isEqualTo(BLOCKED);
     assertThat(new ClineIntegration().denyResponse(BLOCKED))
         .contains("decision", "deny", "blocked");
     assertThat(new FactoryDroidIntegration().denyResponse(BLOCKED))

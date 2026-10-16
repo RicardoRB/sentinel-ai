@@ -41,7 +41,7 @@ bun test test/
 ## All deterministic suites
 
 `compatibility/run-deterministic.sh [path/to/sentinel]` runs the tooling tests and every harness suite
-(`opencode-v2`, `amp`, `claude-code`, `codex`, `copilot`, `gemini`, `factory-droid`, `cursor`) against one Sentinel build. The release workflow runs it
+(`opencode-v2`, `amp`, `claude-code`, `codex`, `copilot`, `gemini`, `factory-droid`, `cursor`, `windsurf`) against one Sentinel build. The release workflow runs it
 against each Linux and macOS native executable before publishing, so a broken integration stops the release.
 
 ## Runtime preflight
@@ -79,6 +79,23 @@ Versions were resolved on 2026-10-16 from the sources in `manifest.json`. They a
 claims of compatibility. The version-output patterns of the eight runtimes that were not installed
 when the manifest was written are unconfirmed; an unrecognized output is reported as a mismatch,
 never as ready.
+
+## Witnessed Windsurf procedure
+
+Windsurf runs Cascade hooks only inside the editor, so its live check is done by a person and recorded
+as `witnessed-live` evidence, never as an automated pass. With Windsurf 1.126.0 signed in:
+
+1. Build Sentinel and put it on `PATH`, then copy `src/test/resources/fixtures/maven-project` to a new
+   directory and run `sentinel init` and `sentinel integrate windsurf --guard-approved-specs` in it.
+2. Add `openspec/specs/smoke/spec.md` with any content and open the directory in Windsurf.
+3. Ask Cascade to change `openspec/specs/smoke/spec.md`. Expected: the write is refused, Cascade reports
+   Sentinel's reason, and the file is unchanged.
+4. Ask Cascade to run `rm openspec/specs/smoke/spec.md`. Expected: the command is refused.
+5. Create a file named `FAIL` in the directory, then ask Cascade to create `src/Smoke.java`. Expected:
+   the file is written and the Cascade UI shows Sentinel's quality findings for the hook. The agent
+   does not receive them; Windsurf has no hook output that reaches the model after an action.
+
+Record the Windsurf version, the Sentinel revision and each step's outcome.
 
 ## Fixtures and isolation
 

@@ -6,6 +6,7 @@ import dev.sentinel.application.spec.ApprovedArtifactGuardService;
 import dev.sentinel.application.spec.SpecValidationService;
 import dev.sentinel.domain.agent.AgentIntegration;
 import dev.sentinel.domain.agent.NativeHookInput;
+import dev.sentinel.domain.agent.NativeHookOutcome;
 import dev.sentinel.domain.config.SentinelException;
 import dev.sentinel.domain.gate.CheckReport;
 import dev.sentinel.domain.gate.SupportedQualityGates;
@@ -120,8 +121,16 @@ public final class NativeHookCommand implements Callable<Integer> {
 
   private int evaluateGuard(final NativeHookProtocol protocol, final NativeHookInput event) {
     try {
-      NativeHookGuard.evaluate(guardService, event, options.directory())
-          .ifPresent(deny -> output().println(protocol.serialize(deny)));
+      final Optional<NativeHookOutcome> deny =
+          NativeHookGuard.evaluate(guardService, event, options.directory());
+      if (deny.isEmpty()) {
+        return ExitCodes.OK;
+      }
+      if (protocol.deniesWithExitStatus()) {
+        error().println(deny.get().message());
+        return ExitCodes.ERROR;
+      }
+      output().println(protocol.serialize(deny.get()));
       return ExitCodes.OK;
     } catch (SentinelException | UncheckedIOException exception) {
       error().println("Sentinel native hook could not inspect the tool call.");

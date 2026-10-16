@@ -21,4 +21,12 @@ public interface NativeHookProtocol {
   default Optional<String> postEditFeedback(final String findings) {
     return Optional.empty();
   }
+
+  /**
+   * True for harnesses that refuse a tool call only on exit status 2, showing the agent stderr; the
+   * denial is then written to stderr instead of being serialized to stdout.
+   */
+  default boolean deniesWithExitStatus() {
+    return false;
+  }
 }
