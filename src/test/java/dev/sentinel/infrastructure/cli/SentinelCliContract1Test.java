@@ -46,7 +46,8 @@ class SentinelCliContract1Test extends SentinelCliIntegrationSupport {
     out.getBuffer().setLength(0);
     assertThat(run(CHECK, "-C", project.toString())).isEqualTo(ExitCodes.OK);
     assertThat(out.toString())
-        .contains("Sentinel dev", "✓ format", "PASSED", "Quality Gate: PASSED");
+        .contains(
+            "Sentinel " + VersionProvider.current(), "✓ format", "PASSED", "Quality Gate: PASSED");
   }
 
   @Test

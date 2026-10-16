@@ -1,21 +1,57 @@
 package dev.sentinel.infrastructure.cli;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.inject.Inject;
 import javax.inject.Named;
 import picocli.CommandLine.IVersionProvider;
 
 public class VersionProvider implements IVersionProvider {
 
+  private static final Logger LOGGER = Logger.getLogger(VersionProvider.class.getName());
+  private static final String RESOURCE = "version.properties";
+  private static final String FALLBACK = "dev";
+  private static final String KEY = "version=";
+
   private final String version;
 
   public VersionProvider() {
-    final String implementation = VersionProvider.class.getPackage().getImplementationVersion();
-    this.version = implementation == null || implementation.isBlank() ? "dev" : implementation;
+    this(current());
   }
 
   @Inject
   public VersionProvider(@Named("sentinel.version") final String version) {
     this.version = version;
+  }
+
+  /** Reads the build version from a filtered classpath resource, which native images retain. */
+  public static String current() {
+    return read(VersionProvider.class.getResourceAsStream(RESOURCE));
+  }
+
+  static String read(final InputStream resource) {
+    if (resource == null) {
+      LOGGER.log(Level.FINE, "event=version-resource-missing fallback=dev");
+      return FALLBACK;
+    }
+    final String content;
+    try (InputStream stream = resource) {
+      content = new String(stream.readAllBytes(), StandardCharsets.UTF_8);
+    } catch (final IOException exception) {
+      LOGGER.log(Level.FINE, "event=version-resource-unreadable fallback=dev");
+      return FALLBACK;
+    }
+    final String version =
+        content
+            .lines()
+            .filter(line -> line.startsWith(KEY))
+            .map(line -> line.substring(KEY.length()).strip())
+            .findFirst()
+            .orElse("");
+    return version.isEmpty() || version.startsWith("${") ? FALLBACK : version;
   }
 
   @Override

@@ -14,7 +14,8 @@ import org.junit.jupiter.api.Test;
 class CoverageCliTest {
   @Test
   void versionProviderSupportsRuntimeAndInjectedVersions() {
-    assertThat(new VersionProvider().getVersion()).containsExactly("sentinel dev");
+    assertThat(new VersionProvider().getVersion())
+        .containsExactly("sentinel " + VersionProvider.current());
     assertThat(new VersionProvider("1.2.3").getVersion()).containsExactly("sentinel 1.2.3");
   }
 

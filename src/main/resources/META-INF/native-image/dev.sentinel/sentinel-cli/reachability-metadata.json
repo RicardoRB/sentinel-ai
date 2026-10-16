@@ -1,4 +1,7 @@
 {
+  "resources": [
+    { "glob": "dev/sentinel/infrastructure/cli/version.properties" }
+  ],
   "foreign": {
     "downcalls": [
       { "returnType": "int", "parameterTypes": ["int"] },
