@@ -28,9 +28,10 @@ class OpenCodeIntegrationTest {
     assertThat(Files.readString(root.resolve(PLUGIN_PATH)))
         .contains(
             OpenCodeIntegration.PLUGIN_MARKER,
-            "import { define } from \"@opencode/plugin\"",
+            "import { Plugin } from \"@opencode/plugin\"",
+            "export default Plugin.define({",
             "id: \"sentinel.edit-write\"",
-            "tool.execute.after",
+            "ctx.tool.hook(\"execute.after\"",
             "ctx.event.subscribe",
             "ctx.session.hook(\"prompt\"",
             "sentinel",
@@ -87,7 +88,7 @@ class OpenCodeIntegrationTest {
             "file?.movePath",
             "[\"check\", \"--format\", \"json\", \"--exclude-spec\", \"--learn-after\", \"3\"]",
             "[\"spec\", \"validate\", \"--\", ...paths]",
-            "throw new Error(feedback)");
+            "content: [...contentOf(event.result), { type: \"text\", text: feedback }]");
   }
 
   @Test
@@ -99,7 +100,7 @@ class OpenCodeIntegrationTest {
 
     assertThat(plugin)
         .contains(
-            "event?.type !== \"session.idle\"",
+            "event?.type === \"session.idle\" ? event.data?.sessionID",
             "state.running",
             "state.delivered",
             "run([\"spec\", \"validate\"]",
@@ -143,15 +144,14 @@ class OpenCodeIntegrationTest {
     assertThat(Files.readString(guard))
         .contains(
             OpenCodeIntegration.GUARD_MARKER,
-            "import { define } from \"@opencode/plugin\"",
+            "import { Plugin } from \"@opencode/plugin\"",
             "id: \"sentinel.openspec-guard\"",
-            "tool.execute.before",
+            "ctx.tool.hook(\"execute.before\"",
             "apply_patch",
             "patchText",
             "workdir",
             "--shell-stdin",
             "--skill",
-            "exitCode",
             "ctx.session.get",
             "--unreadable-input",
             "warning");

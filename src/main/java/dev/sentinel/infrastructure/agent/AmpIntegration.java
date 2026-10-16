@@ -5,9 +5,9 @@ import dev.sentinel.domain.agent.IntegrationCapability;
 import dev.sentinel.domain.agent.NativeHookInput;
 import dev.sentinel.domain.agent.NativeHookOutcome;
 import dev.sentinel.domain.json.JsonCodec;
-import java.util.Locale;
 import java.util.Set;
 import org.apache.fory.json.annotation.JsonProperty;
+import org.apache.fory.json.annotation.JsonType;
 
 /** Native Amp TypeScript plugin integration contract. */
 public final class AmpIntegration implements NativeHarnessAdapter {
@@ -24,6 +24,92 @@ public final class AmpIntegration implements NativeHarnessAdapter {
               IntegrationCapability.FEEDBACK,
               IntegrationCapability.APPROVED_ARTIFACT_GUARD));
 
+  // Amp plugin API (@ampcode/plugin): tool.call returns allow or reject-and-continue, tool.result
+  // may replace the output the model reads, and agent.end may continue the turn once.
+  private static final String PLUGIN =
+      """
+      // %s
+      import { spawn } from "node:child_process";
+      import type { PluginAPI } from "@ampcode/plugin";
+
+      // Calls .amp/plugins/sentinel.sh: "pre" runs the approved-artifact guard when it is enabled,
+      // "post" runs the quality check. Edits and shell commands are identified with Amp's helpers.
+      const HOOK = ".amp/plugins/sentinel.sh";
+      const MAX = 8192;
+
+      export default function (amp: PluginAPI) {
+        const root = amp.system.workspaceRoot ? amp.helpers.filePathFromURI(amp.system.workspaceRoot) : null;
+        const hook = (phase: string, payload: Record<string, unknown>) =>
+          new Promise<{ code: number | null; stdout: string; stderr: string; error?: string }>((resolve) => {
+            if (!root) return resolve({ code: null, stdout: "", stderr: "", error: "Amp has no workspace root" });
+            let stdout = "";
+            let stderr = "";
+            const child = spawn(`${root}/${HOOK}`, [phase], { cwd: root, stdio: ["pipe", "pipe", "pipe"] });
+            child.stdout.on("data", (chunk) => (stdout += chunk));
+            child.stderr.on("data", (chunk) => (stderr += chunk));
+            child.on("error", (error) => resolve({ code: null, stdout, stderr, error: String(error?.message ?? error) }));
+            child.on("close", (code) => resolve({ code, stdout, stderr }));
+            child.stdin.on("error", () => {});
+            child.stdin.end(JSON.stringify(payload));
+          });
+        const modified = (event: Parameters<typeof amp.helpers.filesModifiedByToolCall>[0]) =>
+          (amp.helpers.filesModifiedByToolCall(event) ?? []).map((uri) => amp.helpers.filePathFromURI(uri));
+
+        amp.on("tool.call", async (event, ctx) => {
+          const shell = amp.helpers.shellCommandFromToolCall(event);
+          const payloads = modified(event).map((path) => ({ event: "tool.call", tool_name: event.tool, cwd: root, file_path: path }));
+          if (shell) payloads.push({ event: "tool.call", tool_name: event.tool, cwd: shell.dir ?? root, command: shell.command } as never);
+          for (const payload of payloads) {
+            const result = await hook("pre", payload);
+            if (result.error || result.code !== 0) {
+              // Sentinel could not decide; the call proceeds, as documented.
+              ctx.logger.log(`[sentinel guard] could not decide; allowing: ${(result.error ?? result.stderr).slice(0, 500)}`);
+              continue;
+            }
+            let decision: { action?: string; message?: unknown } | null = null;
+            try { decision = result.stdout.trim() ? JSON.parse(result.stdout) : null; } catch { decision = null; }
+            if (decision?.action === "reject-and-continue") {
+              return { action: "reject-and-continue", message: String(decision.message ?? "Refused by Sentinel.").slice(0, MAX) };
+            }
+          }
+          return { action: "allow" };
+        });
+
+        amp.on("tool.result", async (event, ctx) => {
+          // Failed or cancelled tool calls keep their original result and are not checked.
+          if (event.status !== "done") return;
+          const paths = modified(event);
+          if (paths.length === 0) return;
+          const targets = [paths[0], ...paths.slice(1).filter((path) => path.includes("openspec"))];
+          const feedback: string[] = [];
+          for (const path of targets) {
+            const result = await hook("post", { event: "tool.result", tool_name: event.tool, cwd: root, file_path: path });
+            if (result.error) {
+              ctx.logger.log(`[sentinel] could not run: ${result.error.slice(0, 500)}`);
+              return;
+            }
+            if (result.code !== 0) feedback.push((result.stderr || result.stdout).trim() || "Sentinel validation failed.");
+          }
+          if (feedback.length === 0) return;
+          const original = typeof event.output === "string" ? event.output : JSON.stringify(event.output ?? "");
+          return { status: "done", output: `${original}\\n\\n${[...new Set(feedback)].join("\\n").slice(0, MAX)}` };
+        });
+
+        amp.on("agent.end", async (event, ctx) => {
+          if (event.status !== "done") return;
+          const result = await hook("post", { event: "agent.end", cwd: root });
+          if (result.error) {
+            ctx.logger.log(`[sentinel] could not run: ${result.error.slice(0, 500)}`);
+            return;
+          }
+          const text = (result.code === 0 ? result.stdout : result.stderr || result.stdout).trim();
+          if (!text) return;
+          // One corrective continuation per user message keeps an unfixable finding from looping.
+          return { action: "continue", userMessage: `[sentinel]\\n${text.slice(0, MAX)}`, maxContinuations: 1 };
+        });
+      }
+      """;
+
   @Override
   public NativeAgentIntegration.Definition definition() {
     return DEFINITION;
@@ -31,23 +117,12 @@ public final class AmpIntegration implements NativeHarnessAdapter {
 
   @Override
   public String configContent() {
-    return "// "
-        + NativeHookText.marker(DEFINITION.id())
-        + "\n"
-        + "export default function (amp) {\n"
-        + "  amp.on('tool.call', async () => ({ action: 'allow' }));\n"
-        + "  amp.on('tool.result', async () => undefined);\n"
-        + "  amp.on('agent.end', async () => undefined);\n"
-        + "}\n";
+    return PLUGIN.replace("%s", NativeHookText.marker(DEFINITION.id()));
   }
 
   @Override
   public String hookContent(final GuardMode guardMode) {
-    return "#!/bin/sh\n# "
-        + NativeHookText.marker(DEFINITION.id())
-        + "\n# Native event adapter for amp.\nif [ \""
-        + guardMode.name().toLowerCase(Locale.ROOT)
-        + "\" = \"enable\" ]; then\n  exec sentinel hook native --agent amp --guard-approved-specs --event-stdin\nfi\nexec sentinel hook native --agent amp --event-stdin\n";
+    return NativeHookText.phaseWrapper(DEFINITION.id(), DEFINITION.hookFile(), guardMode);
   }
 
   public String denyResponse(final String reason) {
@@ -73,31 +148,32 @@ public final class AmpIntegration implements NativeHarnessAdapter {
     return "agent.end".equals(input.eventName());
   }
 
-  private static final class Payload {
-    String event;
+  @JsonType
+  public static final class Payload {
+    public String event;
 
     @JsonProperty("event_name")
-    String eventNameValue;
+    public String eventNameValue;
 
     @JsonProperty("hook_event_name")
-    String hookEventName;
+    public String hookEventName;
 
-    String type;
+    public String type;
 
     @JsonProperty("tool_name")
-    String toolNameValue;
+    public String toolNameValue;
 
-    String cwd;
+    public String cwd;
 
     @JsonProperty("file_path")
-    String filePath;
+    public String filePath;
 
-    String path;
-    String command;
-    String patch;
-    String patchText;
-    String skill;
-    String name;
+    public String path;
+    public String command;
+    public String patch;
+    public String patchText;
+    public String skill;
+    public String name;
 
     NativeHookInput input() {
       return new NativeHookInput(

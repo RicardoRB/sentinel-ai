@@ -43,7 +43,8 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
                     "hooks": [
                       {
                         "type": "command",
-                        "command": ".claude/hooks/sentinel-edit-write"
+                        "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/sentinel-edit-write",
+                        "args": []
                       }
                     ]
                   }
@@ -53,7 +54,8 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
                     "hooks": [
                       {
                         "type": "command",
-                        "command": ".claude/hooks/sentinel-edit-write"
+                        "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/sentinel-edit-write",
+                        "args": []
                       }
                     ]
                   }
@@ -75,7 +77,8 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
                   "hooks": [
                     {
                       "type": "command",
-                      "command": ".claude/hooks/sentinel-openspec-guard"
+                      "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/sentinel-openspec-guard",
+                      "args": []
                     }
                   ]
                 }
@@ -87,8 +90,9 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
             #!/bin/sh
             # %s
             # Opt-in guard: Claude Code passes each PreToolUse event as JSON on stdin. Sentinel denies
-            # tool calls that would modify approved OpenSpec specs or archived changes.
-            exec sentinel hook claude-code --guard-approved-specs --event-stdin
+            # tool calls that would modify approved OpenSpec specs or archived changes. Hooks run in
+            # the session's current directory, so Sentinel is pointed at the project explicitly.
+            exec sentinel hook claude-code --guard-approved-specs --event-stdin -C "${CLAUDE_PROJECT_DIR:-.}"
             """
           .replace("%s", GUARD_MARKER);
 
@@ -97,8 +101,9 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
             #!/bin/sh
             # %s
             # Claude Code passes the hook event JSON on stdin. Sentinel reads it to validate edited
-            # spec files after edits and all configured spec checks when the turn ends.
-            exec sentinel hook claude-code --learn-after 3 --exclude-spec --event-stdin
+            # spec files after edits and all configured spec checks when the turn ends. Hooks run in
+            # the session's current directory, so Sentinel is pointed at the project explicitly.
+            exec sentinel hook claude-code --learn-after 3 --exclude-spec --event-stdin -C "${CLAUDE_PROJECT_DIR:-.}"
             """
           .replace("%s", HOOK_MARKER);
 

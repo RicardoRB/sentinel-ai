@@ -1,0 +1,11 @@
+{
+  "name": "sentinel-factory-droid-compatibility",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "bun": "1.3.11"
+  },
+  "scripts": {
+    "test": "env -i HOME=\"$HOME\" JAVA_HOME=\"$JAVA_HOME\" SENTINEL_COMPAT_SENTINEL=\"$SENTINEL_COMPAT_SENTINEL\" PATH=\"/usr/bin:/bin\" \"$(command -v bun)\" test --timeout 60000 factory-droid.test.ts"
+  }
+}

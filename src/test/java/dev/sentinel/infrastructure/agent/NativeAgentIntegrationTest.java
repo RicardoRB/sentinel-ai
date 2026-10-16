@@ -2,6 +2,7 @@ package dev.sentinel.infrastructure.agent;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import dev.sentinel.domain.agent.GuardMode;
 import dev.sentinel.domain.agent.IntegrationCapability;
 import dev.sentinel.domain.agent.IntegrationHealth;
 import dev.sentinel.domain.agent.IntegrationRequest;
@@ -53,5 +54,23 @@ class NativeAgentIntegrationTest {
     Files.delete(root.resolve(".codex/hooks/sentinel.sh"));
 
     assertThat(integration.health(root).status()).isEqualTo(IntegrationHealth.Status.PARTIAL);
+  }
+
+  @Test
+  void refreshWithoutAGuardOptionKeepsTheInstalledGuardState(@TempDir final Path root)
+      throws Exception {
+    final Path hook = root.resolve(".amp/plugins/sentinel.sh");
+    final AmpIntegration integration = new AmpIntegration();
+
+    integration.integrate(root, new IntegrationRequest(false, GuardMode.ENABLE));
+    assertThat(Files.readString(hook)).contains("[ \"enable\" = \"enable\" ]");
+    assertThat(integration.integrate(root, IntegrationRequest.INSTALL).status())
+        .isEqualTo(IntegrationResult.Status.ALREADY_PRESENT);
+    assertThat(Files.readString(hook)).contains("[ \"enable\" = \"enable\" ]");
+
+    integration.integrate(root, new IntegrationRequest(false, GuardMode.DISABLE));
+    assertThat(Files.readString(hook)).doesNotContain("[ \"enable\" = \"enable\" ]");
+    integration.integrate(root, IntegrationRequest.INSTALL);
+    assertThat(Files.readString(hook)).doesNotContain("[ \"enable\" = \"enable\" ]");
   }
 }

@@ -42,12 +42,13 @@ class ClaudeCodeGuardIntegrationTest {
     assertThat(Files.readString(guard()))
         .contains(
             ClaudeCodeIntegration.GUARD_MARKER,
-            "exec sentinel hook claude-code --guard-approved-specs --event-stdin");
+            "exec sentinel hook claude-code --guard-approved-specs --event-stdin"
+                + " -C \"${CLAUDE_PROJECT_DIR:-.}\"");
     assertThat(Files.isExecutable(guard())).isTrue();
     assertThat(preToolUse().get(0).get("matcher").asString())
         .isEqualTo("^(Edit|Write|MultiEdit|NotebookEdit|Bash|Skill)$");
     assertThat(preToolUse().get(0).get("hooks").get(0).get("command").asString())
-        .isEqualTo(".claude/hooks/sentinel-openspec-guard");
+        .isEqualTo("${CLAUDE_PROJECT_DIR}/.claude/hooks/sentinel-openspec-guard");
     final JsonTree hooks = JsonTree.parse(Files.readString(settings())).get("hooks");
     assertThat(hooks.has("PostToolUse")).isTrue();
     assertThat(hooks.has("Stop")).isTrue();

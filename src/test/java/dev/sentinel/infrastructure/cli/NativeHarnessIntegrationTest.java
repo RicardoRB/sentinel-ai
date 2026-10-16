@@ -30,9 +30,8 @@ class NativeHarnessIntegrationTest extends SentinelCliIntegrationSupport {
         Arguments.of("copilot", ".github/hooks/sentinel.json", ".github/hooks/sentinel.sh"),
         Arguments.of("gemini", ".gemini/settings.json", ".gemini/hooks/sentinel.sh"),
         Arguments.of("windsurf", ".windsurf/hooks.json", ".windsurf/hooks/sentinel.sh"),
-        Arguments.of("cline", ".cline/hooks/sentinel.json", ".cline/hooks/sentinel.sh"),
-        Arguments.of(
-            "factory-droid", ".factory/plugins/sentinel.json", ".factory/plugins/sentinel.sh"),
+        Arguments.of("cline", ".cline/hooks/PostToolUse", ".cline/hooks/PreToolUse"),
+        Arguments.of("factory-droid", ".factory/hooks.json", ".factory/hooks/sentinel.sh"),
         Arguments.of("amp", ".amp/plugins/sentinel.ts", ".amp/plugins/sentinel.sh"));
   }
 }

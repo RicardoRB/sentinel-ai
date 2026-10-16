@@ -1,0 +1,8 @@
+{
+  "sentinelOwnership": "sentinel-owned: cursor-native-hooks v1",
+  "hooks": {
+    "preToolUse": [{"matcher":".*","hooks":[{"type":"command","command":".cursor/hooks/sentinel.sh"}]}],
+    "afterFileEdit": [{"type":"command","command":".cursor/hooks/sentinel.sh"}],
+    "stop": [{"type":"command","command":".cursor/hooks/sentinel.sh"}]
+  }
+}

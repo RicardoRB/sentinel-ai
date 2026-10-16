@@ -1,46 +1,62 @@
 == definition
-cursor .cursor/hooks.json .cursor/hooks/sentinel.sh preToolUse,afterFileEdit,stop [APPROVED_ARTIFACT_GUARD, FEEDBACK, POST_EDIT, PRE_TOOL, TURN_END]
+cursor .cursor/hooks.json .cursor/hooks/sentinel.sh preToolUse,postToolUse,stop [APPROVED_ARTIFACT_GUARD, FEEDBACK, POST_EDIT, PRE_TOOL, TURN_END]
 == config
 {
+  "version": 1,
   "sentinelOwnership": "sentinel-owned: cursor-native-hooks v1",
   "hooks": {
-    "preToolUse": [{"matcher":".*","hooks":[{"type":"command","command":".cursor/hooks/sentinel.sh"}]}],
-    "afterFileEdit": [{"type":"command","command":".cursor/hooks/sentinel.sh"}],
-    "stop": [{"type":"command","command":".cursor/hooks/sentinel.sh"}]
+    "preToolUse": [{"command": ".cursor/hooks/sentinel.sh pre", "matcher": "^(Shell|Write|Delete)$"}],
+    "postToolUse": [{"command": ".cursor/hooks/sentinel.sh post", "matcher": "^(Write|Delete)$", "timeout": 600}],
+    "stop": [{"command": ".cursor/hooks/sentinel.sh post", "timeout": 600}]
   }
 }
 
 == hook KEEP
 #!/bin/sh
 # sentinel-owned: cursor-native-hooks v1
-# Native event adapter for cursor.
-if [ "keep" = "enable" ]; then
-  exec sentinel hook native --agent cursor --guard-approved-specs --event-stdin
-fi
-exec sentinel hook native --agent cursor --event-stdin
+# Native event adapter for cursor. Usage: sentinel.sh pre|post, with the event JSON on stdin.
+# Hooks may run in a subdirectory, so Sentinel always checks the project this file is in.
+cd "$(dirname "$0")/../.." || exit 2
+case "$1" in
+  pre)
+    [ "keep" = "enable" ] || exit 0
+    exec sentinel hook native --agent cursor --guard-approved-specs --event-stdin ;;
+  post) exec sentinel hook native --agent cursor --event-stdin ;;
+  *) echo "Sentinel hook wrapper: expected pre or post." >&2; exit 2 ;;
+esac
 
 == hook ENABLE
 #!/bin/sh
 # sentinel-owned: cursor-native-hooks v1
-# Native event adapter for cursor.
-if [ "enable" = "enable" ]; then
-  exec sentinel hook native --agent cursor --guard-approved-specs --event-stdin
-fi
-exec sentinel hook native --agent cursor --event-stdin
+# Native event adapter for cursor. Usage: sentinel.sh pre|post, with the event JSON on stdin.
+# Hooks may run in a subdirectory, so Sentinel always checks the project this file is in.
+cd "$(dirname "$0")/../.." || exit 2
+case "$1" in
+  pre)
+    [ "enable" = "enable" ] || exit 0
+    exec sentinel hook native --agent cursor --guard-approved-specs --event-stdin ;;
+  post) exec sentinel hook native --agent cursor --event-stdin ;;
+  *) echo "Sentinel hook wrapper: expected pre or post." >&2; exit 2 ;;
+esac
 
 == hook DISABLE
 #!/bin/sh
 # sentinel-owned: cursor-native-hooks v1
-# Native event adapter for cursor.
-if [ "disable" = "enable" ]; then
-  exec sentinel hook native --agent cursor --guard-approved-specs --event-stdin
-fi
-exec sentinel hook native --agent cursor --event-stdin
+# Native event adapter for cursor. Usage: sentinel.sh pre|post, with the event JSON on stdin.
+# Hooks may run in a subdirectory, so Sentinel always checks the project this file is in.
+cd "$(dirname "$0")/../.." || exit 2
+case "$1" in
+  pre)
+    [ "disable" = "enable" ] || exit 0
+    exec sentinel hook native --agent cursor --guard-approved-specs --event-stdin ;;
+  post) exec sentinel hook native --agent cursor --event-stdin ;;
+  *) echo "Sentinel hook wrapper: expected pre or post." >&2; exit 2 ;;
+esac
 
 == deny
 {"permission":"deny","user_message":"Blocked \"quoted\" \\ path","agent_message":"Blocked \"quoted\" \\ path"}
 == feedback
-Fix it
+{"followup_message":"Fix it"}
 == error
 Broken
 == allow

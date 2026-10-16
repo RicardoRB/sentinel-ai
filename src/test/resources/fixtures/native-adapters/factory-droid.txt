@@ -1,36 +1,58 @@
 == definition
-factory-droid .factory/plugins/sentinel.json .factory/plugins/sentinel.sh PostToolUse,Stop,SessionEnd [FEEDBACK, POST_EDIT]
+factory-droid .factory/hooks.json .factory/hooks/sentinel.sh PreToolUse,PostToolUse,Stop [APPROVED_ARTIFACT_GUARD, FEEDBACK, POST_EDIT, PRE_TOOL, TURN_END]
 == config
 {
-  "sentinelOwnership": "sentinel-owned: factory-droid-native-hooks v1",
-  "hooks": {
-    "postToolUse": [{"type":"command","command":".factory/plugins/sentinel.sh"}],
-    "sessionEnd": [{"type":"command","command":".factory/plugins/sentinel.sh"}]
-  }
+  "PreToolUse": [{"matcher": "^(Create|Edit|MultiEdit|ApplyPatch|Execute)$", "hooks": [{"type": "command", "command": "\"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.factory/hooks/sentinel.sh\" pre # sentinel-owned: factory-droid-native-hooks v1"}]}],
+  "PostToolUse": [{"matcher": "^(Create|Edit|MultiEdit|ApplyPatch)$", "hooks": [{"type": "command", "command": "\"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.factory/hooks/sentinel.sh\" post # sentinel-owned: factory-droid-native-hooks v1", "timeout": 600}]}],
+  "Stop": [{"hooks": [{"type": "command", "command": "\"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.factory/hooks/sentinel.sh\" post # sentinel-owned: factory-droid-native-hooks v1", "timeout": 600}]}]
 }
 
 == hook KEEP
 #!/bin/sh
 # sentinel-owned: factory-droid-native-hooks v1
-# Native event adapter for factory-droid (guard mode: keep).
-exec sentinel hook native --agent factory-droid --event-stdin
+# Native event adapter for factory-droid. Usage: sentinel.sh pre|post, with the event JSON on stdin.
+# Hooks may run in a subdirectory, so Sentinel always checks the project this file is in.
+cd "$(dirname "$0")/../.." || exit 2
+case "$1" in
+  pre)
+    [ "keep" = "enable" ] || exit 0
+    exec sentinel hook native --agent factory-droid --guard-approved-specs --event-stdin ;;
+  post) exec sentinel hook native --agent factory-droid --event-stdin ;;
+  *) echo "Sentinel hook wrapper: expected pre or post." >&2; exit 2 ;;
+esac
 
 == hook ENABLE
 #!/bin/sh
 # sentinel-owned: factory-droid-native-hooks v1
-# Native event adapter for factory-droid (guard mode: enable).
-exec sentinel hook native --agent factory-droid --event-stdin
+# Native event adapter for factory-droid. Usage: sentinel.sh pre|post, with the event JSON on stdin.
+# Hooks may run in a subdirectory, so Sentinel always checks the project this file is in.
+cd "$(dirname "$0")/../.." || exit 2
+case "$1" in
+  pre)
+    [ "enable" = "enable" ] || exit 0
+    exec sentinel hook native --agent factory-droid --guard-approved-specs --event-stdin ;;
+  post) exec sentinel hook native --agent factory-droid --event-stdin ;;
+  *) echo "Sentinel hook wrapper: expected pre or post." >&2; exit 2 ;;
+esac
 
 == hook DISABLE
 #!/bin/sh
 # sentinel-owned: factory-droid-native-hooks v1
-# Native event adapter for factory-droid (guard mode: disable).
-exec sentinel hook native --agent factory-droid --event-stdin
+# Native event adapter for factory-droid. Usage: sentinel.sh pre|post, with the event JSON on stdin.
+# Hooks may run in a subdirectory, so Sentinel always checks the project this file is in.
+cd "$(dirname "$0")/../.." || exit 2
+case "$1" in
+  pre)
+    [ "disable" = "enable" ] || exit 0
+    exec sentinel hook native --agent factory-droid --guard-approved-specs --event-stdin ;;
+  post) exec sentinel hook native --agent factory-droid --event-stdin ;;
+  *) echo "Sentinel hook wrapper: expected pre or post." >&2; exit 2 ;;
+esac
 
 == deny
-{"decision":"deny","reason":"Blocked \"quoted\" \\ path"}
+{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"Blocked \"quoted\" \\ path"}}
 == feedback
-Fix it
+{"decision":"block","reason":"Fix it"}
 == error
 Broken
 == allow

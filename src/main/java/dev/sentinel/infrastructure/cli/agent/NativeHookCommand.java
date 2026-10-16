@@ -20,6 +20,7 @@ import java.io.PrintWriter;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import javax.inject.Inject;
@@ -88,22 +89,27 @@ public final class NativeHookCommand implements Callable<Integer> {
       }
       final CheckReport report =
           checkService.checkExcluding(options.directory(), SupportedQualityGates.specIds());
-      final SpecValidationReport specs = validateEditedPath(event);
-      if (!report.passed() || specs.hasFindings()) {
-        error().println(NativeHookMessages.failureText(report, specs));
-        return ExitCodes.ERROR;
-      }
       if (protocol.turnEnds(event)) {
-        final SpecValidationReport full =
-            specService.validateConfigured(options.directory(), List.of());
-        if (full.hasFindings()) {
-          output()
-              .println(
-                  protocol.serialize(
-                      NativeHookOutcome.feedback(NativeHookMessages.feedback(full))));
-        }
+        return NativeHookTurnEnd.deliver(
+            protocol,
+            event,
+            report,
+            specService.validateConfigured(options.directory(), List.of()),
+            output(),
+            error());
       }
-      return ExitCodes.OK;
+      final SpecValidationReport specs = validateEditedPath(event);
+      if (report.passed() && !specs.hasFindings()) {
+        return ExitCodes.OK;
+      }
+      final String findings = NativeHookMessages.failureText(report, specs);
+      final Optional<String> feedback = protocol.postEditFeedback(findings);
+      if (feedback.isPresent()) {
+        output().println(feedback.get());
+        return ExitCodes.OK;
+      }
+      error().println(findings);
+      return ExitCodes.ERROR;
     } catch (SentinelException | JsonCodecException | UncheckedIOException exception) {
       error()
           .println(
@@ -115,8 +121,16 @@ public final class NativeHookCommand implements Callable<Integer> {
 
   private int evaluateGuard(final NativeHookProtocol protocol, final NativeHookInput event) {
     try {
-      NativeHookGuard.evaluate(guardService, event, options.directory())
-          .ifPresent(deny -> output().println(protocol.serialize(deny)));
+      final Optional<NativeHookOutcome> deny =
+          NativeHookGuard.evaluate(guardService, event, options.directory());
+      if (deny.isEmpty()) {
+        return ExitCodes.OK;
+      }
+      if (protocol.deniesWithExitStatus()) {
+        error().println(deny.get().message());
+        return ExitCodes.ERROR;
+      }
+      output().println(protocol.serialize(deny.get()));
       return ExitCodes.OK;
     } catch (SentinelException | UncheckedIOException exception) {
       error().println("Sentinel native hook could not inspect the tool call.");

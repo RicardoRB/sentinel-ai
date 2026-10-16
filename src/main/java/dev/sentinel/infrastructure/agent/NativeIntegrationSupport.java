@@ -1,5 +1,6 @@
 package dev.sentinel.infrastructure.agent;
 
+import dev.sentinel.domain.agent.GuardMode;
 import dev.sentinel.domain.agent.IntegrationHealth;
 import dev.sentinel.domain.agent.IntegrationRequest;
 import dev.sentinel.domain.agent.IntegrationResult;
@@ -13,6 +14,9 @@ import java.util.Map;
 
 /** Shared ownership-safe filesystem mechanics for project-local native integrations. */
 public final class NativeIntegrationSupport {
+  /** The wrapper line that marks an enabled guard, in current and earlier wrappers. */
+  private static final String GUARD_ENABLED = "\"enable\" = \"enable\" ]";
+
   private NativeIntegrationSupport() {}
 
   public static boolean installed(final Path projectRoot, final NativeArtifactPlan plan) {
@@ -73,6 +77,33 @@ public final class NativeIntegrationSupport {
       }
       throw new UncheckedIOException(
           "Could not update " + plan.id() + " integration: " + exception.getMessage(), exception);
+    }
+  }
+
+  /**
+   * Resolves {@link GuardMode#KEEP} to the state of the installed hook wrapper, so a refresh
+   * without a guard option neither enables nor silently disables the guard.
+   */
+  static GuardMode resolveGuard(
+      final Path root,
+      final NativeAgentIntegration.Definition definition,
+      final GuardMode requested) {
+    final Path current = root.resolve(definition.hookFile());
+    return resolveGuard(
+        Files.exists(current) ? current : root.resolve(definition.priorHookFile()), requested);
+  }
+
+  static GuardMode resolveGuard(final Path hook, final GuardMode requested) {
+    if (requested != GuardMode.KEEP) {
+      return requested;
+    }
+    try {
+      return Files.isRegularFile(hook) && Files.readString(hook).contains(GUARD_ENABLED)
+          ? GuardMode.ENABLE
+          : GuardMode.DISABLE;
+    } catch (IOException exception) {
+      throw new UncheckedIOException(
+          "Could not read " + hook + ": " + exception.getMessage(), exception);
     }
   }
 

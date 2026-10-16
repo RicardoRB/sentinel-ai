@@ -31,7 +31,7 @@ class NativeAgentAdapterContractTest {
     assertThat(integration.getClass()).isNotEqualTo(NativeAgentIntegration.class);
     assertThat(root.resolve(config)).isRegularFile();
     assertThat(root.resolve(hook)).isRegularFile();
-    assertThat(result.capabilities()).contains(IntegrationCapability.FEEDBACK);
+    assertThat(result.capabilities()).contains(IntegrationCapability.POST_EDIT);
     assertThat(result.capabilities().contains(IntegrationCapability.PRE_TOOL)).isEqualTo(preTool);
     assertThat(Files.readString(root.resolve(config))).contains(integration.id());
   }
@@ -89,17 +89,14 @@ class NativeAgentAdapterContractTest {
         Arguments.of(
             new GeminiIntegration(), ".gemini/settings.json", ".gemini/hooks/sentinel.sh", true),
         Arguments.of(
-            new WindsurfIntegration(),
-            ".windsurf/hooks.json",
-            ".windsurf/hooks/sentinel.sh",
-            false),
+            new WindsurfIntegration(), ".windsurf/hooks.json", ".windsurf/hooks/sentinel.sh", true),
         Arguments.of(
-            new ClineIntegration(), ".cline/hooks/sentinel.json", ".cline/hooks/sentinel.sh", true),
+            new ClineIntegration(), ".cline/hooks/PostToolUse", ".cline/hooks/PreToolUse", true),
         Arguments.of(
             new FactoryDroidIntegration(),
-            ".factory/plugins/sentinel.json",
-            ".factory/plugins/sentinel.sh",
-            false),
+            ".factory/hooks.json",
+            ".factory/hooks/sentinel.sh",
+            true),
         Arguments.of(
             new AmpIntegration(), ".amp/plugins/sentinel.ts", ".amp/plugins/sentinel.sh", true));
   }

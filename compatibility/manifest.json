@@ -1,0 +1,273 @@
+{
+  "schemaVersion": 1,
+  "resolvedOn": "2026-10-16",
+  "harnesses": [
+    {
+      "id": "opencode",
+      "label": "OpenCode",
+      "runtime": {
+        "executable": "opencode",
+        "executableEnv": "SENTINEL_COMPAT_OPENCODE_BIN",
+        "version": "2.0.30",
+        "versionCommand": ["--version"],
+        "versionPattern": "^opencode v(\\S+)$",
+        "source": "https://opencode.ai/install",
+        "install": []
+      },
+      "contractPackages": [
+        { "name": "@opencode/plugin", "version": "2.0.30", "matchesRuntime": true }
+      ],
+      "provenance": [
+        "https://opencode.ai/v2/docs/build/plugins",
+        "https://opencode.ai/v2/docs/build/plugins/migrate-v1",
+        "https://www.npmjs.com/package/@opencode/plugin/v/2.0.30"
+      ],
+      "platforms": ["darwin", "linux"],
+      "discovery": [".opencode/plugins/"],
+      "capabilities": {
+        "post-edit": "supported",
+        "feedback": "supported",
+        "pre-tool-guard": "supported",
+        "turn-end": "supported"
+      },
+      "verification": { "mode": "automated", "prerequisites": ["model provider credentials for a bounded smoke turn"] }
+    },
+    {
+      "id": "claude-code",
+      "label": "Claude Code",
+      "runtime": {
+        "executable": "claude",
+        "executableEnv": "SENTINEL_COMPAT_CLAUDE_CODE_BIN",
+        "version": "2.1.292",
+        "versionCommand": ["--version"],
+        "versionPattern": "^(\\S+) \\(Claude Code\\)$",
+        "source": "https://www.npmjs.com/package/@anthropic-ai/claude-code/v/2.1.292",
+        "install": ["npm", "install", "--prefix", "${TOOLS}", "@anthropic-ai/claude-code@2.1.292"]
+      },
+      "contractPackages": [],
+      "provenance": ["https://code.claude.com/docs/en/hooks"],
+      "platforms": ["darwin", "linux"],
+      "discovery": [".claude/settings.json"],
+      "capabilities": {
+        "post-edit": "supported",
+        "feedback": "supported",
+        "pre-tool-guard": "supported",
+        "turn-end": "supported"
+      },
+      "verification": { "mode": "automated", "prerequisites": ["ANTHROPIC_API_KEY"] }
+    },
+    {
+      "id": "codex",
+      "label": "OpenAI Codex CLI",
+      "runtime": {
+        "executable": "codex",
+        "executableEnv": "SENTINEL_COMPAT_CODEX_BIN",
+        "version": "0.163.0",
+        "versionCommand": ["--version"],
+        "versionPattern": "^codex-cli (\\S+)$",
+        "source": "https://www.npmjs.com/package/@openai/codex/v/0.163.0",
+        "install": ["npm", "install", "--prefix", "${TOOLS}", "@openai/codex@0.163.0"]
+      },
+      "contractPackages": [],
+      "provenance": ["https://learn.chatgpt.com/docs/hooks"],
+      "platforms": ["darwin", "linux"],
+      "discovery": [".codex/hooks.json"],
+      "capabilities": {
+        "post-edit": "supported",
+        "feedback": "supported",
+        "pre-tool-guard": "supported",
+        "turn-end": "supported"
+      },
+      "verification": { "mode": "automated", "prerequisites": ["OPENAI_API_KEY", "hook trust review in the isolated CODEX_HOME"] }
+    },
+    {
+      "id": "cursor",
+      "label": "Cursor",
+      "runtime": {
+        "executable": "cursor-agent",
+        "executableEnv": "SENTINEL_COMPAT_CURSOR_BIN",
+        "version": "2026.10.14-941492e",
+        "versionCommand": ["--version"],
+        "versionPattern": "^(\\S+)$",
+        "source": "https://cursor.com/install",
+        "install": []
+      },
+      "contractPackages": [],
+      "provenance": ["https://cursor.com/docs/agent/hooks"],
+      "platforms": ["darwin", "linux"],
+      "discovery": [".cursor/hooks.json"],
+      "capabilities": {
+        "post-edit": "supported",
+        "feedback": "supported",
+        "pre-tool-guard": "supported",
+        "turn-end": "supported"
+      },
+      "capabilityNotes": {
+        "feedback": "afterFileEdit has no output fields; agent-visible feedback is only possible through the stop hook followup_message."
+      },
+      "verification": { "mode": "automated", "prerequisites": ["CURSOR_API_KEY"] }
+    },
+    {
+      "id": "copilot",
+      "label": "GitHub Copilot CLI",
+      "runtime": {
+        "executable": "copilot",
+        "executableEnv": "SENTINEL_COMPAT_COPILOT_BIN",
+        "version": "1.0.98",
+        "versionCommand": ["--version"],
+        "versionPattern": "^(\\S+)",
+        "source": "https://www.npmjs.com/package/@github/copilot/v/1.0.98",
+        "install": ["npm", "install", "--prefix", "${TOOLS}", "@github/copilot@1.0.98"]
+      },
+      "contractPackages": [],
+      "provenance": ["https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-hooks-reference"],
+      "platforms": ["darwin", "linux"],
+      "discovery": [".github/hooks/*.json"],
+      "capabilities": {
+        "post-edit": "supported",
+        "feedback": "supported",
+        "pre-tool-guard": "supported",
+        "turn-end": "supported"
+      },
+      "verification": { "mode": "automated", "prerequisites": ["GH_TOKEN with a Copilot subscription"] }
+    },
+    {
+      "id": "gemini",
+      "label": "Gemini CLI",
+      "runtime": {
+        "executable": "gemini",
+        "executableEnv": "SENTINEL_COMPAT_GEMINI_BIN",
+        "version": "0.64.0",
+        "versionCommand": ["--version"],
+        "versionPattern": "^(\\S+)$",
+        "source": "https://www.npmjs.com/package/@google/gemini-cli/v/0.64.0",
+        "install": ["npm", "install", "--prefix", "${TOOLS}", "@google/gemini-cli@0.64.0"]
+      },
+      "contractPackages": [],
+      "provenance": ["https://geminicli.com/docs/hooks/reference/"],
+      "platforms": ["darwin", "linux"],
+      "discovery": [".gemini/settings.json"],
+      "capabilities": {
+        "post-edit": "supported",
+        "feedback": "supported",
+        "pre-tool-guard": "supported",
+        "turn-end": "supported"
+      },
+      "verification": { "mode": "automated", "prerequisites": ["GEMINI_API_KEY"] }
+    },
+    {
+      "id": "windsurf",
+      "label": "Windsurf",
+      "runtime": {
+        "executable": "windsurf",
+        "executableEnv": "SENTINEL_COMPAT_WINDSURF_BIN",
+        "version": "1.126.0",
+        "versionCommand": ["--version"],
+        "versionPattern": "^(\\S+)",
+        "source": "https://windsurf-stable.codeium.com/api/update/darwin-arm64/stable/latest",
+        "install": []
+      },
+      "contractPackages": [],
+      "provenance": ["https://docs.devin.ai/desktop/cascade/hooks"],
+      "platforms": ["darwin", "linux"],
+      "discovery": [".windsurf/hooks.json"],
+      "capabilities": {
+        "post-edit": "supported",
+        "feedback": "unsupported",
+        "pre-tool-guard": "supported",
+        "turn-end": "unsupported"
+      },
+      "capabilityNotes": {
+        "feedback": "Post-hook output is shown only in the Cascade UI when show_output is true; it is not delivered to the agent.",
+        "pre-tool-guard": "pre_write_code and pre_run_command block with exit code 2, and Cascade shows the agent stderr.",
+        "turn-end": "post_cascade_response is asynchronous and for logging; no hook output continues the conversation."
+      },
+      "verification": { "mode": "witnessed", "prerequisites": ["Windsurf editor installation and a signed-in account"] }
+    },
+    {
+      "id": "cline",
+      "label": "Cline",
+      "runtime": {
+        "executable": "cline",
+        "executableEnv": "SENTINEL_COMPAT_CLINE_BIN",
+        "version": "3.0.72",
+        "versionCommand": ["--version"],
+        "versionPattern": "(\\d+\\.\\d+\\.\\d+)",
+        "source": "https://www.npmjs.com/package/cline/v/3.0.72",
+        "install": ["npm", "install", "--prefix", "${TOOLS}", "cline@3.0.72"]
+      },
+      "contractPackages": [{ "name": "@cline/sdk", "version": "0.0.94", "matchesRuntime": false }],
+      "provenance": [
+        "https://docs.cline.bot/customization/hooks.md",
+        "https://docs.cline.bot/sdk/plugins.md",
+        "https://docs.cline.bot/customization/plugins.md",
+        "https://www.npmjs.com/package/@cline/core/v/0.0.94"
+      ],
+      "platforms": ["darwin", "linux"],
+      "discovery": [".cline/hooks/", ".clinerules/hooks/"],
+      "capabilities": {
+        "post-edit": "supported",
+        "feedback": "supported",
+        "pre-tool-guard": "supported",
+        "turn-end": "unsupported"
+      },
+      "capabilityNotes": {
+        "turn-end": "TaskComplete hook files run detached in @cline/core 0.0.94; their output is ignored, so nothing can continue the task."
+      },
+      "verification": { "mode": "automated", "prerequisites": ["model provider credentials configured in an isolated Cline home"] }
+    },
+    {
+      "id": "factory-droid",
+      "label": "Factory Droid",
+      "runtime": {
+        "executable": "droid",
+        "executableEnv": "SENTINEL_COMPAT_FACTORY_DROID_BIN",
+        "version": "0.243.0",
+        "versionCommand": ["--version"],
+        "versionPattern": "(\\d+\\.\\d+\\.\\d+)",
+        "source": "https://www.npmjs.com/package/droid/v/0.243.0",
+        "install": ["npm", "install", "--prefix", "${TOOLS}", "droid@0.243.0"]
+      },
+      "contractPackages": [],
+      "provenance": ["https://docs.factory.com/reference/hooks-reference"],
+      "platforms": ["darwin", "linux"],
+      "discovery": [".factory/hooks.json", ".factory/settings.json"],
+      "capabilities": {
+        "post-edit": "supported",
+        "feedback": "supported",
+        "pre-tool-guard": "supported",
+        "turn-end": "supported"
+      },
+      "verification": { "mode": "automated", "prerequisites": ["FACTORY_API_KEY"] }
+    },
+    {
+      "id": "amp",
+      "label": "Amp",
+      "runtime": {
+        "executable": "amp",
+        "executableEnv": "SENTINEL_COMPAT_AMP_BIN",
+        "version": "0.0.1792123242-g03edc7",
+        "versionCommand": ["--version"],
+        "versionPattern": "^(\\S+)",
+        "source": "https://ampcode.com/install.sh",
+        "install": []
+      },
+      "contractPackages": [
+        { "name": "@ampcode/plugin", "version": "0.0.0-20261016001627-gab25fd2", "matchesRuntime": false }
+      ],
+      "provenance": ["https://ampcode.com/manual/plugin-api"],
+      "platforms": ["darwin", "linux"],
+      "discovery": [".amp/plugins/"],
+      "capabilities": {
+        "post-edit": "supported",
+        "feedback": "supported",
+        "pre-tool-guard": "supported",
+        "turn-end": "supported"
+      },
+      "capabilityNotes": {
+        "post-edit": "The plugin API is experimental and works only in the binary-installed Amp CLI, not the npm package or editor extension."
+      },
+      "verification": { "mode": "automated", "prerequisites": ["AMP_API_KEY", "binary-installed Amp CLI"] }
+    }
+  ]
+}

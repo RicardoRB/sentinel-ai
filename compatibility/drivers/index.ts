@@ -1,0 +1,23 @@
+import type { LiveDriver } from "../src/live";
+import { ampDriver } from "./amp";
+import { claudeCodeDriver } from "./claude-code";
+import { clineDriver } from "./cline";
+import { codexDriver } from "./codex";
+import { copilotDriver } from "./copilot";
+import { cursorDriver } from "./cursor";
+import { factoryDroidDriver } from "./factory-droid";
+import { geminiDriver } from "./gemini";
+import { opencodeDriver } from "./opencode";
+
+/** Live drivers by harness ID; a harness without one is reported blocked, never skipped. */
+export const DRIVERS: Record<string, LiveDriver> = {
+  amp: ampDriver,
+  "claude-code": claudeCodeDriver,
+  cline: clineDriver,
+  codex: codexDriver,
+  copilot: copilotDriver,
+  cursor: cursorDriver,
+  "factory-droid": factoryDroidDriver,
+  gemini: geminiDriver,
+  opencode: opencodeDriver,
+};
