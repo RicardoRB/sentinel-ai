@@ -91,7 +91,7 @@ class NativeAgentAdapterContractTest {
         Arguments.of(
             new WindsurfIntegration(), ".windsurf/hooks.json", ".windsurf/hooks/sentinel.sh", true),
         Arguments.of(
-            new ClineIntegration(), ".cline/hooks/sentinel.json", ".cline/hooks/sentinel.sh", true),
+            new ClineIntegration(), ".cline/hooks/PostToolUse", ".cline/hooks/PreToolUse", true),
         Arguments.of(
             new FactoryDroidIntegration(),
             ".factory/hooks.json",

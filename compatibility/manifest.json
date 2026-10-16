@@ -200,18 +200,19 @@
       "provenance": [
         "https://docs.cline.bot/customization/hooks.md",
         "https://docs.cline.bot/sdk/plugins.md",
-        "https://docs.cline.bot/customization/plugins.md"
+        "https://docs.cline.bot/customization/plugins.md",
+        "https://www.npmjs.com/package/@cline/core/v/0.0.94"
       ],
       "platforms": ["darwin", "linux"],
-      "discovery": [".cline/plugins/"],
+      "discovery": [".cline/hooks/", ".clinerules/hooks/"],
       "capabilities": {
         "post-edit": "supported",
         "feedback": "supported",
         "pre-tool-guard": "supported",
-        "turn-end": "supported"
+        "turn-end": "unsupported"
       },
       "capabilityNotes": {
-        "post-edit": "Cline v3 replaced file hooks with SDK plugins (beforeTool/afterTool/afterRun); the payload contract must be pinned from @cline/sdk types."
+        "turn-end": "TaskComplete hook files run detached in @cline/core 0.0.94; their output is ignored, so nothing can continue the task."
       },
       "verification": { "mode": "automated", "prerequisites": ["model provider credentials configured in an isolated Cline home"] }
     },

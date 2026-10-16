@@ -1,46 +1,60 @@
 == definition
-cline .cline/hooks/sentinel.json .cline/hooks/sentinel.sh beforeTool,afterTool,turn_end [APPROVED_ARTIFACT_GUARD, FEEDBACK, POST_EDIT, PRE_TOOL, TURN_END]
+cline .cline/hooks/PostToolUse .cline/hooks/PreToolUse PreToolUse,PostToolUse [APPROVED_ARTIFACT_GUARD, FEEDBACK, POST_EDIT, PRE_TOOL]
 == config
-{
-  "sentinelOwnership": "sentinel-owned: cline-native-hooks v1",
-  "hooks": {
-    "PreToolUse": [{"matcher":".*","hooks":[{"type":"command","command":".cline/hooks/sentinel.sh"}]}],
-    "PostToolUse": [{"type":"command","command":".cline/hooks/sentinel.sh"}],
-    "TaskCompleted": [{"type":"command","command":".cline/hooks/sentinel.sh"}]
-  }
-}
+#!/bin/sh
+# sentinel-owned: cline-native-hooks v1
+# Cline PostToolUse hook. Sentinel always checks the project this file is in.
+payload=$(cat)
+cd "$(dirname "$0")/../.." || exit 0
+case "$payload" in
+  *'"toolName":"editor"'*|*'"toolName":"apply_patch"'*) ;;
+  *) exit 0 ;;
+esac
+printf '%s' "$payload" | exec sentinel hook native --agent cline --event-stdin
 
 == hook KEEP
 #!/bin/sh
 # sentinel-owned: cline-native-hooks v1
-# Native event adapter for cline.
-if [ "keep" = "enable" ]; then
-  exec sentinel hook native --agent cline --guard-approved-specs --event-stdin
-fi
-exec sentinel hook native --agent cline --event-stdin
+# Cline PreToolUse hook. Sentinel always checks the project this file is in.
+payload=$(cat)
+cd "$(dirname "$0")/../.." || exit 0
+[ "keep" = "enable" ] || exit 0
+case "$payload" in
+  *'"toolName":"editor"'*|*'"toolName":"apply_patch"'*|*'"toolName":"run_commands"'*) ;;
+  *) exit 0 ;;
+esac
+printf '%s' "$payload" | exec sentinel hook native --agent cline --guard-approved-specs --event-stdin
 
 == hook ENABLE
 #!/bin/sh
 # sentinel-owned: cline-native-hooks v1
-# Native event adapter for cline.
-if [ "enable" = "enable" ]; then
-  exec sentinel hook native --agent cline --guard-approved-specs --event-stdin
-fi
-exec sentinel hook native --agent cline --event-stdin
+# Cline PreToolUse hook. Sentinel always checks the project this file is in.
+payload=$(cat)
+cd "$(dirname "$0")/../.." || exit 0
+[ "enable" = "enable" ] || exit 0
+case "$payload" in
+  *'"toolName":"editor"'*|*'"toolName":"apply_patch"'*|*'"toolName":"run_commands"'*) ;;
+  *) exit 0 ;;
+esac
+printf '%s' "$payload" | exec sentinel hook native --agent cline --guard-approved-specs --event-stdin
 
 == hook DISABLE
 #!/bin/sh
 # sentinel-owned: cline-native-hooks v1
-# Native event adapter for cline.
-if [ "disable" = "enable" ]; then
-  exec sentinel hook native --agent cline --guard-approved-specs --event-stdin
-fi
-exec sentinel hook native --agent cline --event-stdin
+# Cline PreToolUse hook. Sentinel always checks the project this file is in.
+payload=$(cat)
+cd "$(dirname "$0")/../.." || exit 0
+[ "disable" = "enable" ] || exit 0
+case "$payload" in
+  *'"toolName":"editor"'*|*'"toolName":"apply_patch"'*|*'"toolName":"run_commands"'*) ;;
+  *) exit 0 ;;
+esac
+printf '%s' "$payload" | exec sentinel hook native --agent cline --guard-approved-specs --event-stdin
 
 == deny
-{"decision":"deny","reason":"Blocked \"quoted\" \\ path"}
+{"cancel":true,"errorMessage":"Blocked \"quoted\" \\ path"}
 == feedback
-Fix it
+{"contextModification":"Fix it"}
 == error
 Broken
 == allow

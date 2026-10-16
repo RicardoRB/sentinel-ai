@@ -41,7 +41,7 @@ bun test test/
 ## All deterministic suites
 
 `compatibility/run-deterministic.sh [path/to/sentinel]` runs the tooling tests and every harness suite
-(`opencode-v2`, `amp`, `claude-code`, `codex`, `copilot`, `gemini`, `factory-droid`, `cursor`, `windsurf`) against one Sentinel build. The release workflow runs it
+(`opencode-v2`, `amp`, `claude-code`, `codex`, `copilot`, `gemini`, `factory-droid`, `cursor`, `windsurf`, `cline`) against one Sentinel build. The release workflow runs it
 against each Linux and macOS native executable before publishing, so a broken integration stops the release.
 
 ## Runtime preflight
@@ -71,7 +71,7 @@ The command prints one JSON line per harness and exits `1` unless every requeste
 | `copilot` | copilot 1.0.98 | `bun run src/cli.ts preflight --install copilot` | automated | `GH_TOKEN` with a Copilot subscription |
 | `gemini` | gemini 0.64.0 | `bun run src/cli.ts preflight --install gemini` | automated | `GEMINI_API_KEY` |
 | `windsurf` | windsurf 1.126.0 | set `SENTINEL_COMPAT_WINDSURF_BIN` | witnessed | Windsurf editor installation and a signed-in account |
-| `cline` | cline 3.0.72 | `bun run src/cli.ts preflight --install cline` | automated | model provider credentials configured in an isolated Cline home |
+| `cline` | cline 3.0.72 | `bun run src/cli.ts preflight --install cline` | automated | `SENTINEL_COMPAT_CLINE_PROVIDER` (`anthropic`, `openai`, `openrouter` or `gemini`), `SENTINEL_COMPAT_CLINE_MODEL` and that provider's API key |
 | `factory-droid` | droid 0.243.0 | `bun run src/cli.ts preflight --install factory-droid` | automated | `FACTORY_API_KEY` |
 | `amp` | amp 0.0.1792123242-g03edc7 | set `SENTINEL_COMPAT_AMP_BIN` | automated | `AMP_API_KEY`; binary-installed Amp CLI |
 

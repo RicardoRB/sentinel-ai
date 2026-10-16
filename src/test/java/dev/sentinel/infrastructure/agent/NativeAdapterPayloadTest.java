@@ -15,7 +15,7 @@ import org.junit.jupiter.params.provider.MethodSource;
  */
 class NativeAdapterPayloadTest {
   static Stream<NativeHarnessAdapter> adapters() {
-    return Stream.of(new AmpIntegration(), new ClineIntegration());
+    return Stream.of(new AmpIntegration());
   }
 
   private static NativeHookInput parse(final NativeHarnessAdapter adapter, final String payload) {

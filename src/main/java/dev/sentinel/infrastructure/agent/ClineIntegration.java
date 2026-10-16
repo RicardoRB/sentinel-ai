@@ -5,23 +5,28 @@ import dev.sentinel.domain.agent.IntegrationCapability;
 import dev.sentinel.domain.agent.NativeHookInput;
 import dev.sentinel.domain.agent.NativeHookOutcome;
 import dev.sentinel.domain.json.JsonCodec;
-import java.util.Locale;
+import dev.sentinel.domain.json.JsonCodecException;
+import java.util.List;
+import java.util.Optional;
 import java.util.Set;
-import org.apache.fory.json.annotation.JsonProperty;
 import org.apache.fory.json.annotation.JsonType;
 
-/** Native Cline hooks integration contract. */
+/**
+ * Native Cline v3 hooks integration contract, read from {@code @cline/core} 0.0.94. Cline runs each
+ * file in {@code .cline/hooks/} named after an event with {@code bash}, waits for PreToolUse and
+ * PostToolUse and reads their JSON control output; TaskComplete runs detached and its output is
+ * ignored, so there is no turn-end delivery.
+ */
 public final class ClineIntegration implements NativeHarnessAdapter {
   private static final NativeAgentIntegration.Definition DEFINITION =
       new NativeAgentIntegration.Definition(
           "cline",
-          ".cline/hooks/sentinel.json",
-          ".cline/hooks/sentinel.sh",
-          "beforeTool,afterTool,turn_end",
+          ".cline/hooks/PostToolUse",
+          ".cline/hooks/PreToolUse",
+          "PreToolUse,PostToolUse",
           Set.of(
               IntegrationCapability.PRE_TOOL,
               IntegrationCapability.POST_EDIT,
-              IntegrationCapability.TURN_END,
               IntegrationCapability.FEEDBACK,
               IntegrationCapability.APPROVED_ARTIFACT_GUARD));
 
@@ -30,97 +35,101 @@ public final class ClineIntegration implements NativeHarnessAdapter {
     return DEFINITION;
   }
 
+  /** The PostToolUse hook file, which is this integration's configuration artifact. */
   @Override
   public String configContent() {
-    return "{\n  \"sentinelOwnership\": \""
-        + NativeHookText.marker(DEFINITION.id())
-        + "\",\n  \"hooks\": {\n    \"PreToolUse\": [{\"matcher\":\".*\",\"hooks\":[{\"type\":\"command\",\"command\":\""
-        + DEFINITION.hookFile()
-        + "\"}]}],\n    \"PostToolUse\": [{\"type\":\"command\",\"command\":\""
-        + DEFINITION.hookFile()
-        + "\"}],\n    \"TaskCompleted\": [{\"type\":\"command\",\"command\":\""
-        + DEFINITION.hookFile()
-        + "\"}]\n  }\n}\n";
+    return ClineHookScripts.postToolUse(NativeHookText.marker(DEFINITION.id()));
   }
 
   @Override
   public String hookContent(final GuardMode guardMode) {
-    return "#!/bin/sh\n# "
-        + NativeHookText.marker(DEFINITION.id())
-        + "\n# Native event adapter for cline.\nif [ \""
-        + guardMode.name().toLowerCase(Locale.ROOT)
-        + "\" = \"enable\" ]; then\n  exec sentinel hook native --agent cline --guard-approved-specs --event-stdin\nfi\nexec sentinel hook native --agent cline --event-stdin\n";
+    return ClineHookScripts.preToolUse(NativeHookText.marker(DEFINITION.id()), guardMode);
   }
 
   public String denyResponse(final String reason) {
-    return NativeHookText.genericDenial(reason);
+    return "{\"cancel\":true,\"errorMessage\":" + NativeHookText.quote(reason) + "}";
   }
 
   @Override
   public String serialize(final NativeHookOutcome outcome) {
     return switch (outcome.kind()) {
       case DENY -> denyResponse(outcome.message());
-      case FEEDBACK, ERROR -> outcome.message();
+      case FEEDBACK -> postEditFeedback(outcome.message()).orElseThrow();
+      case ERROR -> outcome.message();
       case ALLOW -> "";
     };
   }
 
+  /** Cline appends PostToolUse {@code contextModification} to the tool result. */
+  @Override
+  public Optional<String> postEditFeedback(final String findings) {
+    return Optional.of("{\"contextModification\":" + NativeHookText.quote(findings) + "}");
+  }
+
   @Override
   public NativeHookInput parse(final JsonCodec codec, final String payload) {
-    return NativeHookText.parse(codec, payload, Payload.class, Payload::input);
+    final Payload event = codec.fromJson(payload, Payload.class);
+    if (event == null) {
+      return NativeHookInput.unreadableInput();
+    }
+    final ToolUse tool = event.preToolUse == null ? event.postToolUse : event.preToolUse;
+    final Parameters parameters =
+        tool == null || tool.parameters == null ? new Parameters() : tool.parameters;
+    final String command;
+    try {
+      command = commandText(codec, parameters.commands);
+    } catch (JsonCodecException exception) {
+      return NativeHookInput.unreadableInput();
+    }
+    return new NativeHookInput(
+        event.hookName,
+        tool == null ? null : tool.toolName,
+        "",
+        parameters.path,
+        command,
+        parameters.input,
+        null,
+        false);
+  }
+
+  /** run_commands sends a list of command lines, serialized as JSON in the parameters. */
+  private static String commandText(final JsonCodec codec, final String commands) {
+    if (commands == null || commands.isBlank()) {
+      return null;
+    }
+    final CommandList list = codec.fromJson("{\"commands\":" + commands + "}", CommandList.class);
+    return list == null || list.commands == null ? null : String.join("\n", list.commands);
   }
 
   @Override
   public boolean turnEnds(final NativeHookInput input) {
-    return NativeHookText.eventIn(input, Set.of("TaskCompleted", "turn_end"));
+    return false;
+  }
+
+  /** Cline hook stdin; tool parameters arrive as strings, objects serialized as JSON. */
+  @JsonType
+  public static final class Payload {
+    public String hookName;
+    public ToolUse preToolUse;
+    public ToolUse postToolUse;
   }
 
   @JsonType
-  public static final class Payload {
-    public String event;
+  public static final class ToolUse {
+    public String toolName;
+    public Parameters parameters;
+  }
 
-    @JsonProperty("event_name")
-    public String eventNameValue;
-
-    @JsonProperty("hook_event_name")
-    public String hookEventName;
-
-    public String type;
-
-    @JsonProperty("tool_name")
-    public String toolNameValue;
-
-    public String cwd;
-
-    @JsonProperty("file_path")
-    public String filePath;
-
+  /** {@code path} for editor, {@code input} for apply_patch, {@code commands} for run_commands. */
+  @JsonType
+  public static final class Parameters {
     public String path;
-    public String command;
-    public String patch;
-    public String patchText;
-    public String skill;
-    public String name;
+    public String input;
+    public String commands;
+  }
 
-    NativeHookInput input() {
-      return new NativeHookInput(
-          first(event, eventNameValue, hookEventName, type),
-          first(toolNameValue, name),
-          cwd == null ? "" : cwd,
-          first(filePath, path),
-          command,
-          first(patch, patchText),
-          skill,
-          false);
-    }
-
-    private static String first(final String... values) {
-      for (final String value : values) {
-        if (value != null && !value.isBlank()) {
-          return value;
-        }
-      }
-      return null;
-    }
+  @JsonType
+  public static final class CommandList {
+    public List<String> commands;
   }
 }

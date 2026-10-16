@@ -34,10 +34,21 @@ const options = (env: Record<string, string>, drivers: Record<string, LiveDriver
 
 describe("live verification prerequisites", () => {
   test("a harness without a live driver is blocked as unimplemented", async () => {
-    const report = await runLive(["cline"], options({}));
+    const report = await runLive(["cline"], options({}, {}));
     expect(report.exitCode).toBe(1);
     expect(report.harnesses[0].outcome).toBe("blocked");
     expect(report.harnesses[0].scenarios[0].reason).toBe("verification driver is not implemented");
+  });
+
+  test("Cline is blocked on its provider settings, and its turn-end scenario is unsupported", async () => {
+    const runtime = fakeRuntime("cline-pinned", "3.0.72");
+    const report = await runLive(["cline"], options({ SENTINEL_COMPAT_CLINE_BIN: runtime }));
+    const reasons = report.harnesses[0].scenarios.map((s) => [s.scenario, s.outcome]);
+    expect(reasons).toContainEqual(["turn-end-feedback-limit", "unsupported"]);
+    expect(report.harnesses[0].scenarios.filter((s) => s.outcome === "blocked")[0].reason).toStartWith(
+      "missing prerequisite: SENTINEL_COMPAT_CLINE_PROVIDER",
+    );
+    expect(report.exitCode).toBe(1);
   });
 
   test("a missing runtime blocks every scenario and names it", async () => {
