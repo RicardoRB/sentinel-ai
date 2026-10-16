@@ -88,6 +88,22 @@
 
     <build>
         <finalName>sentinel</finalName>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <excludes>
+                    <exclude>dev/sentinel/infrastructure/cli/version.properties</exclude>
+                </excludes>
+            </resource>
+            <!-- Native images have no JAR manifest, so the CLI reads its version from this filtered resource. -->
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+                <includes>
+                    <include>dev/sentinel/infrastructure/cli/version.properties</include>
+                </includes>
+            </resource>
+        </resources>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

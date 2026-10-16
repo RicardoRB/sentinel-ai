@@ -13,6 +13,7 @@ import dev.sentinel.infrastructure.agent.FactoryDroidIntegration;
 import dev.sentinel.infrastructure.agent.GeminiIntegration;
 import dev.sentinel.infrastructure.agent.OpenCodeIntegration;
 import dev.sentinel.infrastructure.agent.WindsurfIntegration;
+import dev.sentinel.infrastructure.cli.VersionProvider;
 import java.util.Set;
 import javax.inject.Named;
 
@@ -38,7 +39,6 @@ final class SentinelProvidesModule {
   @Provides
   @Named("sentinel.version")
   static String version() {
-    final String version = SentinelProvidesModule.class.getPackage().getImplementationVersion();
-    return version == null || version.isBlank() ? "dev" : version;
+    return VersionProvider.current();
   }
 }
