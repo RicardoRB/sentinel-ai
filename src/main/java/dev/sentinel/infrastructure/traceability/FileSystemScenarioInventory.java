@@ -30,7 +30,7 @@ public final class FileSystemScenarioInventory implements ScenarioInventory {
     final List<String> failures = new ArrayList<>();
     try (Stream<Path> files = Files.walk(specs)) {
       files
-          .filter(path -> "spec.md".equals(path.getFileName().toString()))
+          .filter(path -> path.endsWith("spec.md"))
           .sorted()
           .forEach(path -> read(path, specs, scenarios, failures));
     } catch (IOException e) {

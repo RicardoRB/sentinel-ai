@@ -82,16 +82,20 @@ final class InitChanges {
       final boolean created,
       final boolean overwrite,
       final List<InitGateOption> gates) {
+    final PomChange appliedPom = pomChange;
+    if (appliedPom == null) {
+      throw new IllegalStateException("Initialization changes have not been applied");
+    }
     return new InitResult(
         file,
         created,
         overwrite,
         gates,
         installed,
-        pomChange.tools(),
+        appliedPom.tools(),
         architectureTest,
         ruleFileChange == null ? List.of() : ruleFileChange.preserved(),
-        pomChange.warnings());
+        appliedPom.warnings());
   }
 
   void rollback() {

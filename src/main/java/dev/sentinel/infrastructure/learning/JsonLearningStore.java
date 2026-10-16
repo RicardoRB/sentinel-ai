@@ -131,8 +131,9 @@ public final class JsonLearningStore implements LearningStore {
   private static FileDto fromDomain(final LearningLedger ledger) {
     final FileDto file = new FileDto();
     file.formatVersion = ledger.formatVersion();
-    file.records = new LinkedHashMap<>();
-    ledger.records().forEach((key, value) -> file.records.put(key, RecordDto.from(value)));
+    final Map<String, RecordDto> records = new LinkedHashMap<>();
+    ledger.records().forEach((key, value) -> records.put(key, RecordDto.from(value)));
+    file.records = records;
     return file;
   }
 

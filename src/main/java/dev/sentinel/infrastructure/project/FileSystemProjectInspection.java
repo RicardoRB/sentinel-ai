@@ -104,7 +104,9 @@ public final class FileSystemProjectInspection implements ProjectInspection {
       }
     }
     try (Stream<Path> files = Files.list(dir)) {
-      return files.anyMatch(path -> path.getFileName().toString().endsWith(".csproj"))
+      return files
+              .map(Path::getFileName)
+              .anyMatch(name -> name != null && name.toString().endsWith(".csproj"))
           ? Optional.of(new Project(dir, Language.CSHARP, BuildTool.DOTNET, Framework.NONE))
           : Optional.empty();
     } catch (IOException e) {

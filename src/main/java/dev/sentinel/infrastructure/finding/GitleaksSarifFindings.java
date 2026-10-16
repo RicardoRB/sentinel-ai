@@ -88,8 +88,8 @@ public final class GitleaksSarifFindings implements GateFindingSource {
         return List.of();
       }
       return runs.stream()
-          .filter(run -> run != null && run.results != null)
-          .flatMap(run -> run.results.stream())
+          .filter(Objects::nonNull)
+          .flatMap(run -> run.resultsOrEmpty().stream())
           .filter(Objects::nonNull)
           .toList();
     }
@@ -98,6 +98,10 @@ public final class GitleaksSarifFindings implements GateFindingSource {
   @JsonType
   static final class SarifRun {
     List<SarifResult> results;
+
+    List<SarifResult> resultsOrEmpty() {
+      return results == null ? List.of() : results;
+    }
   }
 
   @JsonType

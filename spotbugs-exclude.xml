@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Excludes only annotation-processor output under target/generated-sources; project code is analyzed in full. -->
+<FindBugsFilter
+    xmlns="https://github.com/spotbugs/filter/3.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="https://github.com/spotbugs/filter/3.0.0 https://raw.githubusercontent.com/spotbugs/spotbugs/3.1.0/spotbugs/etc/findbugsfilter.xsd">
+    <!-- Fory JSON codecs generated from @JsonType classes. -->
+    <Match>
+        <Class name="~.*_ForyJsonCodec"/>
+    </Match>
+    <!-- Dagger component and factories generated from SentinelComponent. -->
+    <Match>
+        <Class name="~dev\.sentinel\.config\.DaggerSentinelComponent(\$.*)?"/>
+    </Match>
+    <Match>
+        <Class name="~.*_Factory"/>
+    </Match>
+    <Match>
+        <Class name="~.*Module_[A-Za-z]+Factory"/>
+    </Match>
+</FindBugsFilter>

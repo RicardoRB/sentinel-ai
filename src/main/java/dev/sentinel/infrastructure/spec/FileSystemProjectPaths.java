@@ -96,7 +96,9 @@ public final class FileSystemProjectPaths implements ProjectPaths {
     try (Stream<Path> entries = Files.list(changes)) {
       return entries
           .filter(Files::isDirectory)
-          .map(entry -> entry.getFileName().toString())
+          .map(Path::getFileName)
+          .filter(name -> name != null)
+          .map(Path::toString)
           .filter(name -> !ARCHIVE.equals(name) && !name.startsWith(HIDDEN))
           .sorted()
           .toList();
