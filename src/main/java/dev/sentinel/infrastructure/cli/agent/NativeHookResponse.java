@@ -16,7 +16,6 @@ final class NativeHookResponse {
               + ",\"agent_message\":"
               + quote(reason)
               + "}";
-      case "gemini" -> "{\"decision\":\"deny\",\"reason\":" + quote(reason) + "}";
       case "amp" -> "{\"action\":\"reject-and-continue\",\"message\":" + quote(reason) + "}";
       default -> "{\"decision\":\"deny\",\"reason\":" + quote(reason) + "}";
     };
