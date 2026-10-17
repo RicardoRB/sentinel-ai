@@ -30,6 +30,18 @@ unmarked existing files are preserved and reported. `--gate` adds gates to a pre
 project directory. Exit codes: `0` success, `2` invalid usage or
 inability to initialize (including cancelled or invalid selection).
 
+Maven plugins are added only to the project-level `<build><plugins>` and dependencies only to the
+project-level `<dependencies>`. Profiles, `pluginManagement`, `dependencyManagement`, and plugin
+dependencies are never edited, and missing `<build>`, `<plugins>`, or `<dependencies>` sections are
+created. New declarations match the file's indentation. The rest of `pom.xml` is left byte for byte as
+it was. Before writing, Sentinel checks the edited `pom.xml` in-process, without running Maven or
+fetching anything: the file must be well-formed XML, and each added declaration must contain only
+elements Maven allows there. If a check fails, `pom.xml` is not written, the error names the tool being
+added, and init rolls back its other changes. POMs with a `DOCTYPE` declaration are not edited
+automatically; add those declarations by hand. Compatibility version updates change only the managed
+plugin's own project-level `<version>`. A plugin declared only inside a profile is reported as not
+reconfigured.
+
 Init-generated configurations assign gates to cumulative execution phases. Fast gates (`format`,
 `compile`, `checkstyle`, `pmd`, and `gitleaks`) belong to `default`, `pre-commit`, `pre-push`, and
 `ci`. Slower local gates belong to `pre-push` and `ci`; environment-dependent gates belong to `ci`,

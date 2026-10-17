@@ -10,6 +10,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
@@ -73,6 +75,59 @@ class NativeInitTerminalSmokeTest {
       }
     }
   }
+
+  @Test
+  void strictPresetInitWritesMavenToolsThatPassPomValidation() throws Exception {
+    final Path project = copyFixture(workspace.resolve("strict"));
+
+    final Result result = run(project, "init", "--integration", "none", "--preset", "strict");
+
+    assertThat(result.exitCode()).as(result.output()).isZero();
+    assertThat(result.output()).doesNotContain("Exception").doesNotContain("unexpected error");
+    assertThat(Files.readString(project.resolve("pom.xml")))
+        .contains("<artifactId>pitest-maven</artifactId>")
+        .containsPattern("<configuration>\\s*<mutationThreshold>");
+  }
+
+  @Test
+  void initReportsMalformedPomWithoutWritingOrCrashing() throws Exception {
+    final Path project = copyFixture(workspace.resolve("invalid"));
+    final Path pom = project.resolve("pom.xml");
+    Files.writeString(
+        pom, Files.readString(pom).replace("<version>1.0.0</version>", "<version>&bad;</version>"));
+    final String original = Files.readString(pom);
+
+    final Result result = run(project, "init", "--integration", "none", "--gate", "pmd");
+
+    assertThat(result.exitCode()).as(result.output()).isEqualTo(ExitCodes.ERROR);
+    // The XML parser's error messages are a resource bundle that must be in the native image.
+    assertThat(result.output())
+        .contains("The entity \"bad\" was referenced, but not declared.")
+        .doesNotContain("unexpected error")
+        .doesNotContain("MissingResourceException");
+    assertThat(Files.readString(pom)).isEqualTo(original);
+    assertThat(project.resolve("sentinel.toml")).doesNotExist();
+  }
+
+  private static Result run(final Path project, final String... arguments)
+      throws IOException, InterruptedException {
+    final Path binary = Path.of(System.getProperty("sentinel.native.binary")).toAbsolutePath();
+    final List<String> command = new ArrayList<>();
+    command.add(binary.toString());
+    command.addAll(List.of(arguments));
+    final Process process =
+        new ProcessBuilder(command)
+            .directory(project.toFile())
+            .redirectErrorStream(true)
+            .redirectInput(ProcessBuilder.Redirect.from(new File("/dev/null")))
+            .start();
+    final String output =
+        new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+    assertThat(process.waitFor(PROMPT_TIMEOUT.toSeconds(), TimeUnit.SECONDS)).isTrue();
+    return new Result(process.exitValue(), output);
+  }
+
+  private record Result(int exitCode, String output) {}
 
   private static Path copyFixture(final Path target) throws IOException {
     final Path fixture = Path.of("src/test/resources/fixtures/maven-project");

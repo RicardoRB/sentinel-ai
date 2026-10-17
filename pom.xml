@@ -67,6 +67,13 @@
             <version>1.4.2</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <!-- Strict POM reader used to check generated init declarations in tests only. -->
+            <groupId>org.apache.maven</groupId>
+            <artifactId>maven-model</artifactId>
+            <version>3.9.16</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <profiles>
