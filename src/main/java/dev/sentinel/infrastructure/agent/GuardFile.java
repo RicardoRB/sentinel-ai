@@ -2,6 +2,7 @@ package dev.sentinel.infrastructure.agent;
 
 import dev.sentinel.domain.agent.GuardMode;
 import dev.sentinel.domain.agent.IntegrationResult;
+import dev.sentinel.domain.agent.PlannedFileChange;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -28,6 +29,21 @@ record GuardFile(Path file, String marker, String content) {
   /** Returns a conflict when the guard is requested but a user-owned file is in the way. */
   IntegrationResult preflight(final GuardMode mode) throws IOException {
     return mode == GuardMode.ENABLE ? IntegrationArtifacts.preflight(file, marker) : null;
+  }
+
+  /**
+   * Plans what {@link #install} or {@link #remove} would do for {@code mode}: refresh an enabled
+   * guard, delete an installed guard that is being disabled, or nothing.
+   */
+  Optional<PlannedFileChange> plan(final GuardMode mode) throws IOException {
+    if (enabled(mode)) {
+      return Optional.of(
+          new PlannedFileChange(file, IntegrationArtifacts.decide(file, marker, content)));
+    }
+    if (mode == GuardMode.DISABLE && installed()) {
+      return Optional.of(new PlannedFileChange(file, PlannedFileChange.Action.REMOVE));
+    }
+    return Optional.empty();
   }
 
   Map.Entry<Path, IntegrationResult> install(final String message) throws IOException {

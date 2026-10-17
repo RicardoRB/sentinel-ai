@@ -9,7 +9,9 @@ import dev.sentinel.application.project.ProjectDetector;
 import dev.sentinel.application.project.ProjectNotFoundException;
 import dev.sentinel.domain.FakeEnvironmentInspection;
 import dev.sentinel.domain.agent.AgentIntegration;
+import dev.sentinel.domain.agent.GuardMode;
 import dev.sentinel.domain.agent.IntegrationResult;
+import dev.sentinel.domain.agent.PlannedFileChange;
 import dev.sentinel.domain.config.SentinelConfiguration;
 import dev.sentinel.domain.init.InitResult;
 import dev.sentinel.domain.init.InitSelection;
@@ -119,6 +121,11 @@ class InitServiceTest {
     withPom(dir, PLAIN_POM);
     final AgentIntegration conflict =
         new AgentIntegration() {
+          @Override
+          public List<PlannedFileChange> plan(final Path projectRoot, final GuardMode guard) {
+            return List.of();
+          }
+
           @Override
           public String id() {
             return "opencode";

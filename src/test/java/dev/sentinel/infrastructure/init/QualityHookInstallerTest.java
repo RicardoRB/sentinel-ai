@@ -11,6 +11,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 class QualityHookInstallerTest {
+  private static final String PRE_PUSH = ".git/hooks/pre-push";
+
   @Test
   void createsBothExecutableHooksAndRunsProfiles(@TempDir final Path root) throws Exception {
     Files.createDirectories(root.resolve(".git/hooks"));
@@ -21,16 +23,16 @@ class QualityHookInstallerTest {
     assertThat(result.status()).isEqualTo(IntegrationResult.Status.CHANGED);
     assertThat(Files.readString(root.resolve(".git/hooks/pre-commit")))
         .contains(QualityHookInstaller.START_MARKER, "sentinel check --profile pre-commit");
-    assertThat(Files.readString(root.resolve(".git/hooks/pre-push")))
+    assertThat(Files.readString(root.resolve(PRE_PUSH)))
         .contains(QualityHookInstaller.START_MARKER, "sentinel check --profile pre-push");
     assertThat(root.resolve(".git/hooks/pre-commit").toFile().canExecute()).isTrue();
-    assertThat(root.resolve(".git/hooks/pre-push").toFile().canExecute()).isTrue();
+    assertThat(root.resolve(PRE_PUSH).toFile().canExecute()).isTrue();
   }
 
   @Test
   void insertsBeforeAndPreservesExistingHookContent(@TempDir final Path root) throws Exception {
     Files.createDirectories(root.resolve(".git/hooks"));
-    final Path prePush = root.resolve(".git/hooks/pre-push");
+    final Path prePush = root.resolve(PRE_PUSH);
     Files.writeString(prePush, "#!/bin/sh\necho user-hook\n");
     prePush.toFile().setExecutable(true, false);
 
@@ -49,20 +51,19 @@ class QualityHookInstallerTest {
     final QualityHookInstaller installer = new QualityHookInstaller();
     installer.apply(root);
     installer.apply(root);
-    final String content = Files.readString(root.resolve(".git/hooks/pre-push"));
+    final String content = Files.readString(root.resolve(PRE_PUSH));
     assertThat(content.indexOf(QualityHookInstaller.START_MARKER))
         .isEqualTo(content.lastIndexOf(QualityHookInstaller.START_MARKER));
 
     Files.writeString(
-        root.resolve(".git/hooks/pre-push"),
-        "#!/bin/sh\n" + QualityHookInstaller.START_MARKER + "\n");
+        root.resolve(PRE_PUSH), "#!/bin/sh\n" + QualityHookInstaller.START_MARKER + "\n");
     assertThatThrownBy(() -> installer.apply(root)).hasMessageContaining("Malformed");
   }
 
   @Test
   void removesOnlyManagedSections(@TempDir final Path root) throws Exception {
     Files.createDirectories(root.resolve(".git/hooks"));
-    final Path prePush = root.resolve(".git/hooks/pre-push");
+    final Path prePush = root.resolve(PRE_PUSH);
     Files.writeString(prePush, "#!/bin/sh\necho user-hook\n");
     final QualityHookInstaller installer = new QualityHookInstaller();
     installer.apply(root);
@@ -78,7 +79,7 @@ class QualityHookInstallerTest {
   void preflightsBothHooksBeforeWritingAndRollsBack(@TempDir final Path root) throws Exception {
     Files.createDirectories(root.resolve(".git/hooks"));
     final Path preCommit = root.resolve(".git/hooks/pre-commit");
-    final Path prePush = root.resolve(".git/hooks/pre-push");
+    final Path prePush = root.resolve(PRE_PUSH);
     Files.writeString(preCommit, "#!/bin/sh\necho existing\n");
     Files.writeString(prePush, QualityHookInstaller.START_MARKER + "\n");
 
@@ -109,5 +110,20 @@ class QualityHookInstallerTest {
     assertThat(Files.readString(preCommit))
         .contains("sentinel-owned: spec-enforce-pre-commit v1", "echo openspec")
         .doesNotContain(QualityHookInstaller.START_MARKER);
+  }
+
+  @Test
+  void refreshingInstalledHooksLeavesThemByteIdentical(@TempDir final Path root) throws Exception {
+    final Path hook = root.resolve(PRE_PUSH);
+    Files.createDirectories(hook.getParent());
+    Files.writeString(hook, "#!/bin/sh\necho user\n");
+    final QualityHookInstaller installer = new QualityHookInstaller();
+    installer.apply(root);
+    final String installed = Files.readString(hook);
+
+    final QualityHookChange refreshed = installer.apply(root);
+
+    assertThat(Files.readString(hook)).isEqualTo(installed);
+    assertThat(refreshed.result().status()).isEqualTo(IntegrationResult.Status.ALREADY_PRESENT);
   }
 }

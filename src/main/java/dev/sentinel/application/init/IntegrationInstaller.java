@@ -1,7 +1,9 @@
 package dev.sentinel.application.init;
 
 import dev.sentinel.domain.agent.AgentIntegration;
+import dev.sentinel.domain.agent.GuardMode;
 import dev.sentinel.domain.agent.IntegrationResult;
+import dev.sentinel.domain.agent.PlannedFileChange;
 import dev.sentinel.domain.agent.SupportedAgents;
 import dev.sentinel.domain.config.SentinelException;
 import java.nio.file.Path;
@@ -50,6 +52,20 @@ final class IntegrationInstaller {
                 + ": selected integration conflicts with user-owned content.");
       }
     }
+  }
+
+  /** Plans each selected integration's install, in selection order, without writing. */
+  List<PlannedFileChange> plan(final Path root, final List<String> ids) {
+    if (ids.stream().noneMatch(id -> !InitSetupCatalog.NO_INTEGRATION.equals(id))) {
+      return List.of();
+    }
+    if (integrations.isEmpty()) {
+      throw new SentinelException("Agent integrations are unavailable in this runtime.");
+    }
+    return ids.stream()
+        .filter(id -> !InitSetupCatalog.NO_INTEGRATION.equals(id))
+        .flatMap(id -> integration(id).plan(root, GuardMode.KEEP).stream())
+        .toList();
   }
 
   // Cleanup is best effort: any failure here must not hide the original setup failure.

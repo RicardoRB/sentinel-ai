@@ -1,5 +1,6 @@
 package dev.sentinel.domain.init;
 
+import dev.sentinel.domain.agent.PlannedFileChange;
 import dev.sentinel.domain.project.Project;
 import java.util.List;
 
@@ -19,6 +20,13 @@ public interface BuildToolConfiguration {
       final Object approval) {
     return apply(project, gates, preset);
   }
+
+  /**
+   * Describes, without writing, how the build file would change for these gates. Version updates
+   * that need approval are listed as pending unless {@code approved} is true.
+   */
+  PlannedFileChange plan(
+      Project project, List<InitGateOption> gates, QualityPreset preset, boolean approved);
 
   void rollback(PomChange change);
 }

@@ -7,7 +7,9 @@ import dev.sentinel.domain.agent.IntegrationCapability;
 import dev.sentinel.domain.agent.IntegrationHealth;
 import dev.sentinel.domain.agent.IntegrationRequest;
 import dev.sentinel.domain.agent.IntegrationResult;
+import dev.sentinel.domain.agent.PlannedFileChange;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -17,19 +19,6 @@ public interface NativeHarnessAdapter extends AgentIntegration, NativeHookProtoc
   NativeAgentIntegration.Definition definition();
 
   String configContent();
-
-  default NativeArtifactPlan artifactPlan(final Path projectRoot, final GuardMode guardMode) {
-    final Path root = projectRoot.toAbsolutePath().normalize();
-    final Path hook = root.resolve(definition().hookFile());
-    return new NativeArtifactPlan(
-        id(),
-        root.resolve(definition().configFile()),
-        hook,
-        NativeHookText.marker(id()),
-        configContent(),
-        hookContent(NativeIntegrationSupport.resolveGuard(root, definition(), guardMode)),
-        capabilities());
-  }
 
   String hookContent(GuardMode guardMode);
 
@@ -46,12 +35,18 @@ public interface NativeHarnessAdapter extends AgentIntegration, NativeHookProtoc
   @Override
   default boolean installed(final Path projectRoot) {
     return NativeIntegrationSupport.installed(
-        projectRoot, artifactPlan(projectRoot, GuardMode.KEEP));
+        projectRoot, NativeArtifactPlans.of(this, projectRoot, GuardMode.KEEP));
   }
 
   @Override
   default IntegrationHealth health(final Path projectRoot) {
-    return NativeIntegrationSupport.health(projectRoot, artifactPlan(projectRoot, GuardMode.KEEP));
+    return NativeIntegrationSupport.health(
+        projectRoot, NativeArtifactPlans.of(this, projectRoot, GuardMode.KEEP));
+  }
+
+  @Override
+  default List<PlannedFileChange> plan(final Path projectRoot, final GuardMode guard) {
+    return NativeArtifactPlans.plannedChanges(NativeArtifactPlans.of(this, projectRoot, guard));
   }
 
   @Override
@@ -62,6 +57,6 @@ public interface NativeHarnessAdapter extends AgentIntegration, NativeHookProtoc
   @Override
   default IntegrationResult integrate(final Path projectRoot, final IntegrationRequest request) {
     return NativeIntegrationSupport.integrate(
-        projectRoot, request, artifactPlan(projectRoot, request.guard()));
+        projectRoot, request, NativeArtifactPlans.of(this, projectRoot, request.guard()));
   }
 }

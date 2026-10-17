@@ -1,13 +1,11 @@
 package dev.sentinel.infrastructure.init;
 
+import dev.sentinel.domain.agent.PlannedFileChange;
 import dev.sentinel.domain.config.SentinelException;
 import dev.sentinel.domain.init.BuildToolConfiguration;
 import dev.sentinel.domain.init.CompatibilityFinding;
 import dev.sentinel.domain.init.CompatibilityInspection;
-import dev.sentinel.domain.init.CompatibilityPlan;
-import dev.sentinel.domain.init.CompatibilityResolver;
 import dev.sentinel.domain.init.InitGateOption;
-import dev.sentinel.domain.init.ManagedPluginCatalog;
 import dev.sentinel.domain.init.PomChange;
 import dev.sentinel.domain.init.QualityPreset;
 import dev.sentinel.domain.project.Project;
@@ -216,20 +214,16 @@ public final class PomToolConfigurator implements BuildToolConfiguration {
           Tool.plugin("license", LICENSE, LICENSE_PLUGIN),
           Tool.plugin("api-compat", JAPICMP, JAPICMP_PLUGIN));
 
-  private final CompatibilityInspection compatibilityInspection;
-  private final boolean compatibilityEnabled;
-  private final CompatibilityResolver compatibilityResolver = new CompatibilityResolver();
+  private final Optional<CompatibilityFindings> compatibility;
 
   @Inject
   public PomToolConfigurator(final CompatibilityInspection compatibilityInspection) {
-    this.compatibilityInspection = compatibilityInspection;
-    this.compatibilityEnabled = true;
+    this.compatibility = Optional.of(new CompatibilityFindings(compatibilityInspection));
   }
 
   /** Legacy construction retained for focused configurator fixtures. */
   public PomToolConfigurator() {
-    this.compatibilityInspection = null;
-    this.compatibilityEnabled = false;
+    this.compatibility = Optional.empty();
   }
 
   @Override
@@ -249,92 +243,89 @@ public final class PomToolConfigurator implements BuildToolConfiguration {
       final List<InitGateOption> gates,
       final QualityPreset preset,
       final Object approval) {
-    if (!compatibilityEnabled) {
-      return applyLegacy(project, gates, preset);
-    }
-    final Path pom = project.root().resolve("pom.xml");
-    final Set<String> selected = gates.stream().map(InitGateOption::id).collect(Collectors.toSet());
-    try {
-      final String original = Files.readString(pom);
-      String updated = original;
-      final List<String> tools = new ArrayList<>();
-      final List<String> warnings = new ArrayList<>();
-      final List<String> managed =
-          TOOLS.stream()
-              .filter(tool -> selected.contains(tool.gate()))
-              .map(Tool::artifact)
-              .filter(ManagedPluginCatalog.entries()::containsKey)
-              .toList();
-      final CompatibilityPlan plan =
-          compatibilityResolver.resolve(
-              compatibilityInspection.inspect(project), ManagedPluginCatalog.entries(), managed);
-      if (plan.hasUnresolvableFindings()) {
-        throw new SentinelException(
-            plan.findings().stream()
-                .filter(
-                    finding ->
-                        "UNKNOWN".equals(finding.outcome().name())
-                            || "UNRESOLVABLE".equals(finding.outcome().name())
-                            || "INCOMPATIBLE".equals(finding.outcome().name()))
-                .map(CompatibilityFinding::message)
-                .collect(Collectors.joining(" ")));
-      }
-      final Map<String, CompatibilityFinding> findings =
-          plan.findings().stream()
-              .collect(Collectors.toMap(CompatibilityFinding::artifactId, finding -> finding));
-      for (final Tool tool : TOOLS) {
-        if (!selected.contains(tool.gate())) {
-          continue;
-        }
-        updated =
-            applySelectedTool(
-                tool, preset, findings.get(tool.artifact()), approval, updated, tools, warnings);
-      }
-      if (!tools.isEmpty()) {
-        PomDeclarationValidator.validate(updated, addedDeclarations(original, updated, selected));
+    final PomEdit edit = compute(project, gates, preset, approval);
+    if (!edit.tools.isEmpty()) {
+      try {
         Files.writeString(
-            pom, updated, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
+            edit.pom, edit.content, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
+      } catch (IOException e) {
+        throw new SentinelException(
+            "Could not configure Maven tools in " + edit.pom + ": " + e.getMessage(), e);
       }
-      return new PomChange(pom, original, tools, warnings);
-    } catch (IOException e) {
-      throw new SentinelException(
-          "Could not configure Maven tools in " + pom + ": " + e.getMessage(), e);
     }
+    return new PomChange(edit.pom, edit.original, edit.tools, edit.warnings);
   }
 
-  private PomChange applyLegacy(
-      final Project project, final List<InitGateOption> gates, final QualityPreset preset) {
+  @Override
+  public PlannedFileChange plan(
+      final Project project,
+      final List<InitGateOption> gates,
+      final QualityPreset preset,
+      final boolean approved) {
+    final List<CompatibilityFinding> pending = new ArrayList<>();
+    final Predicate<Object> approval =
+        candidate -> {
+          if (!approved && candidate instanceof CompatibilityFinding finding) {
+            pending.add(finding);
+          }
+          return approved;
+        };
+    final PomEdit edit = compute(project, gates, preset, approval);
+    final List<String> details = new ArrayList<>(edit.details);
+    pending.forEach(
+        finding ->
+            details.add(
+                "~ "
+                    + finding.artifactId()
+                    + " "
+                    + finding.currentVersion()
+                    + " -> "
+                    + finding.selectedVersion()
+                    + " (requires approval)"));
+    return new PlannedFileChange(
+        edit.pom,
+        details.isEmpty() ? PlannedFileChange.Action.UNCHANGED : PlannedFileChange.Action.MODIFY,
+        details);
+  }
+
+  /**
+   * Computes and validates the edited pom in memory; shared by {@link #apply} and {@link #plan}.
+   */
+  private PomEdit compute(
+      final Project project,
+      final List<InitGateOption> gates,
+      final QualityPreset preset,
+      final Object approval) {
     final Path pom = project.root().resolve("pom.xml");
     final Set<String> selected = gates.stream().map(InitGateOption::id).collect(Collectors.toSet());
+    final PomEdit edit;
     try {
-      final String original = Files.readString(pom);
-      String updated = original;
-      final List<String> tools = new ArrayList<>();
-      final List<String> warnings = new ArrayList<>();
-      for (final Tool tool : TOOLS) {
-        if (!selected.contains(tool.gate())) {
-          continue;
-        }
-        if (containsArtifact(updated, tool.artifact())) {
-          if (preset != null && tool.presetSnippet() != null) {
-            warnings.add(
-                tool.artifact() + " already declared; " + preset.id() + " settings not applied");
-          }
-        } else {
-          updated = tool.addTo(updated, preset, null);
-          tools.add(tool.artifact());
-        }
-      }
-      if (!tools.isEmpty()) {
-        PomDeclarationValidator.validate(updated, addedDeclarations(original, updated, selected));
-        Files.writeString(
-            pom, updated, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
-      }
-      return new PomChange(pom, original, tools, warnings);
+      edit = new PomEdit(pom, Files.readString(pom));
     } catch (IOException e) {
       throw new SentinelException(
           "Could not configure Maven tools in " + pom + ": " + e.getMessage(), e);
     }
+    final Map<String, CompatibilityFinding> findings =
+        compatibility
+            .map(
+                resolver ->
+                    resolver.resolve(
+                        project,
+                        TOOLS.stream()
+                            .filter(tool -> selected.contains(tool.gate()))
+                            .map(Tool::artifact)
+                            .toList()))
+            .orElse(Map.of());
+    for (final Tool tool : TOOLS) {
+      if (selected.contains(tool.gate())) {
+        applySelectedTool(tool, preset, findings.get(tool.artifact()), approval, edit);
+      }
+    }
+    if (!edit.tools.isEmpty()) {
+      PomDeclarationValidator.validate(
+          edit.content, addedDeclarations(edit.original, edit.content, selected));
+    }
+    return edit;
   }
 
   @Override
@@ -353,40 +344,34 @@ public final class PomToolConfigurator implements BuildToolConfiguration {
     }
   }
 
-  private String applySelectedTool(
+  private void applySelectedTool(
       final Tool tool,
       final QualityPreset preset,
       final CompatibilityFinding finding,
       final Object approval,
-      final String currentPom,
-      final List<String> tools,
-      final List<String> warnings) {
-    String updated = currentPom;
-    if (finding != null && !containsArtifact(updated, tool.artifact())) {
-      updated = tool.addTo(updated, preset, finding.selectedVersion());
-      tools.add(tool.artifact() + " " + finding.selectedVersion());
+      final PomEdit edit) {
+    if (finding != null && !containsArtifact(edit.content, tool.artifact())) {
+      edit.add(tool, preset, finding.selectedVersion());
     } else if (finding != null && finding.changesVersion()) {
       final boolean accepted =
           approval instanceof Predicate<?> rawPredicate
               && ((Predicate<Object>) rawPredicate).test(finding);
       if (accepted) {
-        updated = updateVersion(updated, tool.artifact(), finding, tools, warnings);
+        edit.updateVersion(tool.artifact(), finding);
       } else {
-        warnings.add(
+        edit.warnings.add(
             "Compatibility update declined for "
                 + tool.artifact()
                 + "; selected gate was not reconfigured.");
       }
-    } else if (containsArtifact(updated, tool.artifact())) {
+    } else if (containsArtifact(edit.content, tool.artifact())) {
       if (preset != null && tool.presetSnippet() != null) {
-        warnings.add(
+        edit.warnings.add(
             tool.artifact() + " already declared; " + preset.id() + " settings not applied");
       }
     } else {
-      updated = tool.addTo(updated, preset, null);
-      tools.add(tool.artifact());
+      edit.add(tool, preset, null);
     }
-    return updated;
   }
 
   /** Declarations for the selected tools that this run added to the pom. */
@@ -404,25 +389,45 @@ public final class PomToolConfigurator implements BuildToolConfiguration {
     return pom.contains("<artifactId>" + artifactId + "</artifactId>");
   }
 
-  private static String updateVersion(
-      final String pom,
-      final String artifact,
-      final CompatibilityFinding finding,
-      final List<String> tools,
-      final List<String> warnings) {
-    final Optional<String> updated =
-        PomXml.replacePluginVersion(
-            pom, artifact, finding.currentVersion(), finding.selectedVersion());
-    if (updated.isEmpty()) {
-      warnings.add(
-          "Compatibility update skipped for "
-              + artifact
-              + " because it is not declared in the project-level build; selected gate was not"
-              + " reconfigured.");
-      return pom;
+  /** The pom being edited in memory, with what changed so far. */
+  private static final class PomEdit {
+    private final Path pom;
+    private final String original;
+    private final List<String> tools = new ArrayList<>();
+    private final List<String> warnings = new ArrayList<>();
+    private final List<String> details = new ArrayList<>();
+    private String content;
+
+    PomEdit(final Path pom, final String original) {
+      this.pom = pom;
+      this.original = original;
+      this.content = original;
     }
-    tools.add(artifact + " " + finding.currentVersion() + " -> " + finding.selectedVersion());
-    return updated.get();
+
+    void add(final Tool tool, final QualityPreset preset, final String selectedVersion) {
+      content = tool.addTo(content, preset, selectedVersion);
+      tools.add(
+          selectedVersion == null ? tool.artifact() : tool.artifact() + " " + selectedVersion);
+      details.add("+ " + tool.artifact() + " " + tool.version(preset, selectedVersion));
+    }
+
+    void updateVersion(final String artifact, final CompatibilityFinding finding) {
+      final Optional<String> updated =
+          PomXml.replacePluginVersion(
+              content, artifact, finding.currentVersion(), finding.selectedVersion());
+      if (updated.isEmpty()) {
+        warnings.add(
+            "Compatibility update skipped for "
+                + artifact
+                + " because it is not declared in the project-level build; selected gate was not"
+                + " reconfigured.");
+        return;
+      }
+      final String change = finding.currentVersion() + " -> " + finding.selectedVersion();
+      content = updated.get();
+      tools.add(artifact + " " + change);
+      details.add("~ " + artifact + " " + change);
+    }
   }
 
   /**
@@ -435,6 +440,8 @@ public final class PomToolConfigurator implements BuildToolConfiguration {
       String snippet,
       Function<QualityPreset, String> presetSnippet,
       boolean dependency) {
+    private static final String VERSION_START = "<version>";
+
     static Tool plugin(final String gate, final String artifact, final String snippet) {
       return new Tool(gate, artifact, snippet, null, false);
     }
@@ -457,6 +464,19 @@ public final class PomToolConfigurator implements BuildToolConfiguration {
                   "<version>[^<]+</version>",
                   Matcher.quoteReplacement("<version>" + selectedVersion + "</version>"));
       return dependency ? PomXml.addDependency(pom, versioned) : PomXml.addPlugin(pom, versioned);
+    }
+
+    /** The version this tool's declaration pins, preferring a compatibility-selected version. */
+    String version(final QualityPreset preset, final String selectedVersion) {
+      if (selectedVersion != null) {
+        return selectedVersion;
+      }
+      final String chosen =
+          preset == null || presetSnippet == null ? snippet : presetSnippet.apply(preset);
+      final int start = chosen.indexOf(VERSION_START);
+      return start < 0
+          ? ""
+          : chosen.substring(start + VERSION_START.length(), chosen.indexOf("</version>", start));
     }
   }
 }

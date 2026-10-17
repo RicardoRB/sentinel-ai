@@ -6,7 +6,7 @@ description: Create sentinel.toml and select integrations.
 `sentinel init` creates `sentinel.toml` using an interactive wizard or explicit options.
 
 ```sh
-sentinel init [-C <dir>] [--preset <standard|strict>] [--integration <none|agent>[,...]] [--quality-hooks] [--remove-quality-hooks] [--gate <id>[,...]] [--tool openspec] [--openspec-validation <openspec|openspec-archived>[,...]] [--install-tool openspec] [--architecture <style>] [--overwrite] [--yes]
+sentinel init [-C <dir>] [--preset <standard|strict>] [--integration <none|agent>[,...]] [--quality-hooks] [--remove-quality-hooks] [--gate <id>[,...]] [--tool openspec] [--openspec-validation <openspec|openspec-archived>[,...]] [--install-tool openspec] [--architecture <style>] [--overwrite] [--dry-run] [--accept-compatibility-updates] [--yes]
 ```
 
 `agent` accepts the IDs documented for [`integrate`](/commands/integrate/), including `codex`, `cursor`,
@@ -26,7 +26,8 @@ For Gradle projects, equivalent pinned plugin declarations are added to `build.g
 `build.gradle.kts` using the detected DSL, and the Gradle Wrapper is preferred when available.
 Existing compatible plugin versions are preserved. Incompatible managed plugins show the current version,
 selected compatible version, detected constraints, and affected file before asking for consent. `--yes`
-accepts these validated compatibility updates without prompting; it does not bypass unresolved prerequisites
+(see [How questions are answered](#how-questions-are-answered)) also accepts these validated compatibility
+updates without prompting; it does not bypass unresolved prerequisites
 or install standalone binaries such as Semgrep, Gitleaks, Trivy, or ZAP. Declined updates leave the POM
 unchanged and report that the selected gate was not reconfigured. Preset rule files are Sentinel-owned;
 unmarked existing files are preserved and reported. With `--preset`, `--gate` only adds gates to the
@@ -81,10 +82,71 @@ the wizard uses numbered prompts instead. Numbered prompts show pre-selected ite
 you enter toggles that item, and an empty line accepts the pre-selection. For example, after choosing
 `standard`, entering the number of `pmd` configures every standard gate except `pmd`.
 
-When the wizard runs, it always asks the optional Tools and quality-hook questions that options leave
-open. If input ends at an optional question (Tools, OpenSpec validations, or quality hooks), the
-wizard selects nothing for it and finishes. If input ends before the gate selection, or at the
-OpenSpec installation prompt, initialization is cancelled and no files are changed.
+## Review and dry run
+
+Before writing anything, init works out exactly which files it would change. On a terminal it shows
+that plan and asks `Proceed? [Y/n]`. Press Enter or answer `y` to apply it. Answer `n`, or end the
+input, and nothing changes. The review is skipped with `--yes` and when input is not a terminal.
+
+```console
+Sentinel will make these changes:
+
+  create     sentinel.toml
+  modify     pom.xml
+               + maven-pmd-plugin 3.28.0
+               ~ spotless-maven-plugin 1.0.0 -> 3.10.3 (requires approval)
+  create     config/pmd-ruleset.xml
+  keep       config/checkstyle.xml  (user-owned, not changed)
+  create     .git/hooks/pre-commit
+  create     .claude/settings.json
+
+Proceed? [Y/n]:
+```
+
+The plan lists every file init would create, modify, or remove, including agent-integration files and
+Git hooks. For `pom.xml` or the Gradle build file it names each plugin it would add, with its version,
+and each managed plugin whose version it would update. Updates that still need approval are marked
+`(requires approval)`. User-owned files that init leaves alone are listed as `keep`. A user-owned file
+that would block initialization is listed as `conflict`, and init stops with exit code `2` before
+writing anything.
+
+`--dry-run` resolves your answers the same way, prints the plan, and exits with code `0` without
+writing files, installing OpenSpec, or asking for compatibility approval:
+
+```console
+sentinel init --dry-run --preset strict --integration none --architecture layered
+```
+
+`--accept-compatibility-updates` approves validated Maven compatibility updates without prompting,
+without the other effects of `--yes`.
+
+## How questions are answered
+
+Each question is answered by the first of these that applies:
+
+1. The option that answers it, such as `--preset`, `--gate`, `--integration`, `--architecture`,
+   `--tool`, or `--quality-hooks`.
+2. Its default, when `--yes` is given: preset `standard` with its gates, integration `none`, no tools,
+   OpenSpec validations, or installation, no quality hooks, and architecture `layered`. `--yes` never
+   overwrites an existing `sentinel.toml` (use `--overwrite`) and never installs OpenSpec (use
+   `--install-tool openspec`).
+3. An answer read from input.
+
+On a terminal, options never hide the questions they don't answer, so
+`sentinel init --integration claude-code` still asks for the preset, gates, Tools, and quality hooks.
+Without a terminal, for example in CI, when `--preset`, `--gate`, or `--integration` is given, init
+reads nothing: unanswered questions take their defaults, so an open but silent standard input can't
+make it wait. Without options, answers can be piped, for example `printf '1\n1\n\n' | sentinel init`.
+
+The preset and gate selection is the only required answer. If input ends before it, or it is missing
+in a non-interactive run, init exits with code `2` and suggests `--preset`, `--gate`, or `--yes`. If
+input ends at any other question, init uses its default and continues, except at the OpenSpec
+installation prompt, where initialization is cancelled and no files are changed.
+
+On a terminal, an invalid answer, such as `4` at the preset question, an out-of-range number, or an
+empty gate selection, shows the error and asks the same question again, keeping your earlier answers.
+The raw-key menus stay open after an empty confirmation. With piped input, an invalid answer fails
+immediately with exit code `2` and no changes.
 
 The wizard has a separate optional Tools screen. OpenSpec, its active validation
 (`openspec validate --all --strict --no-interactive`), and its archived validation

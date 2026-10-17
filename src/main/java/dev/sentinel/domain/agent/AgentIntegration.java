@@ -1,10 +1,17 @@
 package dev.sentinel.domain.agent;
 
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Set;
 
 public interface AgentIntegration extends AgentAdapter {
   IntegrationResult integrate(Path projectRoot, boolean remove);
+
+  /**
+   * Describes, without writing, every file that installing or refreshing this integration with
+   * {@code guard} would create, modify, or remove, including user-owned conflicts.
+   */
+  List<PlannedFileChange> plan(Path projectRoot, GuardMode guard);
 
   default Set<IntegrationCapability> capabilities() {
     return Set.of();

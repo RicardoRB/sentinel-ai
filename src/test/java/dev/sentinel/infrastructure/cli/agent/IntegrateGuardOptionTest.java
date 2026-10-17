@@ -10,6 +10,7 @@ import dev.sentinel.domain.agent.AgentIntegration;
 import dev.sentinel.domain.agent.GuardMode;
 import dev.sentinel.domain.agent.IntegrationRequest;
 import dev.sentinel.domain.agent.IntegrationResult;
+import dev.sentinel.domain.agent.PlannedFileChange;
 import dev.sentinel.infrastructure.cli.ExitCodes;
 import dev.sentinel.infrastructure.project.FileSystemProjectInspection;
 import java.io.ByteArrayInputStream;
@@ -40,6 +41,11 @@ class IntegrateGuardOptionTest {
   private int run(final String... args) {
     final AgentIntegration recording =
         new AgentIntegration() {
+          @Override
+          public List<PlannedFileChange> plan(final Path projectRoot, final GuardMode guard) {
+            return List.of();
+          }
+
           @Override
           public String id() {
             return AGENT;

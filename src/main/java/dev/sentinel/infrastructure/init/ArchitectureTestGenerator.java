@@ -1,5 +1,6 @@
 package dev.sentinel.infrastructure.init;
 
+import dev.sentinel.domain.agent.PlannedFileChange;
 import dev.sentinel.domain.config.SentinelException;
 import dev.sentinel.domain.init.ArchitectureTestChange;
 import dev.sentinel.domain.init.ArchitectureTestGeneration;
@@ -10,6 +11,7 @@ import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -32,11 +34,9 @@ public final class ArchitectureTestGenerator implements ArchitectureTestGenerati
       final Project project,
       final String architecture,
       final QualityPreset.ArchitectureExtras extras) {
-    final Path projectRoot = project.root();
-    final String basePackage = detectBasePackage(projectRoot);
-    final Path packageDirectory =
-        projectRoot.resolve("src/test/java").resolve(basePackage.replace('.', '/'));
-    final Path test = packageDirectory.resolve("ArchitectureTest.java");
+    final String basePackage = detectBasePackage(project.root());
+    final Path test = target(project.root(), basePackage);
+    final Path packageDirectory = test.getParent();
     if (Files.exists(test)) {
       return new ArchitectureTestChange(test, false, architecture);
     }
@@ -51,6 +51,26 @@ public final class ArchitectureTestGenerator implements ArchitectureTestGenerati
       throw new SentinelException(
           "Could not generate ArchUnit test " + test + ": " + e.getMessage(), e);
     }
+  }
+
+  @Override
+  public PlannedFileChange plan(
+      final Project project,
+      final String architecture,
+      final QualityPreset.ArchitectureExtras extras) {
+    final Path test = target(project.root(), detectBasePackage(project.root()));
+    return new PlannedFileChange(
+        test,
+        Files.exists(test) ? PlannedFileChange.Action.UNCHANGED : PlannedFileChange.Action.CREATE,
+        List.of(architecture + " architecture"));
+  }
+
+  /** Where the generated test lives; shared by apply and plan. */
+  private static Path target(final Path projectRoot, final String basePackage) {
+    return projectRoot
+        .resolve("src/test/java")
+        .resolve(basePackage.replace('.', '/'))
+        .resolve("ArchitectureTest.java");
   }
 
   @Override

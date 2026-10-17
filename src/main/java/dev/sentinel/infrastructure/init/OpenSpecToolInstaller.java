@@ -1,5 +1,6 @@
 package dev.sentinel.infrastructure.init;
 
+import dev.sentinel.domain.init.OpenSpecDistribution;
 import dev.sentinel.domain.init.ToolInstallationChange;
 import dev.sentinel.domain.init.ToolInstallationResult;
 import dev.sentinel.domain.init.ToolInstaller;
@@ -19,8 +20,8 @@ import javax.inject.Inject;
 /** Installs the reviewed OpenSpec distribution into Sentinel-owned project-local storage. */
 public final class OpenSpecToolInstaller implements ToolInstaller {
   private static final Logger LOGGER = Logger.getLogger(OpenSpecToolInstaller.class.getName());
-  public static final String PACKAGE = "@fission-ai/openspec@1.14.1";
-  public static final Path DESTINATION = Path.of(".sentinel/tools/openspec");
+  public static final String PACKAGE = OpenSpecDistribution.packageName();
+  public static final Path DESTINATION = OpenSpecDistribution.destination(Path.of(""));
   private static final String OWNERSHIP_MARKER = ".sentinel-managed";
 
   private final CommandExecutor executor;
@@ -43,7 +44,7 @@ public final class OpenSpecToolInstaller implements ToolInstaller {
 
   private ToolInstallationResult installOpenSpec(final Path projectRoot, final String tool) {
     final Path destination = projectRoot.resolve(DESTINATION);
-    final Path executable = destination.resolve("node_modules/.bin/openspec");
+    final Path executable = OpenSpecDistribution.executable(projectRoot);
     final Path staging = projectRoot.resolve(".sentinel/tools/.openspec-staging");
     try {
       final ToolInstallationResult existing =
@@ -57,7 +58,12 @@ public final class OpenSpecToolInstaller implements ToolInstaller {
       if (!prerequisitesAvailable(projectRoot)) {
         LOGGER.log(Level.WARNING, "event=tool-install-prerequisite-failure tool=openspec");
         return new ToolInstallationResult(
-            tool, false, null, "OpenSpec installation requires Node.js >=20.19.0 and npm on PATH.");
+            tool,
+            false,
+            null,
+            "OpenSpec installation requires "
+                + OpenSpecDistribution.nodeRequirement()
+                + " and npm on PATH.");
       }
       Files.createDirectories(staging);
       final Path stagedExecutable = installPackage(projectRoot, staging);

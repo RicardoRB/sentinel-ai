@@ -1,6 +1,8 @@
 package dev.sentinel.infrastructure.init;
 
 import dev.sentinel.domain.agent.IntegrationResult;
+import dev.sentinel.domain.agent.PlannedFileChange;
+import dev.sentinel.domain.config.SentinelException;
 import dev.sentinel.domain.init.QualityHookChange;
 import dev.sentinel.domain.init.QualityHookChange.HookSnapshot;
 import dev.sentinel.domain.init.QualityHookGeneration;
@@ -50,6 +52,39 @@ public final class QualityHookInstaller implements QualityHookGeneration {
     } catch (IOException e) {
       throw new UncheckedIOException("Could not update quality hooks", e);
     }
+  }
+
+  @Override
+  public List<PlannedFileChange> plan(final Path projectRoot) {
+    final Path root = projectRoot.toAbsolutePath().normalize();
+    try {
+      return List.of(
+          planHook(root.resolve(".git/hooks/pre-commit"), "pre-commit"),
+          planHook(root.resolve(".git/hooks/pre-push"), "pre-push"));
+    } catch (IOException e) {
+      throw new UncheckedIOException("Could not read quality hooks", e);
+    }
+  }
+
+  /** Uses the same read, marker check, and section update as {@link #apply}. */
+  private static PlannedFileChange planHook(final Path path, final String profile)
+      throws IOException {
+    final String original = QualityHookFileOperations.readOrEmpty(path);
+    try {
+      QualityHookFileOperations.rejectMalformed(path, original);
+    } catch (SentinelException malformed) {
+      return new PlannedFileChange(
+          path, PlannedFileChange.Action.CONFLICT, List.of(malformed.getMessage()));
+    }
+    final String updated = QualityHookFileOperations.update(original, profile);
+    if (!Files.exists(path)) {
+      return new PlannedFileChange(
+          path, PlannedFileChange.Action.CREATE, List.of("Sentinel " + profile + " section"));
+    }
+    return updated.equals(original)
+        ? new PlannedFileChange(path, PlannedFileChange.Action.UNCHANGED)
+        : new PlannedFileChange(
+            path, PlannedFileChange.Action.MODIFY, List.of("Sentinel " + profile + " section"));
   }
 
   /** Removes only Sentinel quality sections and wholly Sentinel-owned hook files. */

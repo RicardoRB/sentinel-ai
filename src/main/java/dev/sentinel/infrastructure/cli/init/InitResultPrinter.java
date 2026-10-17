@@ -2,11 +2,14 @@ package dev.sentinel.infrastructure.cli.init;
 
 import dev.sentinel.application.init.InitSetupCatalog;
 import dev.sentinel.domain.agent.IntegrationResult;
+import dev.sentinel.domain.agent.PlannedFileChange;
 import dev.sentinel.domain.init.ArchitectureTestChange;
 import dev.sentinel.domain.init.InitGateOption;
+import dev.sentinel.domain.init.InitPlan;
 import dev.sentinel.domain.init.InitResult;
 import dev.sentinel.domain.project.Project;
 import java.io.PrintWriter;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -35,6 +38,51 @@ final class InitResultPrinter {
                   + " status="
                   + (gateOption.available() ? "available" : "unavailable"));
     }
+  }
+
+  /** Prints the files a plan would change, relative to the project root. */
+  void printPlan(final InitPlan plan, final Path root) {
+    final List<PlannedFileChange> files = plan.visibleFiles();
+    if (files.isEmpty() && plan.installation().isEmpty()) {
+      out.println("No files would change.");
+      return;
+    }
+    out.println("Sentinel will make these changes:");
+    out.println();
+    for (final PlannedFileChange file : files) {
+      final String path = root.relativize(file.file()).toString();
+      out.printf("  %-10s %s%s%n", verb(file.action()), path, note(file.action()));
+      file.details().forEach(detail -> out.println("               " + detail));
+    }
+    plan.installation()
+        .ifPresent(
+            installation ->
+                out.printf(
+                    "  %-10s %s %s into %s%n",
+                    "install",
+                    installation.tool(),
+                    installation.packageName(),
+                    root.relativize(installation.destination())));
+    out.println();
+  }
+
+  private static String verb(final PlannedFileChange.Action action) {
+    return switch (action) {
+      case CREATE -> "create";
+      case MODIFY -> "modify";
+      case REMOVE -> "remove";
+      case PRESERVE_USER_OWNED -> "keep";
+      case CONFLICT -> "conflict";
+      case UNCHANGED -> "unchanged";
+    };
+  }
+
+  private static String note(final PlannedFileChange.Action action) {
+    return switch (action) {
+      case PRESERVE_USER_OWNED -> "  (user-owned, not changed)";
+      case CONFLICT -> "  (user-owned, blocks initialization)";
+      default -> "";
+    };
   }
 
   void print(final InitResult result) {
