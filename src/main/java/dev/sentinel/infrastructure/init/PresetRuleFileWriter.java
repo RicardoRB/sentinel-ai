@@ -160,7 +160,8 @@ public final class PresetRuleFileWriter implements RuleFileGeneration {
   }
 
   private static String enforcer(final QualityPreset preset) {
-    return "<rules>\n"
+    return "<enforcer>\n"
+        + "<rules>\n"
         + preset.rules().enforcerRules().stream()
             .map(
                 rule ->
@@ -168,6 +169,7 @@ public final class PresetRuleFileWriter implements RuleFileGeneration {
                         ? "  <requireMavenVersion><version>[3.9,)</version></requireMavenVersion>\n"
                         : "  <" + rule + "/>\n")
             .reduce("", String::concat)
-        + "</rules>\n";
+        + "</rules>\n"
+        + "</enforcer>\n";
   }
 }

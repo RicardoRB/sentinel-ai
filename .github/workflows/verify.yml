@@ -33,17 +33,23 @@ jobs:
           java-version: '25'
           cache: maven
 
-      # ArchUnit, tests, Spotless, Checkstyle, PMD, SpotBugs, and >= 80% JaCoCo instruction coverage.
-      - name: Run quality verification
-        run: ./verify-quality.sh
+      - name: Install Sentinel
+        env:
+          SENTINEL_VERSION: v0.0.9
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/RicardoRB/sentinel-ai/main/install.sh | sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
-      - name: Upload coverage report
+      - name: Run Sentinel quality gates
+        run: sentinel check --profile ci --format json > sentinel-report.json
+
+      - name: Upload Sentinel report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: jacoco-report
-          path: target/site/jacoco/
-          if-no-files-found: ignore
+          name: sentinel-report
+          path: sentinel-report.json
+          if-no-files-found: error
 
   native:
     name: Native checks (${{ matrix.os }})

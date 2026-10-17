@@ -1,15 +1,37 @@
 {
-  "hooks": {
-    "PostToolUse": [
+  "hooks" : {
+    "PostToolUse" : [
       {
-        "matcher": "^(Edit|Write|MultiEdit)$",
-        "hooks": [
+        "matcher" : "^(Edit|Write|MultiEdit)$",
+        "hooks" : [
           {
-            "type": "command",
-            "command": "./verify-quality.sh"
+            "type" : "command",
+            "command" : "./verify-quality.sh"
+          }
+        ]
+      },
+      {
+        "matcher" : "^(Edit|Write|MultiEdit)$",
+        "hooks" : [
+          {
+            "type" : "command",
+            "command" : "${CLAUDE_PROJECT_DIR}/.claude/hooks/sentinel-edit-write",
+            "args" : [ ]
+          }
+        ]
+      }
+    ],
+    "Stop" : [
+      {
+        "hooks" : [
+          {
+            "type" : "command",
+            "command" : "${CLAUDE_PROJECT_DIR}/.claude/hooks/sentinel-edit-write",
+            "args" : [ ]
           }
         ]
       }
     ]
-  }
+  },
+  "sentinelOwnership" : "sentinel-owned: claude-code-edit-write v1"
 }
