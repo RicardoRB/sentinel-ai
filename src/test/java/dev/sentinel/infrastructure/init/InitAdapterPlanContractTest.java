@@ -37,7 +37,7 @@ class InitAdapterPlanContractTest {
 
     assertPlanMatchesTwice(
         () -> List.of(pom.plan(maven(), GATES, QualityPreset.STRICT, true)),
-        () -> pom.apply(maven(), GATES, QualityPreset.STRICT, new Object()));
+        () -> pom.apply(maven(), GATES, QualityPreset.STRICT, finding -> false));
   }
 
   @Test
@@ -48,7 +48,7 @@ class InitAdapterPlanContractTest {
 
     assertPlanMatchesTwice(
         () -> List.of(gradle.plan(project, GATES, null, true)),
-        () -> gradle.apply(project, GATES, null, new Object()));
+        () -> gradle.apply(project, GATES, null, finding -> false));
   }
 
   @Test

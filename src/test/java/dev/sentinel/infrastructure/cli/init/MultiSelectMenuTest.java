@@ -67,4 +67,20 @@ class MultiSelectMenuTest {
     final AtomicInteger index = new AtomicInteger();
     return () -> index.get() < keys.length ? keys[index.getAndIncrement()] : -1;
   }
+
+  @Test
+  void redrawsInPlaceWithoutClearingTheScreen() {
+    menu.select(
+        "Choose",
+        List.of("one", "two"),
+        "Select at least one item.",
+        script(27, '[', 'B', '\n', ' ', '\n'),
+        output());
+
+    final String screen = rendered.toString();
+    assertThat(screen).doesNotContain("\033[2J");
+    // Title + two rows before the empty confirmation, then the same plus the message line.
+    assertThat(screen).contains("\033[3F\033[J", "\033[4F\033[J");
+    assertThat(screen.indexOf("\033[3F")).isLessThan(screen.indexOf("\033[4F"));
+  }
 }

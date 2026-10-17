@@ -14,13 +14,16 @@ final class ToolQuestions {
   private final InitWizard wizard;
   private final InitConfirmations confirmations;
   private final boolean useDefaults;
+  private final QuestionProgress progress;
 
   ToolQuestions(
       final InitQuestions.Answers answers,
       final InitWizard wizard,
       final InitConfirmations confirmations,
-      final boolean useDefaults) {
+      final boolean useDefaults,
+      final QuestionProgress progress) {
     this.answers = answers;
+    this.progress = progress;
     this.wizard = wizard;
     this.confirmations = confirmations;
     this.useDefaults = useDefaults;
@@ -39,16 +42,23 @@ final class ToolQuestions {
     if (answers.tools() != null) {
       return List.copyOf(answers.tools());
     }
-    return useDefaults ? List.of() : wizard.selectTools(catalog);
+    if (useDefaults) {
+      return List.of();
+    }
+    progress.step();
+    return wizard.selectTools(catalog);
   }
 
   private List<String> validations(final InitSetupCatalog catalog, final List<String> tools) {
     if (answers.validations() != null) {
       return List.copyOf(answers.validations());
     }
-    return !useDefaults && tools.contains(OPENSPEC)
-        ? wizard.selectOpenSpecValidations(catalog)
-        : List.of();
+    if (useDefaults || !tools.contains(OPENSPEC)) {
+      return List.of();
+    }
+    progress.expect(1);
+    progress.step();
+    return wizard.selectOpenSpecValidations(catalog);
   }
 
   private List<String> installs(
@@ -56,12 +66,14 @@ final class ToolQuestions {
     if (answers.installTools() != null) {
       return List.copyOf(answers.installTools());
     }
-    final boolean consented =
-        !useDefaults
-            && tools.contains(OPENSPEC)
-            && !catalog.openSpecAvailable(project)
-            && confirmations.openSpecInstallation(OpenSpecDistribution.destination(project.root()));
-    return consented ? List.of(OPENSPEC) : List.of();
+    if (useDefaults || !tools.contains(OPENSPEC) || catalog.openSpecAvailable(project)) {
+      return List.of();
+    }
+    progress.expect(1);
+    progress.step();
+    return confirmations.openSpecInstallation(OpenSpecDistribution.destination(project.root()))
+        ? List.of(OPENSPEC)
+        : List.of();
   }
 
   /** Tools chosen for init, with the validations and installs they enable. */

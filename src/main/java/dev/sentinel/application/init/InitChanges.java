@@ -5,6 +5,7 @@ import dev.sentinel.domain.config.SentinelException;
 import dev.sentinel.domain.init.ArchitectureTestChange;
 import dev.sentinel.domain.init.ArchitectureTestGeneration;
 import dev.sentinel.domain.init.BuildToolConfiguration;
+import dev.sentinel.domain.init.CompatibilityFinding;
 import dev.sentinel.domain.init.InitGateOption;
 import dev.sentinel.domain.init.InitResult;
 import dev.sentinel.domain.init.InitSelection;
@@ -18,6 +19,7 @@ import dev.sentinel.domain.project.Project;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Predicate;
 
 /** Tracks one initialization transaction and rolls back its changes as a unit. */
 final class InitChanges {
@@ -55,7 +57,7 @@ final class InitChanges {
       final Project project,
       final InitSelection selection,
       final List<InitGateOption> gates,
-      final Object approval) {
+      final Predicate<? super CompatibilityFinding> approval) {
     final QualityPreset preset = selection.preset();
     installer.install(project.root(), selection.integrations(), installed);
     if (selection.qualityHooks()) {

@@ -2,6 +2,7 @@ package dev.sentinel.infrastructure.init;
 
 import dev.sentinel.domain.agent.PlannedFileChange;
 import dev.sentinel.domain.init.BuildToolConfiguration;
+import dev.sentinel.domain.init.CompatibilityFinding;
 import dev.sentinel.domain.init.InitGateOption;
 import dev.sentinel.domain.init.PomChange;
 import dev.sentinel.domain.init.QualityPreset;
@@ -9,6 +10,7 @@ import dev.sentinel.domain.project.BuildTool;
 import dev.sentinel.domain.project.Project;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.function.Predicate;
 import javax.inject.Inject;
 
 /** Routes initialization mutations to the adapter for the detected build tool. */
@@ -33,7 +35,7 @@ public final class BuildToolConfigurator implements BuildToolConfiguration {
       final Project project,
       final List<InitGateOption> gates,
       final QualityPreset preset,
-      final Object approval) {
+      final Predicate<? super CompatibilityFinding> approval) {
     return adapter(project).apply(project, gates, preset, approval);
   }
 

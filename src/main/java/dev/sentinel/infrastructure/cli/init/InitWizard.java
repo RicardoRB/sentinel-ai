@@ -46,18 +46,19 @@ final class InitWizard {
     this.answering = new Answering(terminal, out);
   }
 
-  QualityPreset selectPreset() {
+  /** Asks for the preset; an empty answer selects {@code defaultChoice} (1 to 3). */
+  QualityPreset selectPreset(final int defaultChoice) {
     return answering.ask(
         () -> {
           out.println("Select quality preset: 1) standard  2) strict  3) custom");
-          out.print("Choose a preset [1-3]: ");
+          out.print("Choose a preset [1-3, Enter=" + defaultChoice + "]: ");
           out.flush();
           final String value =
               prompt
                   .readLine("preset selection")
                   .map(String::trim)
                   .orElseThrow(() -> new SentinelException(GATE_INPUT_ENDED));
-          return switch (value) {
+          return switch (value.isEmpty() ? String.valueOf(defaultChoice) : value) {
             case "1" -> QualityPreset.STANDARD;
             case "2" -> QualityPreset.STRICT;
             case "3" -> null;
@@ -105,15 +106,16 @@ final class InitWizard {
         });
   }
 
+  /** Asks for the gates, starting with {@code preselected} checked. */
   List<String> selectGates(
-      final InitSetupCatalog catalog, final Project project, final QualityPreset preset) {
+      final InitSetupCatalog catalog, final Project project, final List<String> preselected) {
     final List<InitGateOption> choices = catalog.gates(project);
     final List<String> ids = choices.stream().map(InitGateOption::id).toList();
-    final List<String> presetGates = preset == null ? List.of() : preset.gates();
+    final List<String> presetGates = preselected;
     final Optional<List<String>> fromMenu =
         menu(
             "Select quality gates",
-            choices.stream().map(c -> c.id() + " - " + c.description()).toList(),
+            choices.stream().map(InitWizard::gateLabel).toList(),
             "Select at least one quality gate.",
             IntStream.range(0, ids.size())
                 .filter(i -> presetGates.contains(ids.get(i)))
@@ -131,12 +133,8 @@ final class InitWizard {
           for (int i = 0; i < choices.size(); i++) {
             final InitGateOption choice = choices.get(i);
             out.printf(
-                "> %s %d) %s - %s [%s]%n",
-                presetGates.contains(choice.id()) ? "[x]" : "[ ]",
-                i + 1,
-                choice.id(),
-                choice.description(),
-                choice.available() ? "available" : "unavailable");
+                "> %s %d) %s%n",
+                presetGates.contains(choice.id()) ? "[x]" : "[ ]", i + 1, gateLabel(choice));
           }
           out.print(
               "Toggle quality gates with space-separated numbers [1-"
@@ -210,10 +208,15 @@ final class InitWizard {
           for (int i = 0; i < choices.size(); i++) {
             out.printf("> %d) %s%n", i + 1, choices.get(i).label());
           }
-          out.print("Choose an architecture [1-" + choices.size() + "]: ");
+          out.print(
+              "Choose an architecture [1-"
+                  + choices.size()
+                  + ", Enter="
+                  + InitQuestions.DEFAULT_ARCHITECTURE
+                  + "]: ");
           out.flush();
           final Optional<String> answer = prompt.readOrDefault("architecture");
-          if (answer.isEmpty()) {
+          if (answer.isEmpty() || answer.get().isBlank()) {
             return InitQuestions.DEFAULT_ARCHITECTURE;
           }
           final int choice;
@@ -231,6 +234,11 @@ final class InitWizard {
           }
           return choices.get(choice - 1).id();
         });
+  }
+
+  /** A gate row: id and description, marked when its tool is not available. */
+  private static String gateLabel(final InitGateOption gate) {
+    return gate.id() + " - " + gate.description() + (gate.available() ? "" : " [unavailable]");
   }
 
   /** Runs a raw-key menu when a raw terminal is available and maps the chosen rows to ids. */

@@ -8,6 +8,7 @@ import dev.sentinel.domain.config.SentinelException;
 import dev.sentinel.domain.init.BuildToolConfiguration;
 import dev.sentinel.infrastructure.agent.ClaudeCodeIntegration;
 import dev.sentinel.infrastructure.cli.ExitCodes;
+import dev.sentinel.infrastructure.config.TomlConfigurationReader;
 import dev.sentinel.infrastructure.init.ArchitectureTestGenerator;
 import dev.sentinel.infrastructure.init.FileConfigurationStorage;
 import dev.sentinel.infrastructure.init.PomToolConfigurator;
@@ -56,7 +57,10 @@ final class InitCommandFixture {
         new InitService(
             new ProjectDetector(new FileSystemProjectInspection()),
             Set.of(new ClaudeCodeIntegration()),
-            new InitSetupCatalog(new FakeEnvironmentInspection(), new QualityHookInstaller()),
+            new InitSetupCatalog(
+                new FakeEnvironmentInspection(),
+                new QualityHookInstaller(),
+                new TomlConfigurationReader()),
             buildTools,
             new ArchitectureTestGenerator(),
             new FileConfigurationStorage(),

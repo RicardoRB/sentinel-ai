@@ -82,6 +82,26 @@ the wizard uses numbered prompts instead. Numbered prompts show pre-selected ite
 you enter toggles that item, and an empty line accepts the pre-selection. For example, after choosing
 `standard`, entering the number of `pmd` configures every standard gate except `pmd`.
 
+## Wizard tips
+
+- Each question starts with `Step N of M`. The total can grow when an answer adds a follow-up question,
+  such as the architecture style after you select `archunit`.
+- Press Enter to accept the default shown in brackets: `Enter=1` (`standard`) at the preset question
+  and `Enter=layered` at the architecture question.
+- Gates whose tool is not installed are marked `[unavailable]` in the gate list. If you select one
+  anyway, init configures it and prints how to make it available, for example
+  `Selected quality gate 'semgrep': UNAVAILABLE - ...`.
+- The arrow-key menus redraw in place, so your earlier answers stay on screen.
+
+### Reconfiguring
+
+Run `sentinel init` again and answer `y` to the overwrite question (or pass `--overwrite`) to change an
+existing setup. The preset question defaults to the preset recorded in `sentinel.toml` (`custom` when
+none is recorded), and the gate list starts with the gates that are currently enabled, so changing one
+gate takes a couple of key presses. Integrations, hooks, tools, and the architecture style are asked
+as usual. If the existing file can't be read, the usual defaults apply. Answering `n` keeps the file
+and prints `Kept existing sentinel.toml. No changes were made.`
+
 ## Review and dry run
 
 Before writing anything, init works out exactly which files it would change. On a terminal it shows

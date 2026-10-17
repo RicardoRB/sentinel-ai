@@ -55,7 +55,7 @@ class SentinelCliContract2Test extends SentinelCliIntegrationSupport {
     assertThat(run(INIT, INTEGRATION_OPTION, NONE, GATE_OPTION, "format", "-C", project.toString()))
         .isZero();
 
-    assertThat(out.toString()).contains("already exists");
+    assertThat(out.toString()).contains("Kept existing sentinel.toml. No changes were made.");
     assertThat(project.resolve(SENTINEL_TOML)).hasContent("version = 1\n");
   }
 

@@ -234,7 +234,7 @@ public final class PomToolConfigurator implements BuildToolConfiguration {
   @Override
   public PomChange apply(
       final Project project, final List<InitGateOption> gates, final QualityPreset preset) {
-    return apply(project, gates, preset, new Object());
+    return apply(project, gates, preset, finding -> false);
   }
 
   @Override
@@ -242,7 +242,7 @@ public final class PomToolConfigurator implements BuildToolConfiguration {
       final Project project,
       final List<InitGateOption> gates,
       final QualityPreset preset,
-      final Object approval) {
+      final Predicate<? super CompatibilityFinding> approval) {
     final PomEdit edit = compute(project, gates, preset, approval);
     if (!edit.tools.isEmpty()) {
       try {
@@ -263,14 +263,17 @@ public final class PomToolConfigurator implements BuildToolConfiguration {
       final QualityPreset preset,
       final boolean approved) {
     final List<CompatibilityFinding> pending = new ArrayList<>();
-    final Predicate<Object> approval =
-        candidate -> {
-          if (!approved && candidate instanceof CompatibilityFinding finding) {
-            pending.add(finding);
-          }
-          return approved;
-        };
-    final PomEdit edit = compute(project, gates, preset, approval);
+    final PomEdit edit =
+        compute(
+            project,
+            gates,
+            preset,
+            finding -> {
+              if (!approved) {
+                pending.add(finding);
+              }
+              return approved;
+            });
     final List<String> details = new ArrayList<>(edit.details);
     pending.forEach(
         finding ->
@@ -295,7 +298,7 @@ public final class PomToolConfigurator implements BuildToolConfiguration {
       final Project project,
       final List<InitGateOption> gates,
       final QualityPreset preset,
-      final Object approval) {
+      final Predicate<? super CompatibilityFinding> approval) {
     final Path pom = project.root().resolve("pom.xml");
     final Set<String> selected = gates.stream().map(InitGateOption::id).collect(Collectors.toSet());
     final PomEdit edit;
@@ -348,14 +351,12 @@ public final class PomToolConfigurator implements BuildToolConfiguration {
       final Tool tool,
       final QualityPreset preset,
       final CompatibilityFinding finding,
-      final Object approval,
+      final Predicate<? super CompatibilityFinding> approval,
       final PomEdit edit) {
     if (finding != null && !containsArtifact(edit.content, tool.artifact())) {
       edit.add(tool, preset, finding.selectedVersion());
     } else if (finding != null && finding.changesVersion()) {
-      final boolean accepted =
-          approval instanceof Predicate<?> rawPredicate
-              && ((Predicate<Object>) rawPredicate).test(finding);
+      final boolean accepted = approval.test(finding);
       if (accepted) {
         edit.updateVersion(tool.artifact(), finding);
       } else {

@@ -5,17 +5,19 @@ import dev.sentinel.application.project.ProjectNotFoundException;
 import dev.sentinel.domain.agent.AgentIntegration;
 import dev.sentinel.domain.init.ArchitectureTestGeneration;
 import dev.sentinel.domain.init.BuildToolConfiguration;
+import dev.sentinel.domain.init.CompatibilityFinding;
 import dev.sentinel.domain.init.ConfigurationStorage;
+import dev.sentinel.domain.init.InitGateOption;
 import dev.sentinel.domain.init.InitPlan;
 import dev.sentinel.domain.init.InitResult;
 import dev.sentinel.domain.init.InitSelection;
-import dev.sentinel.domain.init.QualityPreset;
 import dev.sentinel.domain.init.RuleFileGeneration;
 import dev.sentinel.domain.init.ToolInstaller;
 import dev.sentinel.domain.project.Project;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -120,14 +122,14 @@ public class InitService {
   }
 
   public InitResult initialize(final Path start, final InitSelection selection) {
-    return initialize(start, selection, false, new Object());
+    return initialize(start, selection, false, finding -> false);
   }
 
   public InitResult initialize(
       final Path start,
       final InitSelection selection,
       final boolean overwrite,
-      final Object approval) {
+      final Predicate<? super CompatibilityFinding> approval) {
     LOGGER.log(Level.INFO, () -> "event=initialization-start overwrite=" + overwrite);
     final Project project = project(start);
     installer.validate(selection.integrations());
@@ -140,7 +142,8 @@ public class InitService {
     }
     final Path installed = OpenSpecInstallation.install(toolInstaller, project, selection);
     final String executable = OpenSpecInstallation.executable(installed);
-    final List gates = SelectedGates.resolve(catalog.get(), project, selection, executable);
+    final List<InitGateOption> gates =
+        SelectedGates.resolve(catalog.get(), project, selection, executable);
     if (selection.architecture() != null) {
       catalog.get().architecture(selection.architecture());
     }
@@ -157,7 +160,7 @@ public class InitService {
     try {
       changes.apply(project, selection, gates, approval);
       final InitResult result =
-          writeConfiguration(configurationFile, gates, selection.preset(), changes, overwrite);
+          writeConfiguration(configurationFile, gates, selection, changes, overwrite);
       if (!result.created()) {
         changes.rollback();
       }
@@ -189,11 +192,11 @@ public class InitService {
 
   private InitResult writeConfiguration(
       final Path file,
-      final List gates,
-      final QualityPreset preset,
+      final List<InitGateOption> gates,
+      final InitSelection selection,
       final InitChanges changes,
       final boolean overwrite) {
-    final String content = ConfigurationTemplate.render(gates, preset);
+    final String content = ConfigurationTemplate.render(gates, selection.preset());
     final boolean created;
     if (overwrite) {
       configurationStorage.get().replace(file, content);
