@@ -33,7 +33,10 @@ final class InitSelectionSupport {
       final List<String> options,
       final QualityPreset preset,
       final boolean explicit) {
-    return explicit ? options : wizard.selectGates(catalog, project, preset);
+    if (!explicit) {
+      return wizard.selectGates(catalog, project, preset);
+    }
+    return preset == null ? options : preset.withExplicitGates(options);
   }
 
   static List<String> tools(

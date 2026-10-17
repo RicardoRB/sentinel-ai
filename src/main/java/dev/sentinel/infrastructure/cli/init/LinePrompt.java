@@ -6,9 +6,12 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /** Reads line-based answers and numbered selections for the init wizard. */
 final class LinePrompt {
+  private static final Logger LOGGER = Logger.getLogger(LinePrompt.class.getName());
   private static final String INPUT_ENDED =
       "Initialization cancelled: input ended before setup completed.";
 
@@ -27,27 +30,16 @@ final class LinePrompt {
     }
   }
 
-  boolean hasMoreInput() {
-    try {
-      return reader.ready();
-    } catch (IOException e) {
-      return false;
-    }
-  }
-
   /** Returns the next line, cancelling initialization when input ended. */
   String requireLine(final String subject) {
     return readLine(subject).orElseThrow(() -> new SentinelException(INPUT_ENDED));
   }
 
-  /** Returns whether the next line answers yes; unreadable input counts as no. */
-  boolean confirm() {
-    try {
-      final String answer = reader.readLine();
-      return answer != null && "y".equalsIgnoreCase(answer.trim());
-    } catch (IOException e) {
-      return false;
-    }
+  /** Returns whether the next line answers yes; end of input selects the default of no. */
+  boolean confirm(final String question) {
+    return readOptionalAnswer(question)
+        .map(answer -> "y".equalsIgnoreCase(answer.trim()))
+        .orElse(false);
   }
 
   boolean confirmInstallation() {
@@ -56,8 +48,9 @@ final class LinePrompt {
   }
 
   /**
-   * Reads space- or comma-separated 1-based numbers and returns the matching ids, appended to the
-   * initial ids without duplicates.
+   * Reads space- or comma-separated 1-based numbers that toggle items of the initial selection. A
+   * blank line accepts the initial selection. Kept initial ids come first, followed by ids turned
+   * on in the order they were entered.
    */
   List<String> readSelection(
       final List<String> ids,
@@ -65,11 +58,11 @@ final class LinePrompt {
       final String label,
       final String emptySelectionMessage) {
     final String value = requireLine("initialization selection");
-    final List<String> selected = new ArrayList<>(initial);
+    final List<String> selected = new ArrayList<>(initial.stream().filter(ids::contains).toList());
     for (final String token : value.trim().split("[ ,]+")) {
       if (!token.isBlank()) {
         final String id = ids.get(choice(token, ids.size(), label) - 1);
-        if (!selected.contains(id)) {
+        if (!selected.remove(id)) {
           selected.add(id);
         }
       }
@@ -77,15 +70,27 @@ final class LinePrompt {
     if (selected.isEmpty()) {
       throw new SentinelException(emptySelectionMessage);
     }
-    return selected;
+    return List.copyOf(selected);
   }
 
-  List<String> readOptionalSelection(final List<String> ids, final String label) {
-    final String value = requireLine("initialization selection");
+  /** Reads an optional selection; a blank line or end of input selects nothing. */
+  List<String> readOptionalSelection(
+      final List<String> ids, final String label, final String question) {
+    final String value = readOptionalAnswer(question).orElse("");
     if (value.isBlank()) {
       return List.of();
     }
     return readSelectionValue(ids, value, label);
+  }
+
+  private Optional<String> readOptionalAnswer(final String question) {
+    final Optional<String> answer = readLine(question);
+    if (answer.isEmpty()) {
+      LOGGER.log(
+          Level.INFO,
+          () -> "event=init-optional-default question=" + question + " reason=end-of-input");
+    }
+    return answer;
   }
 
   private List<String> readSelectionValue(
