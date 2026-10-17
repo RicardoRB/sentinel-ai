@@ -34,6 +34,10 @@ class NativeInitTerminalSmokeTest {
   private static final Duration PROMPT_TIMEOUT = Duration.ofSeconds(30);
   private static final Duration KEY_TIMEOUT = Duration.ofSeconds(10);
   private static final byte[] ARROW_DOWN = {0x1b, '[', 'B'};
+  private static final byte[] ENTER = {'\r'};
+  private static final int PMD_ROW = 6;
+  private static final long POLL_MILLIS = 50;
+  private static final String COMPATIBILITY_PROMPT = "Apply this Maven plugin update\\?";
 
   @TempDir Path workspace;
 
@@ -73,6 +77,77 @@ class NativeInitTerminalSmokeTest {
       } finally {
         process.destroyForcibly();
       }
+    }
+  }
+
+  @Test
+  void rawKeyWizardCompletesEveryScreenAndHonorsUntickedPresetGate() throws Exception {
+    final Path binary = Path.of(System.getProperty("sentinel.native.binary")).toAbsolutePath();
+    final Path project = copyFixture(workspace.resolve("complete"));
+    Files.createDirectories(project.resolve(".git/hooks"));
+
+    try (Arena arena = Arena.ofConfined();
+        PseudoTerminal terminal = PseudoTerminal.open(arena)) {
+      final File device = new File(terminal.devicePath());
+      final Process process =
+          new ProcessBuilder(binary.toString(), "init")
+              .directory(project.toFile())
+              .redirectInput(ProcessBuilder.Redirect.from(device))
+              .redirectOutput(ProcessBuilder.Redirect.appendTo(device))
+              .redirectError(ProcessBuilder.Redirect.appendTo(device))
+              .start();
+      try {
+        terminal.awaitOutput(process, "Choose a preset", PROMPT_TIMEOUT);
+        terminal.write("1\n".getBytes(StandardCharsets.US_ASCII));
+        terminal.awaitOutput(process, "Select agent integrations", PROMPT_TIMEOUT);
+        terminal.write(" ".getBytes(StandardCharsets.US_ASCII));
+        terminal.awaitOutput(process, "> [x] 1) No agent integration", KEY_TIMEOUT);
+        terminal.write(ENTER);
+        terminal.awaitOutput(process, "Select quality gates", PROMPT_TIMEOUT);
+        for (int row = 1; row < PMD_ROW; row++) {
+          terminal.write(ARROW_DOWN);
+        }
+        terminal.awaitOutput(process, "> [x] 6) pmd", KEY_TIMEOUT);
+        terminal.write(" ".getBytes(StandardCharsets.US_ASCII));
+        terminal.awaitOutput(process, "> [ ] 6) pmd", KEY_TIMEOUT);
+        terminal.write(ENTER);
+        terminal.awaitOutput(process, "Select optional tools", PROMPT_TIMEOUT);
+        terminal.write(ENTER);
+        terminal.awaitOutput(process, "quality hooks? [y/N]", PROMPT_TIMEOUT);
+        terminal.write("y\n".getBytes(StandardCharsets.US_ASCII));
+        declineCompatibilityUpdatesUntilExit(terminal, process);
+
+        assertThat(process.exitValue()).as(terminal.output()).isZero();
+        assertThat(terminal.output())
+            .doesNotContain("WARNING:")
+            .doesNotContain("unexpected error")
+            .doesNotContain("Exception");
+        assertThat(Files.readString(project.resolve("sentinel.toml")))
+            .contains("preset = \"standard\"", "[quality-gates.checkstyle]")
+            .doesNotContain("[quality-gates.pmd]");
+        assertThat(project.resolve("config/pmd-ruleset.xml")).doesNotExist();
+        assertThat(Files.readString(project.resolve(".git/hooks/pre-commit")))
+            .contains("sentinel-owned: quality-hooks");
+      } finally {
+        process.destroyForcibly();
+      }
+    }
+  }
+
+  /** Answers "n" to every Maven compatibility prompt until the executable exits. */
+  private static void declineCompatibilityUpdatesUntilExit(
+      final PseudoTerminal terminal, final Process process) throws InterruptedException {
+    final long deadline = System.nanoTime() + PROMPT_TIMEOUT.toNanos();
+    int answered = 0;
+    while (process.isAlive()) {
+      assertThat(System.nanoTime())
+          .as("waiting for init to finish; terminal output so far:%n%s", terminal.output())
+          .isLessThan(deadline);
+      final int prompts = terminal.output().split(COMPATIBILITY_PROMPT, -1).length - 1;
+      for (; answered < prompts; answered++) {
+        terminal.write("n\n".getBytes(StandardCharsets.US_ASCII));
+      }
+      Thread.sleep(POLL_MILLIS);
     }
   }
 

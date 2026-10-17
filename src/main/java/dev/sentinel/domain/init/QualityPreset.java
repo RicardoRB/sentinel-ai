@@ -2,6 +2,7 @@ package dev.sentinel.domain.init;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 /** Opinionated, immutable quality configurations used by {@code sentinel init}. */
 public enum QualityPreset {
@@ -119,6 +120,24 @@ public enum QualityPreset {
 
   public PresetRules rules() {
     return rules;
+  }
+
+  /**
+   * Returns the selected gates with this preset's selected gates first, in preset order, followed
+   * by the other selected gates in their given order. Unselected preset gates are not added.
+   */
+  public List<String> orderSelected(final List<String> selected) {
+    return Stream.concat(gates.stream().filter(selected::contains), selected.stream())
+        .distinct()
+        .toList();
+  }
+
+  /**
+   * Returns this preset's gates followed by every explicit gate not already present, in the given
+   * order. Explicit gates never remove preset gates.
+   */
+  public List<String> withExplicitGates(final List<String> explicit) {
+    return Stream.concat(gates.stream(), explicit.stream()).distinct().toList();
   }
 
   public record ArchitectureExtras(

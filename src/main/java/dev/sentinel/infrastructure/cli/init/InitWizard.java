@@ -36,7 +36,7 @@ final class InitWizard {
   boolean confirmOverwrite(final Path file) {
     out.print(file + " already exists. Overwrite it? [y/N]: ");
     out.flush();
-    final boolean overwrite = prompt.confirm();
+    final boolean overwrite = prompt.confirm("overwrite");
     if (!overwrite) {
       out.println("Keeping existing sentinel.toml. No changes made.");
     }
@@ -111,22 +111,24 @@ final class InitWizard {
     for (int i = 0; i < choices.size(); i++) {
       final InitGateOption choice = choices.get(i);
       out.printf(
-          "> [ ] %d) %s - %s [%s]%n",
+          "> %s %d) %s - %s [%s]%n",
+          presetGates.contains(choice.id()) ? "[x]" : "[ ]",
           i + 1,
           choice.id(),
           choice.description(),
           choice.available() ? "available" : "unavailable");
     }
-    out.print("Toggle quality gates with space-separated numbers [1-" + choices.size() + "]: ");
+    out.print(
+        "Toggle quality gates with space-separated numbers [1-"
+            + choices.size()
+            + "]"
+            + (presetGates.isEmpty() ? ": " : ", or press Enter to accept: "));
     out.flush();
     return prompt.readSelection(
         ids, presetGates, "quality-gate", "Select at least one quality gate.");
   }
 
   List<String> selectTools(final InitSetupCatalog catalog) {
-    if (!prompt.hasMoreInput()) {
-      return List.of();
-    }
     final List<InitToolOption> choices = catalog.tools();
     final List<String> ids = choices.stream().map(InitToolOption::id).toList();
     final Optional<List<String>> fromMenu =
@@ -146,13 +148,10 @@ final class InitWizard {
     }
     out.print("Toggle tools with space-separated numbers [1-" + choices.size() + "]: ");
     out.flush();
-    return prompt.readOptionalSelection(ids, "tool");
+    return prompt.readOptionalSelection(ids, "tool", "tools");
   }
 
   List<String> selectOpenSpecValidations(final InitSetupCatalog catalog) {
-    if (!prompt.hasMoreInput()) {
-      return List.of();
-    }
     final List<String> ids = catalog.openSpecValidations();
     final Optional<List<String>> fromMenu =
         menu(
@@ -171,7 +170,7 @@ final class InitWizard {
     out.println("> [ ] 2) openspec-archived - archived validation");
     out.print("Toggle validations with space-separated numbers [1-2]: ");
     out.flush();
-    return prompt.readOptionalSelection(ids, "OpenSpec validation");
+    return prompt.readOptionalSelection(ids, "OpenSpec validation", "openspec-validations");
   }
 
   String selectArchitecture(final InitSetupCatalog catalog) {

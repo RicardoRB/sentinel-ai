@@ -16,7 +16,10 @@ The gate selector accepts supported [gate IDs](/configuration/gates/). `none` is
 agent integrations. `archunit` prompts for Layered, Hexagonal, or Clean architecture and creates a
 minimal `ArchitectureTest.java` only if one is absent. Existing configurations are preserved unless
 overwrite is confirmed or `--overwrite` is supplied. Initialization does not install tools or run
-gates. `standard` and `strict` presets pre-select their offline gates; `custom` starts with no gates selected. `zap` writes a `<TARGET_URL>` placeholder that you must replace
+gates. `standard` and `strict` presets pre-select their offline gates; `custom` starts with no gates selected.
+The gates you confirm are exactly the gates configured: unticking a pre-selected preset gate removes its
+`sentinel.toml` section, Maven declarations, and rule file, while the preset's rules still apply to the
+remaining gates. `zap` writes a `<TARGET_URL>` placeholder that you must replace
 with an authorized target before `check` will run it. For `format`, `enforcer`, `license`, `api-compat`, and
 `pmd`, missing Maven plugins are added to `pom.xml` using Sentinel's embedded Java/Maven compatibility catalog.
 For Gradle projects, equivalent pinned plugin declarations are added to `build.gradle` or
@@ -26,7 +29,8 @@ selected compatible version, detected constraints, and affected file before aski
 accepts these validated compatibility updates without prompting; it does not bypass unresolved prerequisites
 or install standalone binaries such as Semgrep, Gitleaks, Trivy, or ZAP. Declined updates leave the POM
 unchanged and report that the selected gate was not reconfigured. Preset rule files are Sentinel-owned;
-unmarked existing files are preserved and reported. `--gate` adds gates to a preset. `-C <dir>` selects the
+unmarked existing files are preserved and reported. With `--preset`, `--gate` only adds gates to the
+preset's set; it never removes preset gates. `-C <dir>` selects the
 project directory. Exit codes: `0` success, `2` invalid usage or
 inability to initialize (including cancelled or invalid selection).
 
@@ -73,7 +77,14 @@ is reported as a conflict and left unchanged.
 
 On supported macOS and Linux terminals, use Up/Down to move, Space to toggle, and Enter to confirm.
 Press `q`, `Q`, or Ctrl+C to cancel. On Windows, piped input, or when raw terminal mode is unavailable,
-the wizard uses numbered prompts instead.
+the wizard uses numbered prompts instead. Numbered prompts show pre-selected items as `[x]`; each number
+you enter toggles that item, and an empty line accepts the pre-selection. For example, after choosing
+`standard`, entering the number of `pmd` configures every standard gate except `pmd`.
+
+When the wizard runs, it always asks the optional Tools and quality-hook questions that options leave
+open. If input ends at an optional question (Tools, OpenSpec validations, or quality hooks), the
+wizard selects nothing for it and finishes. If input ends before the gate selection, or at the
+OpenSpec installation prompt, initialization is cancelled and no files are changed.
 
 The wizard has a separate optional Tools screen. OpenSpec, its active validation
 (`openspec validate --all --strict --no-interactive`), and its archived validation

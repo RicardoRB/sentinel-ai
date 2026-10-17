@@ -176,7 +176,9 @@ public class InitCommand implements Callable<Integer> {
     final List<String> selectedGates =
         InitSelectionSupport.gates(
             wizard, catalog, project, selectedOptions, selectedPreset, gatesGiven);
-    final String selectedArchitecture = resolveArchitecture(wizard, catalog, selectedGates);
+    // A preset given as an option keeps its architecture default; only chosen gates prompt.
+    final List<String> chosenGates = gatesGiven ? selectedOptions : selectedGates;
+    final String selectedArchitecture = resolveArchitecture(wizard, catalog, chosenGates);
     final boolean toolsGiven = tools != null;
     final boolean explicitSetup = integrations != null || gates != null || preset != null;
     final List<String> selectedTools =
@@ -203,12 +205,9 @@ public class InitCommand implements Callable<Integer> {
   }
 
   private boolean selectQualityHooks(final InitWizard wizard) {
-    if (!wizard.prompt.hasMoreInput()) {
-      return false;
-    }
     output().print("Install Sentinel pre-commit and pre-push quality hooks? [y/N]: ");
     output().flush();
-    return wizard.prompt.confirm();
+    return wizard.prompt.confirm("quality-hooks");
   }
 
   private boolean overwriteApproved(final InitWizard wizard, final Project project) {
@@ -219,8 +218,8 @@ public class InitCommand implements Callable<Integer> {
   }
 
   private String resolveArchitecture(
-      final InitWizard wizard, final InitSetupCatalog catalog, final List<String> selectedGates) {
-    if (selectedGates.stream().noneMatch("archunit"::equals)) {
+      final InitWizard wizard, final InitSetupCatalog catalog, final List<String> chosenGates) {
+    if (chosenGates.stream().noneMatch("archunit"::equals)) {
       return architecture;
     }
     final String selected =
@@ -250,7 +249,7 @@ public class InitCommand implements Callable<Integer> {
     out.println("Reason: " + finding.message());
     out.print("Apply this Maven plugin update? [y/N]: ");
     out.flush();
-    return wizard.prompt.confirm();
+    return wizard.prompt.confirm("compatibility-update");
   }
 
   private int printResult(final InitResult result) {

@@ -11,7 +11,6 @@ import dev.sentinel.domain.FakeEnvironmentInspection;
 import dev.sentinel.domain.agent.AgentIntegration;
 import dev.sentinel.domain.agent.IntegrationResult;
 import dev.sentinel.domain.config.SentinelConfiguration;
-import dev.sentinel.domain.init.InitGateOption;
 import dev.sentinel.domain.init.InitResult;
 import dev.sentinel.domain.init.InitSelection;
 import dev.sentinel.domain.init.QualityPreset;
@@ -42,23 +41,6 @@ class InitServiceTest {
           new ArchitectureTestGenerator(),
           new FileConfigurationStorage(),
           new PresetRuleFileWriter());
-
-  @Test
-  void appliesPresetAndDeduplicatesExplicitGates(@TempDir final Path dir) throws Exception {
-    withPom(dir, PLAIN_POM);
-    final InitResult result =
-        service.initialize(
-            dir,
-            new InitSelection(
-                List.of("none"), List.of("tests", "gitleaks"), null, QualityPreset.STANDARD));
-    assertThat(result.gates())
-        .extracting(InitGateOption::id)
-        .containsExactly(
-            "compile", "tests", "format", "checkstyle", "pmd", "spotbugs", "coverage", "gitleaks");
-    assertThat(Files.readString(dir.resolve(SENTINEL_TOML)))
-        .contains("version = 1\npreset = \"standard\"");
-    assertThat(dir.resolve("config/pmd-ruleset.xml")).exists();
-  }
 
   @Test
   void generatedConfigurationAssignsCumulativeProfiles(@TempDir final Path dir) throws Exception {
@@ -161,7 +143,10 @@ class InitServiceTest {
                 conflicting.initialize(
                     dir,
                     new InitSelection(
-                        List.of("opencode"), List.of(), null, QualityPreset.STANDARD)))
+                        List.of("opencode"),
+                        QualityPreset.STANDARD.gates(),
+                        null,
+                        QualityPreset.STANDARD)))
         .hasMessageContaining("conflicts");
     assertThat(dir.resolve(SENTINEL_TOML)).doesNotExist();
     assertThat(dir.resolve("config")).doesNotExist();

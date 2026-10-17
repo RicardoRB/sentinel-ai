@@ -177,13 +177,19 @@ public class InitService {
     }
   }
 
-  /** Returns the preset's gates followed by any additionally selected gates, without duplicates. */
+  /**
+   * Returns the selected gates with the selected preset gates first, in preset order, followed by
+   * the other selected gates and the OpenSpec validations. Unselected preset gates are not added.
+   */
   private List resolveGates(
       final Project project, final InitSelection selection, final String openSpecExecutable) {
     final List gates =
         Stream.concat(
-                selection.preset() == null ? Stream.empty() : selection.preset().gates().stream(),
-                Stream.concat(selection.gates().stream(), selection.openSpecValidations().stream()))
+                (selection.preset() == null
+                        ? selection.gates()
+                        : selection.preset().orderSelected(selection.gates()))
+                    .stream(),
+                selection.openSpecValidations().stream())
             .distinct()
             .map(
                 id ->
