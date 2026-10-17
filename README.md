@@ -136,7 +136,7 @@ sentinel check --format sarif  # SARIF 2.1.0 for code scanning
 Expected output on success:
 
 ```text
-Sentinel 0.0.8
+Sentinel 0.0.9
 
 ✓ compile
 ✓ tests
@@ -460,7 +460,7 @@ See [AGENTS.md](AGENTS.md) for the full conventions.
 
 | | |
 |---|---|
-| **Current version** | `0.0.8` |
+| **Current version** | `0.0.9` |
 | **Stability** | **Alpha.** The CLI, configuration format, and JSON schema may change before `1.0`. |
 | **Java versions** | Runs on JDK 25 (JAR) or without a JVM (native binary). Analyzes any Java version your Maven build supports. |
 | **Operating systems** | Linux x86_64, macOS (Apple Silicon and Intel), Windows x86_64 |
@@ -494,7 +494,7 @@ See [AGENTS.md](AGENTS.md) for the full conventions.
 ```bash
 # Pin a version and choose the install directory
 curl -fsSL https://raw.githubusercontent.com/RicardoRB/sentinel-ai/main/install.sh \
-  | SENTINEL_VERSION=v0.0.8 SENTINEL_INSTALL_DIR=/usr/local/bin sh
+  | SENTINEL_VERSION=v0.0.9 SENTINEL_INSTALL_DIR=/usr/local/bin sh
 ```
 
 | Variable | Default | Purpose |
