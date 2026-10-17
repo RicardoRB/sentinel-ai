@@ -117,7 +117,13 @@ class NativeInitTerminalSmokeTest {
         terminal.write("y\n".getBytes(StandardCharsets.US_ASCII));
         terminal.awaitOutput(process, "Proceed? [Y/n]", PROMPT_TIMEOUT);
         assertThat(terminal.output())
-            .contains("create     sentinel.toml", "create     .git/hooks/pre-commit");
+            .contains(
+                "create     sentinel.toml",
+                "create     .git/hooks/pre-commit",
+                "Step 1 of 5",
+                "Step 5 of 5",
+                "Enter=1]")
+            .doesNotContain("\033[2J");
         terminal.write("\n".getBytes(StandardCharsets.US_ASCII));
         declineCompatibilityUpdatesUntilExit(terminal, process);
 

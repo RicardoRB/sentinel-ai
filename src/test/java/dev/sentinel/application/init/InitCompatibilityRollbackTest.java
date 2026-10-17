@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Predicate;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -80,12 +79,7 @@ class InitCompatibilityRollbackTest {
                     root,
                     new InitSelection(List.of("none"), List.of("format")),
                     false,
-                    new Predicate<>() {
-                      @Override
-                      public boolean test(Object finding) {
-                        return true;
-                      }
-                    }))
+                    finding -> true))
         .hasMessage("later setup failed");
     assertThat(Files.readString(root.resolve("pom.xml"))).isEqualTo(original);
   }

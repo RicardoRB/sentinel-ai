@@ -17,7 +17,6 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Predicate;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -29,16 +28,7 @@ class PomToolConfiguratorCompatibilityTest {
     final PomToolConfigurator configurator =
         new PomToolConfigurator(ignored -> snapshot(17, Map.of()));
 
-    configurator.apply(
-        project,
-        List.of(gate("format")),
-        null,
-        new Predicate<>() {
-          @Override
-          public boolean test(Object finding) {
-            return true;
-          }
-        });
+    configurator.apply(project, List.of(gate("format")), null, finding -> true);
 
     assertThat(Files.readString(root.resolve("pom.xml"))).contains("<version>3.10.3</version>");
   }
@@ -57,16 +47,7 @@ class PomToolConfiguratorCompatibilityTest {
     final String original = Files.readString(root.resolve("pom.xml"));
 
     final PomChange change =
-        configurator.apply(
-            project,
-            List.of(gate("format")),
-            null,
-            new Predicate<>() {
-              @Override
-              public boolean test(Object ignored) {
-                return false;
-              }
-            });
+        configurator.apply(project, List.of(gate("format")), null, ignored -> false);
 
     assertThat(Files.readString(root.resolve("pom.xml"))).isEqualTo(original);
     assertThat(change.warnings()).anyMatch(message -> message.contains("declined"));
@@ -82,17 +63,7 @@ class PomToolConfiguratorCompatibilityTest {
     final String original = Files.readString(root.resolve("pom.xml"));
 
     assertThatThrownBy(
-            () ->
-                configurator.apply(
-                    project,
-                    List.of(gate("format")),
-                    null,
-                    new Predicate<>() {
-                      @Override
-                      public boolean test(Object ignored) {
-                        return true;
-                      }
-                    }))
+            () -> configurator.apply(project, List.of(gate("format")), null, ignored -> true))
         .hasMessageContaining("No catalog version");
     assertThat(Files.readString(root.resolve("pom.xml"))).isEqualTo(original);
   }

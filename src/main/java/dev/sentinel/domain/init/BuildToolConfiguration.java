@@ -3,6 +3,7 @@ package dev.sentinel.domain.init;
 import dev.sentinel.domain.agent.PlannedFileChange;
 import dev.sentinel.domain.project.Project;
 import java.util.List;
+import java.util.function.Predicate;
 
 /** Applies and rolls back build-tool declarations needed by selected setup options. */
 public interface BuildToolConfiguration {
@@ -17,7 +18,7 @@ public interface BuildToolConfiguration {
       final Project project,
       final List<InitGateOption> gates,
       final QualityPreset preset,
-      final Object approval) {
+      final Predicate<? super CompatibilityFinding> approval) {
     return apply(project, gates, preset);
   }
 

@@ -37,32 +37,22 @@ public final class MultiSelectMenu {
       final String emptySelectionMessage,
       final IntSupplier keys,
       final PrintWriter out,
-      final Set<Integer> initialSelections,
-      final boolean allowEmpty) {
-    if (!allowEmpty) {
-      return select(title, labels, emptySelectionMessage, keys, out, initialSelections);
-    }
-    if (labels.isEmpty()) {
-      throw new IllegalArgumentException("A menu must have at least one item");
-    }
-    final MenuState menu = new MenuState(labels.size(), initialSelections);
-    render(title, labels, menu, out, "");
-    while (true) {
-      final Optional<List<Integer>> confirmed = menu.press(keys.getAsInt(), keys);
-      if (confirmed.isPresent()) {
-        return confirmed.get();
-      }
-      render(title, labels, menu, out, "");
-    }
+      final Set<Integer> initialSelections) {
+    return select(title, labels, emptySelectionMessage, keys, out, initialSelections, false);
   }
 
+  /**
+   * Runs the menu until Enter confirms. An empty confirmation is returned when {@code allowEmpty};
+   * otherwise it shows {@code emptySelectionMessage} and keeps the menu open, cursor unchanged.
+   */
   public List<Integer> select(
       final String title,
       final List<String> labels,
       final String emptySelectionMessage,
       final IntSupplier keys,
       final PrintWriter out,
-      final Set<Integer> initialSelections) {
+      final Set<Integer> initialSelections,
+      final boolean allowEmpty) {
     if (labels.isEmpty()) {
       throw new IllegalArgumentException("A menu must have at least one item");
     }
@@ -70,10 +60,9 @@ public final class MultiSelectMenu {
     render(title, labels, menu, out, "");
     while (true) {
       final Optional<List<Integer>> confirmed = menu.press(keys.getAsInt(), keys);
-      if (confirmed.isPresent() && !confirmed.get().isEmpty()) {
+      if (confirmed.isPresent() && (allowEmpty || !confirmed.get().isEmpty())) {
         return confirmed.get();
       }
-      // An empty confirmation keeps the menu open, with the cursor where it was.
       render(title, labels, menu, out, confirmed.isPresent() ? emptySelectionMessage : "");
     }
   }
@@ -84,7 +73,10 @@ public final class MultiSelectMenu {
       final MenuState menu,
       final PrintWriter out,
       final String message) {
-    out.print("\033[2J\033[H");
+    if (menu.renderedLines > 0) {
+      // Move back to the menu's first line and clear only what the menu printed.
+      out.print("\033[" + menu.renderedLines + "F\033[J");
+    }
     out.println(title + " (Space toggles, arrows move, Enter confirms, q cancels):");
     for (int i = 0; i < labels.size(); i++) {
       out.printf(
@@ -94,6 +86,7 @@ public final class MultiSelectMenu {
     if (!message.isEmpty()) {
       out.println(message);
     }
+    menu.renderedLines = 1 + labels.size() + (message.isEmpty() ? 0 : 1);
     out.flush();
   }
 
@@ -101,6 +94,7 @@ public final class MultiSelectMenu {
   private static final class MenuState {
     private final boolean[] selected;
     private int cursor;
+    private int renderedLines;
 
     MenuState(final int size, final Set<Integer> initialSelections) {
       selected = new boolean[size];

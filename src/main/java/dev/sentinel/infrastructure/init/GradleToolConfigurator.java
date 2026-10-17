@@ -3,6 +3,7 @@ package dev.sentinel.infrastructure.init;
 import dev.sentinel.domain.agent.PlannedFileChange;
 import dev.sentinel.domain.config.SentinelException;
 import dev.sentinel.domain.init.BuildToolConfiguration;
+import dev.sentinel.domain.init.CompatibilityFinding;
 import dev.sentinel.domain.init.InitGateOption;
 import dev.sentinel.domain.init.PomChange;
 import dev.sentinel.domain.init.QualityPreset;
@@ -14,6 +15,7 @@ import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 
@@ -40,7 +42,7 @@ public final class GradleToolConfigurator implements BuildToolConfiguration {
 
   @Override
   public PomChange apply(final Project project, final List<InitGateOption> gates) {
-    return apply(project, gates, null, new Object());
+    return apply(project, gates, null, finding -> false);
   }
 
   @Override
@@ -48,7 +50,7 @@ public final class GradleToolConfigurator implements BuildToolConfiguration {
       final Project project,
       final List<InitGateOption> gates,
       final QualityPreset preset,
-      final Object approval) {
+      final Predicate<? super CompatibilityFinding> approval) {
     final BuildFileEdit edit = compute(project, gates);
     if (!edit.tools.isEmpty()) {
       try {

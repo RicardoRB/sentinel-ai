@@ -2,7 +2,6 @@ package dev.sentinel.infrastructure.cli.init;
 
 import dev.sentinel.application.init.InitService;
 import dev.sentinel.application.init.InitSetupCatalog;
-import dev.sentinel.domain.init.InitResult;
 import dev.sentinel.domain.init.InitSelection;
 import dev.sentinel.domain.init.RawTerminal;
 import dev.sentinel.domain.init.RawTerminal.RawSession;
@@ -166,12 +165,23 @@ public class InitCommand implements Callable<Integer> {
     final InitWizard wizard = new InitWizard(prompt, this::openRawTerminal, output(), terminal);
     final InitConfirmations confirmations = new InitConfirmations(prompt, output(), terminal);
     final InitQuestions questions =
-        new InitQuestions(answers(), wizard, confirmations, catalog, project, terminal);
+        new InitQuestions(
+            answers(),
+            wizard,
+            confirmations,
+            catalog,
+            project,
+            terminal,
+            new QuestionProgress(output()));
     final boolean exists = init.configurationExists(project);
     if (exists
         && !overwriteOption
         && !questions.confirmOverwrite(project.root().resolve("sentinel.toml"))) {
-      return printResult(init.init(project.root()));
+      output().println("Kept existing sentinel.toml. No changes were made.");
+      return ExitCodes.OK;
+    }
+    if (exists) {
+      catalog.previousChoices(project).ifPresent(questions::reconfigure);
     }
     final InitSelection selection = questions.resolve();
     new InitResultPrinter(output()).printSelectedGates(catalog, project, selection.gates());
@@ -204,11 +214,6 @@ public class InitCommand implements Callable<Integer> {
       return Optional.empty();
     }
     return rawTerminal.open();
-  }
-
-  private int printResult(final InitResult result) {
-    new InitResultPrinter(output()).print(result);
-    return ExitCodes.OK;
   }
 
   private PrintWriter output() {

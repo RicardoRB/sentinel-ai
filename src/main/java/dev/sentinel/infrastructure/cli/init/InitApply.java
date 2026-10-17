@@ -43,10 +43,8 @@ final class InitApply {
         return ExitCodes.OK;
       }
     }
-    final Predicate<Object> approval =
-        object ->
-            object instanceof CompatibilityFinding finding
-                && (mode.approved() || confirmations.compatibilityUpdate(finding));
+    final Predicate<CompatibilityFinding> approval =
+        finding -> mode.approved() || confirmations.compatibilityUpdate(finding);
     printer.print(init.initialize(project.root(), selection, mode.overwrite(), approval));
     return ExitCodes.OK;
   }

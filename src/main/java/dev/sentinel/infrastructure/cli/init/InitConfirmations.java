@@ -22,11 +22,7 @@ final class InitConfirmations {
   boolean overwrite(final Path file) {
     out.print(file + " already exists. Overwrite it? [y/N]: ");
     out.flush();
-    final boolean overwrite = prompt.confirm("overwrite");
-    if (!overwrite) {
-      out.println("Keeping existing sentinel.toml. No changes made.");
-    }
-    return overwrite;
+    return prompt.confirm("overwrite");
   }
 
   boolean openSpecInstallation(final Path destination) {

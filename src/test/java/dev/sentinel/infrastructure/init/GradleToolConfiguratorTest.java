@@ -23,7 +23,7 @@ class GradleToolConfiguratorTest {
     final GradleToolConfigurator configurator = new GradleToolConfigurator();
 
     final PomChange change =
-        configurator.apply(project, List.of(gate("format")), null, new Object());
+        configurator.apply(project, List.of(gate("format")), null, finding -> false);
 
     final String updated = Files.readString(build);
     assertThat(updated).contains("com.diffplug.spotless", "user configuration");
@@ -41,7 +41,8 @@ class GradleToolConfiguratorTest {
     final Project project = new Project(root, Language.KOTLIN, BuildTool.GRADLE, Framework.NONE);
 
     final PomChange change =
-        new GradleToolConfigurator().apply(project, List.of(gate("format")), null, new Object());
+        new GradleToolConfigurator()
+            .apply(project, List.of(gate("format")), null, finding -> false);
 
     assertThat(change.changed()).isFalse();
     assertThat(Files.readString(build)).isEqualTo(original);
@@ -69,7 +70,7 @@ class GradleToolConfiguratorTest {
             project,
             ids.stream().map(GradleToolConfiguratorTest::gate).toList(),
             null,
-            new Object());
+            finding -> false);
 
     assertThat(Files.readString(build))
         .contains(

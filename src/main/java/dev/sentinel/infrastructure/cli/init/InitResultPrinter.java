@@ -29,7 +29,10 @@ final class InitResultPrinter {
       final InitGateOption gateOption = catalog.gate(project, selectedGate);
       out.printf(
           "Selected quality gate '%s': %s%n",
-          gateOption.id(), gateOption.available() ? "AVAILABLE" : "UNAVAILABLE");
+          gateOption.id(),
+          gateOption.available()
+              ? "AVAILABLE"
+              : "UNAVAILABLE - " + gateOption.availabilityMessage());
       LOGGER.log(
           Level.INFO,
           () ->

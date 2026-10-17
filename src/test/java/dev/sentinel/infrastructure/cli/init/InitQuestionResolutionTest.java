@@ -49,7 +49,7 @@ class InitQuestionResolutionTest {
 
     assertThat(init.run("", "--yes")).isEqualTo(ExitCodes.OK);
 
-    assertThat(init.output()).contains("already exists. Nothing was changed.");
+    assertThat(init.output()).contains("Kept existing sentinel.toml. No changes were made.");
     assertThat(init.configuration()).isEqualTo("version = 1\n");
   }
 
