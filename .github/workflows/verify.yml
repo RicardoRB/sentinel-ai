@@ -18,6 +18,7 @@ on:
 
 permissions:
   contents: read
+  security-events: write
 
 jobs:
   quality:
@@ -43,13 +44,28 @@ jobs:
       - name: Run Sentinel quality gates
         run: sentinel check --profile ci --format json > sentinel-report.json
 
+      - name: Generate Sentinel SARIF report
+        if: always()
+        run: sentinel check --profile ci --format sarif --output sentinel.sarif
+
       - name: Upload Sentinel report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: sentinel-report
-          path: sentinel-report.json
-          if-no-files-found: error
+          path: |
+            sentinel-report.json
+            sentinel.sarif
+          if-no-files-found: ignore
+
+      - name: Upload Sentinel SARIF to code scanning
+        if: >-
+          always() && github.event_name == 'pull_request' &&
+          github.event.pull_request.head.repo.full_name == github.repository
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: sentinel.sarif
+          category: sentinel
 
   native:
     name: Native checks (${{ matrix.os }})
