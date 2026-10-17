@@ -22,16 +22,15 @@ class SentinelCliContract5Test extends SentinelCliIntegrationSupport {
   }
 
   @Test
-  void rollsBackEarlierIntegrationWhenLaterSelectionConflicts() throws IOException {
+  void laterIntegrationConflictStopsBeforeWritingTheEarlierOne() throws IOException {
     final Path target = project.resolve(".opencode/commands/sentinel-check.md");
     Files.createDirectories(target.getParent());
     Files.writeString(target, "user-owned\n");
 
     assertThat(runInitWithInput("3\n3 2\n1\n", "-C", project.toString()))
         .isEqualTo(ExitCodes.ERROR);
-    assertThat(project.resolve(".claude/settings.json")).exists();
-    assertThat(Files.readString(project.resolve(".claude/settings.json")))
-        .doesNotContain("sentinelOwnership", "sentinel-edit-write");
+    assertThat(err.toString()).contains("conflict with user-owned content");
+    assertThat(project.resolve(".claude")).doesNotExist();
     assertThat(project.resolve(SENTINEL_TOML)).doesNotExist();
     assertThat(target).hasContent("user-owned\n");
   }
@@ -45,7 +44,7 @@ class SentinelCliContract5Test extends SentinelCliIntegrationSupport {
     assertThat(
             run(INIT, INTEGRATION_OPTION, "opencode", GATE_OPTION, TESTS, "-C", project.toString()))
         .isEqualTo(ExitCodes.ERROR);
-    assertThat(err.toString()).contains("selected integration conflicts");
+    assertThat(err.toString()).contains("conflict with user-owned content");
     assertThat(project.resolve(SENTINEL_TOML)).doesNotExist();
     assertThat(target).hasContent("user-owned\n");
   }
@@ -64,7 +63,7 @@ class SentinelCliContract5Test extends SentinelCliIntegrationSupport {
   }
 
   @Test
-  void initRejectsInvalidArchitectureAndEof() {
+  void initRejectsInvalidArchitectureAndDefaultsToLayeredAtEof() throws IOException {
     assertThat(runInitWithInput("3\n1\n9\nnope\n", "-C", project.toString()))
         .isEqualTo(ExitCodes.ERROR);
     assertThat(err.toString()).contains("Invalid architecture selection");
@@ -73,8 +72,10 @@ class SentinelCliContract5Test extends SentinelCliIntegrationSupport {
         .isEqualTo(ExitCodes.ERROR);
     assertThat(err.toString()).contains("Invalid architecture selection");
     err.getBuffer().setLength(0);
-    assertThat(runInitWithInput("3\n1\n9\n", "-C", project.toString())).isEqualTo(ExitCodes.ERROR);
-    assertThat(err.toString()).contains("input ended");
+    assertThat(runInitWithInput("3\n1\n9\n", "-C", project.toString())).isEqualTo(ExitCodes.OK);
+    assertThat(out.toString()).contains("Generated layered ArchUnit test");
+    assertThat(Files.readString(project.resolve(SENTINEL_TOML)))
+        .contains("[quality-gates.archunit]");
   }
 
   @Test

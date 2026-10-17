@@ -1,5 +1,6 @@
 package dev.sentinel.application.init;
 
+import dev.sentinel.domain.agent.PlannedFileChange;
 import dev.sentinel.domain.init.InitGateOption;
 import dev.sentinel.domain.init.QualityPreset;
 import dev.sentinel.domain.init.RuleFileChange;
@@ -14,6 +15,12 @@ final class NoRuleFileGeneration implements RuleFileGeneration {
   public RuleFileChange apply(
       final Project project, final QualityPreset preset, final List<InitGateOption> gates) {
     return new RuleFileChange(project.root().resolve("config"), false, Map.of(), List.of());
+  }
+
+  @Override
+  public List<PlannedFileChange> plan(
+      final Project project, final QualityPreset preset, final List<InitGateOption> gates) {
+    return List.of();
   }
 
   @Override

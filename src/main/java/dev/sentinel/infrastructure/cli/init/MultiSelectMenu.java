@@ -46,13 +46,13 @@ public final class MultiSelectMenu {
       throw new IllegalArgumentException("A menu must have at least one item");
     }
     final MenuState menu = new MenuState(labels.size(), initialSelections);
-    render(title, labels, menu, out);
+    render(title, labels, menu, out, "");
     while (true) {
       final Optional<List<Integer>> confirmed = menu.press(keys.getAsInt(), keys);
       if (confirmed.isPresent()) {
         return confirmed.get();
       }
-      render(title, labels, menu, out);
+      render(title, labels, menu, out, "");
     }
   }
 
@@ -67,27 +67,32 @@ public final class MultiSelectMenu {
       throw new IllegalArgumentException("A menu must have at least one item");
     }
     final MenuState menu = new MenuState(labels.size(), initialSelections);
-    render(title, labels, menu, out);
+    render(title, labels, menu, out, "");
     while (true) {
       final Optional<List<Integer>> confirmed = menu.press(keys.getAsInt(), keys);
-      if (confirmed.isPresent()) {
-        if (confirmed.get().isEmpty()) {
-          throw new SentinelException(emptySelectionMessage);
-        }
+      if (confirmed.isPresent() && !confirmed.get().isEmpty()) {
         return confirmed.get();
       }
-      render(title, labels, menu, out);
+      // An empty confirmation keeps the menu open, with the cursor where it was.
+      render(title, labels, menu, out, confirmed.isPresent() ? emptySelectionMessage : "");
     }
   }
 
   private void render(
-      final String title, final List<String> labels, final MenuState menu, final PrintWriter out) {
+      final String title,
+      final List<String> labels,
+      final MenuState menu,
+      final PrintWriter out,
+      final String message) {
     out.print("\033[2J\033[H");
     out.println(title + " (Space toggles, arrows move, Enter confirms, q cancels):");
     for (int i = 0; i < labels.size(); i++) {
       out.printf(
           "%s %s %d) %s%n",
           i == menu.cursor ? ">" : " ", menu.selected[i] ? "[x]" : "[ ]", i + 1, labels.get(i));
+    }
+    if (!message.isEmpty()) {
+      out.println(message);
     }
     out.flush();
   }

@@ -1,5 +1,6 @@
 package dev.sentinel.infrastructure.init;
 
+import dev.sentinel.domain.agent.PlannedFileChange;
 import dev.sentinel.domain.config.SentinelException;
 import dev.sentinel.domain.init.BuildToolConfiguration;
 import dev.sentinel.domain.init.InitGateOption;
@@ -19,6 +20,7 @@ import javax.inject.Inject;
 /** Adds conservative, reversible Gradle plugin declarations for selected init gates. */
 public final class GradleToolConfigurator implements BuildToolConfiguration {
   private static final String MARKER = "// Sentinel-managed quality gate configuration";
+  private static final String ARCHUNIT_VERSION = "1.3.0";
 
   private static final List<Plugin> PLUGINS =
       List.of(
@@ -47,53 +49,85 @@ public final class GradleToolConfigurator implements BuildToolConfiguration {
       final List<InitGateOption> gates,
       final QualityPreset preset,
       final Object approval) {
-    final Path buildFile = buildFile(project.root());
-    final Set<String> selected = gates.stream().map(InitGateOption::id).collect(Collectors.toSet());
-    try {
-      final String original = Files.readString(buildFile);
-      final StringBuilder updated = new StringBuilder(original);
-      final List<String> tools = new ArrayList<>();
-      appendPlugins(project, selected, updated, tools);
-      appendSpecialConfigurations(project, selected, updated, tools);
-      if (!tools.isEmpty()) {
+    final BuildFileEdit edit = compute(project, gates);
+    if (!edit.tools.isEmpty()) {
+      try {
         Files.writeString(
-            buildFile,
-            updated.toString(),
+            edit.buildFile,
+            edit.content,
             StandardOpenOption.TRUNCATE_EXISTING,
             StandardOpenOption.WRITE);
+      } catch (IOException e) {
+        throw new SentinelException(
+            "Could not configure Gradle tools in " + edit.buildFile + ": " + e.getMessage(), e);
       }
-      return new PomChange(buildFile, original, tools);
+    }
+    return new PomChange(edit.buildFile, edit.original, edit.tools);
+  }
+
+  @Override
+  public PlannedFileChange plan(
+      final Project project,
+      final List<InitGateOption> gates,
+      final QualityPreset preset,
+      final boolean approved) {
+    final BuildFileEdit edit = compute(project, gates);
+    return new PlannedFileChange(
+        edit.buildFile,
+        edit.details.isEmpty()
+            ? PlannedFileChange.Action.UNCHANGED
+            : PlannedFileChange.Action.MODIFY,
+        edit.details);
+  }
+
+  /** Builds the edited build file in memory; shared by {@link #apply} and {@link #plan}. */
+  private static BuildFileEdit compute(final Project project, final List<InitGateOption> gates) {
+    final Path buildFile = buildFile(project.root());
+    final Set<String> selected = gates.stream().map(InitGateOption::id).collect(Collectors.toSet());
+    final BuildFileEdit edit;
+    try {
+      edit = new BuildFileEdit(buildFile, Files.readString(buildFile));
     } catch (IOException e) {
       throw new SentinelException(
           "Could not configure Gradle tools in " + buildFile + ": " + e.getMessage(), e);
     }
-  }
-
-  private static void appendPlugins(
-      final Project project,
-      final Set<String> selected,
-      final StringBuilder updated,
-      final List<String> tools) {
     for (final Plugin plugin : PLUGINS) {
-      if (selected.contains(plugin.gate()) && updated.indexOf(plugin.id()) < 0) {
-        updated.append(plugin.declaration(project)).append('\n');
-        tools.add(plugin.id());
+      if (selected.contains(plugin.gate()) && !edit.content.contains(plugin.id())) {
+        edit.append(plugin.declaration(project), plugin.id(), plugin.version());
       }
     }
+    appendSpecialConfigurations(project, selected, edit);
+    return edit;
   }
 
   private static void appendSpecialConfigurations(
-      final Project project,
-      final Set<String> selected,
-      final StringBuilder updated,
-      final List<String> tools) {
-    if (selected.contains("enforcer") && updated.indexOf("forbiddenApis") < 0) {
-      updated.append(enforcementDeclaration(project)).append('\n');
-      tools.add("gradle-enforcer");
+      final Project project, final Set<String> selected, final BuildFileEdit edit) {
+    if (selected.contains("enforcer") && !edit.content.contains("forbiddenApis")) {
+      edit.append(enforcementDeclaration(project), "gradle-enforcer", "");
     }
-    if (selected.contains("archunit") && updated.indexOf("archunit-junit5") < 0) {
-      updated.append(archunitDeclaration(project)).append('\n');
-      tools.add("archunit-junit5");
+    if (selected.contains("archunit") && !edit.content.contains("archunit-junit5")) {
+      edit.append(archunitDeclaration(project), "archunit-junit5", ARCHUNIT_VERSION);
+    }
+  }
+
+  /** The build file being edited in memory, with what changed so far. */
+  private static final class BuildFileEdit {
+    private final Path buildFile;
+    private final String original;
+    private final List<String> tools = new ArrayList<>();
+    private final List<String> details = new ArrayList<>();
+    private String content;
+
+    BuildFileEdit(final Path buildFile, final String original) {
+      this.buildFile = buildFile;
+      this.original = original;
+      this.content = original;
+    }
+
+    void append(final String declaration, final String tool, final String version) {
+      content = content + declaration + "\n";
+      tools.add(tool);
+      details.add("+ " + tool + (version.isBlank() ? "" : " " + version));
     }
   }
 
@@ -138,10 +172,14 @@ public final class GradleToolConfigurator implements BuildToolConfiguration {
         project,
         "\n"
             + MARKER
-            + "\ndependencies { testImplementation 'com.tngtech.archunit:archunit-junit5:1.3.0' }",
+            + "\ndependencies { testImplementation 'com.tngtech.archunit:archunit-junit5:"
+            + ARCHUNIT_VERSION
+            + "' }",
         "\n"
             + MARKER
-            + "\ndependencies { testImplementation(\"com.tngtech.archunit:archunit-junit5:1.3.0\") }");
+            + "\ndependencies { testImplementation(\"com.tngtech.archunit:archunit-junit5:"
+            + ARCHUNIT_VERSION
+            + "\") }");
   }
 
   private record Plugin(String gate, String id, String version) {

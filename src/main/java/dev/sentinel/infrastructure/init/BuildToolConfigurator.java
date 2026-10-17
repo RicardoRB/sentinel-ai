@@ -1,5 +1,6 @@
 package dev.sentinel.infrastructure.init;
 
+import dev.sentinel.domain.agent.PlannedFileChange;
 import dev.sentinel.domain.init.BuildToolConfiguration;
 import dev.sentinel.domain.init.InitGateOption;
 import dev.sentinel.domain.init.PomChange;
@@ -34,6 +35,15 @@ public final class BuildToolConfigurator implements BuildToolConfiguration {
       final QualityPreset preset,
       final Object approval) {
     return adapter(project).apply(project, gates, preset, approval);
+  }
+
+  @Override
+  public PlannedFileChange plan(
+      final Project project,
+      final List<InitGateOption> gates,
+      final QualityPreset preset,
+      final boolean approved) {
+    return adapter(project).plan(project, gates, preset, approved);
   }
 
   @Override

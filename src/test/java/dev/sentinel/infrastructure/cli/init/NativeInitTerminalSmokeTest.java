@@ -115,6 +115,10 @@ class NativeInitTerminalSmokeTest {
         terminal.write(ENTER);
         terminal.awaitOutput(process, "quality hooks? [y/N]", PROMPT_TIMEOUT);
         terminal.write("y\n".getBytes(StandardCharsets.US_ASCII));
+        terminal.awaitOutput(process, "Proceed? [Y/n]", PROMPT_TIMEOUT);
+        assertThat(terminal.output())
+            .contains("create     sentinel.toml", "create     .git/hooks/pre-commit");
+        terminal.write("\n".getBytes(StandardCharsets.US_ASCII));
         declineCompatibilityUpdatesUntilExit(terminal, process);
 
         assertThat(process.exitValue()).as(terminal.output()).isZero();
@@ -132,6 +136,68 @@ class NativeInitTerminalSmokeTest {
         process.destroyForcibly();
       }
     }
+  }
+
+  @Test
+  void reviewListsThePlanAndDecliningChangesNothing() throws Exception {
+    final Path binary = Path.of(System.getProperty("sentinel.native.binary")).toAbsolutePath();
+    final Path project = copyFixture(workspace.resolve("declined"));
+    final String pom = Files.readString(project.resolve("pom.xml"));
+
+    try (Arena arena = Arena.ofConfined();
+        PseudoTerminal terminal = PseudoTerminal.open(arena)) {
+      final File device = new File(terminal.devicePath());
+      final Process process =
+          new ProcessBuilder(binary.toString(), "init", "--integration", "none", "--gate", "tests")
+              .directory(project.toFile())
+              .redirectInput(ProcessBuilder.Redirect.from(device))
+              .redirectOutput(ProcessBuilder.Redirect.appendTo(device))
+              .redirectError(ProcessBuilder.Redirect.appendTo(device))
+              .start();
+      try {
+        terminal.awaitOutput(process, "Select optional tools", PROMPT_TIMEOUT);
+        terminal.write(ENTER);
+        terminal.awaitOutput(process, "quality hooks? [y/N]", PROMPT_TIMEOUT);
+        terminal.write("n\n".getBytes(StandardCharsets.US_ASCII));
+        terminal.awaitOutput(process, "Proceed? [Y/n]", PROMPT_TIMEOUT);
+        assertThat(terminal.output()).contains("create     sentinel.toml");
+        terminal.write("n\n".getBytes(StandardCharsets.US_ASCII));
+        terminal.awaitOutput(process, "No changes made.", KEY_TIMEOUT);
+
+        assertThat(process.waitFor(KEY_TIMEOUT.toSeconds(), TimeUnit.SECONDS)).isTrue();
+        assertThat(process.exitValue()).as(terminal.output()).isZero();
+        assertThat(project.resolve("sentinel.toml")).doesNotExist();
+        assertThat(Files.readString(project.resolve("pom.xml"))).isEqualTo(pom);
+      } finally {
+        process.destroyForcibly();
+      }
+    }
+  }
+
+  @Test
+  void dryRunPrintsThePlanAndLeavesTheProjectUnchanged() throws Exception {
+    final Path project = copyFixture(workspace.resolve("dry-run"));
+    final String pom = Files.readString(project.resolve("pom.xml"));
+
+    final Result result =
+        run(
+            project,
+            "init",
+            "--dry-run",
+            "--preset",
+            "strict",
+            "--integration",
+            "none",
+            "--architecture",
+            "layered");
+
+    assertThat(result.exitCode()).as(result.output()).isZero();
+    assertThat(result.output())
+        .contains("Sentinel will make these changes:", "modify     pom.xml")
+        .doesNotContain("Exception");
+    assertThat(project.resolve("sentinel.toml")).doesNotExist();
+    assertThat(project.resolve("config")).doesNotExist();
+    assertThat(Files.readString(project.resolve("pom.xml"))).isEqualTo(pom);
   }
 
   /** Answers "n" to every Maven compatibility prompt until the executable exits. */

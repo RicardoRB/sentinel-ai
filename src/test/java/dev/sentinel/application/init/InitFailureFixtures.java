@@ -3,6 +3,7 @@ package dev.sentinel.application.init;
 import dev.sentinel.ProjectFixtures;
 import dev.sentinel.application.project.ProjectDetector;
 import dev.sentinel.domain.FakeEnvironmentInspection;
+import dev.sentinel.domain.agent.PlannedFileChange;
 import dev.sentinel.domain.init.BuildToolConfiguration;
 import dev.sentinel.domain.init.ConfigurationStorage;
 import dev.sentinel.domain.init.InitGateOption;
@@ -60,6 +61,16 @@ final class InitFailureFixtures {
           }
 
           @Override
+          public PlannedFileChange plan(
+              final Project project,
+              final List<InitGateOption> gates,
+              final QualityPreset preset,
+              final boolean approved) {
+            return new PlannedFileChange(
+                project.root().resolve("pom.xml"), PlannedFileChange.Action.UNCHANGED);
+          }
+
+          @Override
           public void rollback(final PomChange change) {}
         };
     final RuleFileGeneration rules =
@@ -68,6 +79,12 @@ final class InitFailureFixtures {
           public RuleFileChange apply(
               final Project project, final QualityPreset preset, final List<InitGateOption> gates) {
             throw new IllegalStateException("setup failed");
+          }
+
+          @Override
+          public List<PlannedFileChange> plan(
+              final Project project, final QualityPreset preset, final List<InitGateOption> gates) {
+            return List.of();
           }
 
           @Override

@@ -5,6 +5,7 @@ import dev.sentinel.domain.agent.GuardMode;
 import dev.sentinel.domain.agent.IntegrationCapability;
 import dev.sentinel.domain.agent.IntegrationRequest;
 import dev.sentinel.domain.agent.IntegrationResult;
+import dev.sentinel.domain.agent.PlannedFileChange;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
@@ -277,6 +278,37 @@ public final class OpenCodeIntegration implements AgentIntegration {
           : install(command, plugin, guard, request.guard());
     } catch (IOException e) {
       throw new UncheckedIOException("Could not update OpenCode integration: " + e.getMessage(), e);
+    }
+  }
+
+  @Override
+  public List<PlannedFileChange> plan(final Path projectRoot, final GuardMode mode) {
+    final Path root = projectRoot.toAbsolutePath().normalize();
+    final GuardFile guard = new GuardFile(root.resolve(GUARD_FILE), GUARD_MARKER, GUARD_PLUGIN);
+    try {
+      final List<PlannedFileChange> plan = new ArrayList<>();
+      final Path command = root.resolve(COMMAND_FILE);
+      final Path plugin = root.resolve(PLUGIN_FILE);
+      plan.add(
+          new PlannedFileChange(command, IntegrationArtifacts.decide(command, MARKER, COMMAND)));
+      plan.add(
+          new PlannedFileChange(
+              plugin, IntegrationArtifacts.decide(plugin, PLUGIN_MARKER, PLUGIN)));
+      if (guard.preflight(mode) != null) {
+        plan.add(new PlannedFileChange(guard.file(), PlannedFileChange.Action.CONFLICT));
+      }
+      final List<PlannedFileChange> conflicts =
+          plan.stream()
+              .filter(change -> change.action() == PlannedFileChange.Action.CONFLICT)
+              .toList();
+      if (!conflicts.isEmpty()) {
+        // Mirrors install: a conflict stops the run before anything is written.
+        return conflicts;
+      }
+      guard.plan(mode).ifPresent(plan::add);
+      return plan;
+    } catch (IOException e) {
+      throw new UncheckedIOException("Could not plan OpenCode integration: " + e.getMessage(), e);
     }
   }
 

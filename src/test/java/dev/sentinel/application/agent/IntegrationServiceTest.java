@@ -9,6 +9,7 @@ import dev.sentinel.domain.agent.AgentIntegration;
 import dev.sentinel.domain.agent.GuardMode;
 import dev.sentinel.domain.agent.IntegrationRequest;
 import dev.sentinel.domain.agent.IntegrationResult;
+import dev.sentinel.domain.agent.PlannedFileChange;
 import dev.sentinel.infrastructure.project.FileSystemProjectInspection;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -20,6 +21,11 @@ class IntegrationServiceTest {
   private final List<Boolean> removals = new ArrayList<>();
   private final AgentIntegration legacy =
       new AgentIntegration() {
+        @Override
+        public List<PlannedFileChange> plan(final Path projectRoot, final GuardMode guard) {
+          return List.of();
+        }
+
         @Override
         public String id() {
           return "legacy";
@@ -38,6 +44,11 @@ class IntegrationServiceTest {
     final List<IntegrationRequest> requests = new ArrayList<>();
     final AgentIntegration recording =
         new AgentIntegration() {
+          @Override
+          public List<PlannedFileChange> plan(final Path projectRoot, final GuardMode guard) {
+            return List.of();
+          }
+
           @Override
           public String id() {
             return "recording";

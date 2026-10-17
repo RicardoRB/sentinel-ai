@@ -3,10 +3,10 @@ package dev.sentinel.application.init;
 import dev.sentinel.application.project.ProjectDetector;
 import dev.sentinel.application.project.ProjectNotFoundException;
 import dev.sentinel.domain.agent.AgentIntegration;
-import dev.sentinel.domain.config.SentinelException;
 import dev.sentinel.domain.init.ArchitectureTestGeneration;
 import dev.sentinel.domain.init.BuildToolConfiguration;
 import dev.sentinel.domain.init.ConfigurationStorage;
+import dev.sentinel.domain.init.InitPlan;
 import dev.sentinel.domain.init.InitResult;
 import dev.sentinel.domain.init.InitSelection;
 import dev.sentinel.domain.init.QualityPreset;
@@ -19,7 +19,6 @@ import java.util.Set;
 import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Stream;
 import javax.inject.Inject;
 
 public class InitService {
@@ -139,9 +138,9 @@ public class InitService {
       LOGGER.log(Level.INFO, "event=initialization-complete status=ownership-conflict");
       return new InitResult(configurationFile, false, List.of(), List.of());
     }
-    final InstallationOutcome installation = installToolIfApproved(project, selection);
-    final String executable = installation.executable();
-    final List gates = resolveGates(project, selection, executable);
+    final Path installed = OpenSpecInstallation.install(toolInstaller, project, selection);
+    final String executable = OpenSpecInstallation.executable(installed);
+    final List gates = SelectedGates.resolve(catalog.get(), project, selection, executable);
     if (selection.architecture() != null) {
       catalog.get().architecture(selection.architecture());
     }
@@ -167,7 +166,7 @@ public class InitService {
       return result;
     } finally {
       if (!completed) {
-        toolInstaller.rollbackPath(project.root(), installation.executablePath());
+        toolInstaller.rollbackPath(project.root(), installed);
         changes.rollback();
         LOGGER.log(Level.WARNING, "event=initialization-rollback status=applied");
         if (originalConfiguration != null) {
@@ -178,49 +177,15 @@ public class InitService {
   }
 
   /**
-   * Returns the selected gates with the selected preset gates first, in preset order, followed by
-   * the other selected gates and the OpenSpec validations. Unselected preset gates are not added.
+   * Describes everything {@link #initialize} would change for this selection, in the order it
+   * applies changes, without writing files, installing tools, or asking for approval. {@code
+   * approved} marks compatibility updates as already approved.
    */
-  private List resolveGates(
-      final Project project, final InitSelection selection, final String openSpecExecutable) {
-    final List gates =
-        Stream.concat(
-                (selection.preset() == null
-                        ? selection.gates()
-                        : selection.preset().orderSelected(selection.gates()))
-                    .stream(),
-                selection.openSpecValidations().stream())
-            .distinct()
-            .map(
-                id ->
-                    catalog.get().openSpecValidations().contains(id)
-                        ? catalog.get().openSpecValidation(project, id, openSpecExecutable)
-                        : catalog.get().gate(project, id))
-            .toList();
-    if (gates.isEmpty() && selection.tools().isEmpty()) {
-      throw new SentinelException("Select at least one quality gate.");
-    }
-    return gates;
+  public InitPlan plan(final Path start, final InitSelection selection, final boolean approved) {
+    return new InitPlanner(
+            catalog, installer, pomTools, ruleFiles, architectureTests, configurationStorage)
+        .plan(project(start), selection, approved);
   }
-
-  private InstallationOutcome installToolIfApproved(
-      final Project project, final InitSelection selection) {
-    if (selection.installTools().isEmpty()) {
-      return new InstallationOutcome("openspec", null);
-    }
-    if (!selection.tools().contains("openspec")) {
-      throw new SentinelException(
-          "Installation consent requires selecting the corresponding tool.");
-    }
-    try {
-      final Path executable = toolInstaller.installPath(project.root(), "openspec");
-      return new InstallationOutcome(executable.toString(), executable);
-    } catch (IllegalStateException e) {
-      throw new SentinelException("OpenSpec installation failed: " + e.getMessage(), e);
-    }
-  }
-
-  private record InstallationOutcome(String executable, Path executablePath) {}
 
   private InitResult writeConfiguration(
       final Path file,

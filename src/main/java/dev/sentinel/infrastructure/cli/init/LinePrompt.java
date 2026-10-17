@@ -3,7 +3,6 @@ package dev.sentinel.infrastructure.cli.init;
 import dev.sentinel.domain.config.SentinelException;
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -35,11 +34,18 @@ final class LinePrompt {
     return readLine(subject).orElseThrow(() -> new SentinelException(INPUT_ENDED));
   }
 
+  /** Returns the next line; when input ended, logs that {@code question} takes its default. */
+  Optional<String> readOrDefault(final String question) {
+    final Optional<String> answer = readLine(question);
+    if (answer.isEmpty()) {
+      logDefault(question);
+    }
+    return answer;
+  }
+
   /** Returns whether the next line answers yes; end of input selects the default of no. */
   boolean confirm(final String question) {
-    return readOptionalAnswer(question)
-        .map(answer -> "y".equalsIgnoreCase(answer.trim()))
-        .orElse(false);
+    return readOrDefault(question).map(answer -> "y".equalsIgnoreCase(answer.trim())).orElse(false);
   }
 
   boolean confirmInstallation() {
@@ -48,82 +54,34 @@ final class LinePrompt {
   }
 
   /**
-   * Reads space- or comma-separated 1-based numbers that toggle items of the initial selection. A
-   * blank line accepts the initial selection. Kept initial ids come first, followed by ids turned
-   * on in the order they were entered.
+   * Reads numbers that toggle items of the initial selection; a blank line accepts it. Returns
+   * empty when input ended, so the caller decides between a default and an error.
    */
-  List<String> readSelection(
+  Optional<List<String>> readSelection(
       final List<String> ids,
       final List<String> initial,
       final String label,
       final String emptySelectionMessage) {
-    final String value = requireLine("initialization selection");
-    final List<String> selected = new ArrayList<>(initial.stream().filter(ids::contains).toList());
-    for (final String token : value.trim().split("[ ,]+")) {
-      if (!token.isBlank()) {
-        final String id = ids.get(choice(token, ids.size(), label) - 1);
-        if (!selected.remove(id)) {
-          selected.add(id);
-        }
-      }
+    final Optional<String> line = readLine("initialization selection");
+    if (line.isEmpty()) {
+      return Optional.empty();
     }
+    final List<String> selected = NumberedChoice.toggle(ids, initial, line.get(), label);
     if (selected.isEmpty()) {
-      throw new SentinelException(emptySelectionMessage);
+      throw new InvalidAnswerException(emptySelectionMessage);
     }
-    return List.copyOf(selected);
+    return Optional.of(selected);
   }
 
   /** Reads an optional selection; a blank line or end of input selects nothing. */
   List<String> readOptionalSelection(
       final List<String> ids, final String label, final String question) {
-    final String value = readOptionalAnswer(question).orElse("");
-    if (value.isBlank()) {
-      return List.of();
-    }
-    return readSelectionValue(ids, value, label);
+    return NumberedChoice.toggle(ids, List.of(), readOrDefault(question).orElse(""), label);
   }
 
-  private Optional<String> readOptionalAnswer(final String question) {
-    final Optional<String> answer = readLine(question);
-    if (answer.isEmpty()) {
-      LOGGER.log(
-          Level.INFO,
-          () -> "event=init-optional-default question=" + question + " reason=end-of-input");
-    }
-    return answer;
-  }
-
-  private List<String> readSelectionValue(
-      final List<String> ids, final String value, final String label) {
-    final List<String> selected = new ArrayList<>();
-    for (final String token : value.trim().split("[ ,]+")) {
-      if (!token.isBlank()) {
-        final String id = ids.get(choice(token, ids.size(), label) - 1);
-        if (!selected.contains(id)) {
-          selected.add(id);
-        }
-      }
-    }
-    return selected;
-  }
-
-  private static int choice(final String token, final int size, final String label) {
-    final int choice;
-    try {
-      choice = Integer.parseInt(token);
-    } catch (NumberFormatException e) {
-      throw invalidChoice(token, size, label, e);
-    }
-    if (choice <= 0 || choice > size) {
-      throw invalidChoice(token, size, label, null);
-    }
-    return choice;
-  }
-
-  private static SentinelException invalidChoice(
-      final String token, final int size, final String label, final Throwable cause) {
-    return new SentinelException(
-        "Invalid " + label + " selection '" + token + "'. Choose numbers from 1 to " + size + ".",
-        cause);
+  static void logDefault(final String question) {
+    LOGGER.log(
+        Level.INFO,
+        () -> "event=init-optional-default question=" + question + " reason=end-of-input");
   }
 }

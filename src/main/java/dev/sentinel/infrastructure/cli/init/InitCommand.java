@@ -2,10 +2,8 @@ package dev.sentinel.infrastructure.cli.init;
 
 import dev.sentinel.application.init.InitService;
 import dev.sentinel.application.init.InitSetupCatalog;
-import dev.sentinel.domain.init.CompatibilityFinding;
 import dev.sentinel.domain.init.InitResult;
 import dev.sentinel.domain.init.InitSelection;
-import dev.sentinel.domain.init.QualityPreset;
 import dev.sentinel.domain.init.RawTerminal;
 import dev.sentinel.domain.init.RawTerminal.RawSession;
 import dev.sentinel.domain.project.Project;
@@ -21,7 +19,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.concurrent.Callable;
-import java.util.function.Predicate;
 import java.util.function.Supplier;
 import javax.inject.Inject;
 import picocli.CommandLine.Command;
@@ -101,14 +98,26 @@ public class InitCommand implements Callable<Integer> {
   private boolean overwriteOption;
 
   @Option(
+      names = "--dry-run",
+      description = "Show the files init would change, then exit without changing anything.")
+  private boolean dryRun;
+
+  @Option(
+      names = "--accept-compatibility-updates",
+      description = "Approve validated Maven compatibility updates without prompting.")
+  private boolean acceptCompatibilityUpdates;
+
+  @Option(
       names = "--yes",
-      description = "Accept validated Maven compatibility updates without prompting.")
+      description =
+          "Accept defaults for unanswered questions, skip the review, and approve validated"
+              + " compatibility updates.")
   private boolean yesOption;
 
   private final Supplier<InitService> service;
-  private final InputStream input;
   private final LinePrompt prompt;
   private final RawTerminal rawTerminal;
+  private final boolean terminal;
 
   public InitCommand(final InitService service) {
     this(service, System.in, UNAVAILABLE_TERMINAL);
@@ -125,11 +134,24 @@ public class InitCommand implements Callable<Integer> {
 
   public InitCommand(
       final InitService service, final InputStream input, final RawTerminal rawTerminal) {
+    this(service, input, rawTerminal, input.equals(System.in) && consoleIsTerminal());
+  }
+
+  /** Lets tests decide whether input behaves like an interactive terminal. */
+  InitCommand(
+      final InitService service,
+      final InputStream input,
+      final RawTerminal rawTerminal,
+      final boolean terminal) {
     this.service = () -> service;
-    this.input = input;
     this.prompt =
         new LinePrompt(new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8)));
     this.rawTerminal = rawTerminal;
+    this.terminal = terminal;
+  }
+
+  private static boolean consoleIsTerminal() {
+    return System.console() != null && System.console().isTerminal();
   }
 
   @Override
@@ -141,115 +163,47 @@ public class InitCommand implements Callable<Integer> {
       output().println(catalog.removeQualityHooks(project.root()).message());
       return ExitCodes.OK;
     }
-    final QualityPreset requestedPreset = preset == null ? null : catalog.preset(preset);
-    final InitWizard wizard = new InitWizard(prompt, this::openRawTerminal, output());
+    final InitWizard wizard = new InitWizard(prompt, this::openRawTerminal, output(), terminal);
+    final InitConfirmations confirmations = new InitConfirmations(prompt, output(), terminal);
+    final InitQuestions questions =
+        new InitQuestions(answers(), wizard, confirmations, catalog, project, terminal);
     final boolean exists = init.configurationExists(project);
-    if (exists && !overwriteOption && !overwriteApproved(wizard, project)) {
+    if (exists
+        && !overwriteOption
+        && !questions.confirmOverwrite(project.root().resolve("sentinel.toml"))) {
       return printResult(init.init(project.root()));
     }
-    final InitSelection selection = select(wizard, catalog, project, requestedPreset);
+    final InitSelection selection = questions.resolve();
     new InitResultPrinter(output()).printSelectedGates(catalog, project, selection.gates());
-    final Predicate<Object> approval =
-        new Predicate<>() {
-          @Override
-          public boolean test(final Object object) {
-            return (object instanceof CompatibilityFinding finding)
-                && (yesOption || confirmCompatibility(wizard, output(), finding));
-          }
-        };
-    return printResult(
-        init.initialize(project.root(), selection, overwriteOption || exists, approval));
+    return new InitApply(init, confirmations, output())
+        .run(
+            project,
+            selection,
+            new InitApply.Mode(
+                dryRun,
+                terminal && !yesOption,
+                yesOption || acceptCompatibilityUpdates,
+                overwriteOption || exists));
   }
 
-  /** Completes the selection, asking only for what the command-line options leave open. */
-  private InitSelection select(
-      final InitWizard wizard,
-      final InitSetupCatalog catalog,
-      final Project project,
-      final QualityPreset requestedPreset) {
-    final List<String> selectedOptions = InitSelectionSupport.gatesOption(gates);
-    final boolean gatesGiven = preset != null || !selectedOptions.isEmpty();
-    final QualityPreset selectedPreset =
-        InitSelectionSupport.preset(wizard, requestedPreset, gatesGiven);
-    final List<String> selectedIntegrations =
-        InitSelectionSupport.integrations(wizard, catalog, integrations);
-    final List<String> selectedGates =
-        InitSelectionSupport.gates(
-            wizard, catalog, project, selectedOptions, selectedPreset, gatesGiven);
-    // A preset given as an option keeps its architecture default; only chosen gates prompt.
-    final List<String> chosenGates = gatesGiven ? selectedOptions : selectedGates;
-    final String selectedArchitecture = resolveArchitecture(wizard, catalog, chosenGates);
-    final boolean toolsGiven = tools != null;
-    final boolean explicitSetup = integrations != null || gates != null || preset != null;
-    final List<String> selectedTools =
-        InitSelectionSupport.tools(wizard, catalog, tools, toolsGiven, explicitSetup);
-    final List<String> selectedValidations =
-        InitSelectionSupport.validations(
-            wizard, catalog, openSpecValidations, explicitSetup, selectedTools);
-    final List<String> selectedInstallTools =
-        InitSelectionSupport.installTools(
-            wizard, catalog, project, installTools, explicitSetup, selectedTools);
-    InitSelectionSupport.validate(
-        catalog, selectedTools, selectedValidations, selectedInstallTools);
-    final boolean selectedQualityHooks =
-        qualityHooks != null ? qualityHooks : (!explicitSetup && selectQualityHooks(wizard));
-    return new InitSelection(
-        selectedIntegrations,
-        selectedGates,
-        selectedArchitecture,
-        selectedPreset,
-        selectedTools,
-        selectedValidations,
-        selectedInstallTools,
-        selectedQualityHooks);
-  }
-
-  private boolean selectQualityHooks(final InitWizard wizard) {
-    output().print("Install Sentinel pre-commit and pre-push quality hooks? [y/N]: ");
-    output().flush();
-    return wizard.prompt.confirm("quality-hooks");
-  }
-
-  private boolean overwriteApproved(final InitWizard wizard, final Project project) {
-    if (input.equals(System.in) && System.console() == null) {
-      return false;
-    }
-    return wizard.confirmOverwrite(project.root().resolve("sentinel.toml"));
-  }
-
-  private String resolveArchitecture(
-      final InitWizard wizard, final InitSetupCatalog catalog, final List<String> chosenGates) {
-    if (chosenGates.stream().noneMatch("archunit"::equals)) {
-      return architecture;
-    }
-    final String selected =
-        architecture == null ? wizard.selectArchitecture(catalog) : architecture;
-    catalog.architecture(selected);
-    return selected;
+  private InitQuestions.Answers answers() {
+    return new InitQuestions.Answers(
+        preset,
+        integrations,
+        gates,
+        architecture,
+        tools,
+        openSpecValidations,
+        installTools,
+        qualityHooks,
+        yesOption);
   }
 
   private Optional<RawSession> openRawTerminal() {
-    if (!input.equals(System.in)
-        || System.console() == null
-        || System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("win")) {
+    if (!terminal || System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("win")) {
       return Optional.empty();
     }
     return rawTerminal.open();
-  }
-
-  private boolean confirmCompatibility(
-      final InitWizard wizard, final PrintWriter out, final CompatibilityFinding finding) {
-    out.println(
-        "Compatibility update proposed for "
-            + finding.artifactId()
-            + ": "
-            + finding.currentVersion()
-            + " -> "
-            + finding.selectedVersion());
-    out.println("Reason: " + finding.message());
-    out.print("Apply this Maven plugin update? [y/N]: ");
-    out.flush();
-    return wizard.prompt.confirm("compatibility-update");
   }
 
   private int printResult(final InitResult result) {

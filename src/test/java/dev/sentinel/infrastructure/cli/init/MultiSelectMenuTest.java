@@ -46,18 +46,17 @@ class MultiSelectMenuTest {
   }
 
   @Test
-  void rejectsEmptySelectionWithActionableMessage() {
-    final AtomicInteger index = new AtomicInteger();
-    assertThatThrownBy(
-            () ->
-                menu.select(
-                    "Choose",
-                    List.of("one"),
-                    "Select at least one integration, or choose none.",
-                    () -> index.getAndIncrement() == 0 ? '\n' : -1,
-                    output()))
-        .isInstanceOf(SentinelException.class)
-        .hasMessageContaining("Select at least one integration");
+  void emptySelectionShowsTheMessageAndKeepsTheMenuOpen() {
+    assertThat(
+            menu.select(
+                "Choose",
+                List.of("one", "two"),
+                "Select at least one integration, or choose none.",
+                script(27, '[', 'B', '\n', ' ', '\n'),
+                output()))
+        .containsExactly(1);
+    assertThat(rendered.toString())
+        .contains("Select at least one integration, or choose none.", "> [x] 2) two");
   }
 
   private PrintWriter output() {

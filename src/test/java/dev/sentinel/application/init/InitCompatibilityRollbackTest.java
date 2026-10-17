@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import dev.sentinel.application.project.ProjectDetector;
 import dev.sentinel.domain.FakeEnvironmentInspection;
+import dev.sentinel.domain.agent.PlannedFileChange;
 import dev.sentinel.domain.init.CompatibilityProjectSnapshot;
 import dev.sentinel.domain.init.InitGateOption;
 import dev.sentinel.domain.init.InitSelection;
@@ -52,6 +53,12 @@ class InitCompatibilityRollbackTest {
           public RuleFileChange apply(
               final Project project, final QualityPreset preset, final List<InitGateOption> gates) {
             throw new IllegalStateException("later setup failed");
+          }
+
+          @Override
+          public List<PlannedFileChange> plan(
+              final Project project, final QualityPreset preset, final List<InitGateOption> gates) {
+            return List.of();
           }
 
           @Override

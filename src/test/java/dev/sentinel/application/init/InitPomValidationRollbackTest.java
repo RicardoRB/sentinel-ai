@@ -6,7 +6,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import dev.sentinel.application.project.ProjectDetector;
 import dev.sentinel.domain.FakeEnvironmentInspection;
 import dev.sentinel.domain.agent.AgentIntegration;
+import dev.sentinel.domain.agent.GuardMode;
 import dev.sentinel.domain.agent.IntegrationResult;
+import dev.sentinel.domain.agent.PlannedFileChange;
 import dev.sentinel.domain.init.InitSelection;
 import dev.sentinel.infrastructure.init.ArchitectureTestGenerator;
 import dev.sentinel.infrastructure.init.FileConfigurationStorage;
@@ -53,6 +55,11 @@ class InitPomValidationRollbackTest {
   /** Writes a file on install and deletes it on removal, like a real integration. */
   private static final class FileWritingIntegration implements AgentIntegration {
     private int installs;
+
+    @Override
+    public List<PlannedFileChange> plan(final Path projectRoot, final GuardMode guard) {
+      return List.of();
+    }
 
     @Override
     public String id() {

@@ -29,10 +29,14 @@ final class QualityHookFileOperations {
     final String section = section(profile);
     if (original.contains(QualityHookInstaller.START_MARKER)) {
       final int start = original.indexOf(QualityHookInstaller.START_MARKER);
-      final int end = original.indexOf(QualityHookInstaller.END_MARKER, start);
-      return original.substring(0, start)
-          + section
-          + original.substring(end + QualityHookInstaller.END_MARKER.length());
+      int end =
+          original.indexOf(QualityHookInstaller.END_MARKER, start)
+              + QualityHookInstaller.END_MARKER.length();
+      // The section brings its own line break, so replace the existing one with it.
+      if (end < original.length() && original.charAt(end) == '\n') {
+        end++;
+      }
+      return original.substring(0, start) + section + original.substring(end);
     }
     final int shebangEnd = original.startsWith("#!") ? original.indexOf('\n') : -1;
     return shebangEnd >= 0

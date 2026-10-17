@@ -5,15 +5,14 @@ import dev.sentinel.domain.agent.GuardMode;
 import dev.sentinel.domain.agent.IntegrationCapability;
 import dev.sentinel.domain.agent.IntegrationRequest;
 import dev.sentinel.domain.agent.IntegrationResult;
+import dev.sentinel.domain.agent.PlannedFileChange;
 import dev.sentinel.domain.json.JsonCodec;
 import dev.sentinel.infrastructure.json.ForyJsonCodec;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.attribute.PosixFilePermission;
 import java.util.ArrayList;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -159,6 +158,51 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
     }
   }
 
+  /** Mirrors {@link #install}: the same preflight, settings merge, and guard order. */
+  @Override
+  public List<PlannedFileChange> plan(final Path projectRoot, final GuardMode mode) {
+    final Path root = projectRoot.toAbsolutePath().normalize();
+    final Path settings = root.resolve(SETTINGS_FILE);
+    final GuardFile guard = new GuardFile(root.resolve(GUARD_FILE), GUARD_MARKER, GUARD);
+    try {
+      final PlannedFileChange hook =
+          new PlannedFileChange(
+              root.resolve(HOOK_FILE),
+              IntegrationArtifacts.decide(root.resolve(HOOK_FILE), HOOK_MARKER, HOOK));
+      if (hook.action() == PlannedFileChange.Action.CONFLICT) {
+        return List.of(hook);
+      }
+      if (guard.preflight(mode) != null) {
+        return List.of(new PlannedFileChange(guard.file(), PlannedFileChange.Action.CONFLICT));
+      }
+      final String content;
+      try {
+        content =
+            settingsDocument.merge(
+                settings, guard.enabled(mode), SETTINGS_MARKER, SETTINGS, GUARDED_SETTINGS);
+      } catch (ClaudeSettingsDocument.SettingsConflictException e) {
+        return List.of(
+            new PlannedFileChange(
+                settings, PlannedFileChange.Action.CONFLICT, List.of(e.getMessage())));
+      }
+      final List<PlannedFileChange> plan = new ArrayList<>();
+      guard.plan(mode).ifPresent(plan::add);
+      PlannedFileChange.Action settingsAction = PlannedFileChange.Action.CREATE;
+      if (Files.exists(settings)) {
+        settingsAction =
+            Objects.equals(Files.readString(settings), content)
+                ? PlannedFileChange.Action.UNCHANGED
+                : PlannedFileChange.Action.MODIFY;
+      }
+      plan.add(new PlannedFileChange(settings, settingsAction));
+      plan.add(hook);
+      return plan;
+    } catch (IOException e) {
+      throw new UncheckedIOException(
+          "Could not plan Claude Code integration: " + e.getMessage(), e);
+    }
+  }
+
   /**
    * Installs or refreshes every file after a full conflict preflight. An enabled guard script is
    * written before the settings that reference it, and a disabled one is deleted after them.
@@ -186,13 +230,13 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
     final List<Map.Entry<Path, IntegrationResult>> results = new ArrayList<>();
     if (guarded) {
       results.add(guard.install(UPDATED));
-      makeExecutable(guard.file());
+      IntegrationArtifacts.makeExecutable(guard.file());
     }
     results.add(Map.entry(settings, writeSettings(settings, settingsContent)));
     results.add(
         Map.entry(hook, IntegrationArtifacts.installOrRefresh(hook, HOOK_MARKER, HOOK, UPDATED)));
     if (Files.exists(hook)) {
-      makeExecutable(hook);
+      IntegrationArtifacts.makeExecutable(hook);
     }
     guard.remove(mode == GuardMode.DISABLE).ifPresent(results::add);
     return IntegrationArtifacts.combine(
@@ -261,23 +305,6 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
           Files.deleteIfExists(directory);
         }
       }
-    }
-  }
-
-  private static void makeExecutable(final Path file) throws IOException {
-    try {
-      final Set<PosixFilePermission> permissions =
-          EnumSet.of(
-              PosixFilePermission.OWNER_READ,
-              PosixFilePermission.OWNER_WRITE,
-              PosixFilePermission.OWNER_EXECUTE,
-              PosixFilePermission.GROUP_READ,
-              PosixFilePermission.GROUP_EXECUTE,
-              PosixFilePermission.OTHERS_READ,
-              PosixFilePermission.OTHERS_EXECUTE);
-      Files.setPosixFilePermissions(file, permissions);
-    } catch (UnsupportedOperationException ignored) {
-      file.toFile().setExecutable(true, false);
     }
   }
 }

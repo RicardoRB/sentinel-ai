@@ -1,5 +1,6 @@
 package dev.sentinel.infrastructure.init;
 
+import dev.sentinel.domain.agent.PlannedFileChange;
 import dev.sentinel.domain.config.SentinelException;
 import dev.sentinel.domain.init.InitGateOption;
 import dev.sentinel.domain.init.QualityPreset;
@@ -25,28 +26,27 @@ public final class PresetRuleFileWriter implements RuleFileGeneration {
   @Override
   public RuleFileChange apply(
       final Project project, final QualityPreset preset, final List<InitGateOption> gates) {
-    if (preset == null) {
-      return new RuleFileChange(project.root().resolve("config"), false, Map.of(), List.of());
-    }
     final Path config = project.root().resolve("config");
+    if (preset == null) {
+      return new RuleFileChange(config, false, Map.of(), List.of());
+    }
     final boolean createdDirectory = !Files.exists(config);
     final Map<Path, String> originals = new LinkedHashMap<>();
     final List<Path> preserved = new ArrayList<>();
     try {
       Files.createDirectories(config);
-      final List<String> ids = gates.stream().map(InitGateOption::id).toList();
-      if (ids.contains("pmd")) {
-        write(config.resolve("pmd-ruleset.xml"), pmd(preset), preset, originals, preserved);
-      }
-      if (ids.contains("checkstyle")) {
-        write(config.resolve("checkstyle.xml"), checkstyle(preset), preset, originals, preserved);
-      }
-      if (ids.contains("spotbugs") && preset == QualityPreset.STANDARD) {
-        write(
-            config.resolve("spotbugs-exclude.xml"), spotbugs(preset), preset, originals, preserved);
-      }
-      if (ids.contains("enforcer")) {
-        write(config.resolve("enforcer-rules.xml"), enforcer(preset), preset, originals, preserved);
+      for (final Map.Entry<Path, String> target : targets(config, preset, gates).entrySet()) {
+        final Path file = target.getKey();
+        switch (decide(file, target.getValue())) {
+          case PRESERVE_USER_OWNED -> preserved.add(file);
+          case CREATE, MODIFY -> {
+            originals.put(file, Files.exists(file) ? Files.readString(file) : null);
+            Files.writeString(file, target.getValue());
+          }
+          default -> {
+            // Already current.
+          }
+        }
       }
       return new RuleFileChange(config, createdDirectory, originals, preserved);
     } catch (IOException e) {
@@ -54,20 +54,62 @@ public final class PresetRuleFileWriter implements RuleFileGeneration {
     }
   }
 
-  private static void write(
-      final Path file,
-      final String body,
-      final QualityPreset preset,
-      final Map<Path, String> originals,
-      final List<Path> preserved)
-      throws IOException {
-    final String existing = Files.exists(file) ? Files.readString(file) : null;
-    if (existing != null && !existing.startsWith(MARKER)) {
-      preserved.add(file);
-      return;
+  @Override
+  public List<PlannedFileChange> plan(
+      final Project project, final QualityPreset preset, final List<InitGateOption> gates) {
+    if (preset == null) {
+      return List.of();
     }
-    originals.put(file, existing);
-    Files.writeString(file, MARKER + preset.id() + " -->\n" + body);
+    final List<PlannedFileChange> plan = new ArrayList<>();
+    try {
+      for (final Map.Entry<Path, String> target :
+          targets(project.root().resolve("config"), preset, gates).entrySet()) {
+        plan.add(
+            new PlannedFileChange(target.getKey(), decide(target.getKey(), target.getValue())));
+      }
+    } catch (IOException e) {
+      throw new SentinelException("Could not read preset rule files: " + e.getMessage(), e);
+    }
+    return plan;
+  }
+
+  /** The rule files the selected gates need under this preset, with their marked content. */
+  private static Map<Path, String> targets(
+      final Path config, final QualityPreset preset, final List<InitGateOption> gates) {
+    final List<String> ids = gates.stream().map(InitGateOption::id).toList();
+    final Map<Path, String> targets = new LinkedHashMap<>();
+    if (ids.contains("pmd")) {
+      targets.put(config.resolve("pmd-ruleset.xml"), marked(preset, pmd(preset)));
+    }
+    if (ids.contains("checkstyle")) {
+      targets.put(config.resolve("checkstyle.xml"), marked(preset, checkstyle(preset)));
+    }
+    if (ids.contains("spotbugs") && preset == QualityPreset.STANDARD) {
+      targets.put(config.resolve("spotbugs-exclude.xml"), marked(preset, spotbugs(preset)));
+    }
+    if (ids.contains("enforcer")) {
+      targets.put(config.resolve("enforcer-rules.xml"), marked(preset, enforcer(preset)));
+    }
+    return targets;
+  }
+
+  /** Decides what writing {@code content} to {@code file} would do; shared by apply and plan. */
+  private static PlannedFileChange.Action decide(final Path file, final String content)
+      throws IOException {
+    if (!Files.exists(file)) {
+      return PlannedFileChange.Action.CREATE;
+    }
+    final String existing = Files.readString(file);
+    if (!existing.startsWith(MARKER)) {
+      return PlannedFileChange.Action.PRESERVE_USER_OWNED;
+    }
+    return existing.equals(content)
+        ? PlannedFileChange.Action.UNCHANGED
+        : PlannedFileChange.Action.MODIFY;
+  }
+
+  private static String marked(final QualityPreset preset, final String body) {
+    return MARKER + preset.id() + " -->\n" + body;
   }
 
   @Override

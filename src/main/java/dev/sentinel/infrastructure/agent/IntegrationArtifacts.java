@@ -1,6 +1,7 @@
 package dev.sentinel.infrastructure.agent;
 
 import dev.sentinel.domain.agent.IntegrationResult;
+import dev.sentinel.domain.agent.PlannedFileChange;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -107,27 +108,44 @@ final class IntegrationArtifacts {
         IntegrationResult.Status.CHANGED, List.of(target.toString()), message);
   }
 
+  /**
+   * Decides what writing {@code content} to an ownership-marked {@code target} would do. {@link
+   * #installOrRefresh} acts on this decision, so a plan built from it matches the write.
+   */
+  static PlannedFileChange.Action decide(
+      final Path target, final String marker, final String content) throws IOException {
+    if (!Files.exists(target)) {
+      return PlannedFileChange.Action.CREATE;
+    }
+    if (!owned(target, marker)) {
+      return PlannedFileChange.Action.CONFLICT;
+    }
+    return Objects.equals(Files.readString(target), content)
+        ? PlannedFileChange.Action.UNCHANGED
+        : PlannedFileChange.Action.MODIFY;
+  }
+
   static IntegrationResult installOrRefresh(
       final Path target, final String marker, final String content, final String message)
       throws IOException {
-    if (Files.exists(target)) {
-      if (!owned(target, marker)) {
-        return new IntegrationResult(
-            IntegrationResult.Status.CONFLICT,
-            List.of(target.toString()),
-            "Existing user-owned integration preserved; resolve the conflict explicitly.");
+    return switch (decide(target, marker, content)) {
+      case CREATE -> install(target, marker, content, message);
+      case CONFLICT ->
+          new IntegrationResult(
+              IntegrationResult.Status.CONFLICT,
+              List.of(target.toString()),
+              "Existing user-owned integration preserved; resolve the conflict explicitly.");
+      case UNCHANGED ->
+          new IntegrationResult(
+              IntegrationResult.Status.ALREADY_PRESENT,
+              List.of(),
+              "Sentinel integration is already present.");
+      default -> {
+        atomicWrite(target, content);
+        yield new IntegrationResult(
+            IntegrationResult.Status.CHANGED, List.of(target.toString()), message);
       }
-      if (Objects.equals(Files.readString(target), content)) {
-        return new IntegrationResult(
-            IntegrationResult.Status.ALREADY_PRESENT,
-            List.of(),
-            "Sentinel integration is already present.");
-      }
-      atomicWrite(target, content);
-      return new IntegrationResult(
-          IntegrationResult.Status.CHANGED, List.of(target.toString()), message);
-    }
-    return install(target, marker, content, message);
+    };
   }
 
   static IntegrationResult remove(final Path target, final String marker, final String message)
