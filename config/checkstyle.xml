@@ -1,0 +1,28 @@
+<!-- managed-by: sentinel preset=strict -->
+<module name="Checker">
+  <module name="TreeWalker">
+    <module name="EqualsHashCode"/>
+    <module name="MissingSwitchDefault"/>
+    <module name="FallThrough"/>
+    <module name="EmptyCatchBlock"/>
+    <module name="IllegalCatch"/>
+    <module name="AvoidStarImport"/>
+    <module name="UnusedImports"/>
+    <module name="StringLiteralEquality"/>
+    <module name="OneStatementPerLine"/>
+    <module name="MultipleVariableDeclarations"/>
+    <module name="CyclomaticComplexity"/>
+    <module name="MethodLength"/>
+    <module name="ParameterNumber"/>
+    <module name="FileLength"/>
+    <module name="MissingJavadocType"/>
+    <module name="MissingJavadocMethod"/>
+    <module name="MagicNumber"/>
+    <module name="HiddenField"/>
+    <module name="TypeName"/>
+    <module name="MethodName"/>
+    <module name="ParameterName"/>
+    <module name="LocalVariableName"/>
+    <module name="MemberName"/>
+  </module>
+</module>

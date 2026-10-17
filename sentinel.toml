@@ -1,0 +1,77 @@
+version = 1
+preset = "strict"
+
+[quality-gates.compile]
+enabled = true
+profiles = ["pre-commit", "pre-push", "ci"]
+command = "./mvnw compile"
+
+[quality-gates.tests]
+enabled = true
+profiles = ["pre-push", "ci"]
+command = "./mvnw test"
+
+[quality-gates.format]
+enabled = true
+profiles = ["default", "pre-commit", "pre-push", "ci"]
+command = "./mvnw spotless:check"
+
+[quality-gates.checkstyle]
+enabled = true
+profiles = ["default", "pre-commit", "pre-push", "ci"]
+command = "./mvnw checkstyle:check"
+
+[quality-gates.pmd]
+enabled = true
+profiles = ["default", "pre-commit", "pre-push", "ci"]
+command = "./mvnw pmd:check"
+
+[quality-gates.spotbugs]
+enabled = true
+profiles = ["pre-push", "ci"]
+command = "./mvnw spotbugs:check"
+
+[quality-gates.coverage]
+enabled = true
+profiles = ["pre-push", "ci"]
+command = "./mvnw jacoco:check"
+
+[quality-gates.archunit]
+enabled = true
+profiles = ["pre-push", "ci"]
+command = "./mvnw -Dtest=ArchitectureBoundaryTest test"
+
+[quality-gates.enforcer]
+enabled = true
+profiles = ["pre-push", "ci"]
+command = "./mvnw enforcer:enforce"
+
+[quality-gates.dependency-check]
+enabled = true
+profiles = ["ci"]
+command = "./mvnw dependency-check:check"
+
+[quality-gates.trivy]
+enabled = true
+profiles = ["ci"]
+command = "trivy fs --exit-code 1 ."
+
+[quality-gates.license]
+enabled = true
+profiles = ["pre-push", "ci"]
+command = "./mvnw license:add-third-party"
+
+[quality-gates.api-compat]
+enabled = true
+profiles = ["ci"]
+command = "./mvnw install -DskipTests japicmp:cmp"
+
+[quality-gates.openspec]
+enabled = true
+profiles = ["ci"]
+command = "openspec validate --all --strict --no-interactive"
+
+[quality-gates.openspec-archived]
+enabled = true
+profiles = ["ci"]
+command = "openspec validate --archived --no-interactive"

@@ -3,11 +3,20 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=22.19.0 <23" },
-  "scripts": { "build": "astro build", "dev": "astro dev", "preview": "astro preview" },
+  "engines": {
+    "node": ">=22.19.0 <23"
+  },
+  "scripts": {
+    "build": "astro build",
+    "dev": "astro dev",
+    "preview": "astro preview"
+  },
   "dependencies": {
-    "@astrojs/starlight": "^0.37.6",
-    "astro": "^5.7.13",
+    "@astrojs/starlight": "^0.42.6",
+    "astro": "^7.3.8",
     "starlight-links-validator": "^0.15.1"
+  },
+  "overrides": {
+    "postcss-selector-parser": "^7.1.6"
   }
 }

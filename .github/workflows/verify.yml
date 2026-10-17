@@ -18,6 +18,7 @@ on:
 
 permissions:
   contents: read
+  security-events: write
 
 jobs:
   quality:
@@ -33,17 +34,38 @@ jobs:
           java-version: '25'
           cache: maven
 
-      # ArchUnit, tests, Spotless, Checkstyle, PMD, SpotBugs, and >= 80% JaCoCo instruction coverage.
-      - name: Run quality verification
-        run: ./verify-quality.sh
+      - name: Install Sentinel
+        env:
+          SENTINEL_VERSION: v0.0.9
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/RicardoRB/sentinel-ai/main/install.sh | sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
-      - name: Upload coverage report
+      - name: Run Sentinel quality gates
+        run: sentinel check --profile ci --format json > sentinel-report.json
+
+      - name: Generate Sentinel SARIF report
+        if: always()
+        run: sentinel check --profile ci --format sarif --output sentinel.sarif
+
+      - name: Upload Sentinel report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: jacoco-report
-          path: target/site/jacoco/
+          name: sentinel-report
+          path: |
+            sentinel-report.json
+            sentinel.sarif
           if-no-files-found: ignore
+
+      - name: Upload Sentinel SARIF to code scanning
+        if: >-
+          always() && github.event_name == 'pull_request' &&
+          github.event.pull_request.head.repo.full_name == github.repository
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: sentinel.sarif
+          category: sentinel
 
   native:
     name: Native checks (${{ matrix.os }})
