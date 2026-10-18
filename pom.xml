@@ -73,6 +73,14 @@
             <artifactId>checkstyle</artifactId>
             <version>10.20.2</version>
             <scope>test</scope>
+            <exclusions>
+                <!-- Saxon is a signed jar; GraalVM cannot build the native test image with its
+                     signer certificates. The generated files load without XPath support. -->
+                <exclusion>
+                    <groupId>net.sf.saxon</groupId>
+                    <artifactId>Saxon-HE</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <!-- Loads the PMD rule set init generates with the PMD 7 rule references. -->
@@ -80,6 +88,14 @@
             <artifactId>pmd-java</artifactId>
             <version>7.17.0</version>
             <scope>test</scope>
+            <exclusions>
+                <!-- Saxon is a signed jar; GraalVM cannot build the native test image with its
+                     signer certificates. The generated files load without XPath support. -->
+                <exclusion>
+                    <groupId>net.sf.saxon</groupId>
+                    <artifactId>Saxon-HE</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <!-- Strict POM reader used to check generated init declarations in tests only. -->
