@@ -1,7 +1,8 @@
 {
-  "schemaVersion" : 1,
+  "schemaVersion" : 2,
   "status" : "PASSED",
   "failFast" : false,
+  "severity" : "warning",
   "project" : {
     "language" : "JAVA",
     "buildTool" : "MAVEN",
@@ -15,12 +16,10 @@
       "command" : "./mvnw test",
       "exitCode" : 0,
       "durationMs" : 3847,
-      "stdout" : "ok\n",
-      "stderr" : "",
       "summary" : "PASSED",
-      "output" : "ok\n",
       "findings" : [ ],
       "findingsTotal" : 0,
+      "findingsHidden" : 0,
       "findingsTruncated" : false
     }
   ],

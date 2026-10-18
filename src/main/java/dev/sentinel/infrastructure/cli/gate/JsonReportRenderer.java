@@ -2,7 +2,10 @@ package dev.sentinel.infrastructure.cli.gate;
 
 import dev.sentinel.domain.gate.CheckReport;
 import dev.sentinel.domain.gate.Finding;
+import dev.sentinel.domain.gate.GateFindings;
+import dev.sentinel.domain.gate.GateOutputVisibility;
 import dev.sentinel.domain.gate.GateResult;
+import dev.sentinel.domain.gate.SeverityThreshold;
 import dev.sentinel.domain.json.JsonCodec;
 import dev.sentinel.domain.learning.LearningOutcome;
 import dev.sentinel.domain.learning.LearningPrompt;
@@ -23,15 +26,15 @@ public class JsonReportRenderer {
   }
 
   public String render(final CheckReport report) {
-    return render(report, false, false, null);
+    return render(report, false, false, null, null, SeverityThreshold.WARNING);
   }
 
   public String render(final CheckReport report, final boolean strict) {
-    return render(report, strict, false, null);
+    return render(report, strict, false, null, null, SeverityThreshold.WARNING);
   }
 
   public String render(final CheckReport report, final boolean strict, final boolean failFast) {
-    return render(report, strict, failFast, null);
+    return render(report, strict, failFast, null, null, SeverityThreshold.WARNING);
   }
 
   public String render(
@@ -39,7 +42,7 @@ public class JsonReportRenderer {
       final boolean strict,
       final boolean failFast,
       final LearningOutcome learning) {
-    return render(report, strict, failFast, learning, null);
+    return render(report, strict, failFast, learning, null, SeverityThreshold.WARNING);
   }
 
   public String render(
@@ -48,9 +51,28 @@ public class JsonReportRenderer {
       final boolean failFast,
       final LearningOutcome learning,
       final Integer threshold) {
+    return render(report, strict, failFast, learning, threshold, SeverityThreshold.WARNING);
+  }
+
+  public String render(
+      final CheckReport report,
+      final boolean strict,
+      final boolean failFast,
+      final LearningOutcome learning,
+      final SeverityThreshold severity) {
+    return render(report, strict, failFast, learning, null, severity);
+  }
+
+  public String render(
+      final CheckReport report,
+      final boolean strict,
+      final boolean failFast,
+      final LearningOutcome learning,
+      final Integer threshold,
+      final SeverityThreshold severity) {
     final List<CheckDto> checks = new ArrayList<>();
     for (final GateResult result : report.results()) {
-      checks.add(CheckDto.from(result));
+      checks.add(CheckDto.from(result, severity));
     }
     final List<PolicyDto> policies = new ArrayList<>();
     new PolicyEvaluator()
@@ -62,9 +84,10 @@ public class JsonReportRenderer {
         learning == null ? null : LearningDto.from(learning, threshold == null ? 0 : threshold);
     final ReportDto root =
         new ReportDto(
-            1,
+            2,
             report.status().name(),
             failFast,
+            severity.id(),
             ProjectDto.from(report.project()),
             checks,
             policies,
@@ -85,6 +108,7 @@ public class JsonReportRenderer {
       int schemaVersion,
       String status,
       boolean failFast,
+      String severity,
       ProjectDto project,
       List<CheckDto> checks,
       List<PolicyDto> policies,
@@ -127,24 +151,32 @@ public class JsonReportRenderer {
     public Integer warnings;
     public List<FindingDto> findings;
     public int findingsTotal;
+    public int findingsHidden;
     public boolean findingsTruncated;
 
-    static CheckDto from(final GateResult result) {
+    static CheckDto from(final GateResult result, final SeverityThreshold threshold) {
       final CheckDto dto = new CheckDto();
       dto.name = result.name();
       dto.status = result.status().name();
       dto.command = String.join(" ", result.command());
       dto.exitCode = result.exitCode();
       dto.durationMs = result.duration().toMillis();
-      dto.stdout = result.stdout();
-      dto.stderr = result.stderr();
+      final GateOutputVisibility visibility = GateOutputVisibility.of(result, threshold);
+      if (visibility == GateOutputVisibility.FULL) {
+        dto.stdout = result.stdout();
+        dto.stderr = result.stderr();
+      }
       dto.summary = result.summary() == null ? result.status().name() : result.summary();
-      dto.output = tail(result.stdout().isBlank() ? result.stderr() : result.stdout());
+      if (visibility == GateOutputVisibility.TAIL || visibility == GateOutputVisibility.FULL) {
+        dto.output = tail(result.stdout().isBlank() ? result.stderr() : result.stdout());
+      }
       dto.errors = result.errors();
       dto.warnings = result.warnings();
-      dto.findings = result.findings().items().stream().map(FindingDto::from).toList();
-      dto.findingsTotal = result.findings().total();
-      dto.findingsTruncated = result.findings().truncated();
+      final GateFindings.Visible visible = result.findings().visible(threshold);
+      dto.findings = visible.items().stream().map(FindingDto::from).toList();
+      dto.findingsTotal = visible.total();
+      dto.findingsHidden = visible.hidden();
+      dto.findingsTruncated = visible.truncated();
       return dto;
     }
 

@@ -6,6 +6,7 @@ import dev.sentinel.application.gate.CheckService;
 import dev.sentinel.application.learning.LearningService;
 import dev.sentinel.domain.config.SentinelException;
 import dev.sentinel.domain.gate.CheckReport;
+import dev.sentinel.domain.gate.SeverityThreshold;
 import dev.sentinel.domain.gate.SupportedQualityGates;
 import dev.sentinel.domain.learning.LearningOutcome;
 import dev.sentinel.infrastructure.cli.ExitCodes;
@@ -56,6 +57,16 @@ public class CheckCommand implements Callable<Integer> {
       completionCandidates = FormatCandidates.class,
       description = "Output format: ${COMPLETION-CANDIDATES} (default: ${DEFAULT-VALUE}).")
   private Format format;
+
+  @Option(
+      names = "--severity",
+      paramLabel = "<severity>",
+      defaultValue = "warning",
+      converter = SeverityConverter.class,
+      completionCandidates = SeverityCandidates.class,
+      description =
+          "Minimum finding severity: ${COMPLETION-CANDIDATES} (default: ${DEFAULT-VALUE}).")
+  private SeverityThreshold severity;
 
   @Option(
       names = "--profile",
@@ -110,6 +121,20 @@ public class CheckCommand implements Callable<Integer> {
     }
   }
 
+  static final class SeverityConverter implements ITypeConverter<SeverityThreshold> {
+    @Override
+    public SeverityThreshold convert(final String value) {
+      return SeverityThreshold.parse(value);
+    }
+  }
+
+  static final class SeverityCandidates implements Iterable<String> {
+    @Override
+    public Iterator<String> iterator() {
+      return List.of("error", "warning", "info").iterator();
+    }
+  }
+
   @Inject
   public CheckCommand(
       final CheckService service,
@@ -137,7 +162,7 @@ public class CheckCommand implements Callable<Integer> {
       learning.warnings().forEach(warning -> error().println(warning));
     }
     if (showsText()) {
-      textRenderer.summary(report, learning);
+      textRenderer.summary(report, learning, severity);
     }
     if (format != Format.TEXT) {
       publishMachineReport(renderMachineReport(report, learning));
@@ -170,8 +195,9 @@ public class CheckCommand implements Callable<Integer> {
 
   private String renderMachineReport(final CheckReport report, final LearningOutcome learning) {
     return format == Format.SARIF
-        ? sarifRenderer.render(report)
-        : jsonRenderer.render(report, profiles.contains("strict"), failFast, learning, learnAfter);
+        ? sarifRenderer.render(report, severity)
+        : jsonRenderer.render(
+            report, profiles.contains("strict"), failFast, learning, learnAfter, severity);
   }
 
   private CheckReport runChecks() {

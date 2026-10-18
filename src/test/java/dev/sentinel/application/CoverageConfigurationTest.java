@@ -113,7 +113,8 @@ class CoverageConfigurationTest {
     assertThat(new TextReportRenderer().render(report))
         .contains("Sentinel", "Quality Gate: FAILED", "Command:", "line 1");
     assertThat(new JsonReportRenderer(new ForyJsonCodec()).render(report))
-        .contains("schemaVersion", "FAILED", "lint", "stderr");
+        .contains("schemaVersion", "FAILED", "lint", "output", "line 1")
+        .doesNotContain("\"stderr\"");
     assertThat(new JsonReportRenderer(new ForyJsonCodec()).renderError("broken"))
         .contains("ERROR", "broken");
   }

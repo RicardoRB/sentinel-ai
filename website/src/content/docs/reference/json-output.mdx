@@ -3,41 +3,45 @@ title: JSON output
 description: The check command's machine-readable result format.
 ---
 
-`sentinel check --format json` emits schema version `1`. It writes **only JSON to stdout**;
+`sentinel check --format json` emits schema version `2`. It writes **only JSON to stdout**;
 diagnostics go to stderr. Consumers should inspect `schemaVersion` and may ignore fields added in
 later compatible versions; existing fields keep their meaning within a schema version.
 
 ```json
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "status": "PASSED|FAILED",
-  "failFast": "boolean",
+  "failFast": "boolean", "severity": "error|warning|info",
   "project": { "language": "string", "buildTool": "string", "framework": "string", "root": "string" },
   "checks": [{
     "name": "string", "status": "PASSED|FAILED|SKIPPED|UNAVAILABLE|EXECUTION_ERROR",
     "command": "string", "exitCode": "number", "durationMs": "number",
-    "stdout": "string", "stderr": "string", "summary": "string", "output": "string",
+    "stdout": "string?", "stderr": "string?", "summary": "string", "output": "string?",
     "findings": [{
       "tool": "string", "rule": "string", "severity": "error|warning|note", "message": "string",
       "file": "string", "line": "number", "column": "number", "helpUri": "string"
     }],
-    "findingsTotal": "number", "findingsTruncated": "boolean"
+    "findingsTotal": "number", "findingsHidden": "number", "findingsTruncated": "boolean"
   }],
   "policies": [{ "name": "string", "passed": "boolean", "message": "string" }]
 }
 ```
 
 `failFast` is `true` when the run used `--fail-fast`; gates that did not run are listed with status
-`SKIPPED` and summary `not run (fail-fast)`. `output` is the last 200 lines of `stdout`, or of
-`stderr` when stdout is empty; `stdout` and `stderr` always hold the complete captured text.
+`SKIPPED` and summary `not run (fail-fast)`. `--severity` defaults to `warning`: `error` shows errors,
+`warning` shows errors and warnings, and `info` shows notes as well. Passed gates omit captured output
+below `info`; failed gates show visible findings instead of output, falling back to the last 200 lines
+when no finding is visible. `info` includes complete `stdout` and `stderr` plus the `output` tail.
+Omitted fields are intentional in schema v2.
 Project values are enum names such as `JAVA`, `MAVEN`, and `SPRING_BOOT`.
 
 ## Findings
 
-A failed `checkstyle`, `pmd`, `gitleaks`, `compile`, or `format` gate lists one entry per violation
+A failed `checkstyle`, `pmd`, `gitleaks`, `compile`, or `format` gate lists one entry per visible violation
 in `findings`, in the tool's report order, so an agent can go straight to the file and line. Every
-check has the three findings fields; gates that passed or have no supported source have an empty
-array, `findingsTotal` `0`, and `findingsTruncated` `false`.
+check has the four findings fields; `findingsTotal` counts all findings and `findingsHidden` counts
+findings below the threshold. Gates that passed or have no supported source have an empty array,
+`findingsTotal` `0`, `findingsHidden` `0`, and `findingsTruncated` `false`.
 
 ```json
 {
@@ -48,7 +52,8 @@ array, `findingsTotal` `0`, and `findingsTruncated` `false`.
 }
 ```
 
-- At most 50 findings are listed per check. `findingsTotal` is the full count and
+- At most 50 visible findings are listed per check. `findingsTotal` is the full count, `findingsHidden`
+  counts findings below the threshold, and
   `findingsTruncated` is `true` when entries were left out.
 - `file` is relative to the project root with `/` separators. `file`, `line`, `column`, and
   `helpUri` are omitted when the tool does not report them; `format` findings name only the file.
@@ -67,7 +72,7 @@ When learning is enabled with `--learn-after <n>`, the additive `learning` objec
   "summary": "string", "instruction": "Add a preventive instruction to AGENTS.md..."
 }] } }
 ```
-It is omitted when learning is disabled. `schemaVersion` remains `1`.
+It is omitted when learning is disabled. `schemaVersion` remains `2`.
 
 When Sentinel cannot run at all (exit `2`), it emits a short error report without `schemaVersion`:
 

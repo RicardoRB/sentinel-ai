@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 
 class GateFindingsTest {
@@ -23,17 +24,18 @@ class GateFindingsTest {
   }
 
   @Test
-  void keepsAtMostFiftyFindingsInReportOrderAndRecordsTotal() {
+  void keepsAllFindingsAndCapsVisibleFindingsAtPresentationTime() {
     final List<Finding> all =
         IntStream.rangeClosed(1, 120).mapToObj(GateFindingsTest::finding).toList();
 
     final GateFindings findings = GateFindings.of(all);
 
-    assertThat(findings.items()).hasSize(GateFindings.LIMIT);
+    assertThat(findings.items()).hasSize(120);
     assertThat(findings.items().getFirst().line()).isEqualTo(1);
-    assertThat(findings.items().getLast().line()).isEqualTo(50);
+    assertThat(findings.items().getLast().line()).isEqualTo(120);
     assertThat(findings.total()).isEqualTo(120);
-    assertThat(findings.truncated()).isTrue();
+    assertThat(findings.visible(SeverityThreshold.ERROR).items()).hasSize(50);
+    assertThat(findings.visible(SeverityThreshold.ERROR).truncated()).isTrue();
     assertThat(findings.isEmpty()).isFalse();
   }
 
@@ -47,6 +49,25 @@ class GateFindingsTest {
   }
 
   @Test
+  void filtersBeforeApplyingTheCap() {
+    final List<Finding> all =
+        Stream.concat(
+                IntStream.rangeClosed(1, 60)
+                    .mapToObj(i -> findingWithSeverity(i, FindingSeverity.WARNING)),
+                IntStream.rangeClosed(61, 63)
+                    .mapToObj(i -> findingWithSeverity(i, FindingSeverity.ERROR)))
+            .toList();
+
+    final GateFindings.Visible visible = GateFindings.of(all).visible(SeverityThreshold.ERROR);
+
+    assertThat(visible.items()).extracting(Finding::severity).containsOnly(FindingSeverity.ERROR);
+    assertThat(visible.items()).extracting(Finding::line).containsExactly(61, 62, 63);
+    assertThat(visible.total()).isEqualTo(63);
+    assertThat(visible.hidden()).isEqualTo(60);
+    assertThat(visible.truncated()).isFalse();
+  }
+
+  @Test
   void emptyListIsNone() {
     assertThat(GateFindings.of(List.of())).isSameAs(GateFindings.NONE);
     assertThat(GateFindings.NONE.isEmpty()).isTrue();
@@ -57,6 +78,19 @@ class GateFindingsTest {
   void totalCannotBeSmallerThanKeptItems() {
     assertThatThrownBy(() -> new GateFindings(List.of(finding(1)), 0))
         .isInstanceOf(IllegalArgumentException.class);
+  }
+
+  private static Finding findingWithSeverity(final int line, final FindingSeverity severity) {
+    return new Finding(
+        "checkstyle",
+        "checkstyle",
+        "LineLength",
+        severity,
+        "message",
+        "Foo.java",
+        line,
+        null,
+        null);
   }
 
   @Test

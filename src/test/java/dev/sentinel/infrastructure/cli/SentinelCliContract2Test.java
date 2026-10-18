@@ -103,9 +103,10 @@ class SentinelCliContract2Test extends SentinelCliIntegrationSupport {
     final JsonTree json = JsonTree.parse(out.toString()); // fails on any extra text
     assertThat(json.get(STATUS).asString()).isEqualTo("FAILED");
     assertThat(json.get(CHECKS).get(0).get("exitCode").asInt()).isEqualTo(1);
-    assertThat(json.get(CHECKS).get(0).get("stdout").asString())
+    assertThat(json.get(CHECKS).get(0).get("output").asString())
         .contains("stub mvnw: spotless:check");
-    assertThat(json.get(CHECKS).get(0).get("stderr").asString()).contains("BUILD FAILURE");
+    assertThat(json.get(CHECKS).get(0).has("stdout")).isFalse();
+    assertThat(json.get(CHECKS).get(0).has("stderr")).isFalse();
   }
 
   @Test

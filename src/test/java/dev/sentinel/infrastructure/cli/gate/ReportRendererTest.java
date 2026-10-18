@@ -53,8 +53,9 @@ class ReportRendererTest {
     assertThat(check.get("command").asString()).isEqualTo("./mvnw test");
     assertThat(check.get("exitCode").asInt()).isEqualTo(1);
     assertThat(check.get("durationMs").asLong()).isEqualTo(3847);
-    assertThat(check.get("stdout").asString()).isEqualTo("line \"1\"\n");
-    assertThat(check.get("stderr").asString()).isEqualTo("err");
+    assertThat(check.get("output").asString()).isEqualTo("line \"1\"\n");
+    assertThat(check.has("stdout")).isFalse();
+    assertThat(check.has("stderr")).isFalse();
   }
 
   @Test

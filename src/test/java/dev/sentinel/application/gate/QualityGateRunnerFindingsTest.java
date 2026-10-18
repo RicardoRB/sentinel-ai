@@ -10,6 +10,7 @@ import dev.sentinel.domain.gate.FindingSeverity;
 import dev.sentinel.domain.gate.GateResult;
 import dev.sentinel.domain.gate.GateStatus;
 import dev.sentinel.domain.gate.QualityGate;
+import dev.sentinel.domain.gate.SeverityThreshold;
 import dev.sentinel.domain.project.BuildTool;
 import dev.sentinel.domain.project.Framework;
 import dev.sentinel.domain.project.Language;
@@ -70,9 +71,9 @@ class QualityGateRunnerFindingsTest {
 
     final GateResult result = report.results().getFirst();
     assertThat(result.status()).isEqualTo(GateStatus.FAILED);
-    assertThat(result.findings().items()).hasSize(50);
+    assertThat(result.findings().items()).hasSize(120);
     assertThat(result.findings().total()).isEqualTo(120);
-    assertThat(result.findings().truncated()).isTrue();
+    assertThat(result.findings().visible(SeverityThreshold.ERROR).truncated()).isTrue();
     assertThat(starts)
         .singleElement()
         .satisfies(start -> assertThat(start).isAfterOrEqualTo(before));

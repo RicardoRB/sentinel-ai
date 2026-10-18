@@ -3,6 +3,7 @@ package dev.sentinel.infrastructure.cli.gate;
 import dev.sentinel.application.gate.CheckProgressListener;
 import dev.sentinel.domain.gate.CheckReport;
 import dev.sentinel.domain.gate.GateResult;
+import dev.sentinel.domain.gate.SeverityThreshold;
 import dev.sentinel.domain.learning.LearningOutcome;
 import dev.sentinel.domain.terminal.TerminalCapabilities;
 import java.io.PrintWriter;
@@ -73,7 +74,12 @@ public class TextReportRenderer implements CheckProgressListener {
   }
 
   public void summary(final CheckReport report, final LearningOutcome learning) {
-    print.accept(ReportText.summary(report, learning));
+    summary(report, learning, SeverityThreshold.WARNING);
+  }
+
+  public void summary(
+      final CheckReport report, final LearningOutcome learning, final SeverityThreshold threshold) {
+    print.accept(ReportText.summary(report, learning, threshold));
     flush.run();
   }
 
@@ -82,11 +88,16 @@ public class TextReportRenderer implements CheckProgressListener {
   }
 
   public String render(final CheckReport report, final LearningOutcome learning) {
+    return render(report, learning, SeverityThreshold.WARNING);
+  }
+
+  public String render(
+      final CheckReport report, final LearningOutcome learning, final SeverityThreshold threshold) {
     final StringBuilder output = new StringBuilder(RENDER_CAPACITY);
     output.append("Sentinel ").append(version).append(ReportText.NL).append(ReportText.NL);
     for (final GateResult result : report.results()) {
       output.append(ReportText.gateLine(result)).append(ReportText.NL);
     }
-    return output.append(ReportText.summary(report, learning)).toString();
+    return output.append(ReportText.summary(report, learning, threshold)).toString();
   }
 }
