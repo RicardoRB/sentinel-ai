@@ -41,4 +41,5 @@
 - Claude Code and OpenCode edit/write hooks must invoke `verify-quality.sh`. The native V2 plugin is `plugins/sentinel-jacoco.ts`, loaded by `opencode.jsonc`.
 - `check --format json` must write only JSON to stdout; diagnostics go to stderr.
 - CLI changes must update the matching documentation pages under `website/`.
+- Changes to `sentinel init` options or behavior must update the agent skills under `skills/` in the same pull request; `AgentSkillsConsistencyTest` checks options and versions, not wording.
 - `./mvnw package` builds `target/sentinel.jar`; native builds require GraalVM 25 and `./mvnw -Pnative -DskipTests native:compile`.

@@ -5,6 +5,11 @@ description: Create sentinel.toml and select integrations.
 
 `sentinel init` creates `sentinel.toml` using an interactive wizard or explicit options.
 
+To set up Sentinel together with your coding agent instead, install the
+[agent skills](/integrations/agent-skills/). The `sentinel-init` skill inspects the project, explains
+each choice for this codebase, and runs `init` with explicit options after you approve the
+`--dry-run` plan.
+
 ```sh
 sentinel init [-C <dir>] [--preset <standard|strict>] [--integration <none|agent>[,...]] [--quality-hooks] [--remove-quality-hooks] [--gate <id>[,...]] [--tool openspec] [--openspec-validation <openspec|openspec-archived>[,...]] [--install-tool <tool|gate>[,...]] [--architecture <style>] [--overwrite] [--dry-run] [--accept-compatibility-updates] [--yes]
 ```

@@ -11,7 +11,10 @@ sentinel init
 sentinel check
 ```
 
-`init` starts an interactive wizard. For non-interactive setup, choose a preset or explicit gates:
+`init` starts an interactive wizard. To have your coding agent guide the setup and tune the rules to
+your code, install the [agent skills](/integrations/agent-skills/) and ask it to set up Sentinel.
+
+For non-interactive setup, choose a preset or explicit gates:
 
 Gradle projects use `build.gradle` or `build.gradle.kts`; Sentinel prefers `./gradlew` and falls back
 to `gradle` when no wrapper is available.
