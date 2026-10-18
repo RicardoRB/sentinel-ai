@@ -110,7 +110,8 @@ sentinel init --preset strict       # non-interactive: stricter thresholds + Arc
 `init` writes `sentinel.toml`, adds missing Maven plugins to `pom.xml` or equivalent pinned Gradle
 plugin declarations to `build.gradle`/`build.gradle.kts`, and writes rule files to `config/`. It
 prefers the project wrapper (`./mvnw` or `./gradlew`) and falls back to the installed build tool.
-If any step fails, it rolls back every change. Example Maven output:
+If any step fails, it rolls back every change. Prefer a guided setup? The
+[agent skills](#agent-skills) let your coding agent do it with you. Example Maven output:
 
 ```text
 Created /path/to/your-maven-project/sentinel.toml
@@ -382,6 +383,24 @@ To drive any CLI agent until the gates pass:
 ```bash
 sentinel loop "Fix the failing tests" --agent-command "claude -p" --max-iterations 3
 ```
+
+### Agent skills
+
+Two [Agent Skills](https://agentskills.io) let your coding agent set up and tune Sentinel with you.
+`sentinel-init` inspects the project, asks one question at a time, previews the plan with
+`sentinel init --dry-run`, and applies it after you approve. `sentinel-tune` fits Checkstyle, PMD,
+JaCoCo, and ArchUnit rules to your code, and never weakens a rule without your explicit approval.
+
+```text
+/plugin marketplace add RicardoRB/sentinel-ai    # Claude Code
+/plugin install sentinel@sentinel-ai
+```
+
+```bash
+npx skills add RicardoRB/sentinel-ai --skill sentinel-init sentinel-tune   # other agents
+```
+
+See the [agent skills guide](https://ricardorb.github.io/sentinel-ai/integrations/agent-skills/).
 
 Quality hooks are documented separately from agent integrations because they are opt-in local Git
 hooks rather than agent adapters. See [quality hooks](https://ricardorb.github.io/sentinel-ai/integrations/quality-hooks/).

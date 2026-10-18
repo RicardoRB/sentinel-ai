@@ -1,0 +1,16 @@
+{
+  "name": "sentinel-ai",
+  "owner": {
+    "name": "Ricardo Romero Benitez"
+  },
+  "metadata": {
+    "description": "Sentinel agent skills for guided setup and rule tuning."
+  },
+  "plugins": [
+    {
+      "name": "sentinel",
+      "source": "./",
+      "description": "Guided Sentinel setup (sentinel-init) and codebase-grounded rule tuning (sentinel-tune)."
+    }
+  ]
+}
