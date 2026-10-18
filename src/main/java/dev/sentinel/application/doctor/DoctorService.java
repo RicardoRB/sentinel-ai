@@ -118,8 +118,31 @@ public final class DoctorService {
             "Native executable present.",
             "Build with the native profile."));
     diagnoseOpenSpec(root, facts, findings);
+    diagnoseNvdApiKey(root, facts, findings);
     diagnoseTraceability(root, findings);
     return findings;
+  }
+
+  private void diagnoseNvdApiKey(
+      final Path root, final EnvironmentFacts facts, final List<Finding> findings) {
+    if (configurationReader == null || !flag(facts, "configurationPresent")) {
+      return;
+    }
+    try {
+      final SentinelConfiguration configuration =
+          configurationReader.read(root.resolve(SentinelConfiguration.FILE_NAME));
+      final GateConfiguration gate = configuration.gates().get("dependency-check");
+      if (gate != null && gate.enabled() && !facts.isSet("NVD_API_KEY")) {
+        findings.add(
+            new Finding(
+                "dependency-check-nvd-api-key",
+                Status.WARNING,
+                "NVD_API_KEY is not set; dependency-check scans may be very slow or rate-limited."
+                    + " Request a key from the NVD API."));
+      }
+    } catch (SentinelException ignored) {
+      // The configuration finding already reports malformed configuration.
+    }
   }
 
   private void diagnoseIntegrations(

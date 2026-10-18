@@ -5,10 +5,19 @@ import java.util.List;
 import java.util.Optional;
 
 /** Everything initialization would change, computed without touching the project. */
-public record InitPlan(List<PlannedFileChange> files, Optional<PlannedInstallation> installation) {
+public record InitPlan(
+    List<PlannedFileChange> files,
+    Optional<PlannedInstallation> installation,
+    List<PlannedGateInstallation> gateInstallations) {
+  public InitPlan(
+      final List<PlannedFileChange> files, final Optional<PlannedInstallation> installation) {
+    this(files, installation, List.of());
+  }
+
   public InitPlan {
     files = List.copyOf(files);
     installation = installation == null ? Optional.empty() : installation;
+    gateInstallations = gateInstallations == null ? List.of() : List.copyOf(gateInstallations);
   }
 
   /** Whether a file in the plan would stop initialization. */

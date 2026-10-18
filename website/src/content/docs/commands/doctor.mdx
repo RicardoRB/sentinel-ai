@@ -27,6 +27,7 @@ one line per check:
 | `native` | `OK` / `WARNING` | `target/sentinel` exists in the current directory. This is a development check for the Sentinel repository. |
 | `openspec` / `openspec-archived` | `OK` / `ERROR` | For each enabled registration, the configured executable and project-root `openspec/` directory are available. |
 | `openspec-junit-traceability` | `OK` / `ERROR` | When enabled, `openspec/specs/` and `src/test/java/` must exist; doctor does not create them. |
+| `dependency-check-nvd-api-key` | `WARNING` | When dependency-check is enabled, `NVD_API_KEY` should be set; without it scans may be very slow or rate-limited. The value is never displayed. |
 
 Warnings do not affect the result. Exit `0` means no check reported `ERROR`; exit `2` means at least
 one did.

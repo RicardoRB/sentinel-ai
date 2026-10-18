@@ -150,9 +150,10 @@ public final class PomToolConfigurator implements BuildToolConfiguration {
                 <groupId>org.owasp</groupId>
                 <artifactId>dependency-check-maven</artifactId>
                 <version>12.1.0</version>
-                <configuration>
-                  <failBuildOnCVSS>7</failBuildOnCVSS>
-                </configuration>
+                 <configuration>
+                   <failBuildOnCVSS>7</failBuildOnCVSS>
+                   <nvdApiKeyEnvironmentVariable>NVD_API_KEY</nvdApiKeyEnvironmentVariable>
+                 </configuration>
               </plugin>
             """;
   static final String PIT_PLUGIN =

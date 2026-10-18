@@ -7,6 +7,7 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -19,7 +20,19 @@ public final class SystemEnvironmentInspection implements EnvironmentInspection 
   private static final Logger LOGGER =
       Logger.getLogger(SystemEnvironmentInspection.class.getName());
   private static final Set<String> PROBED_EXECUTABLES =
-      Set.of("mvn", "gradle", "java", "git", "claude", "opencode");
+      Set.of(
+          "mvn",
+          "gradle",
+          "java",
+          "git",
+          "claude",
+          "opencode",
+          "brew",
+          "pipx",
+          "trivy",
+          "gitleaks",
+          "semgrep",
+          "zap-baseline.py");
 
   @Inject
   public SystemEnvironmentInspection() {}
@@ -40,21 +53,25 @@ public final class SystemEnvironmentInspection implements EnvironmentInspection 
     final Map<String, String> values =
         Map.of(
             "mavenWrapperAvailable",
-                Boolean.toString(Files.isExecutable(projectRoot.resolve("mvnw"))),
+            Boolean.toString(Files.isExecutable(projectRoot.resolve("mvnw"))),
             "gradleWrapperAvailable",
-                Boolean.toString(Files.isExecutable(projectRoot.resolve("gradlew"))),
+            Boolean.toString(Files.isExecutable(projectRoot.resolve("gradlew"))),
             "configurationPresent",
-                Boolean.toString(Files.isRegularFile(projectRoot.resolve("sentinel.toml"))),
+            Boolean.toString(Files.isRegularFile(projectRoot.resolve("sentinel.toml"))),
             "openCodeCommandPresent",
-                Boolean.toString(
-                    Files.isRegularFile(
-                        projectRoot.resolve(".opencode/commands/sentinel-check.md"))),
+            Boolean.toString(
+                Files.isRegularFile(projectRoot.resolve(".opencode/commands/sentinel-check.md"))),
             "nativeExecutablePresent",
-                Boolean.toString(Files.isExecutable(Path.of("target/sentinel"))));
+            Boolean.toString(Files.isExecutable(Path.of("target/sentinel"))));
+    final Map<String, String> observed = new HashMap<>(values);
+    observed.put(
+        "NVD_API_KEY",
+        Boolean.toString(
+            System.getenv("NVD_API_KEY") != null && !System.getenv("NVD_API_KEY").isBlank()));
     LOGGER.log(
         Level.INFO,
         () -> "event=environment-inspection status=complete available=" + available.size());
-    return new EnvironmentFacts(available, values);
+    return new EnvironmentFacts(available, observed);
   }
 
   @Override

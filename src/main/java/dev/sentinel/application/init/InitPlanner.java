@@ -8,6 +8,7 @@ import dev.sentinel.domain.init.InitGateOption;
 import dev.sentinel.domain.init.InitPlan;
 import dev.sentinel.domain.init.InitSelection;
 import dev.sentinel.domain.init.OpenSpecDistribution;
+import dev.sentinel.domain.init.PlannedGateInstallation;
 import dev.sentinel.domain.init.QualityPreset;
 import dev.sentinel.domain.init.RuleFileGeneration;
 import dev.sentinel.domain.project.Project;
@@ -47,8 +48,13 @@ final class InitPlanner {
     final boolean installs = !selection.installTools().isEmpty();
     final String executable =
         installs ? OpenSpecDistribution.executable(Path.of("")).toString() : "openspec";
+    final List<String> existingArchUnitTests = architectureTests.existingArchUnitTests(project);
     final List<InitGateOption> gates =
-        SelectedGates.resolve(catalog.get(), project, selection, executable);
+        ArchUnitGateReuse.rewrite(
+            project,
+            SelectedGates.resolve(catalog.get(), project, selection, executable),
+            existingArchUnitTests);
+    final List<PlannedGateInstallation> gateInstallations = gateInstallations(project, gates);
     final List<PlannedFileChange> files = new ArrayList<>();
     files.add(configuration(project.root().resolve("sentinel.toml"), gates, selection.preset()));
     files.addAll(installer.plan(project.root(), selection.integrations()));
@@ -57,20 +63,42 @@ final class InitPlanner {
     }
     files.add(buildTools.plan(project, gates, selection.preset(), approved));
     files.addAll(ruleFiles.plan(project, selection.preset(), gates));
-    if (selection.gates().contains("archunit")) {
-      files.add(
-          architectureTests.plan(
-              project,
-              selection.architecture() == null ? "layered" : selection.architecture(),
-              selection.preset() == null
-                  ? new QualityPreset.ArchitectureExtras(false, false, false)
-                  : selection.preset().rules().architectureExtras()));
-    }
+    files.addAll(architectureFiles(project, selection, existingArchUnitTests));
     return new InitPlan(
         files,
         installs
             ? Optional.of(OpenSpecDistribution.installation(project.root()))
-            : Optional.empty());
+            : Optional.empty(),
+        gateInstallations);
+  }
+
+  private List<PlannedGateInstallation> gateInstallations(
+      final Project project, final List<InitGateOption> gates) {
+    return gates.stream()
+        .map(gate -> catalog.get().gateInstallation(project, gate))
+        .flatMap(Optional::stream)
+        .toList();
+  }
+
+  private List<PlannedFileChange> architectureFiles(
+      final Project project, final InitSelection selection, final List<String> existing) {
+    if (!selection.gates().contains("archunit")) {
+      return List.of();
+    }
+    if (!existing.isEmpty()) {
+      return List.of(
+          new PlannedFileChange(
+              project.root().resolve("src/test/java"),
+              PlannedFileChange.Action.UNCHANGED,
+              List.of("Reusing existing ArchUnit tests: " + String.join(", ", existing))));
+    }
+    return List.of(
+        architectureTests.plan(
+            project,
+            selection.architecture() == null ? "layered" : selection.architecture(),
+            selection.preset() == null
+                ? new QualityPreset.ArchitectureExtras(false, false, false)
+                : selection.preset().rules().architectureExtras()));
   }
 
   private PlannedFileChange configuration(

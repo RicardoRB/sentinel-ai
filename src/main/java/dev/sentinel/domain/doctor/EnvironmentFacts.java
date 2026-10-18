@@ -13,4 +13,10 @@ public record EnvironmentFacts(Set<String> availableExecutables, Map<String, Str
   public boolean hasExecutable(final String name) {
     return availableExecutables.contains(name);
   }
+
+  /** Returns only whether a named environment variable is non-blank; never exposes its value. */
+  public boolean isSet(final String name) {
+    final String marker = values.get(name);
+    return marker != null && !marker.isBlank() && !"false".equalsIgnoreCase(marker);
+  }
 }

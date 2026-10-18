@@ -5,14 +5,17 @@ import dev.sentinel.domain.config.SentinelException;
 import dev.sentinel.domain.doctor.EnvironmentInspection;
 import dev.sentinel.domain.gate.SupportedQualityGates;
 import dev.sentinel.domain.gate.ToolReports;
+import dev.sentinel.domain.init.GateToolInstallCatalog;
 import dev.sentinel.domain.init.InitArchitectureOption;
 import dev.sentinel.domain.init.InitGateOption;
 import dev.sentinel.domain.init.InitIntegrationOption;
+import dev.sentinel.domain.init.PlannedGateInstallation;
 import dev.sentinel.domain.init.QualityPreset;
 import dev.sentinel.domain.project.BuildTool;
 import dev.sentinel.domain.project.Project;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import javax.inject.Inject;
 
 /** Stable choices and project-aware defaults used by the interactive init flow. */
@@ -184,7 +187,7 @@ public class InitGeneralCatalog {
             environment,
             project,
             "zap",
-            "Runs an OWASP ZAP baseline DAST scan against a running application.",
+            "Runs an OWASP ZAP baseline DAST scan against a running application; replace <TARGET_URL> in -t with an authorized target before running.",
             List.of("zap-baseline.py", "-t", SupportedQualityGates.ZAP_TARGET_PLACEHOLDER),
             "Install ZAP and replace "
                 + SupportedQualityGates.ZAP_TARGET_PLACEHOLDER
@@ -274,6 +277,33 @@ public class InitGeneralCatalog {
                         + id
                         + "'. Supported gates: "
                         + SupportedQualityGates.IDS));
+  }
+
+  public Optional<PlannedGateInstallation> gateInstallation(
+      final Project project, final InitGateOption gate) {
+    if (gate.available() || gate.command().isEmpty()) {
+      return Optional.empty();
+    }
+    final String executable = gate.command().getFirst();
+    return GateToolInstallCatalog.forExecutable(executable)
+        .map(
+            entry ->
+                entry.methods().stream()
+                    .filter(
+                        method ->
+                            environment.inspect(project.root()).hasExecutable(method.manager()))
+                    .findFirst()
+                    .map(
+                        method ->
+                            new PlannedGateInstallation(
+                                executable,
+                                method.manager(),
+                                method.arguments(),
+                                entry.manualGuidance()))
+                    .orElseGet(
+                        () ->
+                            new PlannedGateInstallation(
+                                executable, null, List.of(), entry.manualGuidance())));
   }
 
   public List<QualityPreset> presets() {

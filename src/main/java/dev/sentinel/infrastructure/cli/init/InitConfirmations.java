@@ -1,6 +1,7 @@
 package dev.sentinel.infrastructure.cli.init;
 
 import dev.sentinel.domain.init.CompatibilityFinding;
+import dev.sentinel.domain.init.GateToolInstallCatalog;
 import dev.sentinel.domain.init.OpenSpecDistribution;
 import java.io.PrintWriter;
 import java.nio.file.Path;
@@ -36,6 +37,15 @@ final class InitConfirmations {
     out.println("Destination: " + destination);
     out.println("This may access the network and run npm lifecycle scripts.");
     out.print("Install OpenSpec? [y/N]: ");
+    out.flush();
+    return prompt.confirmInstallation();
+  }
+
+  boolean gateToolInstallation(
+      final String tool, final GateToolInstallCatalog.InstallMethod method) {
+    out.println("The selected gate requires unavailable tool '" + tool + "'.");
+    out.println("Install command: " + String.join(" ", method.arguments()));
+    out.print("Install " + tool + "? [y/N]: ");
     out.flush();
     return prompt.confirmInstallation();
   }

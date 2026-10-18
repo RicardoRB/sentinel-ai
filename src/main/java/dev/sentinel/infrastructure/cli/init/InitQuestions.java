@@ -81,7 +81,7 @@ final class InitQuestions {
     final String architecture = architecture(chosenGates, gates);
     final ToolQuestions.Selection tools =
         new ToolQuestions(answers, wizard, confirmations, useDefaults, progress)
-            .resolve(catalog, project);
+            .resolve(catalog, project, gates);
     final boolean qualityHooks =
         answers.qualityHooks() != null ? answers.qualityHooks() : askQualityHooks();
     return new InitSelection(

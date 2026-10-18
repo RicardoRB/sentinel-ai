@@ -5,22 +5,15 @@ import dev.sentinel.domain.gate.GateStatus;
 import dev.sentinel.domain.gate.QualityGate;
 import dev.sentinel.domain.gate.ReportDirectories;
 import dev.sentinel.domain.gate.ReportWriteException;
+import dev.sentinel.domain.init.GateToolInstallCatalog;
 import dev.sentinel.domain.process.CommandExecutor;
 import dev.sentinel.domain.project.Project;
 import java.util.List;
-import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /** Generic process-backed gate used by built-in and repository-defined gate registrations. */
 public final class CommandQualityGate implements QualityGate {
-  private static final Map<String, String> INSTALL_HINTS =
-      Map.of(
-          "semgrep", "https://semgrep.dev/docs/getting-started/",
-          "gitleaks", "https://github.com/gitleaks/gitleaks#installing",
-          "trivy", "https://trivy.dev/latest/getting-started/installation/",
-          "zap-baseline.py", "https://www.zaproxy.org/docs/docker/baseline-scan/");
-
   private static final Logger LOGGER = Logger.getLogger(CommandQualityGate.class.getName());
   private static final String REPORT_PATH_OPTION = "--report-path";
 
@@ -55,7 +48,8 @@ public final class CommandQualityGate implements QualityGate {
     prepareReportDirectory(project);
     final GateResult result =
         GateResult.from(name, command, executor.execute(command, project.root()));
-    final String hint = command.isEmpty() ? null : INSTALL_HINTS.get(command.getFirst());
+    final String hint =
+        command.isEmpty() ? null : GateToolInstallCatalog.installHint(command.getFirst());
     if (hint == null || result.status() != GateStatus.UNAVAILABLE) {
       return result;
     }
