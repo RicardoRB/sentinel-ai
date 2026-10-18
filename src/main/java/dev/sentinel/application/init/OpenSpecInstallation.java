@@ -15,7 +15,7 @@ final class OpenSpecInstallation {
   /** Installs OpenSpec when consented and returns its executable, or {@code null} when skipped. */
   static Path install(
       final ToolInstaller installer, final Project project, final InitSelection selection) {
-    if (selection.installTools().isEmpty()) {
+    if (!selection.installTools().contains(TOOL)) {
       return null;
     }
     if (!selection.tools().contains(TOOL)) {

@@ -45,7 +45,7 @@ final class InitPlanner {
   /** Lists the changes in the order {@code InitChanges.apply} makes them. */
   InitPlan plan(final Project project, final InitSelection selection, final boolean approved) {
     installer.validate(selection.integrations());
-    final boolean installs = !selection.installTools().isEmpty();
+    final boolean installs = selection.installTools().contains(OpenSpecInstallation.TOOL);
     final String executable =
         installs ? OpenSpecDistribution.executable(Path.of("")).toString() : "openspec";
     final List<String> existingArchUnitTests = architectureTests.existingArchUnitTests(project);

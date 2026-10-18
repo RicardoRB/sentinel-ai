@@ -44,6 +44,26 @@ class GradleToolConfiguratorTest {
         new GradleToolConfigurator()
             .apply(project, List.of(gate("format")), null, finding -> false);
 
+    final String updated = Files.readString(build);
+    assertThat(updated).startsWith(original);
+    assertThat(updated.indexOf("com.diffplug.spotless"))
+        .isEqualTo(updated.lastIndexOf("com.diffplug.spotless"));
+    assertThat(change.tools()).containsExactly("spotless-google-java-format");
+  }
+
+  @Test
+  void keepsAnExistingSpotlessConfiguration(@TempDir final Path root) throws Exception {
+    final Path build = root.resolve("build.gradle.kts");
+    final String original =
+        "plugins { id(\"com.diffplug.spotless\") version \"6.25.0\" }\n"
+            + "spotless { java { palantirJavaFormat() } }\n";
+    Files.writeString(build, original);
+    final Project project = new Project(root, Language.KOTLIN, BuildTool.GRADLE, Framework.NONE);
+
+    final PomChange change =
+        new GradleToolConfigurator()
+            .apply(project, List.of(gate("format")), null, finding -> false);
+
     assertThat(change.changed()).isFalse();
     assertThat(Files.readString(build)).isEqualTo(original);
   }
@@ -80,7 +100,7 @@ class GradleToolConfiguratorTest {
             "info.solidsoft.pitest",
             "org.sonarqube",
             "com.github.hierynomus.license",
-            "me.champeau.japicmp");
+            "me.champeau.gradle.japicmp");
   }
 
   private static InitGateOption gate(final String id) {

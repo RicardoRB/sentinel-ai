@@ -28,10 +28,8 @@ final class ArchUnitGateReuse {
         project.buildTool() == BuildTool.MAVEN
             ? List.of(executable, "-Dtest=" + String.join(",", tests), "test")
             : Stream.concat(
-                    Stream.of(executable),
-                    Stream.concat(
-                        tests.stream().flatMap(test -> Stream.of("--tests", "*" + test)),
-                        Stream.of("test")))
+                    Stream.of(executable, "test"),
+                    tests.stream().flatMap(test -> Stream.of("--tests", "*" + test)))
                 .toList();
     return new InitGateOption(
         gate.id(),

@@ -162,7 +162,8 @@ Do not summarize it instead. Then explain it:
   apply**. Resolving the conflict is the user's decision. Then preview again.
 
 If the plan creates an `ArchitectureTest.java`, compare its directory with the base package you found
-during inspection. If they differ, for example `src/test/java/com/acme/shop/application/` when the
+during inspection. Init uses the package shared by all main sources, so they normally match. If they
+differ, for example `src/test/java/com/acme/shop/application/` when the
 base package is `com.acme.shop`, warn the user: the generated rules analyze only that sub-package and
 can pass without checking the rest of the code. Offer to fix the test's package with `sentinel-tune`
 after the apply.
