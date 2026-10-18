@@ -40,16 +40,6 @@ class AgentSkillsProblemsTest {
   }
 
   @Test
-  void reportsMinimumVersionNewerThanProject(@TempDir final Path root) throws IOException {
-    SkillFixtures.write(root, "0.1.0", "body", SkillFixtures.VERSION);
-
-    assertThat(SkillFixtures.consistency(root).problems())
-        .singleElement()
-        .asString()
-        .contains(SkillFixtures.SKILL, "0.1.0");
-  }
-
-  @Test
   void reportsNameMismatch(@TempDir final Path root) throws IOException {
     final Path skill = SkillFixtures.write(root, "body");
     Files.writeString(

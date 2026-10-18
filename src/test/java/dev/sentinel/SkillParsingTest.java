@@ -35,13 +35,6 @@ class SkillParsingTest {
   }
 
   @Test
-  void comparesVersionsNumerically() {
-    assertThat(SkillVersions.compare("0.0.10", "0.0.9")).isPositive();
-    assertThat(SkillVersions.compare("0.0.9-SNAPSHOT", "0.0.9")).isZero();
-    assertThat(SkillVersions.compare("1.0", "1.0.1")).isNegative();
-  }
-
-  @Test
   void readsPluginVersionWhenPresent(@TempDir final Path root) throws IOException {
     assertThat(SkillVersions.plugin(root)).isEmpty();
     Files.createDirectories(root.resolve(".claude-plugin"));

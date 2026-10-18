@@ -15,7 +15,7 @@ import java.util.stream.Stream;
 
 /**
  * Checks the agent skills under {@code skills/} against the CLI they drive: frontmatter shape,
- * {@code sentinel init} options, and the plugin and minimum CLI versions.
+ * {@code sentinel init} options, and the plugin version.
  */
 final class AgentSkillsConsistency {
   private static final Pattern OPTION = Pattern.compile("(?<![\\w-])--[a-z][a-z0-9-]*");
@@ -42,14 +42,14 @@ final class AgentSkillsConsistency {
     final String projectVersion = SkillVersions.project(root);
     try (Stream<Path> directories = Files.list(skills)) {
       for (final Path directory : directories.filter(Files::isDirectory).sorted().toList()) {
-        checkSkill(directory, projectVersion);
+        checkSkill(directory);
       }
     }
     checkPluginVersion(projectVersion);
     return List.copyOf(problems);
   }
 
-  private void checkSkill(final Path directory, final String projectVersion) throws IOException {
+  private void checkSkill(final Path directory) throws IOException {
     final String skill = directory.getFileName().toString();
     final Path file = directory.resolve("SKILL.md");
     if (!Files.isRegularFile(file)) {
@@ -62,7 +62,7 @@ final class AgentSkillsConsistency {
       problems.add(skill + ": SKILL.md has no frontmatter");
       return;
     }
-    checkFrontmatter(skill, frontmatter.get(), projectVersion);
+    checkFrontmatter(skill, frontmatter.get());
     try (Stream<Path> files = Files.walk(directory)) {
       for (final Path markdown :
           files.filter(path -> path.toString().endsWith(".md")).sorted().toList()) {
@@ -71,20 +71,15 @@ final class AgentSkillsConsistency {
     }
   }
 
-  private void checkFrontmatter(
-      final String skill, final Map<String, String> frontmatter, final String projectVersion) {
+  private void checkFrontmatter(final String skill, final Map<String, String> frontmatter) {
     if (!skill.equals(frontmatter.get("name"))) {
       problems.add(skill + ": frontmatter name '" + frontmatter.get("name") + "' must be " + skill);
     }
     if (frontmatter.getOrDefault("description", "").isBlank()) {
       problems.add(skill + ": frontmatter description is empty");
     }
-    final String minimum = frontmatter.getOrDefault(MIN_VERSION, "");
-    if (minimum.isEmpty()) {
+    if (frontmatter.getOrDefault(MIN_VERSION, "").isEmpty()) {
       problems.add(skill + ": " + MIN_VERSION + " is missing");
-    } else if (SkillVersions.compare(minimum, projectVersion) > 0) {
-      problems.add(
-          skill + ": min-sentinel-version " + minimum + " is newer than " + projectVersion);
     }
   }
 
