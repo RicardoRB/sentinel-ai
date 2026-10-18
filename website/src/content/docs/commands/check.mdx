@@ -4,7 +4,7 @@ description: Run configured quality gates.
 ---
 
 ```sh
-sentinel check [-C <dir>] [--format text|json|sarif] [--output <path>] [--profile <name>[,...]] [--fail-fast] [--exclude-spec] [--learn-after <n>]
+sentinel check [-C <dir>] [--format text|json|sarif] [--severity error|warning|info] [--output <path>] [--profile <name>[,...]] [--fail-fast] [--exclude-spec] [--learn-after <n>]
 ```
 
 For Maven and Gradle projects, built-in test commands prefer the project wrapper
@@ -30,7 +30,11 @@ spec gates run like any other gate.
 Text output starts with the Sentinel version, then reports each gate as it completes, followed by a
 summary. On an interactive terminal, the running gate line is replaced in place by its final status.
 When output is redirected, `NO_COLOR` is set, or `TERM=dumb`, each gate is printed once on completion
-without ANSI cursor-control sequences. Failed gates include their command and captured output tail.
+without ANSI cursor-control sequences. Failed gates include their command and visible findings; the
+captured output tail is shown when no finding is visible. Use `--severity error` for errors only,
+`--severity warning` (the default) for errors and warnings, or `--severity info` for all findings and
+complete captured output. The threshold changes presentation only; gate status, verdict, policies,
+learning, counts, and exit code are unchanged.
 
 ```text
 Sentinel 1.2.3
@@ -49,9 +53,9 @@ Failed `checkstyle`, `pmd`, `gitleaks`, `compile`, and `format` gates include st
 
 Use `--format sarif` for code-scanning tools, CI annotations, and IDEs. Sentinel writes one
 [SARIF 2.1.0](https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html) log with one run per
-executed gate: each finding becomes a located result, and a failed gate without findings becomes one
+executed gate: each visible finding becomes a located result, and a failed gate without visible findings becomes one
 result without a location whose rule id is the gate id. At most 50 results are listed per gate; the
-run's `properties.findingsTotal` holds the full count. When Sentinel cannot run at all, SARIF mode
+run's `properties.findingsTotal` and `findingsHidden` hold the full and hidden counts. When Sentinel cannot run at all, SARIF mode
 writes nothing to stdout and reports the error on stderr.
 
 Use `--output <path>` with `--format json` or `--format sarif` to write the report to a file instead

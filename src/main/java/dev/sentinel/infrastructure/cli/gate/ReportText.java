@@ -1,8 +1,12 @@
 package dev.sentinel.infrastructure.cli.gate;
 
 import dev.sentinel.domain.gate.CheckReport;
+import dev.sentinel.domain.gate.Finding;
+import dev.sentinel.domain.gate.GateFindings;
+import dev.sentinel.domain.gate.GateOutputVisibility;
 import dev.sentinel.domain.gate.GateResult;
 import dev.sentinel.domain.gate.GateStatus;
+import dev.sentinel.domain.gate.SeverityThreshold;
 import dev.sentinel.domain.learning.LearningOutcome;
 import dev.sentinel.domain.learning.LearningPrompt;
 import java.util.List;
@@ -27,6 +31,11 @@ final class ReportText {
 
   /** The status, tally, learning prompts, and failure details printed after the gate lines. */
   static String summary(final CheckReport report, final LearningOutcome learning) {
+    return summary(report, learning, SeverityThreshold.WARNING);
+  }
+
+  static String summary(
+      final CheckReport report, final LearningOutcome learning, final SeverityThreshold threshold) {
     final StringBuilder output = new StringBuilder(SUMMARY_CAPACITY);
     output
         .append(NL)
@@ -38,7 +47,7 @@ final class ReportText {
     appendLearning(output, learning);
     for (final GateResult result : report.results()) {
       if (result.status() != GateStatus.PASSED && result.status() != GateStatus.SKIPPED) {
-        appendFailure(output, result);
+        appendFailure(output, result, threshold);
       }
     }
     return output.toString();
@@ -107,15 +116,58 @@ final class ReportText {
     }
   }
 
-  private static void appendFailure(final StringBuilder output, final GateResult result) {
+  private static void appendFailure(
+      final StringBuilder output, final GateResult result, final SeverityThreshold threshold) {
     output
         .append(NL)
         .append("Command:")
         .append(NL)
         .append(String.join(" ", result.command()))
         .append(NL);
-    appendTail(output, "stdout", result.stdout());
-    appendTail(output, "stderr", result.stderr());
+    final GateFindings.Visible visible = result.findings().visible(threshold);
+    final GateOutputVisibility visibility = GateOutputVisibility.of(result, threshold);
+    if (visibility == GateOutputVisibility.FINDINGS || visibility == GateOutputVisibility.FULL) {
+      for (final Finding finding : visible.items()) {
+        output.append(formatFinding(finding)).append(NL);
+      }
+      if (visible.truncated()) {
+        output
+            .append("  … ")
+            .append(visible.total() - visible.hidden() - visible.items().size())
+            .append(" more")
+            .append(NL);
+      }
+    }
+    if (visible.hidden() > 0) {
+      output.append("  (").append(visible.hidden()).append(" below --severity)").append(NL);
+    }
+    if (visibility == GateOutputVisibility.TAIL || visibility == GateOutputVisibility.FULL) {
+      appendTail(output, "stdout", result.stdout());
+      appendTail(output, "stderr", result.stderr());
+    }
+  }
+
+  private static String formatFinding(final Finding finding) {
+    final StringBuilder line =
+        new StringBuilder("  ").append(finding.severity().label()).append(' ');
+    return line.append(location(finding))
+        .append(finding.ruleId())
+        .append(' ')
+        .append(finding.message())
+        .toString();
+  }
+
+  private static String location(final Finding finding) {
+    if (finding.file() == null) {
+      return "";
+    }
+    if (finding.line() == null) {
+      return finding.file() + " ";
+    }
+    if (finding.column() == null) {
+      return finding.file() + ":" + finding.line() + " ";
+    }
+    return finding.file() + ":" + finding.line() + ":" + finding.column() + " ";
   }
 
   private static void appendTail(

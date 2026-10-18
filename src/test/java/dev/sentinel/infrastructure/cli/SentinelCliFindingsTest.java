@@ -77,6 +77,24 @@ class SentinelCliFindingsTest extends SentinelCliIntegrationSupport {
     assertThat(gitleaks.get("findings").get(0).get("file").asString()).isEqualTo("config/app.yml");
     assertThat(checks.get(2).get("findings").size()).isZero();
     assertThat(project.resolve("target")).isDirectory();
+
+    out.getBuffer().setLength(0);
+    final int errorExit =
+        run(CHECK, FORMAT_OPTION, JSON, "--severity", "error", "-C", project.toString());
+    final JsonTree errorReport = JsonTree.parse(out.toString());
+    out.getBuffer().setLength(0);
+
+    final int infoExit =
+        run(CHECK, FORMAT_OPTION, JSON, "--severity", "info", "-C", project.toString());
+    final JsonTree infoReport = JsonTree.parse(out.toString());
+
+    assertThat(errorExit).isEqualTo(infoExit).isEqualTo(ExitCodes.FAILED);
+    assertThat(errorReport.get(STATUS).asString()).isEqualTo(infoReport.get(STATUS).asString());
+    assertThat(errorReport.get("policies").toString())
+        .isEqualTo(infoReport.get("policies").toString());
+    assertThat(run(CHECK, "--severity", "debug", "-C", project.toString()))
+        .isEqualTo(ExitCodes.ERROR);
+    assertThat(err.toString()).contains("error", "warning", "info");
   }
 
   @Test

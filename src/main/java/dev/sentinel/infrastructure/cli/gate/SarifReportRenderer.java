@@ -2,8 +2,10 @@ package dev.sentinel.infrastructure.cli.gate;
 
 import dev.sentinel.domain.gate.CheckReport;
 import dev.sentinel.domain.gate.Finding;
+import dev.sentinel.domain.gate.GateFindings;
 import dev.sentinel.domain.gate.GateResult;
 import dev.sentinel.domain.gate.GateStatus;
+import dev.sentinel.domain.gate.SeverityThreshold;
 import dev.sentinel.domain.json.JsonCodec;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -28,17 +30,22 @@ public class SarifReportRenderer {
   }
 
   public String render(final CheckReport report) {
+    return render(report, SeverityThreshold.WARNING);
+  }
+
+  public String render(final CheckReport report, final SeverityThreshold threshold) {
     final List<RunDto> runs = new ArrayList<>();
     for (final GateResult result : report.results()) {
       if (result.status() != GateStatus.SKIPPED) {
-        runs.add(run(result));
+        runs.add(run(result, threshold));
       }
     }
     return codec.toPrettyJson(new LogDto(SCHEMA, VERSION, runs));
   }
 
-  private static RunDto run(final GateResult result) {
-    final List<Finding> findings = result.findings().items();
+  private static RunDto run(final GateResult result, final SeverityThreshold threshold) {
+    final GateFindings.Visible visible = result.findings().visible(threshold);
+    final List<Finding> findings = visible.items();
     final Map<String, RuleDto> rules =
         findings.stream()
             .collect(
@@ -49,7 +56,7 @@ public class SarifReportRenderer {
                     LinkedHashMap::new));
     final List<ResultDto> results =
         findings.stream().map(ResultDto::from).collect(Collectors.toCollection(ArrayList::new));
-    if (!result.passed() && result.findings().isEmpty()) {
+    if (!result.passed() && findings.isEmpty()) {
       rules.putIfAbsent(result.name(), new RuleDto(result.name(), null));
       results.add(
           new ResultDto(
@@ -72,8 +79,9 @@ public class SarifReportRenderer {
         new RunPropertiesDto(
             result.name(),
             result.status().name(),
-            result.findings().total(),
-            result.findings().truncated()));
+            visible.total(),
+            visible.hidden(),
+            visible.truncated()));
   }
 
   @JsonType
@@ -105,7 +113,11 @@ public class SarifReportRenderer {
 
   @JsonType
   public record RunPropertiesDto(
-      String gate, String status, int findingsTotal, boolean findingsTruncated) {}
+      String gate,
+      String status,
+      int findingsTotal,
+      int findingsHidden,
+      boolean findingsTruncated) {}
 
   @JsonType
   public record MessageDto(String text) {}

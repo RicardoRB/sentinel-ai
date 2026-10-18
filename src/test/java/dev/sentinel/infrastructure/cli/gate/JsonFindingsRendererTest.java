@@ -9,6 +9,7 @@ import dev.sentinel.domain.gate.FindingSeverity;
 import dev.sentinel.domain.gate.GateFindings;
 import dev.sentinel.domain.gate.GateResult;
 import dev.sentinel.domain.gate.GateStatus;
+import dev.sentinel.domain.gate.SeverityThreshold;
 import dev.sentinel.domain.project.BuildTool;
 import dev.sentinel.domain.project.Framework;
 import dev.sentinel.domain.project.Language;
@@ -46,6 +47,17 @@ class JsonFindingsRendererTest {
     return JsonTree.parse(
         new JsonReportRenderer(new ForyJsonCodec())
             .render(new CheckReport(project, List.of(results))));
+  }
+
+  private JsonTree renderInfo(final GateResult... results) {
+    return JsonTree.parse(
+        new JsonReportRenderer(new ForyJsonCodec())
+            .render(
+                new CheckReport(project, List.of(results)),
+                false,
+                false,
+                null,
+                SeverityThreshold.INFO));
   }
 
   @Test
@@ -87,7 +99,7 @@ class JsonFindingsRendererTest {
     final String log =
         IntStream.rangeClosed(1, 500).mapToObj(i -> "line " + i).collect(Collectors.joining("\n"));
 
-    final JsonTree check = render(result("tests", GateStatus.FAILED, log)).get("checks").get(0);
+    final JsonTree check = renderInfo(result("tests", GateStatus.FAILED, log)).get("checks").get(0);
 
     final String output = check.get("output").asString();
     assertThat(output.lines()).hasSize(JsonReportRenderer.OUTPUT_TAIL_LINES);
