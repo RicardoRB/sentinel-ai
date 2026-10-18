@@ -143,7 +143,10 @@ public class InitService {
     final Path installed = OpenSpecInstallation.install(toolInstaller, project, selection);
     final String executable = OpenSpecInstallation.executable(installed);
     final List<InitGateOption> gates =
-        SelectedGates.resolve(catalog.get(), project, selection, executable);
+        ArchUnitGateReuse.rewrite(
+            project,
+            SelectedGates.resolve(catalog.get(), project, selection, executable),
+            architectureTests.existingArchUnitTests(project));
     if (selection.architecture() != null) {
       catalog.get().architecture(selection.architecture());
     }
@@ -163,6 +166,9 @@ public class InitService {
           writeConfiguration(configurationFile, gates, selection, changes, overwrite);
       if (!result.created()) {
         changes.rollback();
+      }
+      if (result.created()) {
+        GateToolInstallation.run(toolInstaller, project, selection, gates);
       }
       completed = true;
       LOGGER.log(Level.INFO, "event=initialization-complete status=applied");

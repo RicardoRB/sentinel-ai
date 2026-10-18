@@ -5,12 +5,14 @@ import dev.sentinel.domain.config.SentinelException;
 import dev.sentinel.domain.init.ArchitectureTestChange;
 import dev.sentinel.domain.init.ArchitectureTestGeneration;
 import dev.sentinel.domain.init.QualityPreset;
+import dev.sentinel.domain.project.BuildTool;
 import dev.sentinel.domain.project.Project;
 import java.io.IOException;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -25,6 +27,43 @@ public final class ArchitectureTestGenerator implements ArchitectureTestGenerati
   public ArchitectureTestGenerator() {}
 
   @Override
+  public List<String> existingArchUnitTests(final Project project) {
+    final List<String> names = new ArrayList<>();
+    final List<Path> roots = new ArrayList<>();
+    roots.add(project.root().resolve("src/test/java"));
+    if (project.buildTool() == BuildTool.GRADLE) {
+      roots.add(project.root().resolve("src/test/kotlin"));
+    }
+    for (final Path root : roots) {
+      if (!Files.isDirectory(root)) {
+        continue;
+      }
+      try (Stream<Path> files = Files.walk(root)) {
+        files
+            .filter(Files::isRegularFile)
+            .filter(file -> file.getFileName().toString().matches(".*Tests?\\.(java|kt)$"))
+            .forEach(
+                file -> {
+                  try {
+                    final String source = Files.readString(file);
+                    if (source.contains("com.tngtech.archunit")
+                        || source.contains("@AnalyzeClasses")) {
+                      final String fileName = file.getFileName().toString();
+                      names.add(fileName.substring(0, fileName.lastIndexOf('.')));
+                    }
+                  } catch (IOException e) {
+                    throw new SentinelException(
+                        "Could not inspect ArchUnit tests: " + e.getMessage(), e);
+                  }
+                });
+      } catch (IOException e) {
+        throw new SentinelException("Could not inspect test sources: " + e.getMessage(), e);
+      }
+    }
+    return names.stream().distinct().sorted().toList();
+  }
+
+  @Override
   public ArchitectureTestChange apply(final Project project, final String architecture) {
     return apply(project, architecture, new QualityPreset.ArchitectureExtras(false, false, false));
   }
@@ -37,7 +76,7 @@ public final class ArchitectureTestGenerator implements ArchitectureTestGenerati
     final String basePackage = detectBasePackage(project.root());
     final Path test = target(project.root(), basePackage);
     final Path packageDirectory = test.getParent();
-    if (Files.exists(test)) {
+    if (Files.exists(test) || !existingArchUnitTests(project).isEmpty()) {
       return new ArchitectureTestChange(test, false, architecture);
     }
     final String content = testSource(basePackage, architecture, extras);

@@ -6,7 +6,7 @@ description: Create sentinel.toml and select integrations.
 `sentinel init` creates `sentinel.toml` using an interactive wizard or explicit options.
 
 ```sh
-sentinel init [-C <dir>] [--preset <standard|strict>] [--integration <none|agent>[,...]] [--quality-hooks] [--remove-quality-hooks] [--gate <id>[,...]] [--tool openspec] [--openspec-validation <openspec|openspec-archived>[,...]] [--install-tool openspec] [--architecture <style>] [--overwrite] [--dry-run] [--accept-compatibility-updates] [--yes]
+sentinel init [-C <dir>] [--preset <standard|strict>] [--integration <none|agent>[,...]] [--quality-hooks] [--remove-quality-hooks] [--gate <id>[,...]] [--tool openspec] [--openspec-validation <openspec|openspec-archived>[,...]] [--install-tool <tool|gate>[,...]] [--architecture <style>] [--overwrite] [--dry-run] [--accept-compatibility-updates] [--yes]
 ```
 
 `agent` accepts the IDs documented for [`integrate`](/commands/integrate/), including `codex`, `cursor`,
@@ -14,7 +14,9 @@ sentinel init [-C <dir>] [--preset <standard|strict>] [--integration <none|agent
 
 The gate selector accepts supported [gate IDs](/configuration/gates/). `none` is exclusive with
 agent integrations. `archunit` prompts for Layered, Hexagonal, or Clean architecture and creates a
-minimal `ArchitectureTest.java` only if one is absent. Existing configurations are preserved unless
+minimal `ArchitectureTest.java` only if one is absent. If test sources already contain ArchUnit
+classes ending in `Test` or `Tests`, init reuses them and configures the gate to run those classes
+instead of generating a duplicate. Existing configurations are preserved unless
 overwrite is confirmed or `--overwrite` is supplied. Initialization does not install tools or run
 gates. `standard` and `strict` presets pre-select their offline gates; `custom` starts with no gates selected.
 The gates you confirm are exactly the gates configured: unticking a pre-selected preset gate removes its
@@ -28,7 +30,9 @@ Existing compatible plugin versions are preserved. Incompatible managed plugins 
 selected compatible version, detected constraints, and affected file before asking for consent. `--yes`
 (see [How questions are answered](#how-questions-are-answered)) also accepts these validated compatibility
 updates without prompting; it does not bypass unresolved prerequisites
-or install standalone binaries such as Semgrep, Gitleaks, Trivy, or ZAP. Declined updates leave the POM
+or install standalone binaries such as Semgrep, Gitleaks, Trivy, or ZAP. Missing Trivy, Gitleaks, or
+Semgrep tools may be installed with explicit per-tool consent when Homebrew or pipx is available;
+use `--install-tool <gate>` for non-interactive consent. ZAP has manual guidance only. Declined updates leave the POM
 unchanged and report that the selected gate was not reconfigured. Preset rule files are Sentinel-owned;
 unmarked existing files are preserved and reported. With `--preset`, `--gate` only adds gates to the
 preset's set; it never removes preset gates. `-C <dir>` selects the
@@ -48,11 +52,11 @@ plugin's own project-level `<version>`. A plugin declared only inside a profile 
 reconfigured.
 
 Init-generated configurations assign gates to cumulative execution phases. Fast gates (`format`,
-`compile`, `checkstyle`, `pmd`, and `gitleaks`) belong to `default`, `pre-commit`, `pre-push`, and
+`checkstyle`, `pmd`, and `gitleaks`) belong to `default`, `pre-commit`, `pre-push`, and
 `ci`. Slower local gates belong to `pre-push` and `ci`; environment-dependent gates belong to `ci`,
 and custom commands belong to `pre-push` and `ci`. The `default` profile is intentionally the same
-fast tier as `pre-commit`, while `ci` contains every selected gate. Init does not generate a CI
-workflow.
+fast tier as `pre-commit`, while `ci` contains every selected gate. `compile` is a slower local gate
+and therefore runs only in `pre-push` and `ci`. Init does not generate a CI workflow.
 
 The generated `gitleaks` command writes a redacted SARIF report so `sentinel check` can attach
 structured findings (file, line, and rule) to a failed gate:
@@ -101,6 +105,15 @@ none is recorded), and the gate list starts with the gates that are currently en
 gate takes a couple of key presses. Integrations, hooks, tools, and the architecture style are asked
 as usual. If the existing file can't be read, the usual defaults apply. Answering `n` keeps the file
 and prints `Kept existing sentinel.toml. No changes were made.`
+
+### Gate tool installation
+
+When a selected external gate tool is unavailable, the wizard offers one Yes/No installation
+question per resolvable tool. No is the default; blank input or end of input declines. Homebrew is
+supported for Trivy, Gitleaks, and Semgrep, and pipx is a fallback for Semgrep. ZAP's
+`zap-baseline.py` has manual guidance only. In non-interactive mode, explicitly consent with
+`--install-tool <gate>` (for example `--install-tool trivy`); `--yes` never installs tools.
+`--dry-run` lists commands but runs none. `sentinel check` never installs gate tools.
 
 ## Review and dry run
 

@@ -92,6 +92,10 @@ public final class InitSetupCatalog extends InitGeneralCatalog {
     return environment.inspectExecutable(project.root(), "openspec").usable();
   }
 
+  public boolean nvdApiKeySet(final Project project) {
+    return environment.inspect(project.root()).isSet("NVD_API_KEY");
+  }
+
   public InitGateOption openSpecValidation(
       final Project project, final String id, final String executable) {
     if (!openSpecValidations().contains(id)) {

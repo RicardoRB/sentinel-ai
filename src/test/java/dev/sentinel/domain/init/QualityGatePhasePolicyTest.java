@@ -10,8 +10,7 @@ class QualityGatePhasePolicyTest {
   void assignsFastGatesToDefaultAndAllLocalPhases() {
     assertThat(QualityGatePhasePolicy.profilesFor("format"))
         .containsExactly("default", "pre-commit", "pre-push", "ci");
-    assertThat(QualityGatePhasePolicy.profilesFor("compile"))
-        .containsExactly("default", "pre-commit", "pre-push", "ci");
+    assertThat(QualityGatePhasePolicy.profilesFor("compile")).containsExactly("pre-push", "ci");
     assertThat(QualityGatePhasePolicy.profilesFor("checkstyle"))
         .containsExactly("default", "pre-commit", "pre-push", "ci");
     assertThat(QualityGatePhasePolicy.profilesFor("pmd"))

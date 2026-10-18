@@ -69,7 +69,7 @@ public class InitCommand implements Callable<Integer> {
   @Option(
       names = "--install-tool",
       split = ",",
-      description = "Explicitly consent to install a selected project tool.")
+      description = "Explicitly consent to install a selected project tool or gate executable.")
   private List<String> installTools;
 
   @Option(

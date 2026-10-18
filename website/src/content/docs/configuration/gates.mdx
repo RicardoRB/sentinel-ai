@@ -5,7 +5,7 @@ description: Supported quality gate identifiers and configuration.
 
 Every gate uses `[quality-gates.<id>]` with `command` (string or argument array), optional
 `enabled` (default `true`) and optional `profiles` (default profile when omitted). The command
-defines the actual tool invocation; Sentinel does not install gate tools.
+defines the actual tool invocation. Sentinel does not install gate tools during `check`.
 
 | Category | ID | Tool | Typical purpose |
 |---|---|---|---|
@@ -55,9 +55,13 @@ live specs fail with `no scenarios found`, and active-change specs are excluded.
 comparison baseline, so enable them deliberately (for example in a CI-only profile with
 `profiles = ["ci"]`).
 
+The Maven and Gradle `dependency-check` configurations read the NVD API key from the
+`NVD_API_KEY` environment variable and never write the key to a build file. Without the variable,
+scans may be very slow or rate-limited; request a key from the NVD API service.
+
 Standalone tools (`semgrep`, `gitleaks`, `trivy`, `zap-baseline.py`) must already be on the path; a
-missing tool is reported as unavailable with an install link and other gates still run. Sentinel
-never installs those tools. When a command contains `--report-path <path>` inside the project, Sentinel
+missing tool is reported as unavailable with an install link and other gates still run. `sentinel init`
+can offer consented installation for supported tools, but `check` never installs them. When a command contains `--report-path <path>` inside the project, Sentinel
 creates the parent directory before running it; the command itself is never changed.
 
 ## Structured findings
@@ -96,7 +100,8 @@ Preset initialization may write `config/pmd-ruleset.xml`, `config/checkstyle.xml
 
 ## ZAP target
 
-`zap` requires an explicit target in its command, for example
+`zap` requires an explicit target in its command. Init writes `<TARGET_URL>` as a placeholder; replace
+it with an authorized target before running `check`, for example
 `command = ["zap-baseline.py", "-t", "http://localhost:8080"]`. An enabled `zap` gate without
 `-t <url>`, or still containing the `<TARGET_URL>` placeholder written by `init`, is a configuration
 error (exit `2`). Sentinel never infers, starts, or scans a target on its own. You are responsible

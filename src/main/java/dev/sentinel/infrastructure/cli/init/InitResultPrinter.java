@@ -7,6 +7,7 @@ import dev.sentinel.domain.init.ArchitectureTestChange;
 import dev.sentinel.domain.init.InitGateOption;
 import dev.sentinel.domain.init.InitPlan;
 import dev.sentinel.domain.init.InitResult;
+import dev.sentinel.domain.init.PlannedGateInstallation;
 import dev.sentinel.domain.project.Project;
 import java.io.PrintWriter;
 import java.nio.file.Path;
@@ -40,13 +41,18 @@ final class InitResultPrinter {
                   + gateOption.id()
                   + " status="
                   + (gateOption.available() ? "available" : "unavailable"));
+      if ("dependency-check".equals(selectedGate) && !catalog.nvdApiKeySet(project)) {
+        out.println(
+            "Warning: NVD_API_KEY is not set; dependency-check scans may be very slow or rate-limited."
+                + " Request a key from the NVD API.");
+      }
     }
   }
 
   /** Prints the files a plan would change, relative to the project root. */
   void printPlan(final InitPlan plan, final Path root) {
     final List<PlannedFileChange> files = plan.visibleFiles();
-    if (files.isEmpty() && plan.installation().isEmpty()) {
+    if (files.isEmpty() && plan.installation().isEmpty() && plan.gateInstallations().isEmpty()) {
       out.println("No files would change.");
       return;
     }
@@ -66,6 +72,13 @@ final class InitResultPrinter {
                     installation.tool(),
                     installation.packageName(),
                     root.relativize(installation.destination())));
+    for (final PlannedGateInstallation installation : plan.gateInstallations()) {
+      if (installation.installable()) {
+        out.printf("  %-10s %s%n", "install", String.join(" ", installation.command()));
+      } else {
+        out.printf("  %-10s %s: %s%n", "guidance", installation.tool(), installation.guidance());
+      }
+    }
     out.println();
   }
 

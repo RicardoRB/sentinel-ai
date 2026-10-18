@@ -31,7 +31,7 @@ public final class GradleToolConfigurator implements BuildToolConfiguration {
           new Plugin("pmd", "pmd", ""),
           new Plugin("spotbugs", "com.github.spotbugs", "6.0.26"),
           new Plugin("coverage", "jacoco", ""),
-          new Plugin("dependency-check", "org.owasp.dependencycheck", "8.4.0"),
+          new Plugin("dependency-check", "org.owasp.dependencycheck", "12.1.0"),
           new Plugin("mutation", "info.solidsoft.pitest", "1.15.0"),
           new Plugin("sonar", "org.sonarqube", "5.1.0.4882"),
           new Plugin("license", "com.github.hierynomus.license", "0.16.1"),
@@ -109,6 +109,17 @@ public final class GradleToolConfigurator implements BuildToolConfiguration {
     }
     if (selected.contains("archunit") && !edit.content.contains("archunit-junit5")) {
       edit.append(archunitDeclaration(project), "archunit-junit5", ARCHUNIT_VERSION);
+    }
+    if (selected.contains("dependency-check") && !edit.content.contains("NVD_API_KEY")) {
+      edit.append(
+          dslDeclaration(
+              project,
+              "\n" + MARKER + "\ndependencyCheck { nvd { apiKey = System.getenv('NVD_API_KEY') } }",
+              "\n"
+                  + MARKER
+                  + "\ndependencyCheck { nvd { apiKey = System.getenv(\"NVD_API_KEY\") } }"),
+          "dependency-check-nvd-key",
+          "");
     }
   }
 
