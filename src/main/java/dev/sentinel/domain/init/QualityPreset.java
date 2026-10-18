@@ -10,7 +10,7 @@ public enum QualityPreset {
       "standard",
       List.of("compile", "tests", "format", "checkstyle", "pmd", "spotbugs", "coverage"),
       new PresetRules(
-          List.of("category/java/quickstart.xml"),
+          List.of("rulesets/java/quickstart.xml"),
           List.of(
               "EqualsHashCode",
               "MissingSwitchDefault",
@@ -22,7 +22,7 @@ public enum QualityPreset {
               "StringLiteralEquality",
               "OneStatementPerLine",
               "MultipleVariableDeclarations"),
-          Map.of("IllegalCatch.allowedClassNames", "Throwable,Error"),
+          Map.of("IllegalCatch.illegalClassNames", "Error, Throwable"),
           "Default",
           "Medium",
           List.of("EI_EXPOSE_REP", "EI_EXPOSE_REP2"),
@@ -46,11 +46,11 @@ public enum QualityPreset {
           "mutation"),
       new PresetRules(
           List.of(
-              "category/java/quickstart.xml",
+              "rulesets/java/quickstart.xml",
               "category/java/bestpractices.xml",
-              "rulesets/java/optimizations.xml/MethodArgumentCouldBeFinal",
-              "rulesets/java/optimizations.xml/LocalVariableCouldBeFinal",
-              "rulesets/java/typing.xml/UseExplicitTypes"),
+              "category/java/codestyle.xml/MethodArgumentCouldBeFinal",
+              "category/java/codestyle.xml/LocalVariableCouldBeFinal",
+              "category/java/codestyle.xml/UseExplicitTypes"),
           List.of(
               "EqualsHashCode",
               "MissingSwitchDefault",

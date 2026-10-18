@@ -56,6 +56,40 @@ automatically; add those declarations by hand. Compatibility version updates cha
 plugin's own project-level `<version>`. A plugin declared only inside a profile is reported as not
 reconfigured.
 
+In Gradle builds, plugin declarations go into the existing top-level `plugins { }` block. When the
+script has none, init creates one at the top, after any `buildscript { }` or `pluginManagement { }`
+block, because Gradle accepts `plugins { }` only there. Init then appends blocks that make the plugins
+use what it generated:
+
+- With a preset, `checkstyle { configFile = file('config/checkstyle.xml') }` and
+  `pmd { ruleSetFiles = files('config/pmd-ruleset.xml'); ruleSets = [] }`, both limited to the `main`
+  source set, as the Maven plugins are.
+- `spotless { java { googleJavaFormat() } }` for `format`, unless a `spotless { }` block exists.
+- `jacocoTestCoverageVerification` with the preset's minimums, or `LINE` `0.80` without a preset. The
+  `coverage` gate runs `jacocoTestCoverageVerification`, which fails below a minimum.
+- `pitest { junit5PluginVersion = '1.2.1' }` for `mutation`, plus the preset's `mutationThreshold`.
+
+The Kotlin DSL gets the same blocks in Kotlin syntax. A block is added only once, so running init
+again does not duplicate it.
+
+Init generates `ArchitectureTest.java` in the package shared by all main sources, for example
+`com.acme.shop` for `com.acme.shop.domain` and `com.acme.shop.application`, and its rules analyze that
+whole package. The layer rule passes while its layer packages have no classes, so a new project does
+not fail before those packages exist.
+
+### First failures under `strict`
+
+The generated rule files load as they are, so a gate that fails right after init reports a real
+finding. With `strict`, expect these on most existing projects:
+
+- `checkstyle`: findings such as `MagicNumber`, `MissingJavadocMethod`, or `MethodLength` in
+  existing code.
+- `enforcer`: Maven projects fail `requirePluginVersions`, which lists every plugin that runs
+  without a pinned version, including plugins Maven adds through its default lifecycle, such as
+  `maven-site-plugin` or `maven-install-plugin`. Pin them in `<pluginManagement>` with the versions
+  the message reports. Strict requires reproducible plugin versions on purpose. Use `standard` if you
+  do not want that rule.
+
 Init-generated configurations assign gates to cumulative execution phases. Fast gates (`format`,
 `checkstyle`, `pmd`, and `gitleaks`) belong to `default`, `pre-commit`, `pre-push`, and
 `ci`. Slower local gates belong to `pre-push` and `ci`; environment-dependent gates belong to `ci`,

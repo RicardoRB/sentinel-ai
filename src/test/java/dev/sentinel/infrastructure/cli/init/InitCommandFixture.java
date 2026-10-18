@@ -28,6 +28,7 @@ import picocli.CommandLine;
 final class InitCommandFixture {
   private final Path root;
   private final BuildToolConfiguration buildTools;
+  private final String[] executables;
   private final StringWriter output = new StringWriter();
 
   InitCommandFixture(final Path root) throws IOException {
@@ -35,8 +36,16 @@ final class InitCommandFixture {
   }
 
   InitCommandFixture(final Path root, final BuildToolConfiguration buildTools) throws IOException {
+    this(root, buildTools, new String[0]);
+  }
+
+  /** {@code executables} are the commands the fake environment reports on the PATH. */
+  InitCommandFixture(
+      final Path root, final BuildToolConfiguration buildTools, final String... executables)
+      throws IOException {
     this.root = root;
     this.buildTools = buildTools;
+    this.executables = executables.clone();
     if (!Files.exists(root.resolve("pom.xml"))) {
       Files.writeString(
           root.resolve("pom.xml"),
@@ -58,7 +67,7 @@ final class InitCommandFixture {
             new ProjectDetector(new FileSystemProjectInspection()),
             Set.of(new ClaudeCodeIntegration()),
             new InitSetupCatalog(
-                new FakeEnvironmentInspection(),
+                new FakeEnvironmentInspection(executables),
                 new QualityHookInstaller(),
                 new TomlConfigurationReader()),
             buildTools,

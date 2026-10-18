@@ -101,6 +101,15 @@ final class InitResultPrinter {
     };
   }
 
+  /** Gradle gates run the wrapper or {@code gradle}; the result carries no build-file path. */
+  private static boolean gradle(final InitResult result) {
+    return result.gates().stream()
+        .map(InitGateOption::command)
+        .filter(command -> !command.isEmpty())
+        .map(List::getFirst)
+        .anyMatch(executable -> executable.endsWith("gradlew") || "gradle".equals(executable));
+  }
+
   void print(final InitResult result) {
     if (!result.created()) {
       out.println(result.file() + " already exists. Nothing was changed.");
@@ -108,7 +117,10 @@ final class InitResultPrinter {
     }
     out.println((result.overwritten() ? "Updated " : "Created ") + result.file());
     if (!result.pomChanges().isEmpty()) {
-      out.println("Updated pom.xml with Maven tools:");
+      out.println(
+          gradle(result)
+              ? "Updated the Gradle build with tools:"
+              : "Updated pom.xml with Maven tools:");
       result.pomChanges().forEach(tool -> out.println("- " + tool));
     }
     result

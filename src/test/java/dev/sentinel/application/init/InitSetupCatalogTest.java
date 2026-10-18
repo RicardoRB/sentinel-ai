@@ -66,7 +66,7 @@ class InitSetupCatalogTest {
         .containsEntry("LINE", 0.85)
         .containsEntry("BRANCH", 0.75);
     assertThat(QualityPreset.STANDARD.rules().pmdRules())
-        .containsExactly("category/java/quickstart.xml");
+        .containsExactly("rulesets/java/quickstart.xml");
     assertThat(QualityPreset.STRICT.rules().pmdRules())
         .anySatisfy(rule -> assertThat(rule).contains("bestpractices"));
     assertThat(QualityPreset.STANDARD.rules().checkstyleModules())
@@ -190,7 +190,9 @@ class InitSetupCatalogTest {
                 .filter(id -> !OPENSPEC.equals(id) && !OPENSPEC_ARCHIVED.equals(id))
                 .toList());
     assertThat(catalog.gate(project, "coverage").command())
-        .containsExactly("gradle", "jacocoTestReport");
+        .containsExactly("gradle", "jacocoTestCoverageVerification");
+    assertThat(catalog.gate(project, "archunit").command())
+        .containsExactly("gradle", "test", "--tests", "*ArchitectureTest");
     assertThat(catalog.gate(project, "dependency-check").command())
         .containsExactly("gradle", "dependencyCheckAnalyze");
     assertThat(catalog.gate(project, "gitleaks").command())

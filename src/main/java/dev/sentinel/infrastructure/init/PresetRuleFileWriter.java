@@ -79,16 +79,23 @@ public final class PresetRuleFileWriter implements RuleFileGeneration {
     final List<String> ids = gates.stream().map(InitGateOption::id).toList();
     final Map<Path, String> targets = new LinkedHashMap<>();
     if (ids.contains("pmd")) {
-      targets.put(config.resolve("pmd-ruleset.xml"), marked(preset, pmd(preset)));
+      targets.put(
+          config.resolve("pmd-ruleset.xml"), marked(preset, PresetRuleFileContent.pmd(preset)));
     }
     if (ids.contains("checkstyle")) {
-      targets.put(config.resolve("checkstyle.xml"), marked(preset, checkstyle(preset)));
+      targets.put(
+          config.resolve("checkstyle.xml"),
+          marked(preset, PresetRuleFileContent.checkstyle(preset)));
     }
     if (ids.contains("spotbugs") && preset == QualityPreset.STANDARD) {
-      targets.put(config.resolve("spotbugs-exclude.xml"), marked(preset, spotbugs(preset)));
+      targets.put(
+          config.resolve("spotbugs-exclude.xml"),
+          marked(preset, PresetRuleFileContent.spotbugs(preset)));
     }
     if (ids.contains("enforcer")) {
-      targets.put(config.resolve("enforcer-rules.xml"), marked(preset, enforcer(preset)));
+      targets.put(
+          config.resolve("enforcer-rules.xml"),
+          marked(preset, PresetRuleFileContent.enforcer(preset)));
     }
     return targets;
   }
@@ -131,43 +138,5 @@ public final class PresetRuleFileWriter implements RuleFileGeneration {
     } catch (IOException e) {
       throw new SentinelException("Could not roll back preset rule files: " + e.getMessage(), e);
     }
-  }
-
-  private static String pmd(final QualityPreset preset) {
-    return "<ruleset name=\"Sentinel "
-        + preset.id()
-        + " PMD\" xmlns=\"http://pmd.sourceforge.net/ruleset/2.0.0\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">\n"
-        + preset.rules().pmdRules().stream()
-            .map(rule -> "  <rule ref=\"" + rule + "\"/>\n")
-            .reduce("", String::concat)
-        + "</ruleset>\n";
-  }
-
-  private static String checkstyle(final QualityPreset preset) {
-    return "<module name=\"Checker\">\n  <module name=\"TreeWalker\">\n"
-        + preset.rules().checkstyleModules().stream()
-            .map(rule -> "    <module name=\"" + rule + "\"/>\n")
-            .reduce("", String::concat)
-        + "  </module>\n</module>\n";
-  }
-
-  private static String spotbugs(final QualityPreset preset) {
-    return "<FindBugsFilter>\n"
-        + preset.rules().spotbugsExcludes().stream()
-            .map(bug -> "  <Match><Bug pattern=\"" + bug + "\"/></Match>\n")
-            .reduce("", String::concat)
-        + "</FindBugsFilter>\n";
-  }
-
-  private static String enforcer(final QualityPreset preset) {
-    return "<rules>\n"
-        + preset.rules().enforcerRules().stream()
-            .map(
-                rule ->
-                    "requireMavenVersion".equals(rule)
-                        ? "  <requireMavenVersion><version>[3.9,)</version></requireMavenVersion>\n"
-                        : "  <" + rule + "/>\n")
-            .reduce("", String::concat)
-        + "</rules>\n";
   }
 }

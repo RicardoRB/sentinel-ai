@@ -4,10 +4,11 @@
 
 - **Maven:** `config/pmd-ruleset.xml`, wired in `pom.xml` through the `maven-pmd-plugin`
   `<rulesets><ruleset>${project.basedir}/config/pmd-ruleset.xml</ruleset></rulesets>`.
-- **Gradle:** the `pmd` plugin uses `pmd { ruleSetFiles = files(...) }` when it is set. Otherwise it
-  uses Gradle's default rule set. Init writes `config/pmd-ruleset.xml` and does not set
-  `ruleSetFiles`. Check which rules the build actually uses before tuning, and tell the user when the
-  Sentinel file is not in use.
+- **Gradle:** with a preset, init writes `config/pmd-ruleset.xml` and a
+  `pmd { ruleSetFiles = files('config/pmd-ruleset.xml'); ruleSets = [] }` block that analyzes the
+  `main` source set only. Without that block, for example in a build set up by an older Sentinel,
+  Gradle uses its own default rule set. Check which rules the build actually uses before tuning, and
+  tell the user when the Sentinel file is not in use.
 - The gate command is in `sentinel.toml` under `[quality-gates.pmd]`, for example `./mvnw pmd:check`
   or `./gradlew pmdMain`.
 

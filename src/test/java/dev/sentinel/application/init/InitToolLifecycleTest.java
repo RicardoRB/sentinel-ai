@@ -17,6 +17,7 @@ import dev.sentinel.infrastructure.init.PresetRuleFileWriter;
 import dev.sentinel.infrastructure.project.FileSystemProjectInspection;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
@@ -45,6 +46,27 @@ class InitToolLifecycleTest {
     assertThat(installer.installCalled).isTrue();
     assertThat(Files.readString(root.resolve("sentinel.toml")))
         .contains(".sentinel/tools/openspec/openspec");
+  }
+
+  @Test
+  void gateOnlyConsentInstallsTheGateToolAndNotOpenSpec(@TempDir final Path root) throws Exception {
+    ProjectFixtures.withPom(root, ProjectFixtures.PLAIN_POM);
+    final RecordingInstaller installer = new RecordingInstaller(true);
+
+    service(installer)
+        .initialize(
+            root,
+            new InitSelection(
+                List.of("none"),
+                List.of("tests", "semgrep"),
+                null,
+                null,
+                List.of(),
+                List.of(),
+                List.of("semgrep")));
+
+    assertThat(installer.installed).containsExactly("semgrep");
+    assertThat(Files.readString(root.resolve("sentinel.toml"))).doesNotContain("openspec");
   }
 
   @Test
@@ -86,6 +108,7 @@ class InitToolLifecycleTest {
 
   private static final class RecordingInstaller implements ToolInstaller {
     private final boolean succeeds;
+    private final List<String> installed = new ArrayList<>();
     private boolean installCalled;
 
     private RecordingInstaller(final boolean succeeds) {
@@ -95,6 +118,7 @@ class InitToolLifecycleTest {
     @Override
     public ToolInstallationResult install(final Path projectRoot, final String tool) {
       installCalled = true;
+      installed.add(tool);
       if (!succeeds) {
         return new ToolInstallationResult(tool, false, null, "fake installer unavailable");
       }

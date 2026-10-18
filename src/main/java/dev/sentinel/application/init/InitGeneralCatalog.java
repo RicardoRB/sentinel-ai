@@ -90,9 +90,12 @@ public class InitGeneralCatalog {
             "coverage",
             "Enforces minimum test coverage.",
             toolAvailable,
-            availability + " (minimum coverage is configured in pom.xml.)",
+            availability
+                + (gradle
+                    ? " (minimum coverage is configured in the Gradle build.)"
+                    : " (minimum coverage is configured in pom.xml.)"),
             executable,
-            task(gradle, "jacocoTestReport", "jacoco:check")));
+            task(gradle, "jacocoTestCoverageVerification", "jacoco:check")));
     options.add(
         InitGateOptionFactory.option(
             "spotbugs",
@@ -133,15 +136,26 @@ public class InitGeneralCatalog {
             availability,
             executable,
             task(gradle, "dependencyCheckAnalyze", "dependency-check:check")));
+    // Gradle task options follow their task: test --tests <pattern>.
     options.add(
-        InitGateOptionFactory.option(
-            "archunit",
-            "Checks architecture rules with ArchitectureTest.",
-            toolAvailable,
-            availability + " (runs only ArchitectureTest.)",
-            executable,
-            task(gradle, "--tests", "-Dtest=ArchitectureTest"),
-            task(gradle, "*ArchitectureTest", "test")));
+        gradle
+            ? InitGateOptionFactory.option(
+                "archunit",
+                "Checks architecture rules with ArchitectureTest.",
+                toolAvailable,
+                availability + " (runs only ArchitectureTest.)",
+                executable,
+                "test",
+                "--tests",
+                "*ArchitectureTest")
+            : InitGateOptionFactory.option(
+                "archunit",
+                "Checks architecture rules with ArchitectureTest.",
+                toolAvailable,
+                availability + " (runs only ArchitectureTest.)",
+                executable,
+                "-Dtest=ArchitectureTest",
+                "test"));
     options.add(
         InitGateOptionFactory.option(
             "mutation",

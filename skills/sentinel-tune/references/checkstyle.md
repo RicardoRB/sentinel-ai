@@ -5,10 +5,11 @@
 - **Maven:** `config/checkstyle.xml`, wired in `pom.xml` through the `maven-checkstyle-plugin`
   `<configLocation>${project.basedir}/config/checkstyle.xml</configLocation>`. The plugin's
   `<violationSeverity>` decides which severity fails the build. Init writes `error`.
-- **Gradle:** the `checkstyle` plugin reads `checkstyle { configFile = file(...) }` when it is set.
-  Otherwise it reads Gradle's default, `config/checkstyle/checkstyle.xml`. Init writes
-  `config/checkstyle.xml` and does not set `configFile`. Check which file the build actually uses
-  before you tune anything, and tell the user when the Sentinel file is not in use.
+- **Gradle:** with a preset, init writes `config/checkstyle.xml` and a
+  `checkstyle { configFile = file('config/checkstyle.xml') }` block that analyzes the `main` source
+  set only. Without that block, for example in a build set up by an older Sentinel, Gradle reads its
+  default, `config/checkstyle/checkstyle.xml`. Check which file the build actually uses before you
+  tune anything, and tell the user when the Sentinel file is not in use.
 - The gate command is in `sentinel.toml` under `[quality-gates.checkstyle]`, for example
   `./mvnw checkstyle:check` or `./gradlew checkstyleMain`.
 
@@ -39,6 +40,11 @@ The strict preset enables: `EqualsHashCode`, `MissingSwitchDefault`, `FallThroug
 `OneStatementPerLine`, `MultipleVariableDeclarations`, `CyclomaticComplexity`, `MethodLength`,
 `ParameterNumber`, `FileLength`, `MissingJavadocType`, `MissingJavadocMethod`, `MagicNumber`,
 `HiddenField`, and the naming checks. Read the actual file, because the user may have changed it.
+
+Limits are module properties, for example `<property name="max" value="10"/>` inside
+`CyclomaticComplexity`. Strict sets `CyclomaticComplexity` 10, `MethodLength` 60, `ParameterNumber`
+5, and `FileLength` 500. File-level checks such as `FileLength` and `LineLength` are children of
+`Checker`, not `TreeWalker`. Checkstyle refuses to load the file otherwise.
 
 ## Classifying a change
 

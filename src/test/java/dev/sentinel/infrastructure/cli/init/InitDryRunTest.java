@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import dev.sentinel.CompatibilityFixtures;
 import dev.sentinel.ProjectSnapshot;
 import dev.sentinel.infrastructure.cli.ExitCodes;
+import dev.sentinel.infrastructure.init.PomToolConfigurator;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -59,6 +60,26 @@ class InitDryRunTest {
 
     assertThat(exit).as(init.output()).isEqualTo(ExitCodes.OK);
     assertThat(init.output()).contains("install    openspec @fission-ai/openspec@");
+    assertThat(root.resolve(".sentinel")).doesNotExist();
+  }
+
+  @Test
+  void gateToolConsentDoesNotPlanAnOpenSpecInstallation() throws IOException {
+    final InitCommandFixture init = new InitCommandFixture(root, new PomToolConfigurator(), "brew");
+
+    final int exit =
+        init.run(
+            "",
+            "--dry-run",
+            "--integration",
+            "none",
+            "--gate",
+            "tests,semgrep",
+            "--install-tool",
+            "semgrep");
+
+    assertThat(exit).as(init.output()).isEqualTo(ExitCodes.OK);
+    assertThat(init.output()).contains("brew install semgrep").doesNotContain("openspec");
     assertThat(root.resolve(".sentinel")).doesNotExist();
   }
 

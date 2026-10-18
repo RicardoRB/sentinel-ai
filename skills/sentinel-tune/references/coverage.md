@@ -10,12 +10,14 @@
   - `jacoco:check` needs execution data from a test run. The plugin must also have a `prepare-agent`
     execution, and the tests must run first, for example in the `tests` gate. If `target/jacoco.exec`
     is missing, the check has nothing to measure. Report that instead of changing thresholds.
-- **Gradle:** init applies the `jacoco` plugin, and the gate runs `./gradlew jacocoTestReport`, which
-  only *reports*. Nothing fails on low coverage. Enforcing a threshold needs a
-  `jacocoTestCoverageVerification { violationRules { rule { limit { minimum = 0.80 } } } }` block in
-  the build file **and** a gate command that runs it. The command lives in `sentinel.toml`. Propose
-  both edits together as one strengthening, and tell the user that a later
-  `sentinel init --overwrite` regenerates `sentinel.toml` with the default command.
+- **Gradle:** init applies the `jacoco` plugin and writes a
+  `jacocoTestCoverageVerification { violationRules { rule { limit { ... } } } }` block, with the
+  preset's minimums or `LINE` `0.80` without a preset. The Kotlin DSL writes
+  `tasks.jacocoTestCoverageVerification { ... }`. The gate runs
+  `./gradlew jacocoTestCoverageVerification`, which fails below a minimum. A build set up by an older
+  Sentinel may run `jacocoTestReport` instead, which only reports and never fails. Enforcing a
+  threshold there needs the verification block **and** the gate command in `sentinel.toml`. Propose
+  both edits together as one strengthening.
 
 Init leaves the configuration of a JaCoCo plugin that already exists untouched, so threshold edits in
 the build file survive later `sentinel init` runs.
@@ -29,7 +31,8 @@ Read the measured ratios from the report, not from memory:
   that first: a ratio measured on a failing suite is not meaningful. The last `<counter type="LINE" missed=".." covered=".."/>`
   elements directly under `<report>` are the bundle totals. The ratio is
   `covered / (missed + covered)`.
-- Gradle: `build/reports/jacoco/test/jacocoTestReport.xml`, with the same format.
+- Gradle: `build/reports/jacoco/test/jacocoTestReport.xml`, with the same format. The verification
+  task does not write it, so run `./gradlew test jacocoTestReport` first.
 
 The `coverage` check in `sentinel check --format json` has no structured findings. Its `output` field
 holds the JaCoCo message, for example `lines covered ratio is 0.62, but expected minimum is 0.85`.
