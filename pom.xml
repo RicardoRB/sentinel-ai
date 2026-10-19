@@ -323,6 +323,63 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+              <groupId>org.owasp</groupId>
+              <artifactId>dependency-check-maven</artifactId>
+              <version>12.1.0</version>
+               <configuration>
+                 <failBuildOnCVSS>7</failBuildOnCVSS>
+                 <nvdApiKeyEnvironmentVariable>NVD_API_KEY</nvdApiKeyEnvironmentVariable>
+               </configuration>
+            </plugin>
+            <plugin>
+              <groupId>org.pitest</groupId>
+              <artifactId>pitest-maven</artifactId>
+              <version>1.17.4</version>
+              <dependencies>
+                <dependency>
+                  <groupId>org.pitest</groupId>
+                  <artifactId>pitest-junit5-plugin</artifactId>
+                  <version>1.2.1</version>
+                </dependency>
+              </dependencies>
+              <configuration>
+                <mutationThreshold>60</mutationThreshold>
+              </configuration>
+            </plugin>
+            <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-enforcer-plugin</artifactId><version>3.5.0</version>
+              <configuration><rules><externalRules><location>${project.basedir}/config/enforcer-rules.xml</location></externalRules></rules><fail>true</fail></configuration>
+            </plugin>
+            <plugin>
+              <groupId>org.codehaus.mojo</groupId>
+              <artifactId>license-maven-plugin</artifactId>
+              <version>2.5.0</version>
+              <configuration>
+                <failOnBlacklist>true</failOnBlacklist>
+                <excludedLicenses>
+                  <excludedLicense>GNU General Public License (GPL)</excludedLicense>
+                  <excludedLicense>GNU Affero General Public License (AGPL)</excludedLicense>
+                </excludedLicenses>
+              </configuration>
+            </plugin>
+            <plugin>
+              <groupId>com.github.siom79.japicmp</groupId>
+              <artifactId>japicmp-maven-plugin</artifactId>
+              <version>0.23.1</version>
+              <configuration>
+                <oldVersion>
+                  <dependency>
+                    <groupId>${project.groupId}</groupId>
+                    <artifactId>${project.artifactId}</artifactId>
+                    <version>RELEASE</version>
+                    <type>jar</type>
+                  </dependency>
+                </oldVersion>
+                <parameter>
+                  <breakBuildOnBinaryIncompatibleModifications>true</breakBuildOnBinaryIncompatibleModifications>
+                </parameter>
+              </configuration>
+            </plugin>
         </plugins>
     </build>
 </project>

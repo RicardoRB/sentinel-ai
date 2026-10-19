@@ -1,0 +1,110 @@
+version = 1
+preset = "strict"
+
+[quality-gates.compile]
+enabled = true
+profiles = ["pre-push", "ci"]
+command = "./mvnw compile"
+
+[quality-gates.tests]
+enabled = true
+profiles = ["pre-push", "ci"]
+command = "./mvnw test"
+
+[quality-gates.format]
+enabled = true
+profiles = ["default", "pre-commit", "pre-push", "ci"]
+command = "./mvnw spotless:check"
+
+[quality-gates.format.partial]
+inputs = ["src/**/*.java"]
+config = ["pom.xml"]
+args = ["-DspotlessFiles={paths}"]
+item = ".*/{path}"
+separator = ","
+
+[quality-gates.checkstyle]
+enabled = true
+profiles = ["default", "pre-commit", "pre-push", "ci"]
+command = "./mvnw checkstyle:check"
+
+[quality-gates.checkstyle.partial]
+inputs = ["src/**/*.java"]
+config = ["config/checkstyle.xml", "pom.xml"]
+args = ["-Dcheckstyle.includes={paths}"]
+item = "**/{name}"
+separator = ","
+
+[quality-gates.pmd]
+enabled = true
+profiles = ["default", "pre-commit", "pre-push", "ci"]
+command = "./mvnw pmd:check"
+
+[quality-gates.pmd.partial]
+inputs = ["src/**/*.java"]
+config = ["config/pmd-ruleset.xml", "pom.xml"]
+
+[quality-gates.spotbugs]
+enabled = true
+profiles = ["pre-push", "ci"]
+command = "./mvnw spotbugs:check"
+
+[quality-gates.coverage]
+enabled = true
+profiles = ["pre-push", "ci"]
+command = "./mvnw jacoco:check"
+
+[quality-gates.archunit]
+enabled = true
+profiles = ["pre-push", "ci"]
+command = "./mvnw -Dtest=ArchitectureBoundaryTest,ArchitectureTestGeneratorTest,NativeCommandMetadataTest,NativeImageCompatibilityTest,NativeJsonCodecMetadataTest,SentinelCliContract4Test test"
+
+[quality-gates.enforcer]
+enabled = true
+profiles = ["pre-push", "ci"]
+command = "./mvnw enforcer:enforce"
+
+[quality-gates.mutation]
+enabled = true
+profiles = ["ci"]
+command = "./mvnw pitest:mutationCoverage"
+
+[quality-gates.gitleaks]
+enabled = true
+profiles = ["default", "pre-commit", "pre-push", "ci"]
+command = "gitleaks detect --no-banner --redact --report-format sarif --report-path target/gitleaks.sarif"
+
+[quality-gates.semgrep]
+enabled = true
+profiles = ["ci"]
+command = "semgrep scan --config p/java --error"
+
+[quality-gates.semgrep.partial]
+inputs = ["**"]
+config = [".semgrep*"]
+args = ["{paths}"]
+
+[quality-gates.dependency-check]
+enabled = true
+profiles = ["ci"]
+command = "./mvnw dependency-check:check"
+
+[quality-gates.trivy]
+enabled = true
+profiles = ["ci"]
+command = "trivy fs --exit-code 1 ."
+
+[quality-gates.license]
+enabled = true
+profiles = ["pre-push", "ci"]
+command = "./mvnw license:add-third-party"
+
+[quality-gates.api-compat]
+enabled = true
+profiles = ["ci"]
+command = "./mvnw japicmp:cmp"
+
+[quality-gates.openspec]
+enabled = true
+profiles = ["ci"]
+command = "openspec validate --all --strict --no-interactive"

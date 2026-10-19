@@ -26,7 +26,7 @@
 - CLI integration tests use the offline fixture `src/test/resources/fixtures/maven-project` and its stub `mvnw`.
 - Use `FakeCommandExecutor` for process tests. Existing test names use descriptive camelCase.
 - `NativeInitTerminalSmokeTest` drives a built executable's `init` wizard through a pseudo-terminal and is skipped unless `-Dsentinel.native.binary` is set: `./mvnw -Dtest=NativeInitTerminalSmokeTest -Dsentinel.native.binary=target/sentinel test` after `native:compile`.
-- PIT, Testcontainers, and OWASP Dependency-Check are not configured; do not invent or claim those checks.
+- Testcontainers is not configured; do not invent or claim that check.
 
 ## Security
 
@@ -37,8 +37,8 @@
 ## Verification (non-negotiable)
 
 - Do not modify anything under `/config`.
-- Run `./verify-quality.sh` before finishing. It runs ArchUnit, tests, Spotless, Checkstyle, SpotBugs, JaCoCo, and enforces ≥80% JaCoCo instruction coverage.
-- Claude Code and OpenCode edit/write hooks must invoke `verify-quality.sh`. The native V2 plugin is `plugins/sentinel-jacoco.ts`, loaded by `opencode.jsonc`.
+- Run `sentinel check --profile pre-push` before finishing. Gates and profiles are defined in `sentinel.toml`; `sentinel check --profile ci` runs every gate.
+- Claude Code and OpenCode edit/write hooks must invoke `sentinel check` through the Sentinel integration: `.claude/hooks/sentinel-edit-write` (registered in `.claude/settings.json`) and `.opencode/plugins/sentinel-edit-write.js`.
 - `check --format json` must write only JSON to stdout; diagnostics go to stderr.
 - CLI changes must update the matching documentation pages under `website/`.
 - Changes to `sentinel init` options or behavior must update the agent skills under `skills/` in the same pull request; `AgentSkillsConsistencyTest` checks options and versions, not wording.
