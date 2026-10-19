@@ -35,6 +35,45 @@ cumulative. Select other profiles using `sentinel check --profile ci,strict`. Le
 top-level `[profiles]` tables are unsupported. Unknown gate IDs and checks with no enabled matching
 gates are errors.
 
+## Partial checks
+
+An optional `[quality-gates.<id>.partial]` table controls how a gate responds to an edited path
+passed to `sentinel check --path`. `inputs` lists files the gate analyzes and `config` lists files
+that configure it; both use patterns relative to the project root. If an edited path matches
+`config`, the gate runs its normal command. If it matches `inputs`, `args` can narrow the command:
+`{paths}` is replaced with the edited paths as separate process arguments, or as one value joined by
+`separator`. Each path is rendered as `{path}` (the root-relative path) by default; `item =
+"**/{name}"` renders the file name instead.
+
+```toml
+[quality-gates.checkstyle.partial]
+inputs = ["src/**/*.java"]
+config = ["config/checkstyle.xml", "pom.xml"]
+args = ["-Dcheckstyle.includes={paths}"]
+item = "**/{name}"
+separator = ","
+
+[quality-gates.semgrep.partial]
+inputs = ["**"]
+config = [".semgrep.yml", ".semgrepignore"]
+args = ["{paths}"]
+```
+
+For example, a Maven Checkstyle edit of `src/main/java/acme/Order.java` receives
+`-Dcheckstyle.includes=**/Order.java`; a Semgrep edit receives the root-relative path as its own
+argument. Other `args` entries are appended unchanged, and nothing passes through a shell.
+
+- A `config` match wins over an `inputs` match, and a gate without `args` runs in full when an edited
+  path matches its `inputs`.
+- A deleted file counts as an edit of the gate, but is not passed in `{paths}`. When every relevant
+  edit is a deletion, the gate runs in full.
+- Paths outside the project root are ignored. A gate without `partial` always runs in full.
+- `args` requires `inputs`, every list must contain non-blank strings, and `item` must contain
+  `{path}` or `{name}`. Otherwise `sentinel check` exits with code `2`.
+
+Verify custom arguments with the real tool: a path format the tool does not understand can analyze
+no files and pass. Only checks with `--path` read these tables.
+
 **Security:** commands are trusted executable code and run with the current user's privileges in
 the project root. Review `sentinel.toml` as carefully as a build script; do not run checks on
 untrusted repositories outside a sandbox. See [security](/security/).

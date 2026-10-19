@@ -5,10 +5,23 @@ import java.util.List;
 import java.util.OptionalInt;
 import java.util.function.Function;
 
-public record CheckReport(Project project, List<GateResult> results) {
+public record CheckReport(Project project, List<GateResult> results, List<String> partialPaths) {
+
+  public CheckReport(final Project project, final List<GateResult> results) {
+    this(project, results, List.of());
+  }
 
   public CheckReport {
     results = List.copyOf(results);
+    partialPaths = List.copyOf(partialPaths);
+  }
+
+  public CheckReport withResults(final List<GateResult> replacement) {
+    return new CheckReport(project, replacement, partialPaths);
+  }
+
+  public CheckReport withPartialPaths(final List<String> paths) {
+    return new CheckReport(project, results, paths);
   }
 
   public GateStatus status() {

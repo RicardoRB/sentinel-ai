@@ -134,7 +134,7 @@ class InitWizardLineModeTest {
       assertThat(configuration).contains("[quality-gates." + gate + "]");
     }
     assertThat(configuration.split("\\[quality-gates\\.", -1))
-        .hasSize(QualityPreset.STANDARD.gates().size() + 1);
+        .hasSize(QualityPreset.STANDARD.gates().size() + 4);
   }
 
   @Test

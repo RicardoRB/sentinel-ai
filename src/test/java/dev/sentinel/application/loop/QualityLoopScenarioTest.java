@@ -5,9 +5,7 @@ import static dev.sentinel.ProjectFixtures.withPom;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import dev.sentinel.application.gate.CheckService;
-import dev.sentinel.application.gate.QualityGateFactory;
-import dev.sentinel.application.gate.QualityGateRunner;
-import dev.sentinel.application.project.ProjectDetector;
+import dev.sentinel.application.gate.CheckServiceFixtures;
 import dev.sentinel.domain.FakeCommandExecutor;
 import dev.sentinel.domain.agent.AgentRequest;
 import dev.sentinel.domain.agent.AgentResult;
@@ -21,9 +19,7 @@ import dev.sentinel.domain.loop.LoopResult;
 import dev.sentinel.domain.loop.LoopTerminalState;
 import dev.sentinel.domain.process.CommandExecutor;
 import dev.sentinel.domain.process.CommandResult;
-import dev.sentinel.infrastructure.config.TomlConfigurationReader;
 import dev.sentinel.infrastructure.loop.GitStateInspector;
-import dev.sentinel.infrastructure.project.FileSystemProjectInspection;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -40,12 +36,7 @@ class QualityLoopScenarioTest {
     Files.writeString(
         dir.resolve("sentinel.toml"), "version = 1\n[quality-gates.tests]\ncommand = \"verify\"\n");
     final FakeCommandExecutor executor = new FakeCommandExecutor(0, "", "");
-    final CheckService checks =
-        new CheckService(
-            new ProjectDetector(new FileSystemProjectInspection()),
-            new TomlConfigurationReader(),
-            new QualityGateFactory(executor),
-            new QualityGateRunner());
+    final CheckService checks = CheckServiceFixtures.checks(executor);
     final AgentRunner agent =
         new AgentRunner() {
           @Override
@@ -76,12 +67,7 @@ class QualityLoopScenarioTest {
     Files.writeString(
         dir.resolve("sentinel.toml"), "version = 1\n[quality-gates.tests]\ncommand = \"verify\"\n");
     final FakeCommandExecutor executor = new FakeCommandExecutor(1, "failure", "");
-    final CheckService checks =
-        new CheckService(
-            new ProjectDetector(new FileSystemProjectInspection()),
-            new TomlConfigurationReader(),
-            new QualityGateFactory(executor),
-            new QualityGateRunner());
+    final CheckService checks = CheckServiceFixtures.checks(executor);
     final AgentRunner agent =
         new AgentRunner() {
           @Override
@@ -112,12 +98,7 @@ class QualityLoopScenarioTest {
     Files.writeString(
         dir.resolve("sentinel.toml"), "version = 1\n[quality-gates.tests]\ncommand = \"verify\"\n");
     final FakeCommandExecutor executor = new FakeCommandExecutor(0, "", "");
-    final CheckService checks =
-        new CheckService(
-            new ProjectDetector(new FileSystemProjectInspection()),
-            new TomlConfigurationReader(),
-            new QualityGateFactory(executor),
-            new QualityGateRunner());
+    final CheckService checks = CheckServiceFixtures.checks(executor);
     final AgentRunner timeout =
         new AgentRunner() {
           @Override
@@ -182,12 +163,7 @@ class QualityLoopScenarioTest {
           calls[0]++;
           return new CommandResult(calls[0] == 2 ? 0 : 1, "", "failed", Duration.ZERO);
         };
-    final CheckService checks =
-        new CheckService(
-            new ProjectDetector(new FileSystemProjectInspection()),
-            new TomlConfigurationReader(),
-            new QualityGateFactory(executor),
-            new QualityGateRunner());
+    final CheckService checks = CheckServiceFixtures.checks(executor);
     final int[] agentCalls = {0};
     final AgentRunner agent =
         new AgentRunner() {
@@ -217,7 +193,7 @@ class QualityLoopScenarioTest {
   @Test
   void convertsUnexpectedGateFailureToGateError(@TempDir final Path dir) {
     final CheckService checks =
-        new CheckService(null, null, null, null) {
+        new CheckService(null, null, null, null, null) {
           @Override
           public CheckReport check(final Path ignored) {
             throw new IllegalStateException("gate exploded");

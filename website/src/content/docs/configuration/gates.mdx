@@ -82,6 +82,28 @@ Only default report locations are read, and only reports written during the curr
 report is ignored. A missing or malformed report never changes the gate result: the gate just has
 no findings. Gitleaks findings never contain the matched secret. Other gates have no findings yet.
 
+## Partial checks
+
+`sentinel init` writes a [`[quality-gates.<id>.partial]` table](/configuration/sentinel-toml/#partial-checks)
+for `checkstyle`, `pmd`, `format`, and `semgrep`. After an agent edit, a gate is skipped when no edited
+file is in its `inputs`, runs in full when one of its `config` files was edited, and is narrowed to the
+edited files when the tool supports it:
+
+| Gate | Maven | Gradle |
+|---|---|---|
+| `checkstyle` | `-Dcheckstyle.includes=**/<file name>` | `-PsentinelPaths=<paths>`, with a preset |
+| `pmd` | full, with PMD's analysis cache | `-PsentinelPaths=<paths>`, with a preset |
+| `format` | `-DspotlessFiles=.*/<path>`, a regular expression matched against the absolute path | full |
+| `semgrep` | each path as its own argument | each path as its own argument |
+
+The Gradle Checkstyle and PMD blocks init writes with a preset filter their sources to
+`sentinelPaths` only when the property is set, so `checkstyleMain` and `pmdMain` still check the whole
+`main` source set otherwise. Without a preset there is no filter, and those gates run in full. Gradle's
+single-file Spotless mode applies formatting instead of checking it, so Gradle `format` runs in full.
+The forms above were verified against the real tools: a path format a tool does not understand
+analyzes no files and passes. The full check at the end of an agent turn, git hooks, and CI always
+check the whole project.
+
 For Maven-backed gates, `init` resolves a version from its embedded
 Java/Maven compatibility catalog before adding a missing plugin to `pom.xml`. Existing compatible
 versions are preserved; incompatible versions require confirmation, or `--yes` for explicit automation.

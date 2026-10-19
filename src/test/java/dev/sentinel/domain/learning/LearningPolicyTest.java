@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import dev.sentinel.domain.gate.CheckReport;
 import dev.sentinel.domain.gate.GateResult;
+import dev.sentinel.domain.gate.GateScope;
 import dev.sentinel.domain.gate.GateStatus;
 import dev.sentinel.domain.project.BuildTool;
 import dev.sentinel.domain.project.Framework;
@@ -69,6 +70,37 @@ class LearningPolicyTest {
     assertThat(skipped.ledger()).isEqualTo(failed.ledger());
     assertThat(resolved.prompts()).hasSize(1);
     assertThat(resolvedAgain.prompts()).isEmpty();
+  }
+
+  @Test
+  void gateSkippedByAPartialCheckKeepsItsFailureStreak() {
+    LearningLedger ledger = LearningLedger.empty();
+    for (final GateStatus status : List.of(GateStatus.FAILED, GateStatus.PASSED)) {
+      ledger = LearningPolicy.apply(ledger, report(status, "bad"), 3, NOW).ledger();
+    }
+    final LearningLedger failing =
+        LearningPolicy.apply(ledger, report(GateStatus.FAILED, "bad"), 3, NOW).ledger();
+    final GateResult skipped =
+        new GateResult(
+                "checkstyle",
+                GateStatus.SKIPPED,
+                List.of(),
+                0,
+                Duration.ZERO,
+                "",
+                "",
+                "Not affected by the edited files")
+            .withScope(GateScope.SKIPPED);
+
+    final LearningOutcome outcome =
+        LearningPolicy.apply(
+            failing, new CheckReport(PROJECT, List.of(skipped)), 3, NOW.plusSeconds(1));
+
+    assertThat(outcome.ledger()).isEqualTo(failing);
+    assertThat(outcome.ledger().records().get(CHECKSTYLE_FAILED).occurrences()).isEqualTo(2);
+    assertThat(outcome.ledger().records().get(CHECKSTYLE_FAILED).state())
+        .isEqualTo(LearningState.FAILING);
+    assertThat(outcome.prompts()).isEmpty();
   }
 
   @Test

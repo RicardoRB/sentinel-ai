@@ -194,6 +194,10 @@ sentinel init --preset strict --architecture hexagonal --integration claude-code
 Tell the user:
 
 1. What is configured now: preset, gates and the profiles they run in, integration, hooks.
+   Mention that `sentinel.toml` has `partial` tables for Checkstyle, PMD, format, and Semgrep: the
+   check after each agent edit skips gates the edit does not affect and narrows supported tools to
+   the edited files. Claude Code and the native harnesses still run the full `default` check when the
+   turn ends; git hooks and CI always check the whole project.
 2. Every manual step still open, taken from the output. For example: tools that are still
    `UNAVAILABLE`, replacing `<TARGET_URL>` for `zap`, setting `NVD_API_KEY` for `dependency-check`,
    or a declined compatibility update.

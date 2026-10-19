@@ -23,6 +23,7 @@ import dev.sentinel.domain.project.Framework;
 import dev.sentinel.domain.project.Language;
 import dev.sentinel.domain.project.Project;
 import dev.sentinel.domain.project.ProjectInspection;
+import dev.sentinel.infrastructure.config.FilePathExistence;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -55,7 +56,8 @@ class QualityLoopPortTest {
                 new SentinelConfiguration(
                     1, Map.of("tests", new GateConfiguration(true, List.of("mvn", "test")))),
             new QualityGateFactory(commands),
-            new QualityGateRunner());
+            new QualityGateRunner(),
+            new FilePathExistence());
     final List<String> requested = new ArrayList<>();
     final AgentRunnerFactory agents =
         (workingDirectory, arguments) -> {

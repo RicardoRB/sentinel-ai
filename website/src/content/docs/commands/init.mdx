@@ -63,7 +63,8 @@ use what it generated:
 
 - With a preset, `checkstyle { configFile = file('config/checkstyle.xml') }` and
   `pmd { ruleSetFiles = files('config/pmd-ruleset.xml'); ruleSets = [] }`, both limited to the `main`
-  source set, as the Maven plugins are.
+  source set, as the Maven plugins are. Each is followed by a `tasks.named` block that limits the task to
+  the files in the `sentinelPaths` property when a partial check sets it.
 - `spotless { java { googleJavaFormat() } }` for `format`, unless a `spotless { }` block exists.
 - `jacocoTestCoverageVerification` with the preset's minimums, or `LINE` `0.80` without a preset. The
   `coverage` gate runs `jacocoTestCoverageVerification`, which fails below a minimum.
@@ -71,6 +72,13 @@ use what it generated:
 
 The Kotlin DSL gets the same blocks in Kotlin syntax. A block is added only once, so running init
 again does not duplicate it.
+
+The generated `sentinel.toml` includes [`partial` tables](/configuration/gates/#partial-checks) for
+`checkstyle`, `pmd`, `format`, and `semgrep`, so the check after each agent edit skips gates the edit
+does not affect and narrows supported tools to the edited files. Other gates, `sentinel check` without
+`--path`, git hooks, and CI keep checking the whole project. The `maven-pmd-plugin` declaration init
+adds enables `<analysisCache>true</analysisCache>`, which cut a warm PMD run on Sentinel's own sources
+from about 8 s to 2 s.
 
 Init generates `ArchitectureTest.java` in the package shared by all main sources, for example
 `com.acme.shop` for `com.acme.shop.domain` and `com.acme.shop.application`, and its rules analyze that

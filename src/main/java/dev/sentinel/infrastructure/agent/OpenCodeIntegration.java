@@ -42,12 +42,13 @@ public final class OpenCodeIntegration implements AgentIntegration {
             const MAX_FEEDBACK = 20000;
             const bound = (text) => (text.length > MAX_FEEDBACK ? `${text.slice(0, MAX_FEEDBACK)}\\n[truncated]` : text);
             const diagnostic = (message) => console.warn(`[sentinel] ${String(message).slice(0, 500)}`);
-            const editedSpecPaths = (input, result) => {
+            const editedPaths = (input, result) => {
               const args = input && typeof input === "object" ? input : {};
               const files = Array.isArray(result?.metadata?.files) ? result.metadata.files : [];
               const paths = [args.filePath, args.path, ...files.flatMap((file) => [file?.filePath, file?.movePath])];
-              return [...new Set(paths.filter((path) => typeof path === "string" && path.includes("openspec")))];
+              return [...new Set(paths.filter((path) => typeof path === "string" && path))];
             };
+            const editedSpecPaths = (paths) => paths.filter((path) => path.includes("openspec"));
             // Mirrors the host's content normalization so appended feedback keeps the original result.
             const contentOf = (result) => {
               const content = result?.content;
@@ -92,7 +93,9 @@ public final class OpenCodeIntegration implements AgentIntegration {
                   return null;
                 };
                 const validateEdit = async (event, directory) => {
-                  const check = await run(CHECK, directory);
+                  const paths = editedPaths(event.input, event.result);
+                  const checkArgs = paths.flatMap((path) => ["--path", path]);
+                  const check = await run([...CHECK, ...checkArgs], directory);
                   if (check.error) return `Sentinel could not run the quality check: ${check.error}`;
                   let report = null;
                   try { report = JSON.parse(check.stdout); } catch { /* Non-JSON output is reported as text. */ }
@@ -101,9 +104,9 @@ public final class OpenCodeIntegration implements AgentIntegration {
                     .filter((instruction) => typeof instruction === "string" && instruction);
                   const parts = [];
                   if (check.code !== 0) parts.push(`Sentinel quality check failed:\\n${bound((check.stdout || check.stderr).trim())}`);
-                  const paths = editedSpecPaths(event.input, event.result);
-                  if (paths.length > 0) {
-                    const spec = await run(["spec", "validate", "--", ...paths], directory);
+                  const specPaths = editedSpecPaths(paths);
+                  if (specPaths.length > 0) {
+                    const spec = await run(["spec", "validate", "--", ...specPaths], directory);
                     if (spec.error) parts.push(`Sentinel could not run spec validation: ${spec.error}`);
                     else if (spec.code !== 0) parts.push(`Sentinel spec validation failed:\\n${bound((spec.stdout || spec.stderr).trim())}`);
                   }

@@ -5,7 +5,13 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-public record GateConfiguration(boolean enabled, List<String> command, Set<String> profiles) {
+public record GateConfiguration(
+    boolean enabled, List<String> command, Set<String> profiles, PartialGateConfiguration partial) {
+
+  public GateConfiguration(
+      final boolean enabled, final List<String> command, final Set<String> profiles) {
+    this(enabled, command, profiles, null);
+  }
 
   public GateConfiguration {
     command = List.copyOf(command);

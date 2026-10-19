@@ -84,6 +84,86 @@ class TomlParsingTest {
   }
 
   @Test
+  void parsesPartialConfiguration() throws Exception {
+    final SentinelConfiguration config =
+        read(
+            reader,
+            dir,
+            """
+                version = 1
+                [quality-gates.checkstyle]
+                command = ["./mvnw", "checkstyle:check"]
+                [quality-gates.checkstyle.partial]
+                inputs = ["src/**/*.java"]
+                config = ["config/checkstyle.xml"]
+                args = ["-Dcheckstyle.includes={paths}"]
+                item = "**/{name}"
+                separator = ","
+                """);
+
+    assertThat(config.gates().get("checkstyle").partial().inputs())
+        .containsExactly("src/**/*.java");
+    assertThat(config.gates().get("checkstyle").partial().args())
+        .containsExactly("-Dcheckstyle.includes={paths}");
+  }
+
+  @Test
+  void rejectsPartialArgumentsWithoutInputs() {
+    assertThatThrownBy(
+            () ->
+                read(
+                    reader,
+                    dir,
+                    """
+                        version = 1
+                        [quality-gates.tests]
+                        command = "echo test"
+                        [quality-gates.tests.partial]
+                        args = ["{paths}"]
+                        """))
+        .isInstanceOf(SentinelException.class)
+        .hasMessageContaining("tests.partial.args")
+        .hasMessageContaining("inputs");
+  }
+
+  @Test
+  void rejectsInvalidPartialValues() {
+    assertThatThrownBy(
+            () ->
+                read(
+                    reader,
+                    dir,
+                    """
+                        version = 1
+                        [quality-gates.tests]
+                        command = "echo test"
+                        [quality-gates.tests.partial]
+                        inputs = "src/**/*.java"
+                        """))
+        .isInstanceOf(SentinelException.class)
+        .hasMessageContaining("tests.partial.inputs");
+  }
+
+  @Test
+  void rejectsPartialItemWithoutPlaceholder() {
+    assertThatThrownBy(
+            () ->
+                read(
+                    reader,
+                    dir,
+                    """
+                        version = 1
+                        [quality-gates.tests]
+                        command = "echo test"
+                        [quality-gates.tests.partial]
+                        inputs = ["**"]
+                        item = "**/Order.java"
+                        """))
+        .isInstanceOf(SentinelException.class)
+        .hasMessageContaining("tests.partial.item");
+  }
+
+  @Test
   void noGatesIsValid() throws Exception {
     assertThat(read(reader, dir, "version = 1").gates()).isEmpty();
   }

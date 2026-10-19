@@ -16,7 +16,8 @@ public record GateResult(
     String summary,
     Integer errors,
     Integer warnings,
-    GateFindings findings) {
+    GateFindings findings,
+    GateScope scope) {
 
   public GateResult {
     command = List.copyOf(command);
@@ -45,7 +46,8 @@ public record GateResult(
         summary,
         errors,
         warnings,
-        GateFindings.NONE);
+        GateFindings.NONE,
+        null);
   }
 
   public GateResult(
@@ -106,7 +108,15 @@ public record GateResult(
         summary,
         errors,
         warnings,
-        gateFindings);
+        gateFindings,
+        scope);
+  }
+
+  /** Returns a copy carrying the partial-check scope. */
+  public GateResult withScope(final GateScope gateScope) {
+    return new GateResult(
+        name, status, command, exitCode, duration, stdout, stderr, summary, errors, warnings,
+        findings, gateScope);
   }
 
   public boolean passed() {

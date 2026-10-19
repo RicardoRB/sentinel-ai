@@ -17,6 +17,7 @@ final class PresetPluginSnippets {
                 <failOnViolation>true</failOnViolation>
                 <printFailingErrors>true</printFailingErrors>
                 <includeTests>false</includeTests>
+                <analysisCache>true</analysisCache>
               </configuration>
             </plugin>
           """;

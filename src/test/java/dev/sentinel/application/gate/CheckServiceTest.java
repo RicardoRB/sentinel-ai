@@ -19,8 +19,6 @@ import dev.sentinel.domain.project.Framework;
 import dev.sentinel.domain.project.Language;
 import dev.sentinel.domain.project.Project;
 import dev.sentinel.domain.project.ProjectInspection;
-import dev.sentinel.infrastructure.config.TomlConfigurationReader;
-import dev.sentinel.infrastructure.project.FileSystemProjectInspection;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -57,7 +55,8 @@ class CheckServiceTest {
                 new SentinelConfiguration(
                     1, Map.of("tests", new GateConfiguration(true, List.of("mvn", "test")))),
             new QualityGateFactory(executor),
-            new QualityGateRunner());
+            new QualityGateRunner(),
+            Files::exists);
 
     final CheckReport report = checks.check(root);
 
@@ -67,11 +66,7 @@ class CheckServiceTest {
   }
 
   private CheckService service(final FakeCommandExecutor executor) {
-    return new CheckService(
-        new ProjectDetector(new FileSystemProjectInspection()),
-        new TomlConfigurationReader(),
-        new QualityGateFactory(executor),
-        new QualityGateRunner());
+    return CheckServiceFixtures.checks(executor);
   }
 
   @Test
@@ -169,12 +164,7 @@ class CheckServiceTest {
           executed.add(command.getFirst());
           return new CommandResult(0, "", "", Duration.ZERO);
         };
-    final CheckService checks =
-        new CheckService(
-            new ProjectDetector(new FileSystemProjectInspection()),
-            new TomlConfigurationReader(),
-            new QualityGateFactory(executor),
-            new QualityGateRunner());
+    final CheckService checks = CheckServiceFixtures.checks(executor);
 
     checks.check(dir, List.of("a", "b"));
     assertThat(executed).containsExactly("first", "second");

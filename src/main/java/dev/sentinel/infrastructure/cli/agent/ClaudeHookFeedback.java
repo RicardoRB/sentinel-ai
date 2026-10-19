@@ -29,6 +29,18 @@ final class ClaudeHookFeedback {
     return lines;
   }
 
+  /** Turn-end findings: quality failures, then spec findings. */
+  static String turnEnd(final CheckReport report, final SpecValidationReport specs) {
+    final List<String> lines = new ArrayList<>(2);
+    if (!report.passed()) {
+      lines.add(qualityFailures(report));
+    }
+    if (specs.hasFindings()) {
+      lines.add(specFindings(specs));
+    }
+    return String.join(System.lineSeparator(), lines);
+  }
+
   static String specFindings(final SpecValidationReport specs) {
     return SPEC_HEADER + SpecReportRenderer.render(specs);
   }

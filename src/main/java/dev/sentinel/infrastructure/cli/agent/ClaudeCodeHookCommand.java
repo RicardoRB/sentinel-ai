@@ -135,7 +135,14 @@ public final class ClaudeCodeHookCommand implements Callable<Integer> {
 
   private Integer executePostToolUse(final ClaudeHookEvent event) {
     final Set<String> excluded = excludeSpec ? SupportedQualityGates.specIds() : Set.of();
-    final CheckReport report = checkService.checkExcluding(options.directory(), excluded);
+    final CheckReport report =
+        checkService.checkPartial(
+            options.directory(),
+            event
+                .editedPath()
+                .map(path -> List.of(options.directory().toAbsolutePath().resolve(path)))
+                .orElseGet(List::of),
+            excluded);
     final LearningOutcome learning = learningService.learn(report, threshold);
     final SpecValidationReport specs =
         event
@@ -156,16 +163,19 @@ public final class ClaudeCodeHookCommand implements Callable<Integer> {
   }
 
   /**
-   * Delivers turn-end spec findings to the agent once per turn. When Claude Code is already
-   * continuing because of a stop hook, the findings go to the user instead of blocking again.
+   * Runs the full {@code default} check and spec validation at turn end, and delivers their
+   * findings to the agent once per turn. When Claude Code is already continuing because of a stop
+   * hook, the findings go to the user instead of blocking again.
    */
   private Integer executeStop(final ClaudeHookEvent event) {
+    final CheckReport report =
+        checkService.checkExcluding(options.directory(), SupportedQualityGates.specIds());
     final SpecValidationReport specs =
         specService.validateConfigured(options.directory(), List.of());
-    if (!specs.hasFindings()) {
+    if (report.passed() && !specs.hasFindings()) {
       return ExitCodes.OK;
     }
-    final String findings = ClaudeHookFeedback.specFindings(specs);
+    final String findings = ClaudeHookFeedback.turnEnd(report, specs);
     if (event.stopHookActive) {
       LOGGER.log(Level.INFO, "event=claude-stop-reported reason=already-continued");
       output().println(ClaudeHookResponses.systemMessage(codec, findings));

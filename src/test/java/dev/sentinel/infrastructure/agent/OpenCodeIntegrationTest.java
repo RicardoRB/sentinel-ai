@@ -86,8 +86,9 @@ class OpenCodeIntegrationTest {
             "result?.metadata?.files",
             "file?.filePath",
             "file?.movePath",
+            "const checkArgs = paths.flatMap((path) => [\"--path\", path])",
             "[\"check\", \"--format\", \"json\", \"--exclude-spec\", \"--learn-after\", \"3\"]",
-            "[\"spec\", \"validate\", \"--\", ...paths]",
+            "[\"spec\", \"validate\", \"--\", ...specPaths]",
             "content: [...contentOf(event.result), { type: \"text\", text: feedback }]");
   }
 

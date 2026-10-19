@@ -3,6 +3,7 @@ package dev.sentinel.config;
 import dagger.Module;
 import dagger.Provides;
 import dev.sentinel.domain.agent.AgentIntegration;
+import dev.sentinel.domain.config.PathExistence;
 import dev.sentinel.infrastructure.agent.AmpIntegration;
 import dev.sentinel.infrastructure.agent.ClaudeCodeIntegration;
 import dev.sentinel.infrastructure.agent.ClineIntegration;
@@ -14,6 +15,7 @@ import dev.sentinel.infrastructure.agent.GeminiIntegration;
 import dev.sentinel.infrastructure.agent.OpenCodeIntegration;
 import dev.sentinel.infrastructure.agent.WindsurfIntegration;
 import dev.sentinel.infrastructure.cli.VersionProvider;
+import dev.sentinel.infrastructure.config.FilePathExistence;
 import java.util.Set;
 import javax.inject.Named;
 
@@ -40,5 +42,10 @@ final class SentinelProvidesModule {
   @Named("sentinel.version")
   static String version() {
     return VersionProvider.current();
+  }
+
+  @Provides
+  static PathExistence pathExistence() {
+    return new FilePathExistence();
   }
 }

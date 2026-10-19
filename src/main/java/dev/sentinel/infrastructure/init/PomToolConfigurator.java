@@ -191,6 +191,7 @@ public final class PomToolConfigurator implements BuildToolConfiguration {
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-pmd-plugin</artifactId>
                 <version>3.26.0</version>
+                <configuration><analysisCache>true</analysisCache></configuration>
               </plugin>
             """;
 

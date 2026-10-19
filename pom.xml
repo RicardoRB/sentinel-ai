@@ -83,6 +83,15 @@
             </exclusions>
         </dependency>
         <dependency>
+            <!-- The file matcher maven-checkstyle-plugin applies to its includes, so the narrowing
+                 arguments init writes are checked against the real matching rules. The same version
+                 maven-model brings; 4.x moved the XML classes PomToolMatrixTest reads. -->
+            <groupId>org.codehaus.plexus</groupId>
+            <artifactId>plexus-utils</artifactId>
+            <version>3.6.1</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <!-- Loads the PMD rule set init generates with the PMD 7 rule references. -->
             <groupId>net.sourceforge.pmd</groupId>
             <artifactId>pmd-java</artifactId>

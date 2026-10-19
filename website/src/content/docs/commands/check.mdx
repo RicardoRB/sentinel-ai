@@ -4,7 +4,7 @@ description: Run configured quality gates.
 ---
 
 ```sh
-sentinel check [-C <dir>] [--format text|json|sarif] [--severity error|warning|info] [--output <path>] [--profile <name>[,...]] [--fail-fast] [--exclude-spec] [--learn-after <n>]
+sentinel check [-C <dir>] [--format text|json|sarif] [--severity error|warning|info] [--output <path>] [--profile <name>[,...]] [--path <path>] [--fail-fast] [--exclude-spec] [--learn-after <n>]
 ```
 
 For Maven and Gradle projects, built-in test commands prefer the project wrapper
@@ -19,6 +19,16 @@ missing (for example `gitleaks`) is reported as unavailable with install guidanc
 Use `--fail-fast` to stop after the first gate that fails, is unavailable, or encounters an execution
 error. Later selected gates are listed as skipped (`not run (fail-fast)`). Without the option, all
 selected gates run as usual.
+
+Repeat `--path <path>` to run a partial check for edited files, as the agent integrations do after
+each edit. Paths are resolved against the working directory, and `--profile` still selects the gates
+(`default` otherwise). Each gate with a [`partial` table](/configuration/sentinel-toml/#partial-checks)
+is skipped when no edited path is relevant to it, narrowed to the edited files when it declares
+`args`, and run in full when one of its `config` files was edited. Gates without the table run in
+full. Skipped gates are listed as `– Checkstyle — Not affected by the edited files` and do not
+affect the verdict. The JSON report adds the edited paths and each gate's `scope`; see
+[JSON output](/reference/json-output/). Checks without `--path`, including git hooks and CI, never
+apply `partial` settings.
 
 Use `--exclude-spec` to skip the spec validation gates, `openspec` and `openspec-archived`, while
 running every other selected gate. The generated agent integrations pass it on each edit because they

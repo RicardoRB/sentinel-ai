@@ -44,7 +44,7 @@ class SpecEnforcementFixtureTest {
             }
           });
   private static final CheckService PASSING_CHECKS =
-      new CheckService(null, null, null, null) {
+      new CheckService(null, null, null, null, null) {
         @Override
         public CheckReport check(
             final Path start, final List<String> profiles, final Set<String> gates) {

@@ -12,6 +12,11 @@
   tune anything, and tell the user when the Sentinel file is not in use.
 - The gate command is in `sentinel.toml` under `[quality-gates.checkstyle]`, for example
   `./mvnw checkstyle:check` or `./gradlew checkstyleMain`.
+- The `[quality-gates.checkstyle.partial]` table init writes narrows the per-edit check with Maven
+  `-Dcheckstyle.includes=**/<file name>`, or on Gradle with `-PsentinelPaths=<paths>`, which the
+  `tasks.named('checkstyleMain')` filter init writes with a preset reads. Keep `config` listing the
+  rule file and build files, so editing them runs the gate in full. A root-relative
+  `checkstyle.includes` analyzes no files and passes; verify any custom form against the real tool.
 
 A first line `<!-- managed-by: sentinel preset=<id> -->` means Sentinel owns the file. See the
 ownership step in `SKILL.md` before editing it.

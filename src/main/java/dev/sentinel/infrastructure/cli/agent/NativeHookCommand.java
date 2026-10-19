@@ -87,9 +87,9 @@ public final class NativeHookCommand implements Callable<Integer> {
       if (guard) {
         return evaluateGuard(protocol, event);
       }
-      final CheckReport report =
-          checkService.checkExcluding(options.directory(), SupportedQualityGates.specIds());
       if (protocol.turnEnds(event)) {
+        final CheckReport report =
+            checkService.checkExcluding(options.directory(), SupportedQualityGates.specIds());
         return NativeHookTurnEnd.deliver(
             protocol,
             event,
@@ -98,6 +98,11 @@ public final class NativeHookCommand implements Callable<Integer> {
             output(),
             error());
       }
+      final CheckReport report =
+          checkService.checkPartial(
+              options.directory(),
+              NativeHookEditedPaths.of(event, options.directory()),
+              SupportedQualityGates.specIds());
       final SpecValidationReport specs = validateEditedPath(event);
       if (report.passed() && !specs.hasFindings()) {
         return ExitCodes.OK;

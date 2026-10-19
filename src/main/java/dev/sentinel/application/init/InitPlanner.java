@@ -56,7 +56,8 @@ final class InitPlanner {
             existingArchUnitTests);
     final List<PlannedGateInstallation> gateInstallations = gateInstallations(project, gates);
     final List<PlannedFileChange> files = new ArrayList<>();
-    files.add(configuration(project.root().resolve("sentinel.toml"), gates, selection.preset()));
+    files.add(
+        configuration(project, project.root().resolve("sentinel.toml"), gates, selection.preset()));
     files.addAll(installer.plan(project.root(), selection.integrations()));
     if (selection.qualityHooks()) {
       files.addAll(catalog.get().qualityHooks().plan(project.root()));
@@ -102,14 +103,17 @@ final class InitPlanner {
   }
 
   private PlannedFileChange configuration(
-      final Path file, final List<InitGateOption> gates, final QualityPreset preset) {
+      final Project project,
+      final Path file,
+      final List<InitGateOption> gates,
+      final QualityPreset preset) {
     final Optional<String> existing = storage.get().read(file);
     if (existing.isEmpty()) {
       return new PlannedFileChange(file, PlannedFileChange.Action.CREATE);
     }
     return new PlannedFileChange(
         file,
-        ConfigurationTemplate.render(gates, preset).equals(existing.get())
+        ConfigurationTemplate.render(gates, preset, project).equals(existing.get())
             ? PlannedFileChange.Action.UNCHANGED
             : PlannedFileChange.Action.MODIFY);
   }

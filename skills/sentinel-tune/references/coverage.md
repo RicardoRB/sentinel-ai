@@ -22,6 +22,9 @@
 Init leaves the configuration of a JaCoCo plugin that already exists untouched, so threshold edits in
 the build file survive later `sentinel init` runs.
 
+Init writes no `partial` table for `coverage`: coverage depends on the whole project, so the check
+after each agent edit runs it in full when it is in the `default` profile.
+
 ## Reading the current coverage
 
 Read the measured ratios from the report, not from memory:

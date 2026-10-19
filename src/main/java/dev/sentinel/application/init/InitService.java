@@ -163,7 +163,7 @@ public class InitService {
     try {
       changes.apply(project, selection, gates, approval);
       final InitResult result =
-          writeConfiguration(configurationFile, gates, selection, changes, overwrite);
+          writeConfiguration(project, configurationFile, gates, selection, changes, overwrite);
       if (!result.created()) {
         changes.rollback();
       }
@@ -197,12 +197,13 @@ public class InitService {
   }
 
   private InitResult writeConfiguration(
+      final Project project,
       final Path file,
       final List<InitGateOption> gates,
       final InitSelection selection,
       final InitChanges changes,
       final boolean overwrite) {
-    final String content = ConfigurationTemplate.render(gates, selection.preset());
+    final String content = ConfigurationTemplate.render(gates, selection.preset(), project);
     final boolean created;
     if (overwrite) {
       configurationStorage.get().replace(file, content);

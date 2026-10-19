@@ -10,6 +10,7 @@ import dev.sentinel.domain.FakeCommandExecutor;
 import dev.sentinel.domain.config.SentinelException;
 import dev.sentinel.domain.gate.CheckReport;
 import dev.sentinel.domain.gate.SupportedQualityGates;
+import dev.sentinel.infrastructure.config.FilePathExistence;
 import dev.sentinel.infrastructure.config.TomlConfigurationReader;
 import dev.sentinel.infrastructure.project.FileSystemProjectInspection;
 import java.io.IOException;
@@ -159,6 +160,7 @@ class CheckServiceGateSelectionTest {
         new ProjectDetector(new FileSystemProjectInspection()),
         new TomlConfigurationReader(),
         new QualityGateFactory(executor),
-        new QualityGateRunner());
+        new QualityGateRunner(),
+        new FilePathExistence());
   }
 }

@@ -6,6 +6,7 @@ import dev.sentinel.application.gate.QualityGateRunner;
 import dev.sentinel.application.project.ProjectDetector;
 import dev.sentinel.domain.doctor.EnvironmentInspection;
 import dev.sentinel.domain.process.CommandExecutor;
+import dev.sentinel.infrastructure.config.FilePathExistence;
 import dev.sentinel.infrastructure.config.TomlConfigurationReader;
 import dev.sentinel.infrastructure.project.FileSystemProjectInspection;
 import dev.sentinel.infrastructure.spec.FileSystemProjectPaths;
@@ -20,7 +21,8 @@ public final class SpecValidationFixtures {
         new ProjectDetector(new FileSystemProjectInspection()),
         new TomlConfigurationReader(),
         new QualityGateFactory(executor, environment),
-        new QualityGateRunner());
+        new QualityGateRunner(),
+        new FilePathExistence());
   }
 
   public static SpecValidationService service(
