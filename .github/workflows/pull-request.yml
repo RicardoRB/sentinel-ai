@@ -1,7 +1,7 @@
 name: Pull request
 
 # Every pull request must pass the JVM quality gates (including JaCoCo coverage), build the native
-# executable, and pass the native checks before it can merge.
+# executable, and pass the native checks and agent-harness suites before it can merge.
 on:
   pull_request:
 
@@ -15,3 +15,5 @@ concurrency:
 jobs:
   verify:
     uses: ./.github/workflows/verify.yml
+    with:
+      harness-compatibility: true

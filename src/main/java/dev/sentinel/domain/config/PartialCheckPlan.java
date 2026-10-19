@@ -111,9 +111,9 @@ public final class PartialCheckPlan {
     if (paths == null) {
       return List.of();
     }
-    final Path absoluteRoot = root.toAbsolutePath().normalize();
+    final Path absoluteRoot = existence.canonical(root);
     return paths.stream()
-        .map(path -> path.toAbsolutePath().normalize())
+        .map(existence::canonical)
         .distinct()
         .filter(path -> path.startsWith(absoluteRoot))
         .map(

@@ -14,6 +14,7 @@ import { Defect, Host, Refusal } from "./host";
 const STUB_DIR = join(import.meta.dir, ".stub-bin");
 
 const CHECK = ["check", "--format", "json", "--exclude-spec", "--learn-after", "3"];
+const checkFor = (...paths: string[]) => [...CHECK, ...paths.flatMap((path) => ["--path", path])];
 const MARKER = "[sentinel spec validation]";
 
 let fixture: Fixture;
@@ -128,7 +129,7 @@ describe("post-edit quality check", () => {
     const host = sessionHost();
     await setup("sentinel-edit-write.js", host);
     const { content } = await host.after({ tool: "edit", sessionID: "s1", input: { filePath: "src/A.java" }, result: { content: "Edit applied." } });
-    expect(invocations().map((i) => [i.argv, i.cwd, i.stdin])).toEqual([[CHECK, realpathSync(fixture.root), ""]]);
+    expect(invocations().map((i) => [i.argv, i.cwd, i.stdin])).toEqual([[checkFor("src/A.java"), realpathSync(fixture.root), ""]]);
     expect(content).toEqual([{ type: "text", text: "Edit applied." }]);
   });
 
@@ -204,7 +205,7 @@ describe("post-edit quality check", () => {
       input: { patchText: "*** Begin Patch" },
       result: { content: "done", metadata: { files: [{ filePath: from, movePath: to }, { filePath: join(fixture.root, "src/A.java") }, { filePath: from }] } },
     });
-    expect(invocations().map((i) => i.argv)).toEqual([CHECK, ["spec", "validate", "--", from, to]]);
+    expect(invocations().map((i) => i.argv)).toEqual([checkFor(from, to, join(fixture.root, "src/A.java")), ["spec", "validate", "--", from, to]]);
     expect(content?.map((part) => part.text).join("\n")).toContain("spec findings");
   });
 
@@ -213,7 +214,7 @@ describe("post-edit quality check", () => {
     const host = sessionHost();
     await setup("sentinel-edit-write.js", host);
     await host.after({ tool: "patch", sessionID: "s1", input: { path: "openspec/changes/a/tasks.md" }, result: { content: "ok" } });
-    expect(invocations().map((i) => i.argv)).toEqual([CHECK, ["spec", "validate", "--", "openspec/changes/a/tasks.md"]]);
+    expect(invocations().map((i) => i.argv)).toEqual([checkFor("openspec/changes/a/tasks.md"), ["spec", "validate", "--", "openspec/changes/a/tasks.md"]]);
   });
 
   test("an unavailable Sentinel executable is a bounded diagnostic, not a crashed call", async () => {
