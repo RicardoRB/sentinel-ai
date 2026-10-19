@@ -110,7 +110,8 @@ class QualityLoopScenarioTest {
           public AgentResult run(AgentRequest r) {
             try {
               Thread.sleep(1500);
-            } catch (InterruptedException ignored) {
+            } catch (InterruptedException interrupted) {
+              Thread.currentThread().interrupt();
             }
             return new AgentResult(true, "late", "");
           }

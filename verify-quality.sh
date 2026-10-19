@@ -13,7 +13,7 @@ else
   exit 2
 fi
 
-"$MVN" -q -Dtest=ArchitectureBoundaryTest test
+"$MVN" -q -Dtest=ArchitectureBoundaryTest,ArchitectureFeatureGraphTest,ArchitecturePlacementTest,ArchitectureRuleFixturesTest test
 
 "$MVN" -q org.jacoco:jacoco-maven-plugin:prepare-agent test
 

@@ -30,7 +30,7 @@ command = "./mvnw checkstyle:check"
 
 [quality-gates.checkstyle.partial]
 inputs = ["src/**/*.java"]
-config = ["config/checkstyle.xml", "pom.xml"]
+config = ["config/checkstyle.xml", "config/google_checks.xml", "pom.xml"]
 args = ["-Dcheckstyle.includes={paths}"]
 item = "**/{name}"
 separator = ","
@@ -42,7 +42,7 @@ command = "./mvnw pmd:check"
 
 [quality-gates.pmd.partial]
 inputs = ["src/**/*.java"]
-config = ["config/pmd-ruleset.xml", "pom.xml"]
+config = ["config/pmd-ruleset.xml", "pmd-ruleset-additions.xml", "pom.xml"]
 
 [quality-gates.spotbugs]
 enabled = true
@@ -57,7 +57,7 @@ command = "./mvnw jacoco:check"
 [quality-gates.archunit]
 enabled = true
 profiles = ["pre-push", "ci"]
-command = "./mvnw -Dtest=ArchitectureBoundaryTest,ArchitectureTestGeneratorTest,NativeCommandMetadataTest,NativeImageCompatibilityTest,NativeJsonCodecMetadataTest,SentinelCliContract4Test test"
+command = "./mvnw -Dtest=ArchitectureBoundaryTest,ArchitectureFeatureGraphTest,ArchitecturePlacementTest,ArchitectureRuleFixturesTest,ArchitectureTestGeneratorTest,NativeCommandMetadataTest,NativeImageCompatibilityTest,NativeJsonCodecMetadataTest,SentinelCliContract4Test test"
 
 [quality-gates.enforcer]
 enabled = true
