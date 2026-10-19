@@ -49,7 +49,8 @@ final class GradleQualityBlocks {
         + quote(kotlin, CHECKSTYLE_CONFIG)
         + ")\n"
         + mainSourceSetOnly(kotlin)
-        + "}";
+        + "}\n"
+        + GradlePathFilterBlock.render(kotlin, "checkstyleMain", "Checkstyle");
   }
 
   /** {@code ruleSets} is cleared so Gradle's default rule set does not run beside the preset's. */
@@ -60,7 +61,8 @@ final class GradleQualityBlocks {
         + (kotlin ? "listOf()" : "[]")
         + "\n"
         + mainSourceSetOnly(kotlin)
-        + "}";
+        + "}\n"
+        + GradlePathFilterBlock.render(kotlin, "pmdMain", "Pmd");
   }
 
   private static String mainSourceSetOnly(final boolean kotlin) {

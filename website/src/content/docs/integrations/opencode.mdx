@@ -11,18 +11,23 @@ moments:
 
 | Hook | When | What Sentinel does |
 |---|---|---|
-| `ctx.tool.hook("execute.after")` | After a completed `edit`, `write`, `multiedit`, `apply_patch`, or `patch` tool call | Runs the quality check, then validates the edited spec files |
+| `ctx.tool.hook("execute.after")` | After a completed `edit`, `write`, `multiedit`, `apply_patch`, or `patch` tool call | Runs a partial quality check, then validates the edited spec files |
 | `ctx.event.subscribe()` (`session.idle`) | When the agent finishes its turn | Runs every configured spec check |
 
 ## After each edit
 
 The plugin resolves the session's current location (`location.directory` from `ctx.session.get`) and runs
-`sentinel check --format json --exclude-spec --learn-after 3` there. It
-then collects the edited paths:
+`sentinel check --format json --exclude-spec --learn-after 3` there for the edited paths. It collects them
+from:
 
 - `args.filePath` for `edit`, `write`, and `multiedit`;
 - the file and move paths in the `apply_patch` result metadata;
 - `args.path` for the newer `patch` tool.
+
+Each path is passed to the check as `--path`, so it is a [partial check](/commands/check/): gates the edit does
+not affect are skipped, and supported tools analyze only the edited files. A tool call that reports no path
+runs every gate in full. The idle hook validates specs only, so files changed by shell commands are not
+quality-checked until the git hooks or CI run.
 
 Paths under `openspec/` are passed to [`sentinel spec validate`](/commands/spec/). A single patch that touches
 several changes validates each of them once.

@@ -11,6 +11,10 @@
   tell the user when the Sentinel file is not in use.
 - The gate command is in `sentinel.toml` under `[quality-gates.pmd]`, for example `./mvnw pmd:check`
   or `./gradlew pmdMain`.
+- The `[quality-gates.pmd.partial]` table init writes runs Maven PMD in full after a Java edit,
+  because the Maven plugin cannot be limited to files from the command line; the analysis cache
+  keeps that fast. On Gradle it passes `-PsentinelPaths=<paths>` to the `tasks.named('pmdMain')`
+  filter init writes with a preset. Review `inputs` and `config` before narrowing them.
 
 A first line `<!-- managed-by: sentinel preset=<id> -->` means Sentinel owns the file. See the
 ownership step in `SKILL.md` before editing it.

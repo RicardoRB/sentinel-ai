@@ -35,12 +35,13 @@ which Claude Code shows to the agent so it can fix them.
 
 With an event payload:
 
-- **`PostToolUse`:** after the quality check, the edited `tool_input.file_path` goes through
-  [`spec validate`](/commands/spec/). Spec findings are reported on stderr with exit `2`, alongside any quality
-  failures.
-- **`Stop`:** only the configured spec validations run. Findings block the stop once, using
-  `decision: "block"`. When `stop_hook_active` is true, or Sentinel cannot run, they are shown to the user as a
-  `systemMessage`. The exit code is `0`.
+- **`PostToolUse`:** a [partial check](/commands/check/) runs for the edited `tool_input.file_path`, then the path
+  goes through [`spec validate`](/commands/spec/). Spec findings are reported on stderr with exit `2`, alongside
+  any quality failures. An event without a path runs every gate in full.
+- **`Stop`:** the full `default` quality check and the configured spec validations run. Findings block the stop
+  once, using `decision: "block"`. When `stop_hook_active` is true, or Sentinel cannot run, they are shown to the
+  user as a `systemMessage`. This full check also catches files changed by shell commands, which send no edit
+  event. The exit code is `0`.
 
 See [Claude Code](/integrations/claude-code/) and [learning](/configuration/learning/).
 

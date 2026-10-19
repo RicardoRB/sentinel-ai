@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test;
 
 class ClaudeCodeHookStopTest extends ClaudeCodeHookTestSupport {
   @Test
-  void stopBlocksOnceWithFindingsAndRunsNoQualityGate() {
+  void stopBlocksOnceWithCombinedQualityAndSpecFindings() {
     specsValid = false;
 
     assertThat(hook(stop(false))).isEqualTo(ExitCodes.OK);
@@ -21,7 +21,9 @@ class ClaudeCodeHookStopTest extends ClaudeCodeHookTestSupport {
     assertThat(output.get("reason").asString())
         .contains("openspec (FAILED): 1 error", "must include at least one scenario");
     assertThat(commands)
-        .containsExactly(List.of("openspec", "validate", "--all", "--strict", "--no-interactive"));
+        .containsExactly(
+            List.of("mvn", "test"),
+            List.of("openspec", "validate", "--all", "--strict", "--no-interactive"));
     assertThat(err.toString()).isEmpty();
   }
 
@@ -51,7 +53,7 @@ class ClaudeCodeHookStopTest extends ClaudeCodeHookTestSupport {
 
     assertThat(hook(stop(false))).isEqualTo(ExitCodes.OK);
     assertThat(out.toString()).isEmpty();
-    assertThat(commands).isEmpty();
+    assertThat(commands).containsExactly(List.of("mvn", "test"));
   }
 
   @Test

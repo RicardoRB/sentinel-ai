@@ -101,6 +101,29 @@ class InitServicePlanTest {
             });
   }
 
+  @Test
+  void configurationWithoutPartialTablesIsPlannedAsModified(@TempDir final Path dir)
+      throws IOException {
+    withPom(dir, PLAIN_POM);
+    final InitService service = service(new PomToolConfigurator());
+    final InitSelection selection = selection(List.of("none"), List.of(), false);
+    service.initialize(dir, selection);
+    final Path configuration = dir.resolve("sentinel.toml");
+    final String written = Files.readString(configuration);
+
+    assertThat(written).contains("[quality-gates.checkstyle.partial]");
+    assertThat(actions(dir, service.plan(dir, selection, true)))
+        .containsEntry("sentinel.toml", Action.UNCHANGED);
+
+    Files.writeString(
+        configuration,
+        written.replaceAll("(?s)\\n\\[quality-gates\\.[a-z]+\\.partial\\][^\\[]*", "\n"));
+
+    assertThat(Files.readString(configuration)).doesNotContain(".partial]");
+    assertThat(actions(dir, service.plan(dir, selection, true)))
+        .containsEntry("sentinel.toml", Action.MODIFY);
+  }
+
   private static InitSelection selection(
       final List<String> integrations, final List<String> install, final boolean hooks) {
     return new InitSelection(

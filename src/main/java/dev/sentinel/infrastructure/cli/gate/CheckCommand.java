@@ -74,6 +74,12 @@ public class CheckCommand implements Callable<Integer> {
       description = "Gate profile(s), comma-separated or repeated (default: default).")
   private List<String> profiles = new ArrayList<>();
 
+  @Option(
+      names = "--path",
+      paramLabel = "<path>",
+      description = "Edited path to check partially; may be repeated.")
+  private final List<Path> paths = new ArrayList<>();
+
   @Option(names = "--fail-fast", description = "Stop after the first gate that does not pass.")
   private boolean failFast;
 
@@ -205,11 +211,9 @@ public class CheckCommand implements Callable<Integer> {
       if (showsText()) {
         textRenderer.begin(output());
         // Render the summary after learning so prompts can be placed before diagnostics.
-        return service.check(
-            options.directory(), profiles, textRenderer, failFast, excludedGates());
+        return runServiceCheck(textRenderer);
       }
-      return service.check(
-          options.directory(), profiles, CheckProgressListener.NO_OP, failFast, excludedGates());
+      return runServiceCheck(CheckProgressListener.NO_OP);
     } catch (SentinelException e) {
       if (format == Format.JSON && outputFile == null) {
         // stdout stays machine-readable; the human message goes to stderr as well.
@@ -218,6 +222,23 @@ public class CheckCommand implements Callable<Integer> {
       }
       throw e;
     }
+  }
+
+  private CheckReport runServiceCheck(final CheckProgressListener listener) {
+    if (paths.isEmpty()) {
+      return service.check(options.directory(), profiles, listener, failFast, excludedGates());
+    }
+    final Path workingDirectory = options.directory().toAbsolutePath().normalize();
+    final List<Path> resolved =
+        paths.stream()
+            .map(
+                path ->
+                    path.isAbsolute()
+                        ? path.normalize()
+                        : workingDirectory.resolve(path).normalize())
+            .toList();
+    return service.checkPartial(
+        workingDirectory, profiles, resolved, listener, failFast, excludedGates());
   }
 
   private Set<String> excludedGates() {

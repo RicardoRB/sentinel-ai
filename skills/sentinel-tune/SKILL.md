@@ -61,6 +61,12 @@ never enables or disables gates in `sentinel.toml`.
 
 Load only the references for the gates in scope.
 
+Also review each enabled gate's optional `[quality-gates.<id>.partial]` table when tuning per-edit
+checks. `inputs` and `config` control relevance, while `args`, `item`, and `separator` control safe
+path narrowing. Narrowing `inputs` is a **weakening of the per-edit check only**; it does not weaken
+the full check or the turn-end check, so propose it separately with evidence and a reason. Verify
+custom path rendering against the real tool because an unsupported argument can falsely pass.
+
 ## Step 3: Confirm trust, then gather evidence
 
 If `sentinel.toml` predates this session, ask now: "Running the gates executes the commands in

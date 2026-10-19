@@ -8,8 +8,8 @@ executable `.claude/hooks/sentinel-edit-write`, and registers the same hook for 
 
 | Event | When | What Sentinel does |
 |---|---|---|
-| `PostToolUse` (`Edit`, `Write`, `MultiEdit`) | After each file edit | Runs the quality check, then validates the edited spec file |
-| `Stop` | When Claude finishes its turn | Runs every configured spec check |
+| `PostToolUse` (`Edit`, `Write`, `MultiEdit`) | After each file edit | Runs a partial quality check, then validates the edited spec file |
+| `Stop` | When Claude finishes its turn | Runs the full default quality check plus every configured spec check |
 
 The generated hook runs `sentinel hook claude-code --learn-after 3 --exclude-spec --event-stdin` for the
 project directory. Make sure `sentinel` is on `PATH`. Claude Code runs hooks in the session's current
@@ -20,7 +20,9 @@ name, the edited `file_path`, and `stop_hook_active`.
 
 ## After each edit
 
-Sentinel runs the `default` profile gates, skipping spec gates (`--exclude-spec`). It then runs
+Sentinel runs a [partial check](/commands/check/) of the `default` profile for the edited file, skipping spec
+gates (`--exclude-spec`). Gates with a `partial` table are skipped when the file is not relevant to them and
+narrowed to it when they can be; other gates run in full. It then runs
 [targeted spec validation](/commands/spec/) for the edited file. An edit outside `openspec/changes/<change>/`
 or `openspec/specs/` validates nothing extra.
 
@@ -31,8 +33,9 @@ or `openspec/specs/` validates nothing extra.
 
 ## When the turn ends
 
-On `Stop`, Sentinel runs the enabled `openspec` and `openspec-archived` validations. Code-quality gates do not
-run here.
+On `Stop`, Sentinel runs the full `default` profile, without spec gates, and the enabled `openspec` and
+`openspec-archived` validations. Files changed by shell commands send no edit event, so this full check is
+where they are caught.
 
 - **No problems:** the turn ends normally with no output.
 - **First stop with findings:** Sentinel blocks the stop with `{"decision": "block", "reason": ...}`, so Claude
@@ -112,4 +115,3 @@ turns against Claude Code 2.1.292 in a disposable fixture with an isolated `CLAU
 global settings are loaded. It needs `SENTINEL_COMPAT_CLAUDE_CODE_BIN` (an absolute path to that release) and
 `ANTHROPIC_API_KEY`; without them every scenario is reported as blocked and the command exits non-zero. No
 live run has been recorded yet.
-

@@ -21,9 +21,11 @@ later compatible versions; existing fields keep their meaning within a schema ve
       "tool": "string", "rule": "string", "severity": "error|warning|note", "message": "string",
       "file": "string", "line": "number", "column": "number", "helpUri": "string"
     }],
-    "findingsTotal": "number", "findingsHidden": "number", "findingsTruncated": "boolean"
+    "findingsTotal": "number", "findingsHidden": "number", "findingsTruncated": "boolean",
+    "scope": "skipped|narrowed|full"
   }],
-  "policies": [{ "name": "string", "passed": "boolean", "message": "string" }]
+  "policies": [{ "name": "string", "passed": "boolean", "message": "string" }],
+  "partial": { "paths": ["string"] }
 }
 ```
 
@@ -34,6 +36,11 @@ below `info`; failed gates show visible findings instead of output, falling back
 when no finding is visible. `info` includes complete `stdout` and `stderr` plus the `output` tail.
 Omitted fields are intentional in schema v2.
 Project values are enum names such as `JAVA`, `MAVEN`, and `SPRING_BOOT`.
+The additive `partial` object and per-check `scope` field are present only when `--path` is used.
+`partial.paths` lists each edited path once, relative to the project root with `/` separators; a path
+outside the project is listed as given.
+`scope` is `skipped`, `narrowed`, or `full`; skipped checks have status `SKIPPED` and do not affect
+the verdict.
 
 ## Findings
 

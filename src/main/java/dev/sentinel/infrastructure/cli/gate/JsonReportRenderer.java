@@ -91,7 +91,8 @@ public class JsonReportRenderer {
             ProjectDto.from(report.project()),
             checks,
             policies,
-            learningDto);
+            learningDto,
+            report.partialPaths().isEmpty() ? null : new PartialDto(report.partialPaths()));
     return codec.toPrettyJson(root);
   }
 
@@ -112,10 +113,18 @@ public class JsonReportRenderer {
       ProjectDto project,
       List<CheckDto> checks,
       List<PolicyDto> policies,
-      LearningDto learning) {
+      LearningDto learning,
+      PartialDto partial) {
     public ReportDto {
       checks = List.copyOf(checks);
       policies = List.copyOf(policies);
+    }
+  }
+
+  @JsonType
+  public record PartialDto(List<String> paths) {
+    public PartialDto {
+      paths = List.copyOf(paths);
     }
   }
 
@@ -137,47 +146,50 @@ public class JsonReportRenderer {
   }
 
   @JsonType
-  public static final class CheckDto {
-    public String name;
-    public String status;
-    public String command;
-    public int exitCode;
-    public long durationMs;
-    public String stdout;
-    public String stderr;
-    public String summary;
-    public String output;
-    public Integer errors;
-    public Integer warnings;
-    public List<FindingDto> findings;
-    public int findingsTotal;
-    public int findingsHidden;
-    public boolean findingsTruncated;
+  public record CheckDto(
+      String name,
+      String status,
+      String command,
+      int exitCode,
+      long durationMs,
+      String stdout,
+      String stderr,
+      String summary,
+      String output,
+      Integer errors,
+      Integer warnings,
+      List<FindingDto> findings,
+      int findingsTotal,
+      int findingsHidden,
+      boolean findingsTruncated,
+      String scope) {
+
+    public CheckDto {
+      findings = List.copyOf(findings);
+    }
 
     static CheckDto from(final GateResult result, final SeverityThreshold threshold) {
-      final CheckDto dto = new CheckDto();
-      dto.name = result.name();
-      dto.status = result.status().name();
-      dto.command = String.join(" ", result.command());
-      dto.exitCode = result.exitCode();
-      dto.durationMs = result.duration().toMillis();
       final GateOutputVisibility visibility = GateOutputVisibility.of(result, threshold);
-      if (visibility == GateOutputVisibility.FULL) {
-        dto.stdout = result.stdout();
-        dto.stderr = result.stderr();
-      }
-      dto.summary = result.summary() == null ? result.status().name() : result.summary();
-      if (visibility == GateOutputVisibility.TAIL || visibility == GateOutputVisibility.FULL) {
-        dto.output = tail(result.stdout().isBlank() ? result.stderr() : result.stdout());
-      }
-      dto.errors = result.errors();
-      dto.warnings = result.warnings();
+      final boolean full = visibility == GateOutputVisibility.FULL;
+      final boolean tail = full || visibility == GateOutputVisibility.TAIL;
       final GateFindings.Visible visible = result.findings().visible(threshold);
-      dto.findings = visible.items().stream().map(FindingDto::from).toList();
-      dto.findingsTotal = visible.total();
-      dto.findingsHidden = visible.hidden();
-      dto.findingsTruncated = visible.truncated();
-      return dto;
+      return new CheckDto(
+          result.name(),
+          result.status().name(),
+          String.join(" ", result.command()),
+          result.exitCode(),
+          result.duration().toMillis(),
+          full ? result.stdout() : null,
+          full ? result.stderr() : null,
+          result.summary() == null ? result.status().name() : result.summary(),
+          tail ? tail(result.stdout().isBlank() ? result.stderr() : result.stdout()) : null,
+          result.errors(),
+          result.warnings(),
+          visible.items().stream().map(FindingDto::from).toList(),
+          visible.total(),
+          visible.hidden(),
+          visible.truncated(),
+          result.scope() == null ? null : result.scope().label());
     }
 
     /** Keeps the last {@link #OUTPUT_TAIL_LINES} lines; full text stays in stdout and stderr. */

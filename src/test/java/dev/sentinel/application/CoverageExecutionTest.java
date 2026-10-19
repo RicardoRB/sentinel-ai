@@ -18,6 +18,7 @@ import dev.sentinel.domain.project.Language;
 import dev.sentinel.infrastructure.agent.ProcessAgentRunner;
 import dev.sentinel.infrastructure.cli.CommandLineRunnerImpl;
 import dev.sentinel.infrastructure.cli.ExitCodes;
+import dev.sentinel.infrastructure.config.FilePathExistence;
 import dev.sentinel.infrastructure.config.TomlConfigurationReader;
 import dev.sentinel.infrastructure.project.FileSystemProjectInspection;
 import java.io.IOException;
@@ -74,7 +75,8 @@ class CoverageExecutionTest {
             new ProjectDetector(new FileSystemProjectInspection()),
             new TomlConfigurationReader(),
             new QualityGateFactory(executor),
-            new QualityGateRunner());
+            new QualityGateRunner(),
+            new FilePathExistence());
     assertThat(service.check(root, List.of("tests-only")).results()).hasSize(1);
     assertThatThrownBy(() -> service.check(root, List.of("missing")))
         .isInstanceOf(SentinelException.class);

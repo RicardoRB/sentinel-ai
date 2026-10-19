@@ -2,6 +2,7 @@ package dev.sentinel.infrastructure.config;
 
 import dev.sentinel.domain.config.CommandLineTokenizer;
 import dev.sentinel.domain.config.GateConfiguration;
+import dev.sentinel.domain.config.PartialGateConfiguration;
 import dev.sentinel.domain.config.SentinelConfiguration;
 import dev.sentinel.domain.config.SentinelException;
 import dev.sentinel.domain.gate.SupportedQualityGates;
@@ -22,16 +23,17 @@ final class TomlGateParser {
   static GateConfiguration parse(final String where, final TomlTable gate) {
     final Set<String> profiles = profiles(where, gate);
     final boolean enabled = enabled(where, gate);
+    final PartialGateConfiguration partial = TomlPartialParser.parse(where, gate);
     if (!gate.contains(COMMAND)) {
       if (enabled && where.endsWith("." + SupportedQualityGates.TRACEABILITY)) {
-        return new GateConfiguration(true, List.of(), profiles);
+        return new GateConfiguration(true, List.of(), profiles, partial);
       }
       if (enabled) {
         throw new SentinelException("'" + where + ".command' is required for an enabled gate");
       }
-      return new GateConfiguration(false, List.of(), profiles);
+      return new GateConfiguration(false, List.of(), profiles, partial);
     }
-    return new GateConfiguration(enabled, command(where, gate), profiles);
+    return new GateConfiguration(enabled, command(where, gate), profiles, partial);
   }
 
   private static boolean enabled(final String where, final TomlTable gate) {
