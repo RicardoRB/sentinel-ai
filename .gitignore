@@ -10,3 +10,6 @@ website/.astro/
 graphify-out/
 .claude/skills/
 .opencode/skills/
+.agents/
+skills-lock.json
+.sentinel/
