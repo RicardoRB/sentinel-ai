@@ -20,6 +20,15 @@ archives and can't be installed with the script. If that directory is not on you
 `PATH`, the script prints the line to add to your shell profile. It supports Linux x86_64 and macOS
 (Apple Silicon and Intel).
 
+When it finishes, the script prints the command that installs the Sentinel
+[agent skills](/integrations/agent-skills/). It only prints the command and does not run it:
+
+```bash
+npx skills add RicardoRB/sentinel-ai --skill sentinel-init sentinel-tune
+```
+
+Then run `/sentinel-init` in your coding agent to set up Sentinel together with it.
+
 | Variable | Default | Purpose |
 |---|---|---|
 | `SENTINEL_VERSION` | `latest` | Release tag to install, for example `v0.0.10`. |

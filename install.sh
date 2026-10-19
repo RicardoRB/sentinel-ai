@@ -119,6 +119,9 @@ main() {
       printf '\n    export PATH="%s:$PATH"\n\n' "$INSTALL_DIR"
       ;;
   esac
+
+  info "next: install the agent skills, then run /sentinel-init in your coding agent:"
+  printf '\n    npx skills add %s --skill sentinel-init sentinel-tune\n\n' "$REPO"
 }
 
 main "$@"
