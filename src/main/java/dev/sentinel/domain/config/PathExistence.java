@@ -6,4 +6,12 @@ import java.nio.file.Path;
 @FunctionalInterface
 public interface PathExistence {
   boolean exists(Path path);
+
+  /**
+   * Returns the absolute form of {@code path} used to compare it with the project root. Adapters
+   * resolve symbolic links so an edited path reached through a link still lies inside the root.
+   */
+  default Path canonical(final Path path) {
+    return path.toAbsolutePath().normalize();
+  }
 }
