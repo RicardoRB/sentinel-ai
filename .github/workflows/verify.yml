@@ -29,6 +29,9 @@ jobs:
   quality:
     name: Sentinel ci profile
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      security-events: write
     steps:
       # Full history for gitleaks.
       - uses: actions/checkout@v5
@@ -77,8 +80,21 @@ jobs:
           ./install.sh
           echo "$SENTINEL_INSTALL_DIR" >> "$GITHUB_PATH"
 
+      # --output keeps the text report on stdout for the job log.
       - name: Run quality gates
-        run: sentinel check --profile ci
+        run: sentinel check --profile ci --format sarif --output target/sentinel.sarif
+
+      # Fork tokens cannot write security events; no file means Sentinel could not run at all.
+      - name: Upload SARIF to code scanning
+        if: >-
+          always()
+          && github.event_name == 'pull_request'
+          && github.event.pull_request.head.repo.full_name == github.repository
+          && hashFiles('target/sentinel.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: target/sentinel.sarif
+          category: sentinel
 
       - name: Save trivy cache
         if: always()
@@ -99,7 +115,7 @@ jobs:
           path: |
             target/site/jacoco/
             target/pit-reports/
-            target/gitleaks.sarif
+            target/sentinel.sarif
           if-no-files-found: ignore
 
   native:
