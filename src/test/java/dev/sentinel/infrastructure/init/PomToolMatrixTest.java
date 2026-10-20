@@ -77,7 +77,8 @@ class PomToolMatrixTest {
                 preset);
 
     final Model before = read(original);
-    final Model after = read(Files.readString(root.resolve("pom.xml")));
+    final String generated = Files.readString(root.resolve("pom.xml"));
+    final Model after = read(generated);
     final List<String> projectLevel = new ArrayList<>();
     if (after.getBuild() != null) {
       after.getBuild().getPlugins().stream().map(Plugin::getArtifactId).forEach(projectLevel::add);
@@ -85,6 +86,15 @@ class PomToolMatrixTest {
     after.getDependencies().stream().map(Dependency::getArtifactId).forEach(projectLevel::add);
     assertThat(projectLevel).containsAll(change.tools());
     assertThat(profilePlugins(after)).isEqualTo(profilePlugins(before));
+    if (gates.contains("mutation")) {
+      assertThat(generated)
+          .contains(
+              "<artifactId>pitest-maven</artifactId>",
+              "<version>1.30.1</version>",
+              "<artifactId>pitest-junit5-plugin</artifactId>",
+              "<version>1.2.3</version>")
+          .doesNotContain("historyInputFile", "historyOutputFile");
+    }
     if (before.getBuild() != null && before.getBuild().getPluginManagement() != null) {
       assertThat(after.getBuild().getPluginManagement().getPlugins())
           .extracting(Plugin::getArtifactId)

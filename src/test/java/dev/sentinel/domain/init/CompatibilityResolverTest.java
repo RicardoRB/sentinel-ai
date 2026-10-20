@@ -73,6 +73,23 @@ class CompatibilityResolverTest {
         .isEqualTo(CompatibilityOutcome.UNKNOWN);
   }
 
+  @Test
+  void selectsJava25CompatiblePitestVersionFromManagedCatalog() {
+    final CompatibilityPlan plan =
+        RESOLVER.resolve(
+            snapshot(NEWEST_JAVA, Optional.of("3.9.0"), Optional.empty(), Map.of()),
+            ManagedPluginCatalog.entries(),
+            List.of("pitest-maven"));
+
+    assertThat(plan.findings())
+        .singleElement()
+        .satisfies(
+            finding -> {
+              assertThat(finding.selectedVersion()).isEqualTo("1.30.1");
+              assertThat(finding.outcome()).isEqualTo(CompatibilityOutcome.COMPATIBLE);
+            });
+  }
+
   private static CompatibilityProjectSnapshot snapshot(
       final int java,
       final Optional<String> maven,

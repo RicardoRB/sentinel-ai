@@ -116,6 +116,8 @@ the Groovy or Kotlin build script.
 `standard` enables compile, tests, format, Checkstyle, PMD, SpotBugs, and coverage with 70% line
 coverage. `strict` adds ArchUnit, Enforcer, and PIT mutation testing; it requires 85% line, 75%
 branch, and 60% mutation coverage. Strict mutation testing can substantially increase check runtime.
+For Java 25 projects, init pins PIT to 1.30.1 and the PIT JUnit 5 plugin to 1.2.3 for both Maven and
+Gradle. Generated configuration does not include PIT history input or output file settings.
 Preset initialization may write `config/pmd-ruleset.xml`, `config/checkstyle.xml`,
 `config/spotbugs-exclude.xml` (standard), and `config/enforcer-rules.xml`. These files carry a
 `managed-by: sentinel` marker; unmarked user files are never overwritten.

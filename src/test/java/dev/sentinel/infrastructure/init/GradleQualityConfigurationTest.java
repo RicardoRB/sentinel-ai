@@ -79,7 +79,8 @@ class GradleQualityConfigurationTest {
             "\njacocoTestCoverageVerification {\n",
             "counter = 'BRANCH'\n                minimum = 0.75",
             "counter = 'LINE'\n                minimum = 0.85",
-            "pitest {\n    junit5PluginVersion = '1.2.1'\n    mutationThreshold = 60\n}");
+            "pitest {\n    pitestVersion = '1.30.1'\n    junit5PluginVersion = '1.2.3'\n    mutationThreshold = 60\n}")
+        .doesNotContain("historyInputFile", "historyOutputFile");
   }
 
   @Test
@@ -95,7 +96,8 @@ class GradleQualityConfigurationTest {
             "ruleSets = listOf()",
             "\ntasks.jacocoTestCoverageVerification {\n",
             "minimum = \"0.85\".toBigDecimal()",
-            "junit5PluginVersion = \"1.2.1\"");
+            "pitestVersion = \"1.30.1\"\n    junit5PluginVersion = \"1.2.3\"")
+        .doesNotContain("historyInputFile", "historyOutputFile");
   }
 
   @Test

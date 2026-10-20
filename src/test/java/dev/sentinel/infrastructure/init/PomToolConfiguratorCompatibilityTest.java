@@ -22,6 +22,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 class PomToolConfiguratorCompatibilityTest {
   private static final int JAVA_17 = 17;
+  private static final int JAVA_25 = 25;
   // Older than every managed plugin supports.
   private static final int JAVA_7 = 7;
 
@@ -71,6 +72,23 @@ class PomToolConfiguratorCompatibilityTest {
             () -> configurator.apply(project, List.of(gate("format")), null, ignored -> true))
         .hasMessageContaining("No catalog version");
     assertThat(Files.readString(root.resolve("pom.xml"))).isEqualTo(original);
+  }
+
+  @Test
+  void configuresJava25MutationWithCurrentPitestVersions(@TempDir final Path root)
+      throws IOException {
+    writePom(root, "<project><build/></project>");
+
+    new PomToolConfigurator(ignored -> snapshot(JAVA_25, Map.of()))
+        .apply(project(root), List.of(gate("mutation")), null, ignored -> true);
+
+    assertThat(Files.readString(root.resolve("pom.xml")))
+        .contains(
+            "<artifactId>pitest-maven</artifactId>",
+            "<version>1.30.1</version>",
+            "<artifactId>pitest-junit5-plugin</artifactId>",
+            "<version>1.2.3</version>")
+        .doesNotContain("historyInputFile", "historyOutputFile");
   }
 
   private static CompatibilityProjectSnapshot snapshot(

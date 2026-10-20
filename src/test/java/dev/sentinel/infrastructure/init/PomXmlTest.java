@@ -153,4 +153,17 @@ class PomXmlTest {
                 + preset.rules().mutationThreshold()
                 + "</mutationThreshold>\n        </configuration>\n      </plugin>");
   }
+
+  @Test
+  void pitConfigurationsUseJava25CompatibleVersionsWithoutHistorySettings() {
+    final String defaultPlugin = PomToolConfigurator.PIT_PLUGIN;
+    final String presetPlugin = PresetPluginSnippets.pit(QualityPreset.STRICT);
+
+    assertThat(defaultPlugin)
+        .contains("<version>1.30.1</version>", "<version>1.2.3</version>")
+        .doesNotContain("historyInputFile", "historyOutputFile");
+    assertThat(presetPlugin)
+        .contains("<version>1.30.1</version>", "<version>1.2.3</version>")
+        .doesNotContain("historyInputFile", "historyOutputFile");
+  }
 }
