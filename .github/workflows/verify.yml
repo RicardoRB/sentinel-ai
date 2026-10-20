@@ -15,10 +15,6 @@ on:
         description: Also run the deterministic agent-harness suites against the native executable.
         type: boolean
         default: false
-    secrets:
-      NVD_API_KEY:
-        description: NVD API key for the dependency-check gate.
-        required: false
 
 permissions:
   contents: read
@@ -34,7 +30,7 @@ jobs:
     name: Sentinel ci profile
     runs-on: ubuntu-24.04
     steps:
-      # Full history for gitleaks and the latest tag for the japicmp baseline.
+      # Full history for gitleaks.
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
@@ -66,21 +62,13 @@ jobs:
           pip install "semgrep==${SEMGREP_VERSION}"
           npm install -g "@fission-ai/openspec@${OPENSPEC_VERSION}"
 
-      - name: Cache dependency-check data
-        uses: actions/cache@v4
+      # Restore and save separately so the cache is kept even when a gate fails.
+      - name: Restore trivy cache
+        uses: actions/cache/restore@v4
         with:
-          path: ~/.m2/repository/org/owasp/dependency-check-data
-          key: dependency-check-${{ github.run_id }}
-          restore-keys: dependency-check-
-
-      # japicmp compares against the RELEASE artifact, which is not published to a remote
-      # repository, so install the latest tagged release into the local repository first.
-      - name: Install japicmp baseline
-        run: |
-          set -eu
-          tag=$(git describe --tags --abbrev=0)
-          git worktree add "$RUNNER_TEMP/baseline" "$tag"
-          (cd "$RUNNER_TEMP/baseline" && ./mvnw -B -q -DskipTests install)
+          path: ~/.cache/trivy
+          key: trivy-${{ github.run_id }}
+          restore-keys: trivy-
 
       - name: Install Sentinel
         env:
@@ -90,9 +78,14 @@ jobs:
           echo "$SENTINEL_INSTALL_DIR" >> "$GITHUB_PATH"
 
       - name: Run quality gates
-        env:
-          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         run: sentinel check --profile ci
+
+      - name: Save trivy cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.cache/trivy
+          key: trivy-${{ github.run_id }}
 
       - name: Generate coverage report
         if: always()

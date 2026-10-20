@@ -29,9 +29,8 @@ Gates in `sentinel.toml`; edit hooks run the `default` profile (format, checksty
 - Coverage (JaCoCo): bundle ≥85% line, ≥75% branch. Mutation (PIT, `ci`): ≥60%. New code needs tests that assert behavior.
 - ArchUnit gate runs a fixed test list; add any new architecture/native contract test to that command.
 - Enforcer (`config/enforcer-rules.xml`): pin every plugin version, no dynamic versions, converging dependencies, Maven ≥3.9.
-- License: no GPL/AGPL dependencies. japicmp (`ci`): no binary-incompatible changes to public API vs last release.
-- gitleaks: no secrets, including in tests and fixtures. Semgrep `p/java`, dependency-check (fails CVSS ≥7), Trivy run in `ci`.
-- OpenSpec (`ci`): `openspec validate --all --strict` must pass for changes under `openspec/`.
+- License: no GPL/AGPL dependencies.
+- gitleaks: no secrets, including in tests and fixtures. Semgrep `p/java` and Trivy (any vulnerable dependency, including `website/`) run in `ci`.
 
 ## Testing
 

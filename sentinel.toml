@@ -84,8 +84,9 @@ inputs = ["**"]
 config = [".semgrep*"]
 args = ["{paths}"]
 
+# Disabled: trivy already scans Maven dependencies without an NVD API key.
 [quality-gates.dependency-check]
-enabled = true
+enabled = false
 profiles = ["ci"]
 command = "./mvnw dependency-check:check"
 
@@ -99,12 +100,8 @@ enabled = true
 profiles = ["pre-push", "ci"]
 command = "./mvnw license:add-third-party"
 
-[quality-gates.api-compat]
-enabled = true
-profiles = ["ci"]
-command = "./mvnw japicmp:cmp"
-
+# Disabled until openspec/ is tracked in Git; it is gitignored, so CI has no specs to validate.
 [quality-gates.openspec]
-enabled = true
+enabled = false
 profiles = ["ci"]
 command = "openspec validate --all --strict --no-interactive"

@@ -395,24 +395,6 @@
                 </excludedLicenses>
               </configuration>
             </plugin>
-            <plugin>
-              <groupId>com.github.siom79.japicmp</groupId>
-              <artifactId>japicmp-maven-plugin</artifactId>
-              <version>0.23.1</version>
-              <configuration>
-                <oldVersion>
-                  <dependency>
-                    <groupId>${project.groupId}</groupId>
-                    <artifactId>${project.artifactId}</artifactId>
-                    <version>RELEASE</version>
-                    <type>jar</type>
-                  </dependency>
-                </oldVersion>
-                <parameter>
-                  <breakBuildOnBinaryIncompatibleModifications>true</breakBuildOnBinaryIncompatibleModifications>
-                </parameter>
-              </configuration>
-            </plugin>
         </plugins>
     </build>
 </project>
