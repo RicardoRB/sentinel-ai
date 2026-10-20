@@ -60,7 +60,7 @@ final class QualityHookFileOperations {
     return QualityHookInstaller.START_MARKER
         + "\nif ! sentinel check --profile "
         + profile
-        + "; then\n  exit 1\nfi\n"
+        + " --format json; then\n  exit 1\nfi\n"
         + QualityHookInstaller.END_MARKER
         + "\n";
   }

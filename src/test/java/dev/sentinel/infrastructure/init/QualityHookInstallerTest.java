@@ -22,9 +22,11 @@ class QualityHookInstallerTest {
 
     assertThat(result.status()).isEqualTo(IntegrationResult.Status.CHANGED);
     assertThat(Files.readString(root.resolve(".git/hooks/pre-commit")))
-        .contains(QualityHookInstaller.START_MARKER, "sentinel check --profile pre-commit");
+        .contains(
+            QualityHookInstaller.START_MARKER, "sentinel check --profile pre-commit --format json");
     assertThat(Files.readString(root.resolve(PRE_PUSH)))
-        .contains(QualityHookInstaller.START_MARKER, "sentinel check --profile pre-push");
+        .contains(
+            QualityHookInstaller.START_MARKER, "sentinel check --profile pre-push --format json");
     assertThat(root.resolve(".git/hooks/pre-commit").toFile().canExecute()).isTrue();
     assertThat(root.resolve(PRE_PUSH).toFile().canExecute()).isTrue();
   }
