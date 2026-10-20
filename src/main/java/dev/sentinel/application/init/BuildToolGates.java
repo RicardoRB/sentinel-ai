@@ -66,11 +66,7 @@ record BuildToolGates(boolean gradle, boolean available, String availability, St
             "Checks dependency license compliance with the License Maven Plugin.",
             " (license policy is configured in pom.xml.)",
             task("licenseMain", "license:add-third-party")),
-        option(
-            "api-compat",
-            "Checks binary/API compatibility between versions with japicmp.",
-            " (the comparison baseline is configured in pom.xml.)",
-            task("japicmp", "japicmp:cmp")),
+        apiCompat(),
         option(
             "command",
             "Runs a custom command from sentinel.toml.",
@@ -85,6 +81,15 @@ record BuildToolGates(boolean gradle, boolean available, String availability, St
     return gradle
         ? option("archunit", description, note, "test", "--tests", "*ArchitectureTest")
         : option("archunit", description, note, "-Dtest=ArchitectureTest", "test");
+  }
+
+  // japicmp:cmp compares the packaged jar, so Maven packages it first.
+  private InitGateOption apiCompat() {
+    final String description = "Checks binary/API compatibility between versions with japicmp.";
+    final String note = " (the comparison baseline is configured in pom.xml.)";
+    return gradle
+        ? option("api-compat", description, note, "japicmp")
+        : option("api-compat", description, note, "-DskipTests", "package", "japicmp:cmp");
   }
 
   private String task(final String gradleTask, final String mavenTask) {

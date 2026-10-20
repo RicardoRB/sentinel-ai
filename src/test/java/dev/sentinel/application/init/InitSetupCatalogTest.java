@@ -223,7 +223,6 @@ class InitSetupCatalogTest {
             "target/gitleaks.sarif");
     assertThat(catalog.gate(project, "enforcer").command()).endsWith("enforcer:enforce");
     assertThat(catalog.gate(project, "format").command()).endsWith("spotless:check");
-    assertThat(catalog.gate(project, "api-compat").command()).endsWith("japicmp:cmp");
     assertThat(catalog.gate(project, "semgrep").availabilityMessage()).isNotBlank();
   }
 }

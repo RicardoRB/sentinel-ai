@@ -82,8 +82,16 @@ public final class PomToolConfigurator implements BuildToolConfiguration {
                       <type>jar</type>
                     </dependency>
                   </oldVersion>
+                  <newVersion>
+                    <file>
+                      <path>${project.build.directory}/${project.build.finalName}.jar</path>
+                    </file>
+                  </newVersion>
                   <parameter>
                     <breakBuildOnBinaryIncompatibleModifications>true</breakBuildOnBinaryIncompatibleModifications>
+                    <includes>
+                      <include>${project.groupId}.*</include>
+                    </includes>
                   </parameter>
                 </configuration>
               </plugin>

@@ -27,6 +27,7 @@ public final class FileSystemProjectInspection implements ProjectInspection {
   private static final int MAX_SEARCH_DEPTH = 4;
   public static final String POM = "pom.xml";
   private static final String SPRING_BOOT_GROUP_ID = "org.springframework.boot";
+  private static final String DISTRIBUTION_MANAGEMENT = "distributionManagement";
 
   /** Build-file markers in precedence order; the first match decides a directory's project. */
   private static final List<Marker> MARKERS =
@@ -118,12 +119,14 @@ public final class FileSystemProjectInspection implements ProjectInspection {
   }
 
   private static Project mavenProject(final Path dir) {
+    final Optional<Document> pom = parse(dir.resolve(POM));
     return new Project(
         dir,
         Language.JAVA,
         BuildTool.MAVEN,
-        detectFramework(dir.resolve(POM)),
-        Files.isRegularFile(dir.resolve("mvnw")));
+        pom.map(FileSystemProjectInspection::framework).orElse(Framework.NONE),
+        Files.isRegularFile(dir.resolve("mvnw")),
+        pom.map(FileSystemProjectInspection::publishes).orElse(false));
   }
 
   private static Project gradleProject(final Path dir, final Language language) {
@@ -145,8 +148,8 @@ public final class FileSystemProjectInspection implements ProjectInspection {
     return BuildTool.NPM;
   }
 
-  /** Spring Boot is detected when the POM references any org.springframework.boot groupId. */
-  private static Framework detectFramework(final Path pom) {
+  /** Parses the POM securely; a malformed or hostile POM is still a Maven marker. */
+  private static Optional<Document> parse(final Path pom) {
     try {
       final DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
       factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
@@ -154,18 +157,32 @@ public final class FileSystemProjectInspection implements ProjectInspection {
       factory.setNamespaceAware(false);
       final DocumentBuilder builder = factory.newDocumentBuilder();
       builder.setErrorHandler(null);
-      final Document document = builder.parse(pom.toFile());
-      final NodeList groupIds = document.getElementsByTagName("groupId");
-      for (int i = 0; i < groupIds.getLength(); i++) {
-        if (SPRING_BOOT_GROUP_ID.equals(groupIds.item(i).getTextContent().trim())) {
-          return Framework.SPRING_BOOT;
-        }
-      }
+      return Optional.of(builder.parse(pom.toFile()));
     } catch (javax.xml.parsers.ParserConfigurationException | SAXException | IOException e) {
-      // A POM remains a Maven marker even when its framework cannot be identified.
-      return Framework.NONE;
+      return Optional.empty();
+    }
+  }
+
+  /** Spring Boot is detected when the POM references any org.springframework.boot groupId. */
+  private static Framework framework(final Document pom) {
+    final NodeList groupIds = pom.getElementsByTagName("groupId");
+    for (int i = 0; i < groupIds.getLength(); i++) {
+      if (SPRING_BOOT_GROUP_ID.equals(groupIds.item(i).getTextContent().trim())) {
+        return Framework.SPRING_BOOT;
+      }
     }
     return Framework.NONE;
+  }
+
+  /** Only a direct child of {@code <project>} counts; profiles do not publish by default. */
+  private static boolean publishes(final Document pom) {
+    final NodeList children = pom.getDocumentElement().getChildNodes();
+    for (int i = 0; i < children.getLength(); i++) {
+      if (DISTRIBUTION_MANAGEMENT.equals(children.item(i).getNodeName())) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private record Marker(String file, Function<Path, Project> project) {}

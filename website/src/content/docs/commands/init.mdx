@@ -27,7 +27,9 @@ gates. `standard` and `strict` presets pre-select their offline gates; `custom` 
 The gates you confirm are exactly the gates configured: unticking a pre-selected preset gate removes its
 `sentinel.toml` section, Maven declarations, and rule file, while the preset's rules still apply to the
 remaining gates. `zap` writes a `<TARGET_URL>` placeholder that you must replace
-with an authorized target before `check` will run it. For `format`, `enforcer`, `license`, `api-compat`, and
+with an authorized target before `check` will run it. On Maven, `api-compat` is offered only when
+`pom.xml` declares `<distributionManagement>`, because it needs a released baseline; passing
+`--gate api-compat` otherwise fails with that explanation. For `format`, `enforcer`, `license`, `api-compat`, and
 `pmd`, missing Maven plugins are added to `pom.xml` using Sentinel's embedded Java/Maven compatibility catalog.
 For Gradle projects, equivalent pinned plugin declarations are added to `build.gradle` or
 `build.gradle.kts` using the detected DSL, and the Gradle Wrapper is preferred when available.

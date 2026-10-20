@@ -122,6 +122,8 @@ sentinel init -C <dir> --dry-run --preset strict --integration none --architectu
 ```
 
 Add `--overwrite` when `sentinel.toml` already exists. Without it the probe prints nothing useful.
+On a Maven project whose `pom.xml` has no `<distributionManagement>`, drop `api-compat` from the
+list: init offers it only for published libraries and rejects it otherwise.
 The probe still writes nothing.
 
 Read these lines from the output:

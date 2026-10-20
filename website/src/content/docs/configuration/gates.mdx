@@ -55,6 +55,14 @@ live specs fail with `no scenarios found`, and active-change specs are excluded.
 comparison baseline, so enable them deliberately (for example in a CI-only profile with
 `profiles = ["ci"]`).
 
+`api-compat` is for published libraries. It compares the latest released artifact (`RELEASE`) with
+the jar the current build produces, so a released baseline must be resolvable from a Maven
+repository. On Maven, init runs `-DskipTests package japicmp:cmp`, points japicmp's new version at
+`${project.build.directory}/${project.build.finalName}.jar` (so a custom `finalName` works), and limits
+the comparison to `${project.groupId}.*`, so classes bundled from dependencies are not reported. Init
+offers it only when `pom.xml` declares `<distributionManagement>`. Applications shipped as binaries,
+such as CLIs, have no Java API consumers and should not enable it.
+
 The Maven and Gradle `dependency-check` configurations read the NVD API key from the
 `NVD_API_KEY` environment variable and never write the key to a build file. Without the variable,
 scans may be very slow or rate-limited; request a key from the NVD API service.

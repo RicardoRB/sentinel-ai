@@ -71,7 +71,9 @@ public class InitGeneralCatalog {
     final BuildToolGates buildTool = buildToolGates(project);
     final List<InitGateOption> options = new ArrayList<>(buildTool.analysisGates());
     options.addAll(new BinaryToolGates(environment, project).gates());
-    options.addAll(buildTool.policyGates());
+    buildTool.policyGates().stream()
+        .filter(gate -> !"api-compat".equals(gate.id()) || project.hasApiBaseline())
+        .forEach(options::add);
     options.add(
         new InitGateOption(
             SupportedQualityGates.TRACEABILITY,
@@ -131,6 +133,11 @@ public class InitGeneralCatalog {
           "OpenSpec validations are tools, not quality gates. Use --tool openspec and --openspec-validation "
               + id
               + ".");
+    }
+    if ("api-compat".equals(id) && !project.hasApiBaseline()) {
+      throw new SentinelException(
+          "api-compat compares against a released baseline, so it is offered only for Maven projects"
+              + " whose pom.xml declares <distributionManagement>.");
     }
     return gates(project).stream()
         .filter(option -> option.id().equals(id))
