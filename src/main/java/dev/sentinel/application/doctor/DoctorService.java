@@ -149,13 +149,9 @@ public final class DoctorService {
       final SentinelConfiguration configuration =
           configurationReader.read(root.resolve(SentinelConfiguration.FILE_NAME));
       final GateConfiguration gate = configuration.gates().get("dependency-check");
-      if (gate != null && gate.enabled() && !facts.isSet("NVD_API_KEY")) {
-        findings.add(
-            new Finding(
-                "dependency-check-nvd-api-key",
-                Status.WARNING,
-                "NVD_API_KEY is not set; dependency-check scans may be very slow or rate-limited."
-                    + " Request a key from the NVD API."));
+      if (gate != null && gate.enabled()) {
+        findings.addAll(
+            DependencyCheckDiagnosis.findings(facts, environment.ossIndexSetting(root)));
       }
     } catch (SentinelException ignored) {
       // The configuration finding already reports malformed configuration.

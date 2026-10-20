@@ -35,10 +35,18 @@ final class GradleQualityBlocks {
         : "dependencies { testImplementation '" + coordinates + "' }";
   }
 
+  /**
+   * OSS Index needs credentials, so it stays off until the user opts in through the environment.
+   */
   static String dependencyCheck(final boolean kotlin) {
-    return "dependencyCheck { nvd { apiKey = System.getenv("
+    return "dependencyCheck {\n    nvd { apiKey = System.getenv("
         + quote(kotlin, "NVD_API_KEY")
-        + ") } }";
+        + ") }\n    analyzers {\n        ossIndex {\n            enabled = false\n"
+        + "            username = System.getenv("
+        + quote(kotlin, "OSS_INDEX_USERNAME")
+        + ")\n            password = System.getenv("
+        + quote(kotlin, "OSS_INDEX_PASSWORD")
+        + ")\n        }\n    }\n}";
   }
 
   /**

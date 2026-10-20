@@ -22,4 +22,9 @@ public interface EnvironmentInspection {
   default boolean hasOpenSpecDirectory(final Path projectRoot) {
     return false;
   }
+
+  /** Returns how the project's Dependency-Check build configuration sets the OSS Index analyzer. */
+  default OssIndexSetting ossIndexSetting(final Path projectRoot) {
+    return OssIndexSetting.ABSENT;
+  }
 }

@@ -3,6 +3,7 @@ package dev.sentinel.infrastructure.doctor;
 import dev.sentinel.domain.doctor.EnvironmentFacts;
 import dev.sentinel.domain.doctor.EnvironmentInspection;
 import dev.sentinel.domain.doctor.ExecutableObservation;
+import dev.sentinel.domain.doctor.OssIndexSetting;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -65,10 +66,8 @@ public final class SystemEnvironmentInspection implements EnvironmentInspection 
             "nativeExecutablePresent",
             Boolean.toString(Files.isExecutable(Path.of("target/sentinel"))));
     final Map<String, String> observed = new HashMap<>(values);
-    observed.put(
-        "NVD_API_KEY",
-        Boolean.toString(
-            System.getenv("NVD_API_KEY") != null && !System.getenv("NVD_API_KEY").isBlank()));
+    observed.put("NVD_API_KEY", Boolean.toString(isSet("NVD_API_KEY")));
+    observed.put("OSS_INDEX_PASSWORD", Boolean.toString(isSet("OSS_INDEX_PASSWORD")));
     LOGGER.log(
         Level.INFO,
         () -> "event=environment-inspection status=complete available=" + available.size());
@@ -100,6 +99,17 @@ public final class SystemEnvironmentInspection implements EnvironmentInspection 
   @Override
   public boolean hasOpenSpecDirectory(final Path projectRoot) {
     return Files.isDirectory(projectRoot.resolve("openspec"));
+  }
+
+  @Override
+  public OssIndexSetting ossIndexSetting(final Path projectRoot) {
+    return DependencyCheckSettings.read(projectRoot);
+  }
+
+  /** Only presence is recorded; values never leave this method. */
+  private static boolean isSet(final String name) {
+    final String value = System.getenv(name);
+    return value != null && !value.isBlank();
   }
 
   private static Path findOnPath(final String executable) {

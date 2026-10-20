@@ -28,6 +28,7 @@ one line per check:
 | `openspec` / `openspec-archived` | `OK` / `ERROR` | For each enabled registration, the configured executable and project-root `openspec/` directory are available. |
 | `openspec-junit-traceability` | `OK` / `ERROR` | When enabled, `openspec/specs/` and `src/test/java/` must exist; doctor does not create them. |
 | `dependency-check-nvd-api-key` | `WARNING` | When dependency-check is enabled, `NVD_API_KEY` should be set; without it scans may be very slow or rate-limited. The value is never displayed. |
+| `dependency-check-oss-index` | `WARNING` | When dependency-check is enabled and the build leaves the OSS Index analyzer on (explicitly or by the plugin default), `OSS_INDEX_PASSWORD` should be set; without it scans fail with `401 Unauthorized`. Turn the analyzer off or set the variable. Values are never displayed. |
 
 Warnings do not affect the result. Exit `0` means no check reported `ERROR`; exit `2` means at least
 one did.

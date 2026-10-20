@@ -59,6 +59,24 @@ The Maven and Gradle `dependency-check` configurations read the NVD API key from
 `NVD_API_KEY` environment variable and never write the key to a build file. Without the variable,
 scans may be very slow or rate-limited; request a key from the NVD API service.
 
+Sonatype OSS Index requires credentials, so init turns the OSS Index analyzer off
+(`<ossindexAnalyzerEnabled>false` on Maven, `analyzers { ossIndex { enabled = false } }` on Gradle).
+To turn it on, set `OSS_INDEX_PASSWORD` (and `OSS_INDEX_USERNAME` if your token needs one) in the
+environment and flip the setting. Gradle reads the variables directly. Maven reads credentials from a
+`settings.xml` server whose id matches the generated `ossIndexServerId` (`ossindex`), so reference the
+variables there instead of writing values to a file in the project:
+
+```xml
+<server>
+  <id>ossindex</id>
+  <username>${env.OSS_INDEX_USERNAME}</username>
+  <password>${env.OSS_INDEX_PASSWORD}</password>
+</server>
+```
+
+If you do not want to manage NVD or OSS Index credentials, the `trivy` gate also scans Maven and
+Gradle dependencies for known vulnerabilities and needs no API key.
+
 Standalone tools (`semgrep`, `gitleaks`, `trivy`, `zap-baseline.py`) must already be on the path; a
 missing tool is reported as unavailable with an install link and other gates still run. `sentinel init`
 can offer consented installation for supported tools, but `check` never installs them. When a command contains `--report-path <path>` inside the project, Sentinel

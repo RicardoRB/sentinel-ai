@@ -153,6 +153,8 @@ public final class PomToolConfigurator implements BuildToolConfiguration {
                  <configuration>
                    <failBuildOnCVSS>7</failBuildOnCVSS>
                    <nvdApiKeyEnvironmentVariable>NVD_API_KEY</nvdApiKeyEnvironmentVariable>
+                   <ossindexAnalyzerEnabled>false</ossindexAnalyzerEnabled>
+                   <ossIndexServerId>ossindex</ossIndexServerId>
                  </configuration>
               </plugin>
             """;
