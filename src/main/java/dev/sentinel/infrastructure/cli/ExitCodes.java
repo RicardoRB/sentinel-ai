@@ -1,5 +1,6 @@
 package dev.sentinel.infrastructure.cli;
 
+/** The process exit codes shared by every command. */
 public final class ExitCodes {
 
   /** Everything passed / the command succeeded. */

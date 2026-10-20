@@ -2,6 +2,7 @@ package dev.sentinel.infrastructure.cli.gate;
 
 import dev.sentinel.application.gate.CheckProgressListener;
 import dev.sentinel.application.gate.CheckReportExport;
+import dev.sentinel.application.gate.CheckRunOptions;
 import dev.sentinel.application.gate.CheckService;
 import dev.sentinel.application.learning.LearningService;
 import dev.sentinel.domain.config.SentinelException;
@@ -29,6 +30,10 @@ import picocli.CommandLine.Model.CommandSpec;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Spec;
 
+/**
+ * The {@code sentinel check} command: runs the enabled gates and reports them as text, JSON, or
+ * SARIF.
+ */
 @Command(
     name = "check",
     description = "Run all enabled quality gates from sentinel.toml.",
@@ -38,6 +43,7 @@ import picocli.CommandLine.Spec;
 public class CheckCommand implements Callable<Integer> {
 
   // The constants are the user-facing --format values.
+  /** The machine-readable or human report format selected with {@code --format}. */
   public enum Format {
     TEXT,
     JSON,
@@ -141,18 +147,20 @@ public class CheckCommand implements Callable<Integer> {
     }
   }
 
+  /**
+   * Creates the command. {@code renderers} write each output format, {@code learningService}
+   * records repeated failures, and {@code reportExport} writes {@code --output} files.
+   */
   @Inject
   public CheckCommand(
       final CheckService service,
-      final TextReportRenderer textRenderer,
-      final JsonReportRenderer jsonRenderer,
-      final SarifReportRenderer sarifRenderer,
+      final ReportRenderers renderers,
       final LearningService learningService,
       final CheckReportExport reportExport) {
     this.service = service;
-    this.textRenderer = textRenderer;
-    this.jsonRenderer = jsonRenderer;
-    this.sarifRenderer = sarifRenderer;
+    this.textRenderer = renderers.text();
+    this.jsonRenderer = renderers.json();
+    this.sarifRenderer = renderers.sarif();
     this.learningService = learningService;
     this.reportExport = reportExport;
   }
@@ -203,7 +211,10 @@ public class CheckCommand implements Callable<Integer> {
     return format == Format.SARIF
         ? sarifRenderer.render(report, severity)
         : jsonRenderer.render(
-            report, profiles.contains("strict"), failFast, learning, learnAfter, severity);
+            report,
+            new JsonReportOptions(profiles.contains("strict"), failFast, severity),
+            learning,
+            learnAfter);
   }
 
   private CheckReport runChecks() {
@@ -238,7 +249,9 @@ public class CheckCommand implements Callable<Integer> {
                         : workingDirectory.resolve(path).normalize())
             .toList();
     return service.checkPartial(
-        workingDirectory, profiles, resolved, listener, failFast, excludedGates());
+        workingDirectory,
+        resolved,
+        new CheckRunOptions(profiles, listener, failFast, excludedGates()));
   }
 
   private Set<String> excludedGates() {

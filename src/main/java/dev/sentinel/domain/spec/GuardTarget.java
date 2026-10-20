@@ -9,11 +9,17 @@ import java.util.Objects;
  */
 public record GuardTarget(GuardOperation operation, String path, boolean glob) {
 
+  /**
+   * Validates the target.
+   *
+   * @throws NullPointerException if the operation or path is missing
+   */
   public GuardTarget {
     Objects.requireNonNull(operation, "operation");
     Objects.requireNonNull(path, "path");
   }
 
+  /** Creates a target for a literal path. */
   public static GuardTarget of(final GuardOperation operation, final String path) {
     return new GuardTarget(operation, path, false);
   }

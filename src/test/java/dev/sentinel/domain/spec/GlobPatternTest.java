@@ -32,7 +32,7 @@ class GlobPatternTest {
 
   @Test
   void firstPatternCharacterFindsUnquotedSpecials() {
-    assertThat(GlobPattern.firstPatternCharacter("openspec/*")).isEqualTo(9);
+    assertThat(GlobPattern.firstPatternCharacter("openspec/*")).isEqualTo("openspec/".length());
     assertThat(GlobPattern.firstPatternCharacter("a/{b,c}")).isEqualTo(2);
     assertThat(GlobPattern.firstPatternCharacter("plain")).isEqualTo(-1);
   }

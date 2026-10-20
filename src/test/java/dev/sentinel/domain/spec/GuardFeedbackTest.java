@@ -9,6 +9,10 @@ import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 
 class GuardFeedbackTest {
+  private static final int CHANGES = 12;
+  private static final int REFUSALS = 25;
+  private static final int DUPLICATES = 3;
+  private static final int LONG_REFUSALS = 20;
 
   @Test
   void refusedSpecEditPointsToTheDeltaAndActiveChanges() {
@@ -63,9 +67,9 @@ class GuardFeedbackTest {
 
   @Test
   void listsAreBoundedAndDuplicatesCollapse() {
-    final List<String> changes = IntStream.range(0, 12).mapToObj(i -> "change-" + i).toList();
+    final List<String> changes = IntStream.range(0, CHANGES).mapToObj(i -> "change-" + i).toList();
     final List<GuardRefusal> refusals =
-        IntStream.range(0, 25)
+        IntStream.range(0, REFUSALS)
             .mapToObj(
                 i -> GuardRefusal.forPath(ProtectedArea.SPECS, Path.of("openspec/specs/c" + i)))
             .toList();
@@ -79,7 +83,7 @@ class GuardFeedbackTest {
     assertThat(
             GuardFeedback.render(
                     Collections.nCopies(
-                        3, GuardRefusal.of(GuardRefusal.Reason.UNINSPECTABLE, "patch")),
+                        DUPLICATES, GuardRefusal.of(GuardRefusal.Reason.UNINSPECTABLE, "patch")),
                     List.of("a"))
                 .lines()
                 .filter(line -> line.contains("could not inspect"))
@@ -91,7 +95,7 @@ class GuardFeedbackTest {
   void outputNeverExceedsTheLimit() {
     final String longName = "x".repeat(300);
     final List<GuardRefusal> refusals =
-        IntStream.range(0, 20)
+        IntStream.range(0, LONG_REFUSALS)
             .mapToObj(
                 i ->
                     GuardRefusal.forPath(

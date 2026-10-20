@@ -10,6 +10,7 @@ import javax.inject.Inject;
 
 /** Writes check reports to the local file system as UTF-8. */
 public final class FileReportSink implements ReportSink {
+  /** Creates the stateless adapter that Dagger injects. */
   @Inject
   public FileReportSink() {}
 

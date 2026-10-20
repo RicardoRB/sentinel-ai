@@ -39,6 +39,7 @@ public final class LanguageGateRegistry {
           Language.RUST, List.of(TESTS, "command", GITLEAKS, SEMGREP, TRIVY),
           Language.CSHARP, List.of("compile", TESTS, GITLEAKS, SEMGREP, TRIVY));
 
+  /** Returns the gate IDs suggested by default for projects in {@code language}. */
   public List<String> defaults(final Language language) {
     return DEFAULTS.getOrDefault(language, List.of());
   }

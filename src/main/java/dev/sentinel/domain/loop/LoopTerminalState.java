@@ -1,5 +1,6 @@
 package dev.sentinel.domain.loop;
 
+/** Why a quality loop stopped. */
 public enum LoopTerminalState {
   PASSED,
   MAX_ITERATIONS_REACHED,

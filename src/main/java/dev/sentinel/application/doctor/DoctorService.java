@@ -23,6 +23,7 @@ import java.util.Optional;
 import java.util.Set;
 import javax.inject.Inject;
 
+/** Diagnoses whether a project and its environment are ready for Sentinel. */
 public final class DoctorService {
   private final ProjectDetector detector;
   private final EnvironmentInspection environment;
@@ -30,14 +31,26 @@ public final class DoctorService {
   private final TraceabilityPrerequisites traceabilityPrerequisites;
   private final Set<AgentIntegration> integrations;
 
+  /** How serious a diagnostic finding is. */
   public enum Status {
     OK,
     WARNING,
     ERROR
   }
 
+  /**
+   * One diagnostic result.
+   *
+   * @param name what was checked
+   * @param status how serious the result is
+   * @param message what was found and how to fix it
+   */
   public record Finding(String name, Status status, String message) {}
 
+  /**
+   * Creates the service. {@code traceabilityPrerequisites} checks the traceability gate's inputs,
+   * and {@code integrations} are checked for installation health.
+   */
   @Inject
   public DoctorService(
       final ProjectDetector detector,
@@ -52,10 +65,12 @@ public final class DoctorService {
     this.integrations = Set.copyOf(integrations);
   }
 
+  /** Creates a service that checks only the project and environment. */
   public DoctorService(final ProjectDetector detector, final EnvironmentInspection environment) {
     this(detector, environment, null, null, Set.of());
   }
 
+  /** Creates a service that also checks {@code sentinel.toml}. */
   public DoctorService(
       final ProjectDetector detector,
       final EnvironmentInspection environment,
@@ -63,6 +78,7 @@ public final class DoctorService {
     this(detector, environment, configurationReader, null, Set.of());
   }
 
+  /** Creates a service that also checks the traceability prerequisites. */
   public DoctorService(
       final ProjectDetector detector,
       final EnvironmentInspection environment,
@@ -71,6 +87,7 @@ public final class DoctorService {
     this(detector, environment, configurationReader, traceabilityPrerequisites, Set.of());
   }
 
+  /** Returns the diagnostic findings for the project containing {@code start}. */
   public List<Finding> diagnose(final Path start) {
     final List<Finding> findings = new ArrayList<>();
     final Optional<Project> project = detector.detect(start);

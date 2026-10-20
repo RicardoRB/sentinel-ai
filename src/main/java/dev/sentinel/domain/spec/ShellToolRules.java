@@ -3,8 +3,6 @@ package dev.sentinel.domain.spec;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /** Rules for tools whose effect depends on their subcommand or options. */
 final class ShellToolRules {
@@ -50,11 +48,6 @@ final class ShellToolRules {
       Set.of("-exec", "-execdir", "-ok", "-okdir", "-fprint", "-fprint0", "-fprintf", "-fls");
   private static final Set<String> FIND_FILTERS =
       Set.of("-name", "-iname", "-path", "-ipath", "-wholename", "-regex", "-iregex");
-  private static final Set<String> IN_PLACE_EDITORS = Set.of("sed", "perl", "ruby");
-  private static final Set<String> AWKS = Set.of("awk", "gawk", "mawk");
-  private static final Pattern SED_WRITE =
-      Pattern.compile("(?:^|[;}\\n]|/[gpiImMe0-9]*)\\s*[wW]\\s+([^;}\\n]+)");
-  private static final Pattern AWK_WRITE = Pattern.compile(">>?\\s*\"([^\"]+)\"");
   private static final Set<String> OPTIONS_WITH_VALUE = Set.of("--store", "--schema", "-C");
   private static final String ARCHIVE = "archive";
   private static final String INTEGRATE = "integrate";
@@ -84,59 +77,10 @@ final class ShellToolRules {
                           GuardOperation.WRITE,
                           argument.withText(argument.text().substring(DATA_OUTPUT.length()))));
       default -> {
-        return editor(name, arguments, findings);
+        return ShellEditorRules.classify(name, arguments, findings);
       }
     }
     return true;
-  }
-
-  private static boolean editor(
-      final String name, final List<ShellWord> arguments, final ShellFindings findings) {
-    if (IN_PLACE_EDITORS.contains(name)) {
-      final boolean inPlace =
-          arguments.stream().map(ShellWord::text).anyMatch(ShellToolRules::inPlace);
-      final boolean sedWrite = "sed".equals(name) && programWrites(arguments, SED_WRITE, findings);
-      if (inPlace || sedWrite || !"sed".equals(name)) {
-        ShellCommandRules.all(arguments, GuardOperation.WRITE, findings);
-      }
-      return true;
-    }
-    if (AWKS.contains(name)) {
-      final boolean writes =
-          arguments.stream()
-              .map(ShellWord::text)
-              .anyMatch(
-                  text ->
-                      "inplace".equals(text)
-                          || text.contains(">")
-                          || text.contains("system(")
-                          || text.contains("| "));
-      if (writes) {
-        programWrites(arguments, AWK_WRITE, findings);
-        ShellCommandRules.all(arguments, GuardOperation.WRITE, findings);
-      }
-      return true;
-    }
-    return false;
-  }
-
-  /** Records the files a sed or awk program writes and returns whether it writes any. */
-  private static boolean programWrites(
-      final List<ShellWord> arguments, final Pattern write, final ShellFindings findings) {
-    boolean writes = false;
-    for (final ShellWord argument : arguments) {
-      final Matcher matcher = write.matcher(argument.text());
-      while (matcher.find()) {
-        writes = true;
-        findings.target(GuardOperation.WRITE, argument.withText(matcher.group(1).strip()));
-      }
-    }
-    return writes;
-  }
-
-  private static boolean inPlace(final String option) {
-    return option.startsWith("--in-place")
-        || option.startsWith("-") && !option.startsWith("--") && option.indexOf('i') > 0;
   }
 
   private static void git(final List<ShellWord> arguments, final ShellFindings findings) {

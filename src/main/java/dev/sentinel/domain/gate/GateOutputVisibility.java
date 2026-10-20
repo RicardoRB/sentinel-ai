@@ -7,6 +7,10 @@ public enum GateOutputVisibility {
   TAIL,
   FULL;
 
+  /**
+   * Returns what to show for {@code result}: everything at info level, nothing for a passed gate,
+   * findings when some are visible, and otherwise the output tail.
+   */
   public static GateOutputVisibility of(
       final GateResult result, final SeverityThreshold threshold) {
     if (threshold.showsCapturedOutput()) {

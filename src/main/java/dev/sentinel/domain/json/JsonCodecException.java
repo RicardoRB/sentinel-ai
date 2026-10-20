@@ -4,6 +4,7 @@ package dev.sentinel.domain.json;
 public class JsonCodecException extends RuntimeException {
   private static final long serialVersionUID = 1L;
 
+  /** Creates the exception with its cause. */
   public JsonCodecException(final String message, final Throwable cause) {
     super(message, cause);
   }

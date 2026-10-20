@@ -9,6 +9,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 
 class PosixRawTerminalTest {
+  private static final byte KEY_A = 'A';
+
   @Test
   void unsupportedOperatingSystemFallsBack() {
     assertThat(new PosixRawTerminal("Windows 11").open()).isEmpty();
@@ -39,14 +41,14 @@ class PosixRawTerminalTest {
             Arena.ofConfined(),
             new byte[] {1, 2},
             (fileDescriptor, buffer, count) -> {
-              buffer.set(ValueLayout.JAVA_BYTE, 0, (byte) 65);
+              buffer.set(ValueLayout.JAVA_BYTE, 0, KEY_A);
               return 1;
             },
             (fileDescriptor, action, attributes) -> {
               restorations.incrementAndGet();
               return 0;
             })) {
-      assertThat(session.read()).isEqualTo(65);
+      assertThat(session.read()).isEqualTo(KEY_A);
       session.close();
       session.close();
     }

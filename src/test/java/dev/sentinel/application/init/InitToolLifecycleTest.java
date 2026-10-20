@@ -63,7 +63,8 @@ class InitToolLifecycleTest {
                 null,
                 List.of(),
                 List.of(),
-                List.of("semgrep")));
+                List.of("semgrep"),
+                false));
 
     assertThat(installer.installed).containsExactly("semgrep");
     assertThat(Files.readString(root.resolve("sentinel.toml"))).doesNotContain("openspec");
@@ -91,7 +92,8 @@ class InitToolLifecycleTest {
         null,
         List.of("openspec"),
         validations,
-        installTools);
+        installTools,
+        false);
   }
 
   private static InitService service(final ToolInstaller installer) {
@@ -99,10 +101,11 @@ class InitToolLifecycleTest {
         new ProjectDetector(new FileSystemProjectInspection()),
         Set.of(),
         new InitSetupCatalog(new FakeEnvironmentInspection()),
-        new PomToolConfigurator(),
-        new ArchitectureTestGenerator(),
-        new FileConfigurationStorage(),
-        new PresetRuleFileWriter(),
+        new InitProjectFiles(
+            new PomToolConfigurator(),
+            new PresetRuleFileWriter(),
+            new ArchitectureTestGenerator(),
+            new FileConfigurationStorage()),
         installer);
   }
 

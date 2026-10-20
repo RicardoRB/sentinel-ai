@@ -3,8 +3,6 @@ package dev.sentinel.application.init;
 import dev.sentinel.domain.agent.IntegrationResult;
 import dev.sentinel.domain.config.SentinelException;
 import dev.sentinel.domain.init.ArchitectureTestChange;
-import dev.sentinel.domain.init.ArchitectureTestGeneration;
-import dev.sentinel.domain.init.BuildToolConfiguration;
 import dev.sentinel.domain.init.CompatibilityFinding;
 import dev.sentinel.domain.init.InitGateOption;
 import dev.sentinel.domain.init.InitResult;
@@ -14,7 +12,6 @@ import dev.sentinel.domain.init.QualityHookChange;
 import dev.sentinel.domain.init.QualityHookGeneration;
 import dev.sentinel.domain.init.QualityPreset;
 import dev.sentinel.domain.init.RuleFileChange;
-import dev.sentinel.domain.init.RuleFileGeneration;
 import dev.sentinel.domain.project.Project;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -25,9 +22,7 @@ import java.util.function.Predicate;
 final class InitChanges {
   private final Path root;
   private final List<String> integrationIds;
-  private final ArchitectureTestGeneration architectureTests;
-  private final RuleFileGeneration ruleFiles;
-  private final BuildToolConfiguration pomTools;
+  private final InitProjectFiles files;
   private final IntegrationInstaller installer;
   private final QualityHookGeneration qualityHooks;
   private final List<IntegrationResult> installed = new ArrayList<>();
@@ -39,16 +34,12 @@ final class InitChanges {
   InitChanges(
       final Path root,
       final List<String> integrationIds,
-      final ArchitectureTestGeneration architectureTests,
-      final RuleFileGeneration ruleFiles,
-      final BuildToolConfiguration pomTools,
+      final InitProjectFiles files,
       final IntegrationInstaller installer,
       final QualityHookGeneration qualityHooks) {
     this.root = root;
     this.integrationIds = integrationIds;
-    this.architectureTests = architectureTests;
-    this.ruleFiles = ruleFiles;
-    this.pomTools = pomTools;
+    this.files = files;
     this.installer = installer;
     this.qualityHooks = qualityHooks;
   }
@@ -66,16 +57,18 @@ final class InitChanges {
         throw new SentinelException(qualityHookChange.result().message());
       }
     }
-    pomChange = pomTools.apply(project, gates, preset, approval);
-    ruleFileChange = ruleFiles.apply(project, preset, gates);
+    pomChange = files.buildTools().apply(project, gates, preset, approval);
+    ruleFileChange = files.ruleFiles().apply(project, preset, gates);
     if (gates.stream().anyMatch(gate -> "archunit".equals(gate.id()))) {
       architectureTest =
-          architectureTests.apply(
-              project,
-              selection.architecture() == null ? "layered" : selection.architecture(),
-              preset == null
-                  ? new QualityPreset.ArchitectureExtras(false, false, false)
-                  : preset.rules().architectureExtras());
+          files
+              .architectureTests()
+              .apply(
+                  project,
+                  selection.architecture() == null ? "layered" : selection.architecture(),
+                  preset == null
+                      ? new QualityPreset.ArchitectureExtras(false, false, false)
+                      : preset.rules().architectureExtras());
     }
   }
 
@@ -101,9 +94,9 @@ final class InitChanges {
   }
 
   void rollback() {
-    architectureTests.rollback(architectureTest);
-    ruleFiles.rollback(ruleFileChange);
-    pomTools.rollback(pomChange);
+    files.architectureTests().rollback(architectureTest);
+    files.ruleFiles().rollback(ruleFileChange);
+    files.buildTools().rollback(pomChange);
     qualityHooks.rollback(qualityHookChange);
     installer.rollbackNew(root, integrationIds, installed);
   }

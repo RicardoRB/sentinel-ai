@@ -11,6 +11,11 @@ public record ToolchainSnapshot(
     Framework framework) {
   private static final int MINIMUM_SUPPORTED_JAVA = 1;
 
+  /**
+   * Validates the Java version; missing optional values mean unknown.
+   *
+   * @throws IllegalArgumentException if the Java version is not positive
+   */
   public ToolchainSnapshot {
     if (javaVersion < MINIMUM_SUPPORTED_JAVA) {
       throw new IllegalArgumentException("Java version must be positive");

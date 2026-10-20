@@ -125,6 +125,7 @@ public final class AmpIntegration implements NativeHarnessAdapter {
     return NativeHookText.phaseWrapper(DEFINITION.id(), DEFINITION.hookFile(), guardMode);
   }
 
+  /** Returns the hook response that blocks the tool call and tells the agent {@code reason}. */
   public String denyResponse(final String reason) {
     return "{\"action\":\"reject-and-continue\",\"message\":" + NativeHookText.quote(reason) + "}";
   }
@@ -148,6 +149,7 @@ public final class AmpIntegration implements NativeHarnessAdapter {
     return "agent.end".equals(input.eventName());
   }
 
+  /** The Amp hook payload; its public fields mirror the event JSON. */
   @JsonType
   public static final class Payload {
     public String event;
@@ -184,6 +186,7 @@ public final class AmpIntegration implements NativeHarnessAdapter {
           command,
           first(patch, patchText),
           skill,
+          false,
           false);
     }
 

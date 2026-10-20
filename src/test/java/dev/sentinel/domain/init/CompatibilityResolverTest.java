@@ -13,6 +13,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
 class CompatibilityResolverTest {
+  private static final int NEWEST_JAVA = 25;
   private static final String ARTIFACT = "demo-plugin";
   private static final Project PROJECT =
       new Project(Path.of("."), Language.JAVA, BuildTool.MAVEN, Framework.NONE);
@@ -86,6 +87,7 @@ class CompatibilityResolverTest {
       final String version,
       final int minimumJava,
       final String minimumMaven) {
-    return new ManagedPluginCandidate(artifact, version, minimumJava, 25, minimumMaven, "plugin");
+    return new ManagedPluginCandidate(
+        artifact, version, minimumJava, NEWEST_JAVA, minimumMaven, "plugin");
   }
 }

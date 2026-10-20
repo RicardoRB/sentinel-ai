@@ -15,6 +15,7 @@ import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Model.CommandSpec;
 import picocli.CommandLine.Spec;
 
+/** The {@code sentinel doctor} command: prints the project's diagnostic findings. */
 @Command(
     name = "doctor",
     description = "Diagnose Sentinel project and integration prerequisites.",
@@ -27,6 +28,7 @@ public final class DoctorCommand implements Callable<Integer> {
 
   private final Supplier<DoctorService> service;
 
+  /** Creates the command; {@code service} runs the diagnostics. */
   @Inject
   public DoctorCommand(final DoctorService service) {
     this.service = () -> service;

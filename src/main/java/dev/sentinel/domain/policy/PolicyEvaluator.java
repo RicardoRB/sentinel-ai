@@ -5,6 +5,10 @@ import java.util.List;
 
 /** Evaluates policy separately from gate execution. */
 public final class PolicyEvaluator {
+  /**
+   * Returns the report policies: every gate must pass, named {@code strict} under the strict
+   * profile.
+   */
   public List<PolicyResult> evaluate(final CheckReport report, final boolean strict) {
     final boolean allPassed = report.passed();
     return List.of(

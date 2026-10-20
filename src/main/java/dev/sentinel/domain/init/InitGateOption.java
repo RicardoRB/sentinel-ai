@@ -9,10 +9,12 @@ public record InitGateOption(
     List<String> command,
     boolean available,
     String availabilityMessage) {
+  /** Copies the command. */
   public InitGateOption {
     command = List.copyOf(command);
   }
 
+  /** Creates an option whose description is its {@code id}. */
   public InitGateOption(
       final String id,
       final List<String> command,

@@ -38,6 +38,7 @@ public final class GradleToolConfigurator implements BuildToolConfiguration {
           new Plugin("license", "com.github.hierynomus.license", "0.16.1"),
           new Plugin("api-compat", "me.champeau.gradle.japicmp", "0.4.6"));
 
+  /** Creates the stateless adapter that Dagger injects. */
   @Inject
   public GradleToolConfigurator() {}
 

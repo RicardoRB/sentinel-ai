@@ -69,6 +69,7 @@ public final class CursorIntegration implements NativeHarnessAdapter {
     return NativeHookText.phaseWrapper(DEFINITION.id(), DEFINITION.hookFile(), guardMode);
   }
 
+  /** Returns the hook response that blocks the tool call and tells the agent {@code reason}. */
   public String denyResponse(final String reason) {
     return "{\"permission\":\"deny\",\"user_message\":"
         + NativeHookText.quote(reason)

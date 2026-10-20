@@ -2,6 +2,7 @@ package dev.sentinel.infrastructure.cli.init;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import dev.sentinel.application.init.InitProjectFiles;
 import dev.sentinel.application.init.InitService;
 import dev.sentinel.application.init.InitSetupCatalog;
 import dev.sentinel.application.project.ProjectDetector;
@@ -31,6 +32,8 @@ import org.junit.jupiter.api.io.TempDir;
 import picocli.CommandLine;
 
 class InitWizardLineModeTest {
+  // format, checkstyle, and pmd each add a [quality-gates.<id>.partial] table.
+  private static final int STANDARD_PARTIAL_TABLES = 3;
   @TempDir Path root;
 
   private final StringWriter output = new StringWriter();
@@ -134,7 +137,7 @@ class InitWizardLineModeTest {
       assertThat(configuration).contains("[quality-gates." + gate + "]");
     }
     assertThat(configuration.split("\\[quality-gates\\.", -1))
-        .hasSize(QualityPreset.STANDARD.gates().size() + 4);
+        .hasSize(QualityPreset.STANDARD.gates().size() + STANDARD_PARTIAL_TABLES + 1);
   }
 
   @Test
@@ -162,10 +165,11 @@ class InitWizardLineModeTest {
             new ProjectDetector(new FileSystemProjectInspection()),
             Set.of(),
             new InitSetupCatalog(new FakeEnvironmentInspection(), new QualityHookInstaller()),
-            new PomToolConfigurator(),
-            new ArchitectureTestGenerator(),
-            new FileConfigurationStorage(),
-            new PresetRuleFileWriter());
+            new InitProjectFiles(
+                new PomToolConfigurator(),
+                new PresetRuleFileWriter(),
+                new ArchitectureTestGenerator(),
+                new FileConfigurationStorage()));
     final CommandLine command = new CommandLine(new InitCommand(service, input));
     command.setOut(new PrintWriter(output, true));
     command.setErr(new PrintWriter(output, true));

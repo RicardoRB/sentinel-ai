@@ -12,10 +12,24 @@ import com.tngtech.archunit.junit.ArchTest;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
 @AnalyzeClasses(packages = "dev.sentinel", importOptions = ImportOption.DoNotIncludeTests.class)
 class ArchitectureBoundaryTest {
+  private static final List<String> DOMAIN_FORBIDDEN_PACKAGES =
+      List.of(
+          "dev.sentinel.application.",
+          "dev.sentinel.infrastructure.",
+          "dev.sentinel.config.",
+          "dagger.",
+          "javax.inject.",
+          "picocli.",
+          "org.springframework.",
+          "org.tomlj.",
+          "org.apache.fory.",
+          "javax.xml.",
+          "org.w3c.dom.");
 
   @ArchTest
   static void domainDoesNotDependOnOuterLayersOrExternalEffectImplementations(
@@ -24,18 +38,8 @@ class ArchitectureBoundaryTest {
         classes,
         "dev.sentinel.domain..",
         target ->
-            target.startsWith("dev.sentinel.application.")
-                || target.startsWith("dev.sentinel.infrastructure.")
-                || target.startsWith("dev.sentinel.config.")
-                || target.startsWith("dagger.")
-                || target.startsWith("javax.inject.")
-                || target.startsWith("picocli.")
-                || target.startsWith("org.springframework.")
-                || isInnerLayerExternalEffectApi(target)
-                || target.startsWith("org.tomlj.")
-                || target.startsWith("org.apache.fory.")
-                || target.startsWith("javax.xml.")
-                || target.startsWith("org.w3c.dom."));
+            DOMAIN_FORBIDDEN_PACKAGES.stream().anyMatch(target::startsWith)
+                || isInnerLayerExternalEffectApi(target));
   }
 
   @ArchTest

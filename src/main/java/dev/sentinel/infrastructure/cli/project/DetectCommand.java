@@ -15,6 +15,7 @@ import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Model.CommandSpec;
 import picocli.CommandLine.Spec;
 
+/** The {@code sentinel detect} command: prints the detected project. */
 @Command(
     name = "detect",
     description = "Detect the supported project in the current directory.",
@@ -29,6 +30,7 @@ public class DetectCommand implements Callable<Integer> {
 
   private final ProjectDetector detector;
 
+  /** Creates the command; {@code detector} finds the project. */
   @Inject
   public DetectCommand(final ProjectDetector detector) {
     this.detector = detector;

@@ -1,5 +1,6 @@
 package dev.sentinel.domain.project;
 
+/** The application framework detected in a project. */
 public enum Framework {
   SPRING_BOOT("Spring Boot"),
   NONE("None");
@@ -10,6 +11,7 @@ public enum Framework {
     this.displayName = displayName;
   }
 
+  /** Returns the name shown to users. */
   public String displayName() {
     return displayName;
   }

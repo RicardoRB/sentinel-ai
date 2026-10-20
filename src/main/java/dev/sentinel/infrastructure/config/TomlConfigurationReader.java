@@ -15,10 +15,12 @@ import org.tomlj.Toml;
 import org.tomlj.TomlParseResult;
 import org.tomlj.TomlTable;
 
+/** Reads {@code sentinel.toml} into the configuration model. */
 public class TomlConfigurationReader implements SentinelConfigurationReader {
 
   private static final String GATES_TABLE = "quality-gates";
 
+  /** Creates the stateless adapter that Dagger injects. */
   @Inject
   public TomlConfigurationReader() {}
 

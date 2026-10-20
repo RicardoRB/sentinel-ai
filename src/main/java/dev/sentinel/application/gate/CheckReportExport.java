@@ -14,11 +14,13 @@ public class CheckReportExport {
 
   private final ReportSink sink;
 
+  /** Creates the export; {@code sink} persists the report file. */
   @Inject
   public CheckReportExport(final ReportSink sink) {
     this.sink = sink;
   }
 
+  /** Writes the rendered report {@code content} to {@code target}. */
   public void export(final Path target, final String content) {
     try {
       sink.persist(target, content);

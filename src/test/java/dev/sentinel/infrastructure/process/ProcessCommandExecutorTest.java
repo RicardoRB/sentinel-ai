@@ -13,15 +13,18 @@ import org.junit.jupiter.api.io.TempDir;
 
 @DisabledOnOs(OS.WINDOWS)
 class ProcessCommandExecutorTest {
+  private static final int SCRIPT_EXIT_CODE = 3;
+  private static final int LARGE_OUTPUT_LINES = 20_000;
 
   private final ProcessCommandExecutor executor = new ProcessCommandExecutor();
 
   @Test
   void capturesStdoutStderrExitCodeAndDuration(@TempDir final Path dir) {
     final CommandResult result =
-        executor.execute(List.of("sh", "-c", "echo out; echo err >&2; exit 3"), dir);
+        executor.execute(
+            List.of("sh", "-c", "echo out; echo err >&2; exit " + SCRIPT_EXIT_CODE), dir);
 
-    assertThat(result.exitCode()).isEqualTo(3);
+    assertThat(result.exitCode()).isEqualTo(SCRIPT_EXIT_CODE);
     assertThat(result.stdout()).isEqualTo("out\n");
     assertThat(result.stderr()).isEqualTo("err\n");
     assertThat(result.duration()).isPositive();
@@ -76,11 +79,13 @@ class ProcessCommandExecutorTest {
             List.of(
                 "sh",
                 "-c",
-                "i=0; while [ $i -lt 20000 ]; do echo line-$i; echo err-$i >&2; i=$((i+1)); done"),
+                "i=0; while [ $i -lt "
+                    + LARGE_OUTPUT_LINES
+                    + " ]; do echo line-$i; echo err-$i >&2; i=$((i+1)); done"),
             dir);
 
     assertThat(result.exitCode()).isZero();
-    assertThat(result.stdout().lines().count()).isEqualTo(20_000);
-    assertThat(result.stderr().lines().count()).isEqualTo(20_000);
+    assertThat(result.stdout().lines().count()).isEqualTo(LARGE_OUTPUT_LINES);
+    assertThat(result.stderr().lines().count()).isEqualTo(LARGE_OUTPUT_LINES);
   }
 }

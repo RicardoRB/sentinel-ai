@@ -19,6 +19,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class OpenSpecJunitTraceabilityGateTest {
+  private static final int TEST_LINE = 7;
   private static final Path ROOT = Path.of("/project");
   private static final Project PROJECT =
       new Project(ROOT, Language.JAVA, BuildTool.MAVEN, Framework.NONE);
@@ -42,7 +43,11 @@ class OpenSpecJunitTraceabilityGateTest {
               return new TraceabilityInventory<>(
                   List.of(
                       new MappingObservation(
-                          "auth", "Successful sign-in", new SourceLocation(TEST, 7), true, "")),
+                          "auth",
+                          "Successful sign-in",
+                          new SourceLocation(TEST, TEST_LINE),
+                          true,
+                          "")),
                   List.of());
             });
 

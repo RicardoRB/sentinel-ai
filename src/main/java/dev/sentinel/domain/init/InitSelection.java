@@ -12,6 +12,7 @@ public record InitSelection(
     List<String> openSpecValidations,
     List<String> installTools,
     boolean qualityHooks) {
+  /** Copies the lists; missing optional lists mean empty. */
   public InitSelection {
     integrations = List.copyOf(integrations);
     gates = List.copyOf(gates);
@@ -21,40 +22,33 @@ public record InitSelection(
     installTools = installTools == null ? List.of() : List.copyOf(installTools);
   }
 
+  /** Selects one integration and one gate. */
   public InitSelection(final String integration, final String gate) {
-    this(List.of(integration), List.of(gate), null, null, List.of(), List.of(), List.of());
+    this(List.of(integration), List.of(gate), null, null, List.of(), List.of(), List.of(), false);
   }
 
+  /** Selects {@code integrations} and one gate. */
   public InitSelection(final List<String> integrations, final String gate) {
-    this(integrations, List.of(gate), null, null, List.of(), List.of(), List.of());
+    this(integrations, List.of(gate), null, null, List.of(), List.of(), List.of(), false);
   }
 
+  /** Selects {@code integrations} and {@code gates}, without preset, tools, or hooks. */
   public InitSelection(final List<String> integrations, final List<String> gates) {
-    this(integrations, gates, null, null, List.of(), List.of(), List.of());
+    this(integrations, gates, null, null, List.of(), List.of(), List.of(), false);
   }
 
+  /** Selects {@code integrations} and {@code gates} with an architecture style. */
   public InitSelection(
       final List<String> integrations, final List<String> gates, final String architecture) {
-    this(integrations, gates, architecture, null, List.of(), List.of(), List.of());
+    this(integrations, gates, architecture, null, List.of(), List.of(), List.of(), false);
   }
 
+  /** Selects {@code integrations} and {@code gates} with an architecture style and preset. */
   public InitSelection(
       final List<String> integrations,
       final List<String> gates,
       final String architecture,
       final QualityPreset preset) {
     this(integrations, gates, architecture, preset, List.of(), List.of(), List.of(), false);
-  }
-
-  public InitSelection(
-      final List<String> integrations,
-      final List<String> gates,
-      final String architecture,
-      final QualityPreset preset,
-      final List<String> tools,
-      final List<String> openSpecValidations,
-      final List<String> installTools) {
-    this(
-        integrations, gates, architecture, preset, tools, openSpecValidations, installTools, false);
   }
 }

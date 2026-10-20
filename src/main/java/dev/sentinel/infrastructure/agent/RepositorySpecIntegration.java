@@ -25,6 +25,9 @@ public final class RepositorySpecIntegration {
           + "\nname: Sentinel OpenSpec enforcement\n"
           + "on:\n  pull_request:\n\njobs:\n  spec-enforce:\n    name: Sentinel OpenSpec enforcement\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v5\n        with:\n          fetch-depth: 0\n          ref: ${{ github.event.pull_request.head.sha }}\n      - name: Fetch pull request base\n        run: git fetch --no-tags origin ${{ github.event.pull_request.base.ref }}\n      - name: Install tested OpenSpec\n        run: npm install --global @fission-ai/openspec@1.14.1\n      - name: Enforce OpenSpec provenance\n        run: sentinel spec enforce --base \"origin/${{ github.event.pull_request.base.ref }}\"\n\n# Enable this job as a required status check and required code-owner review in repository settings.\n# Git provenance is evidence of provenance, not proof of human approval.\n";
 
+  /**
+   * Installs the Sentinel-owned pre-commit hook and its dispatch script, keeping a user-owned hook.
+   */
   public IntegrationResult install(final Path projectRoot) {
     final Path root = projectRoot.toAbsolutePath().normalize();
     final Path dispatch = root.resolve(".sentinel/hooks/spec-enforce");
@@ -60,6 +63,9 @@ public final class RepositorySpecIntegration {
     }
   }
 
+  /**
+   * Removes the Sentinel-owned hook, dispatch script, and workflow, leaving other files untouched.
+   */
   public IntegrationResult remove(final Path projectRoot) {
     final Path root = projectRoot.toAbsolutePath().normalize();
     final List<Path> targets =
@@ -91,6 +97,9 @@ public final class RepositorySpecIntegration {
     }
   }
 
+  /**
+   * Returns the GitHub Actions workflow that runs {@code sentinel spec enforce} on pull requests.
+   */
   public static String workflowContent() {
     return WORKFLOW;
   }

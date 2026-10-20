@@ -18,6 +18,7 @@ import picocli.CommandLine.Option;
 import picocli.CommandLine.ScopeType;
 import picocli.CommandLine.Spec;
 
+/** The {@code sentinel} root command; it only groups the subcommands. */
 @Command(
     name = "sentinel",
     description = "Sentinel is a quality gate orchestrator for AI coding agents.",
@@ -44,6 +45,7 @@ public class SentinelCommand implements Callable<Integer> {
       description = "Enable diagnostic logs on stderr.")
   private boolean verbose;
 
+  /** Creates the root command. */
   @Inject
   public SentinelCommand() {}
 

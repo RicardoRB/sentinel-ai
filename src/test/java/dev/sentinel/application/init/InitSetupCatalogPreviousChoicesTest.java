@@ -32,9 +32,10 @@ class InitSetupCatalogPreviousChoicesTest {
           new ProjectDetector(new FileSystemProjectInspection()),
           Set.of(),
           catalog,
-          new PomToolConfigurator(),
-          new ArchitectureTestGenerator(),
-          new FileConfigurationStorage());
+          new InitProjectFiles(
+              new PomToolConfigurator(),
+              new ArchitectureTestGenerator(),
+              new FileConfigurationStorage()));
 
   @Test
   void strictConfigurationGivesItsPresetAndGatesInOrder(@TempDir final Path dir) throws Exception {

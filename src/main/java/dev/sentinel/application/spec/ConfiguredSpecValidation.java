@@ -22,6 +22,7 @@ public class ConfiguredSpecValidation {
 
   private final CheckService checks;
 
+  /** Creates the validation; {@code checks} runs the configured OpenSpec gates. */
   @Inject
   public ConfiguredSpecValidation(final CheckService checks) {
     this.checks = checks;

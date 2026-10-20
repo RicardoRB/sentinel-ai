@@ -24,6 +24,7 @@ public final class PartialCheckPlan {
 
   /** The decision for one gate; {@code args} are appended to its command when narrowed. */
   public record GatePlan(String gate, Scope scope, List<String> args) {
+    /** Copies the arguments. */
     public GatePlan {
       args = List.copyOf(args);
     }
@@ -33,6 +34,10 @@ public final class PartialCheckPlan {
     this.gates = Collections.unmodifiableMap(new LinkedHashMap<>(gates));
   }
 
+  /**
+   * Decides, for each configured gate, whether the edited paths skip it, narrow it, or run it in
+   * full. Without paths every gate runs in full.
+   */
   public static PartialCheckPlan create(
       final Path root,
       final Map<String, GateConfiguration> configurations,
@@ -46,6 +51,7 @@ public final class PartialCheckPlan {
     return new PartialCheckPlan(plans);
   }
 
+  /** Returns the decision for each gate, in configuration order. */
   public Map<String, GatePlan> gates() {
     return gates;
   }

@@ -34,6 +34,8 @@ import org.junit.jupiter.api.io.TempDir;
 // This test intentionally aggregates coverage across the application services.
 // Splitting it would duplicate setup and obscure the cross-service scenarios.
 class CoverageConfigurationTest {
+  private static final int TIMEOUT_SECONDS = 3;
+  private static final Duration TESTS_DURATION = Duration.ofMillis(1500);
   private static final Project PROJECT =
       new Project(Path.of("/project"), Language.JAVA, BuildTool.MAVEN, Framework.NONE);
 
@@ -67,10 +69,21 @@ class CoverageConfigurationTest {
   @Test
   void reportAndPolicyModelsCoverStrictAndNonStrictResults() {
     final GateResult passed =
-        new GateResult("tests", GateStatus.PASSED, List.of("test"), 0, Duration.ZERO, "ok", "");
+        GateResult.builder("tests", GateStatus.PASSED)
+            .command(List.of("test"))
+            .exitCode(0)
+            .duration(Duration.ZERO)
+            .stdout("ok")
+            .stderr("")
+            .build();
     final GateResult failed =
-        new GateResult(
-            "checkstyle", GateStatus.FAILED, List.of("check"), 1, Duration.ZERO, "", "bad");
+        GateResult.builder("checkstyle", GateStatus.FAILED)
+            .command(List.of("check"))
+            .exitCode(1)
+            .duration(Duration.ZERO)
+            .stdout("")
+            .stderr("bad")
+            .build();
     final CheckReport report = new CheckReport(PROJECT, List.of(passed, failed));
     assertThat(report.passed()).isFalse();
     assertThat(report.status()).isEqualTo(GateStatus.FAILED);
@@ -85,12 +98,21 @@ class CoverageConfigurationTest {
         .isInstanceOf(IllegalArgumentException.class);
     assertThatThrownBy(() -> new LoopConfiguration(1, 0, false))
         .isInstanceOf(IllegalArgumentException.class);
-    assertThat(new LoopConfiguration(2, 3, true).allowDirty()).isTrue();
+    assertThat(new LoopConfiguration(2, TIMEOUT_SECONDS, true).allowDirty()).isTrue();
     assertThat(new GateConfiguration(true, List.of("test")).command()).containsExactly("test");
     assertThat(new SentinelConfiguration(1, Map.of()).enabledGates()).isEmpty();
     assertThat(new AgentResult(true, "done", "").succeeded()).isTrue();
     assertThat(
-            new InitResult(Path.of("/tmp/sentinel.toml"), true, false, null, null, null, null)
+            new InitResult(
+                    Path.of("/tmp/sentinel.toml"),
+                    true,
+                    false,
+                    null,
+                    null,
+                    null,
+                    null,
+                    List.of(),
+                    List.of())
                 .gates())
         .isEmpty();
   }
@@ -98,17 +120,21 @@ class CoverageConfigurationTest {
   @Test
   void rendersTextAndJsonReportsIncludingFailureOutput() {
     final GateResult passed =
-        new GateResult(
-            "tests", GateStatus.PASSED, List.of("test"), 0, Duration.ofMillis(1500), "ok", "");
+        GateResult.builder("tests", GateStatus.PASSED)
+            .command(List.of("test"))
+            .exitCode(0)
+            .duration(TESTS_DURATION)
+            .stdout("ok")
+            .stderr("")
+            .build();
     final GateResult failed =
-        new GateResult(
-            "lint",
-            GateStatus.FAILED,
-            List.of("lint"),
-            1,
-            Duration.ofMillis(1),
-            "line 1\nline 2",
-            "stderr");
+        GateResult.builder("lint", GateStatus.FAILED)
+            .command(List.of("lint"))
+            .exitCode(1)
+            .duration(Duration.ofMillis(1))
+            .stdout("line 1\nline 2")
+            .stderr("stderr")
+            .build();
     final CheckReport report = new CheckReport(PROJECT, List.of(passed, failed));
     assertThat(new TextReportRenderer().render(report))
         .contains("Sentinel", "Quality Gate: FAILED", "Command:", "line 1");

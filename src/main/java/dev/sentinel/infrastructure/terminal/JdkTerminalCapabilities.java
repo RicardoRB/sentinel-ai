@@ -3,11 +3,15 @@ package dev.sentinel.infrastructure.terminal;
 import dev.sentinel.domain.terminal.TerminalCapabilities;
 import javax.inject.Inject;
 
+/**
+ * Detects terminal support from the console and the {@code NO_COLOR} and {@code TERM} variables.
+ */
 public final class JdkTerminalCapabilities implements TerminalCapabilities {
   private final boolean consoleTerminal;
   private final String noColor;
   private final String term;
 
+  /** Creates the capabilities of the current process's console and environment. */
   @Inject
   public JdkTerminalCapabilities() {
     this(

@@ -5,6 +5,7 @@ import java.util.List;
 
 /** Complete blocking enforcement result and its process exit semantics. */
 public record EnforcementReport(List<EnforcementFinding> findings, int exitCode) {
+  /** Sorts the findings by category and path; a negative exit code becomes 2. */
   public EnforcementReport {
     findings =
         List.copyOf(
@@ -17,6 +18,7 @@ public record EnforcementReport(List<EnforcementFinding> findings, int exitCode)
     exitCode = exitCode < 0 ? 2 : exitCode;
   }
 
+  /** Returns whether enforcement exited with 0 and reported no findings. */
   public boolean passed() {
     return exitCode == 0 && findings.isEmpty();
   }

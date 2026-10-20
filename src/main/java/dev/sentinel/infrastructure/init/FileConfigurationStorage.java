@@ -12,6 +12,7 @@ import javax.inject.Inject;
 
 /** Filesystem implementation of initialization configuration persistence. */
 public final class FileConfigurationStorage implements ConfigurationStorage {
+  /** Creates the stateless adapter that Dagger injects. */
   @Inject
   public FileConfigurationStorage() {}
 

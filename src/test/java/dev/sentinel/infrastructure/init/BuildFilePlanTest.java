@@ -22,6 +22,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 /** Build-file plans list each added or updated tool and never touch the file. */
 class BuildFilePlanTest {
+  private static final int JAVA_17 = 17;
   private static final String POM = "pom.xml";
   private static final String EMPTY_POM = "<project><modelVersion>4.0.0</modelVersion></project>";
   private static final String OLD_SPOTLESS =
@@ -98,7 +99,8 @@ class BuildFilePlanTest {
         project ->
             new CompatibilityProjectSnapshot(
                 project,
-                new ToolchainSnapshot(17, Optional.of("3.9.0"), Optional.empty(), Framework.NONE),
+                new ToolchainSnapshot(
+                    JAVA_17, Optional.of("3.9.0"), Optional.empty(), Framework.NONE),
                 Map.of("spotless-maven-plugin", "1.0.0")));
   }
 

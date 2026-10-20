@@ -3,8 +3,6 @@ package dev.sentinel.infrastructure.cli.agent;
 import dev.sentinel.application.agent.NativeHookProtocol;
 import dev.sentinel.domain.agent.NativeHookInput;
 import dev.sentinel.domain.agent.NativeHookOutcome;
-import dev.sentinel.domain.gate.CheckReport;
-import dev.sentinel.domain.spec.SpecValidationReport;
 import dev.sentinel.infrastructure.cli.ExitCodes;
 import java.io.PrintWriter;
 import java.util.logging.Level;
@@ -23,14 +21,13 @@ final class NativeHookTurnEnd {
   static int deliver(
       final NativeHookProtocol protocol,
       final NativeHookInput event,
-      final CheckReport report,
-      final SpecValidationReport specs,
+      final TurnEndResults results,
       final PrintWriter output,
       final PrintWriter error) {
-    if (report.passed() && !specs.hasFindings()) {
+    if (results.clean()) {
       return ExitCodes.OK;
     }
-    final String findings = NativeHookMessages.failureText(report, specs);
+    final String findings = NativeHookMessages.failureText(results.report(), results.specs());
     if (event.continued()) {
       LOGGER.log(Level.INFO, "event=native-turn-end-reported reason=already-continued");
       error.println(findings);

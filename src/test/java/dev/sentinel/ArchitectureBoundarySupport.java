@@ -12,6 +12,8 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 final class ArchitectureBoundarySupport {
+  // dev.sentinel.domain.<feature>: the feature is the fourth package segment.
+  private static final int FEATURE_SEGMENT = 3;
   static final Map<String, Set<String>> DOMAIN_FEATURE_EDGES =
       Map.ofEntries(
           Map.entry("agent", Set.of()),
@@ -83,9 +85,9 @@ final class ArchitectureBoundarySupport {
                     return false;
                   }
                   final String[] parts = target.split("\\.");
-                  return parts.length > 3
-                      && !parts[3].equals(sourceFeature)
-                      && !allowedTargets.contains(parts[3]);
+                  return parts.length > FEATURE_SEGMENT
+                      && !parts[FEATURE_SEGMENT].equals(sourceFeature)
+                      && !allowedTargets.contains(parts[FEATURE_SEGMENT]);
                 }));
   }
 

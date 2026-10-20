@@ -5,6 +5,10 @@ import java.nio.file.Path;
 /** Outbound contract for observing host and project environment facts. */
 @FunctionalInterface
 public interface EnvironmentInspection {
+  /**
+   * Observes the executables on the path and the relevant environment values for {@code
+   * projectRoot}.
+   */
   EnvironmentFacts inspect(Path projectRoot);
 
   /** Inspects one configured executable without executing it. */

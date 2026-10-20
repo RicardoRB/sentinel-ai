@@ -12,6 +12,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.inject.Inject;
@@ -24,29 +25,38 @@ public class QualityGateRunner {
 
   private final FindingExtractor findingExtractor;
 
+  /** Creates a runner that extracts no findings. */
   public QualityGateRunner() {
     this(FindingExtractor.NONE);
   }
 
+  /** Creates a runner; {@code findingExtractor} turns each result into structured findings. */
   @Inject
   public QualityGateRunner(final FindingExtractor findingExtractor) {
     this.findingExtractor = findingExtractor;
   }
 
+  /** Runs every gate in order, without progress output. */
   public CheckReport run(final Project project, final List<QualityGate> gates) {
     return run(project, gates, CheckProgressListener.NO_OP, false);
   }
 
+  /** Runs every gate in order, reporting progress to {@code listener}. */
   public CheckReport run(
       final Project project, final List<QualityGate> gates, final CheckProgressListener listener) {
     return run(project, gates, listener, false);
   }
 
+  /** Runs the gates in order, skipping the rest after the first failure when {@code failFast}. */
   public CheckReport run(
       final Project project, final List<QualityGate> gates, final boolean failFast) {
     return run(project, gates, CheckProgressListener.NO_OP, failFast);
   }
 
+  /**
+   * Runs the gates in order, reporting progress to {@code listener} and skipping the rest after the
+   * first failure when {@code failFast}.
+   */
   public CheckReport run(
       final Project project,
       final List<QualityGate> gates,
@@ -70,7 +80,7 @@ public class QualityGateRunner {
                   + " status="
                   + result.status()
                   + " duration-ms="
-                  + ((System.nanoTime() - start) / 1_000_000));
+                  + TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start));
       if (failFast && result.status() != GateStatus.PASSED) {
         for (final QualityGate skipped : gates.subList(i + 1, gates.size())) {
           final GateResult skippedResult = skippedByFailFast(skipped);
@@ -120,14 +130,13 @@ public class QualityGateRunner {
   }
 
   private static GateResult skippedByFailFast(final QualityGate gate) {
-    return new GateResult(
-        gate.name(),
-        GateStatus.SKIPPED,
-        List.of(),
-        0,
-        Duration.ZERO,
-        "",
-        "",
-        "not run (fail-fast)");
+    return GateResult.builder(gate.name(), GateStatus.SKIPPED)
+        .command(List.of())
+        .exitCode(0)
+        .duration(Duration.ZERO)
+        .stdout("")
+        .stderr("")
+        .summary("not run (fail-fast)")
+        .build();
   }
 }

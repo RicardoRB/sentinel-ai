@@ -19,6 +19,7 @@ import picocli.CommandLine.Model.CommandSpec;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Spec;
 
+/** The {@code sentinel spec enforce} command: enforces OpenSpec provenance against a Git base. */
 @Command(
     name = "enforce",
     description = {
@@ -47,6 +48,7 @@ public final class SpecEnforceCommand implements Callable<Integer> {
 
   private final Provider<SpecEnforcementService> service;
 
+  /** Creates the command; the service is created only when the command runs. */
   @Inject
   public SpecEnforceCommand(final Provider<SpecEnforcementService> service) {
     this.service = service;

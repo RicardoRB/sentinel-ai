@@ -9,6 +9,12 @@ public record LoopRequest(
     List<String> agentCommand,
     String task,
     LoopConfiguration configuration) {
+  /**
+   * Validates the request and copies the agent command.
+   *
+   * @throws IllegalArgumentException if the directory, agent command, task, or configuration is
+   *     missing
+   */
   public LoopRequest {
     if (workingDirectory == null) {
       throw new IllegalArgumentException("workingDirectory is required");

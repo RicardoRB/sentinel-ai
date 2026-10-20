@@ -20,6 +20,7 @@ import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 import picocli.CommandLine.Spec;
 
+/** The {@code sentinel loop} command: runs agent attempts until the quality gates pass. */
 @Command(
     name = "loop",
     description = "Run bounded agent attempts followed by quality checks.",
@@ -50,6 +51,7 @@ public final class LoopCommand implements Callable<Integer> {
   @Option(names = "--allow-dirty")
   private boolean allowDirty;
 
+  /** Creates the command; {@code service} runs the loop. */
   @Inject
   public LoopCommand(final QualityLoopService service) {
     this.service = service;

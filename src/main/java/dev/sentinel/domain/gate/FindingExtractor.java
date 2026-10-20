@@ -15,5 +15,8 @@ import java.util.List;
 public interface FindingExtractor {
   FindingExtractor NONE = (project, result, gateStart) -> List.of();
 
+  /**
+   * Returns the findings of {@code result}, read from artifacts written since {@code gateStart}.
+   */
   List<Finding> extract(Project project, GateResult result, Instant gateStart);
 }

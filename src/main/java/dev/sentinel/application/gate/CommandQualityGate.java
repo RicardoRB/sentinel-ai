@@ -22,11 +22,16 @@ public final class CommandQualityGate implements QualityGate {
   private final List<String> command;
   private final ReportDirectories reportDirectories;
 
+  /** Creates a gate that runs {@code command} without collecting report files. */
   public CommandQualityGate(
       final String name, final CommandExecutor executor, final List<String> command) {
     this(name, executor, command, ReportDirectories.NONE);
   }
 
+  /**
+   * Creates a gate that runs {@code command} and keeps the reports it writes under {@code
+   * reportDirectories}.
+   */
   public CommandQualityGate(
       final String name,
       final CommandExecutor executor,
@@ -53,15 +58,14 @@ public final class CommandQualityGate implements QualityGate {
     if (hint == null || result.status() != GateStatus.UNAVAILABLE) {
       return result;
     }
-    return new GateResult(
-        result.name(),
-        result.status(),
-        result.command(),
-        result.exitCode(),
-        result.duration(),
-        result.stdout(),
-        result.stderr(),
-        result.summary() + " Install " + command.getFirst() + ": " + hint);
+    return GateResult.builder(result.name(), result.status())
+        .command(result.command())
+        .exitCode(result.exitCode())
+        .duration(result.duration())
+        .stdout(result.stdout())
+        .stderr(result.stderr())
+        .summary(result.summary() + " Install " + command.getFirst() + ": " + hint)
+        .build();
   }
 
   /** Lets tools such as gitleaks write reports into build directories that do not exist yet. */

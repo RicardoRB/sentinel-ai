@@ -40,16 +40,14 @@ final class InitQuestions {
    */
   InitQuestions(
       final Answers answers,
-      final InitWizard wizard,
-      final InitConfirmations confirmations,
+      final InitPrompts prompts,
       final InitSetupCatalog catalog,
       final Project project,
-      final boolean terminal,
-      final QuestionProgress progress) {
+      final boolean terminal) {
     this.answers = answers;
-    this.progress = progress;
-    this.wizard = wizard;
-    this.confirmations = confirmations;
+    this.progress = prompts.progress();
+    this.wizard = prompts.wizard();
+    this.confirmations = prompts.confirmations();
     this.catalog = catalog;
     this.project = project;
     this.useDefaults = answers.yes() || !terminal && answers.setupGiven();

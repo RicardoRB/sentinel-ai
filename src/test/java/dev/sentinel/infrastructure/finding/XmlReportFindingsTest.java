@@ -12,6 +12,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 class XmlReportFindingsTest {
+  // Counts and positions written into the report fixtures below.
+  private static final int CHECKSTYLE_ERRORS = 3;
+  private static final int CHECKSTYLE_ERRORS_WITH_TEST_SET = 4;
+  private static final int JAVADOC_LINE = 42;
+  private static final int JAVADOC_COLUMN = 5;
+  private static final int PMD_VIOLATIONS = 3;
+  private static final int UNUSED_VARIABLE_LINE = 10;
+  private static final int UNUSED_VARIABLE_COLUMN = 9;
   private static final String CHECKSTYLE_REPORT =
       """
       <?xml version="1.0" encoding="UTF-8"?>
@@ -59,12 +67,12 @@ class XmlReportFindingsTest {
                 FindingFixtures.failed("checkstyle", ""),
                 FindingFixtures.justBefore());
 
-    assertThat(findings).hasSize(3);
+    assertThat(findings).hasSize(CHECKSTYLE_ERRORS);
     final Finding first = findings.getFirst();
     assertThat(first.ruleId()).isEqualTo("MissingJavadocMethod");
     assertThat(first.file()).isEqualTo("src/main/java/Foo.java");
-    assertThat(first.line()).isEqualTo(42);
-    assertThat(first.column()).isEqualTo(5);
+    assertThat(first.line()).isEqualTo(JAVADOC_LINE);
+    assertThat(first.column()).isEqualTo(JAVADOC_COLUMN);
     assertThat(first.severity()).isEqualTo(FindingSeverity.ERROR);
     assertThat(first.helpUri())
         .isEqualTo("https://checkstyle.org/checks/javadoc/missingjavadocmethod.html");
@@ -93,7 +101,7 @@ class XmlReportFindingsTest {
                 FindingFixtures.failed("checkstyle", ""),
                 FindingFixtures.justBefore());
 
-    assertThat(findings).hasSize(4);
+    assertThat(findings).hasSize(CHECKSTYLE_ERRORS_WITH_TEST_SET);
     assertThat(findings.getLast().helpUri())
         .isEqualTo("https://checkstyle.org/checks/misc/finalparameters.html");
   }
@@ -158,13 +166,13 @@ class XmlReportFindingsTest {
                 FindingFixtures.failed("pmd", ""),
                 FindingFixtures.justBefore());
 
-    assertThat(findings).hasSize(3);
+    assertThat(findings).hasSize(PMD_VIOLATIONS);
     final Finding first = findings.getFirst();
     assertThat(first.ruleId()).isEqualTo("UnusedLocalVariable");
     assertThat(first.message()).isEqualTo("Avoid unused local variables such as 'x'.");
     assertThat(first.file()).isEqualTo("src/main/java/Foo.java");
-    assertThat(first.line()).isEqualTo(10);
-    assertThat(first.column()).isEqualTo(9);
+    assertThat(first.line()).isEqualTo(UNUSED_VARIABLE_LINE);
+    assertThat(first.column()).isEqualTo(UNUSED_VARIABLE_COLUMN);
     assertThat(first.severity()).isEqualTo(FindingSeverity.WARNING);
     assertThat(first.helpUri()).startsWith("https://docs.pmd-code.org/");
     assertThat(findings.get(1).severity()).isEqualTo(FindingSeverity.ERROR);
@@ -182,7 +190,7 @@ class XmlReportFindingsTest {
                     FindingFixtures.gradle(root),
                     FindingFixtures.failed("pmd", ""),
                     FindingFixtures.justBefore()))
-        .hasSize(3);
+        .hasSize(PMD_VIOLATIONS);
   }
 
   @Test

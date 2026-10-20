@@ -11,6 +11,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 class OutputFindingsTest {
+  // Positions written into the compiler output fixtures below.
+  private static final int MAVEN_ERROR_LINE = 12;
+  private static final int MAVEN_ERROR_COLUMN = 8;
+  private static final int GRADLE_ERROR_LINE = 7;
   @TempDir Path root;
 
   @Test
@@ -37,8 +41,8 @@ class OutputFindingsTest {
     assertThat(findings).hasSize(2);
     final Finding error = findings.getFirst();
     assertThat(error.file()).isEqualTo("src/main/java/Foo.java");
-    assertThat(error.line()).isEqualTo(12);
-    assertThat(error.column()).isEqualTo(8);
+    assertThat(error.line()).isEqualTo(MAVEN_ERROR_LINE);
+    assertThat(error.column()).isEqualTo(MAVEN_ERROR_COLUMN);
     assertThat(error.severity()).isEqualTo(FindingSeverity.ERROR);
     assertThat(error.ruleId()).isEqualTo("javac.error");
     assertThat(error.message()).isEqualTo("cannot find symbol");
@@ -67,7 +71,7 @@ class OutputFindingsTest {
         .satisfies(
             finding -> {
               assertThat(finding.file()).isEqualTo("src/main/java/Foo.java");
-              assertThat(finding.line()).isEqualTo(7);
+              assertThat(finding.line()).isEqualTo(GRADLE_ERROR_LINE);
               assertThat(finding.column()).isNull();
               assertThat(finding.message()).isEqualTo("';' expected");
             });

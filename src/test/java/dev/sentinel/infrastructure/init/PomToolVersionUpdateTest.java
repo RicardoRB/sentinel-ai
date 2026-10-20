@@ -23,6 +23,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 /** Approved compatibility updates change only the managed plugin's project-level version. */
 class PomToolVersionUpdateTest {
+  private static final int JAVA_17 = 17;
   private static final String POM = "pom.xml";
 
   @Test
@@ -86,7 +87,7 @@ class PomToolVersionUpdateTest {
   private static PomChange approvedFormatUpdate(final Path root) {
     final Predicate<Object> approveAll = ignored -> true;
     return new PomToolConfigurator(
-            ignored -> snapshot(17, Map.of("spotless-maven-plugin", "1.0.0")))
+            ignored -> snapshot(JAVA_17, Map.of("spotless-maven-plugin", "1.0.0")))
         .apply(project(root), List.of(gate("format")), null, approveAll);
   }
 

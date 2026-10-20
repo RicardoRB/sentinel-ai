@@ -1,5 +1,7 @@
 package dev.sentinel.domain.traceability;
 
+import java.util.Objects;
+
 /** A live scenario and its spec header location. */
 public record ScenarioDefinition(ScenarioIdentity identity, SourceLocation location)
     implements Comparable<ScenarioDefinition> {
@@ -9,6 +11,7 @@ public record ScenarioDefinition(ScenarioIdentity identity, SourceLocation locat
     return identityOrder == 0 ? location.compareTo(other.location) : identityOrder;
   }
 
+  // Comparable records keep explicit equality that matches compareTo.
   @Override
   public boolean equals(final Object object) {
     return object instanceof ScenarioDefinition other
@@ -18,6 +21,6 @@ public record ScenarioDefinition(ScenarioIdentity identity, SourceLocation locat
 
   @Override
   public int hashCode() {
-    return 31 * identity.hashCode() + location.hashCode();
+    return Objects.hash(identity, location);
   }
 }

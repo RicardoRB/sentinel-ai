@@ -19,6 +19,7 @@ public final class QualityHookInstaller implements QualityHookGeneration {
   public static final String START_MARKER = "# sentinel-owned: quality-hooks v1 begin";
   public static final String END_MARKER = "# sentinel-owned: quality-hooks v1 end";
 
+  /** Creates the stateless adapter that Dagger injects. */
   @Inject
   public QualityHookInstaller() {}
 

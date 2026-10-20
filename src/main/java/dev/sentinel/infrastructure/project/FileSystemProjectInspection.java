@@ -23,6 +23,8 @@ import org.xml.sax.SAXException;
 
 /** Filesystem-backed project marker scanning and secure Maven metadata inspection. */
 public final class FileSystemProjectInspection implements ProjectInspection {
+  // Build files are searched this many directories below the repository root.
+  private static final int MAX_SEARCH_DEPTH = 4;
   public static final String POM = "pom.xml";
   private static final String SPRING_BOOT_GROUP_ID = "org.springframework.boot";
 
@@ -49,6 +51,7 @@ public final class FileSystemProjectInspection implements ProjectInspection {
               "Cargo.toml",
               dir -> new Project(dir, Language.RUST, BuildTool.CARGO, Framework.NONE)));
 
+  /** Creates the stateless adapter that Dagger injects. */
   @Inject
   public FileSystemProjectInspection() {}
 
@@ -76,7 +79,7 @@ public final class FileSystemProjectInspection implements ProjectInspection {
       root = candidate;
     }
     final List<Project> projects;
-    try (Stream<Path> paths = Files.walk(root, 4)) {
+    try (Stream<Path> paths = Files.walk(root, MAX_SEARCH_DEPTH)) {
       projects =
           paths
               .filter(Files::isDirectory)

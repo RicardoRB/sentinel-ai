@@ -10,6 +10,11 @@ public final class ZapTargetValidation {
 
   private ZapTargetValidation() {}
 
+  /**
+   * Checks that the ZAP command of {@code gate} names a real {@code -t} target.
+   *
+   * @throws SentinelException if the target is missing or still the placeholder
+   */
   public static void require(final String gate, final List<String> command) {
     final int flag = command.indexOf("-t");
     if (flag < 0 || flag + 1 >= command.size() || PLACEHOLDER.equals(command.get(flag + 1))) {

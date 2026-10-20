@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 
 /** Recorded Claude Code {@code PreToolUse} payloads as the approved-artifact guard reads them. */
 class ClaudeHookGuardPayloadTest {
+  private static final int GUARD_PAYLOAD_LIMIT = 16 * 1024 * 1024;
   private static final Path PROJECT = Path.of("/work/project");
   private static final ForyJsonCodec CODEC = new ForyJsonCodec();
 
@@ -101,7 +102,7 @@ class ClaudeHookGuardPayloadTest {
     assertThat(parse("not json")).isEmpty();
     assertThat(parse("[1, 2]")).isEmpty();
     assertThat(parse("null")).isEmpty();
-    final byte[] oversized = new byte[16 * 1024 * 1024 + 1];
+    final byte[] oversized = new byte[GUARD_PAYLOAD_LIMIT + 1];
     assertThat(ClaudeHookEvent.readComplete(new ByteArrayInputStream(oversized), CODEC)).isEmpty();
     assertThat(
             ClaudeHookEvent.readComplete(

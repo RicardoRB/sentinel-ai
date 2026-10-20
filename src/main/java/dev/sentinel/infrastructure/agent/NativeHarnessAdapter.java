@@ -16,10 +16,13 @@ import java.util.Set;
  * Shared lifecycle wiring for concrete harness adapters; protocol behavior stays in each adapter.
  */
 public interface NativeHarnessAdapter extends AgentIntegration, NativeHookProtocol {
+  /** Returns the harness's ID, generated files, events, and capabilities. */
   NativeAgentIntegration.Definition definition();
 
+  /** Returns the harness configuration file content that registers the hook. */
   String configContent();
 
+  /** Returns the hook wrapper script, with the approved-artifact guard set by {@code guardMode}. */
   String hookContent(GuardMode guardMode);
 
   @Override

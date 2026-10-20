@@ -14,6 +14,7 @@ public class FakeEnvironmentInspection implements EnvironmentInspection {
   public final List<Path> inspectedRoots = new ArrayList<>();
   private final EnvironmentFacts facts;
 
+  /** Creates an environment where only {@code executables} are on the path. */
   public FakeEnvironmentInspection(final String... executables) {
     this.facts = new EnvironmentFacts(Set.of(executables), Map.of());
   }

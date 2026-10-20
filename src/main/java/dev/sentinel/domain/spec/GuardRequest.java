@@ -24,6 +24,11 @@ public record GuardRequest(Path start, String workingDirectory, Kind kind, List<
     UNREADABLE
   }
 
+  /**
+   * Validates the request; a missing working directory means the project root.
+   *
+   * @throws NullPointerException if the start or kind is missing
+   */
   public GuardRequest {
     Objects.requireNonNull(start, "start");
     Objects.requireNonNull(kind, "kind");
@@ -31,21 +36,25 @@ public record GuardRequest(Path start, String workingDirectory, Kind kind, List<
     values = List.copyOf(values.stream().map(value -> value == null ? "" : value).toList());
   }
 
+  /** Creates a request for a tool call that writes {@code paths}. */
   public static GuardRequest paths(
       final Path start, final String workingDirectory, final List<String> paths) {
     return new GuardRequest(start, workingDirectory, Kind.PATHS, paths);
   }
 
+  /** Creates a request for a tool call that applies {@code patch}. */
   public static GuardRequest patch(
       final Path start, final String workingDirectory, final String patch) {
     return new GuardRequest(start, workingDirectory, Kind.PATCH, single(patch));
   }
 
+  /** Creates a request for a tool call that runs the shell {@code command}. */
   public static GuardRequest shell(
       final Path start, final String workingDirectory, final String command) {
     return new GuardRequest(start, workingDirectory, Kind.SHELL, single(command));
   }
 
+  /** Creates a request for a tool call that loads the skill {@code name}. */
   public static GuardRequest skill(final Path start, final String name) {
     return new GuardRequest(start, "", Kind.SKILL, single(name));
   }

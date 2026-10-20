@@ -9,6 +9,7 @@ import javax.inject.Inject;
 import javax.inject.Named;
 import picocli.CommandLine.IVersionProvider;
 
+/** Supplies the Sentinel version for {@code --version} and the report header. */
 public class VersionProvider implements IVersionProvider {
 
   private static final Logger LOGGER = Logger.getLogger(VersionProvider.class.getName());
@@ -18,10 +19,12 @@ public class VersionProvider implements IVersionProvider {
 
   private final String version;
 
+  /** Creates a provider for the version of this build. */
   public VersionProvider() {
     this(current());
   }
 
+  /** Creates a provider for {@code version}. */
   @Inject
   public VersionProvider(@Named("sentinel.version") final String version) {
     this.version = version;

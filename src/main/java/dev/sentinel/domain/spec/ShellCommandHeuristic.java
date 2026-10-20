@@ -16,6 +16,7 @@ public final class ShellCommandHeuristic {
 
   private ShellCommandHeuristic() {}
 
+  /** Interprets {@code command} and returns the protected paths it would change. */
   public static ShellInspection inspect(final String command) {
     return inspect(command, 0);
   }

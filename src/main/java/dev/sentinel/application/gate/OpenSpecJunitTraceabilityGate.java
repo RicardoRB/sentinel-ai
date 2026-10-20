@@ -26,11 +26,16 @@ public final class OpenSpecJunitTraceabilityGate implements QualityGate {
   private final TestMappingInventory mappings;
   private final TraceabilityPolicy policy;
 
+  /** Creates the gate with the default mapping policy. */
   public OpenSpecJunitTraceabilityGate(
       final ScenarioInventory scenarios, final TestMappingInventory mappings) {
     this(scenarios, mappings, new TraceabilityPolicy());
   }
 
+  /**
+   * Creates the gate. {@code scenarios} lists the live OpenSpec scenarios, {@code mappings} the
+   * annotated tests, and {@code policy} decides coverage.
+   */
   public OpenSpecJunitTraceabilityGate(
       final ScenarioInventory scenarios,
       final TestMappingInventory mappings,
@@ -68,17 +73,16 @@ public final class OpenSpecJunitTraceabilityGate implements QualityGate {
                 + result.findings().size());
     final String detail = render(result);
     final GateStatus status = result.passed() ? GateStatus.PASSED : GateStatus.FAILED;
-    return new GateResult(
-        NAME,
-        status,
-        List.of(),
-        result.passed() ? 0 : 1,
-        Duration.ZERO,
-        "",
-        detail,
-        result.summary(),
-        result.findings().size(),
-        0);
+    return GateResult.builder(NAME, status)
+        .command(List.of())
+        .exitCode(result.passed() ? 0 : 1)
+        .duration(Duration.ZERO)
+        .stdout("")
+        .stderr(detail)
+        .summary(result.summary())
+        .errors(result.findings().size())
+        .warnings(0)
+        .build();
   }
 
   private static String render(final TraceabilityResult result) {

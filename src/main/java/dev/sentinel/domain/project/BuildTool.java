@@ -1,5 +1,6 @@
 package dev.sentinel.domain.project;
 
+/** The build tool that defines a project. */
 public enum BuildTool {
   MAVEN("Maven"),
   GRADLE("Gradle"),
@@ -18,6 +19,7 @@ public enum BuildTool {
     this.displayName = displayName;
   }
 
+  /** Returns the name shown to users. */
   public String displayName() {
     return displayName;
   }

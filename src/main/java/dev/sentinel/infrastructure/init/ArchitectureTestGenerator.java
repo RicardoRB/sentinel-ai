@@ -40,6 +40,7 @@ public final class ArchitectureTestGenerator implements ArchitectureTestGenerati
           "web",
           "persistence");
 
+  /** Creates the stateless adapter that Dagger injects. */
   @Inject
   public ArchitectureTestGenerator() {}
 

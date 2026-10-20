@@ -9,6 +9,9 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 
 class GateFindingsTest {
+  private static final int REPORTED = 120;
+  private static final int WARNINGS = 60;
+  private static final int ERRORS = 3;
 
   private static Finding finding(final int line) {
     return new Finding(
@@ -26,15 +29,15 @@ class GateFindingsTest {
   @Test
   void keepsAllFindingsAndCapsVisibleFindingsAtPresentationTime() {
     final List<Finding> all =
-        IntStream.rangeClosed(1, 120).mapToObj(GateFindingsTest::finding).toList();
+        IntStream.rangeClosed(1, REPORTED).mapToObj(GateFindingsTest::finding).toList();
 
     final GateFindings findings = GateFindings.of(all);
 
-    assertThat(findings.items()).hasSize(120);
+    assertThat(findings.items()).hasSize(REPORTED);
     assertThat(findings.items().getFirst().line()).isEqualTo(1);
-    assertThat(findings.items().getLast().line()).isEqualTo(120);
-    assertThat(findings.total()).isEqualTo(120);
-    assertThat(findings.visible(SeverityThreshold.ERROR).items()).hasSize(50);
+    assertThat(findings.items().getLast().line()).isEqualTo(REPORTED);
+    assertThat(findings.total()).isEqualTo(REPORTED);
+    assertThat(findings.visible(SeverityThreshold.ERROR).items()).hasSize(GateFindings.LIMIT);
     assertThat(findings.visible(SeverityThreshold.ERROR).truncated()).isTrue();
     assertThat(findings.isEmpty()).isFalse();
   }
@@ -52,18 +55,20 @@ class GateFindingsTest {
   void filtersBeforeApplyingTheCap() {
     final List<Finding> all =
         Stream.concat(
-                IntStream.rangeClosed(1, 60)
+                IntStream.rangeClosed(1, WARNINGS)
                     .mapToObj(i -> findingWithSeverity(i, FindingSeverity.WARNING)),
-                IntStream.rangeClosed(61, 63)
+                IntStream.rangeClosed(WARNINGS + 1, WARNINGS + ERRORS)
                     .mapToObj(i -> findingWithSeverity(i, FindingSeverity.ERROR)))
             .toList();
 
     final GateFindings.Visible visible = GateFindings.of(all).visible(SeverityThreshold.ERROR);
 
     assertThat(visible.items()).extracting(Finding::severity).containsOnly(FindingSeverity.ERROR);
-    assertThat(visible.items()).extracting(Finding::line).containsExactly(61, 62, 63);
-    assertThat(visible.total()).isEqualTo(63);
-    assertThat(visible.hidden()).isEqualTo(60);
+    assertThat(visible.items())
+        .extracting(Finding::line)
+        .containsExactly(WARNINGS + 1, WARNINGS + 2, WARNINGS + ERRORS);
+    assertThat(visible.total()).isEqualTo(WARNINGS + ERRORS);
+    assertThat(visible.hidden()).isEqualTo(WARNINGS);
     assertThat(visible.truncated()).isFalse();
   }
 

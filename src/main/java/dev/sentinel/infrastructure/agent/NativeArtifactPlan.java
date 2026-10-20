@@ -13,6 +13,7 @@ public record NativeArtifactPlan(
     String configContent,
     String hookContent,
     Set<IntegrationCapability> capabilities) {
+  /** Copies the capabilities. */
   public NativeArtifactPlan {
     capabilities = Set.copyOf(capabilities);
   }

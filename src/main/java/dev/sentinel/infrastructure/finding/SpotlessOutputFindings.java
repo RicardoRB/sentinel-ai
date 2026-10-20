@@ -19,6 +19,7 @@ public final class SpotlessOutputFindings implements GateFindingSource {
   private static final Pattern LOG_PREFIX = Pattern.compile("^(\\[(ERROR|WARNING|INFO)\\] ?|> )");
   private static final Pattern FILE = Pattern.compile("^[^\\s@+\\-][^\\s]*\\.[A-Za-z0-9]+$");
 
+  /** Creates the stateless adapter that Dagger injects. */
   @Inject
   public SpotlessOutputFindings() {}
 

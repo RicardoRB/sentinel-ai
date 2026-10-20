@@ -14,6 +14,7 @@ public final class MultiSelectMenu {
   private static final int ESCAPE = 27;
   private static final int NO_DIRECTION = -1;
 
+  /** Runs a menu that requires at least one ticked row. */
   public List<Integer> select(
       final String title,
       final List<String> labels,
@@ -22,48 +23,37 @@ public final class MultiSelectMenu {
     return select(title, labels, "Select at least one item.", keys, out);
   }
 
+  /** Runs a menu that requires a ticked row and shows {@code emptySelectionMessage} otherwise. */
   public List<Integer> select(
       final String title,
       final List<String> labels,
       final String emptySelectionMessage,
       final IntSupplier keys,
       final PrintWriter out) {
-    return select(title, labels, emptySelectionMessage, keys, out, Set.of());
-  }
-
-  public List<Integer> select(
-      final String title,
-      final List<String> labels,
-      final String emptySelectionMessage,
-      final IntSupplier keys,
-      final PrintWriter out,
-      final Set<Integer> initialSelections) {
-    return select(title, labels, emptySelectionMessage, keys, out, initialSelections, false);
+    return select(new MenuSpec(title, labels, emptySelectionMessage, Set.of(), false), keys, out);
   }
 
   /**
-   * Runs the menu until Enter confirms. An empty confirmation is returned when {@code allowEmpty};
-   * otherwise it shows {@code emptySelectionMessage} and keeps the menu open, cursor unchanged.
+   * Runs the menu until Enter confirms. An empty confirmation is returned when {@code
+   * spec.allowEmpty()}; otherwise it shows {@code spec.emptySelectionMessage()} and keeps the menu
+   * open, cursor unchanged.
+   *
+   * @throws IllegalArgumentException if the menu has no rows
    */
-  public List<Integer> select(
-      final String title,
-      final List<String> labels,
-      final String emptySelectionMessage,
-      final IntSupplier keys,
-      final PrintWriter out,
-      final Set<Integer> initialSelections,
-      final boolean allowEmpty) {
+  public List<Integer> select(final MenuSpec spec, final IntSupplier keys, final PrintWriter out) {
+    final String title = spec.title();
+    final List<String> labels = spec.labels();
     if (labels.isEmpty()) {
       throw new IllegalArgumentException("A menu must have at least one item");
     }
-    final MenuState menu = new MenuState(labels.size(), initialSelections);
+    final MenuState menu = new MenuState(labels.size(), spec.initialSelections());
     render(title, labels, menu, out, "");
     while (true) {
       final Optional<List<Integer>> confirmed = menu.press(keys.getAsInt(), keys);
-      if (confirmed.isPresent() && (allowEmpty || !confirmed.get().isEmpty())) {
+      if (confirmed.isPresent() && (spec.allowEmpty() || !confirmed.get().isEmpty())) {
         return confirmed.get();
       }
-      render(title, labels, menu, out, confirmed.isPresent() ? emptySelectionMessage : "");
+      render(title, labels, menu, out, confirmed.isPresent() ? spec.emptySelectionMessage() : "");
     }
   }
 

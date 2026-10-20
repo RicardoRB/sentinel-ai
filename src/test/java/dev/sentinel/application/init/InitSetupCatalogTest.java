@@ -20,6 +20,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 class InitSetupCatalogTest {
+  private static final double STRICT_LINE_MINIMUM = 0.85;
+  private static final double STRICT_BRANCH_MINIMUM = 0.75;
+  private static final int STRICT_MUTATION_THRESHOLD = 60;
   private static final String OPENSPEC = "openspec";
   private static final String OPENSPEC_ARCHIVED = "openspec-archived";
   private static final String COMPILE = "compile";
@@ -63,8 +66,8 @@ class InitSetupCatalogTest {
     assertThat(QualityPreset.STANDARD.gates())
         .containsExactly(COMPILE, TESTS, "format", "checkstyle", "pmd", "spotbugs", "coverage");
     assertThat(QualityPreset.STRICT.rules().jacocoMinimums())
-        .containsEntry("LINE", 0.85)
-        .containsEntry("BRANCH", 0.75);
+        .containsEntry("LINE", STRICT_LINE_MINIMUM)
+        .containsEntry("BRANCH", STRICT_BRANCH_MINIMUM);
     assertThat(QualityPreset.STANDARD.rules().pmdRules())
         .containsExactly("rulesets/java/quickstart.xml");
     assertThat(QualityPreset.STRICT.rules().pmdRules())
@@ -87,7 +90,8 @@ class InitSetupCatalogTest {
         .containsExactly("EI_EXPOSE_REP", "EI_EXPOSE_REP2");
     assertThat(QualityPreset.STRICT.rules().enforcerRules())
         .contains("requireUpperBoundDeps", "requirePluginVersions", "banDynamicVersions");
-    assertThat(QualityPreset.STRICT.rules().mutationThreshold()).isEqualTo(60);
+    assertThat(QualityPreset.STRICT.rules().mutationThreshold())
+        .isEqualTo(STRICT_MUTATION_THRESHOLD);
     assertThat(QualityPreset.STRICT.rules().architectureExtras().cycles()).isTrue();
     assertThatThrownBy(() -> catalog.preset("paranoid")).hasMessageContaining("standard", "strict");
   }

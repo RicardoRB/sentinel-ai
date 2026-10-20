@@ -30,7 +30,7 @@ command = "./mvnw checkstyle:check"
 
 [quality-gates.checkstyle.partial]
 inputs = ["src/**/*.java"]
-config = ["config/checkstyle.xml", "config/google_checks.xml", "pom.xml"]
+config = ["config/checkstyle.xml", "pom.xml"]
 args = ["-Dcheckstyle.includes={paths}"]
 item = "**/{name}"
 separator = ","

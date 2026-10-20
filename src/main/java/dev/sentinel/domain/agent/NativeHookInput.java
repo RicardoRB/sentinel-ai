@@ -14,31 +14,14 @@ public record NativeHookInput(
     String skill,
     boolean unreadable,
     boolean continued) {
-  public NativeHookInput(
-      final String eventName,
-      final String toolName,
-      final String workingDirectory,
-      final String path,
-      final String command,
-      final String patch,
-      final String skill,
-      final boolean unreadable) {
-    this(eventName, toolName, workingDirectory, path, command, patch, skill, unreadable, false);
-  }
 
-  public String eventName() {
-    return eventName;
-  }
-
-  public String toolName() {
-    return toolName;
-  }
-
+  /** An event whose payload could not be parsed. */
   public static NativeHookInput unreadableInput() {
-    return new NativeHookInput(null, null, "", null, null, null, null, true);
+    return new NativeHookInput(null, null, "", null, null, null, null, true, false);
   }
 
+  /** An event without payload, used when the hook reads nothing from stdin. */
   public static NativeHookInput empty() {
-    return new NativeHookInput(null, null, "", null, null, null, null, false);
+    return new NativeHookInput(null, null, "", null, null, null, null, false, false);
   }
 }

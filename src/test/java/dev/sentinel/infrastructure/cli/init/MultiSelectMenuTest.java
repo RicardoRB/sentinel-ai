@@ -12,6 +12,7 @@ import java.util.function.IntSupplier;
 import org.junit.jupiter.api.Test;
 
 class MultiSelectMenuTest {
+  private static final int ESCAPE = 27;
   private final MultiSelectMenu menu = new MultiSelectMenu();
   private final StringWriter rendered = new StringWriter();
 
@@ -21,7 +22,7 @@ class MultiSelectMenuTest {
             menu.select(
                 "Choose",
                 List.of("first", "second"),
-                script(' ', 27, '[', 'B', ' ', '\n'),
+                script(' ', ESCAPE, '[', 'B', ' ', '\n'),
                 output()))
         .containsExactly(0, 1);
     assertThat(rendered.toString()).contains("[x] 1) first", "[x] 2) second");
@@ -31,7 +32,7 @@ class MultiSelectMenuTest {
   void cursorWrapsFromFirstToLast() {
     assertThat(
             menu.select(
-                "Choose", List.of("first", "last"), script(27, '[', 'A', ' ', '\n'), output()))
+                "Choose", List.of("first", "last"), script(ESCAPE, '[', 'A', ' ', '\n'), output()))
         .containsExactly(1);
   }
 
@@ -52,7 +53,7 @@ class MultiSelectMenuTest {
                 "Choose",
                 List.of("one", "two"),
                 "Select at least one integration, or choose none.",
-                script(27, '[', 'B', '\n', ' ', '\n'),
+                script(ESCAPE, '[', 'B', '\n', ' ', '\n'),
                 output()))
         .containsExactly(1);
     assertThat(rendered.toString())
@@ -74,7 +75,7 @@ class MultiSelectMenuTest {
         "Choose",
         List.of("one", "two"),
         "Select at least one item.",
-        script(27, '[', 'B', '\n', ' ', '\n'),
+        script(ESCAPE, '[', 'B', '\n', ' ', '\n'),
         output());
 
     final String screen = rendered.toString();

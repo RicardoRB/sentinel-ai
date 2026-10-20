@@ -12,6 +12,7 @@ public record RuleFileChange(
     boolean createdDirectory,
     Map<Path, String> originals,
     List<Path> preserved) {
+  /** Copies the originals and preserved files. */
   public RuleFileChange {
     originals = Collections.unmodifiableMap(new LinkedHashMap<>(originals));
     preserved = List.copyOf(preserved);

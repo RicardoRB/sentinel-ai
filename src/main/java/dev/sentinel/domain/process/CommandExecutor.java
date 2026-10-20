@@ -13,9 +13,11 @@ import java.util.List;
 @FunctionalInterface
 public interface CommandExecutor {
 
+  /** Runs {@code command} in its working directory. */
   default CommandResult execute(final Command command) {
     return execute(command.arguments(), command.workingDirectory());
   }
 
+  /** Runs the argument vector {@code command} in {@code workingDirectory} and waits for it. */
   CommandResult execute(List<String> command, Path workingDirectory);
 }

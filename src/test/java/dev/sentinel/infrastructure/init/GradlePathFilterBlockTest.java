@@ -21,6 +21,8 @@ import org.junit.jupiter.api.io.TempDir;
  * The rendered text was run against Gradle 9.7.1 in both DSLs, with and without the property.
  */
 class GradlePathFilterBlockTest {
+  // The standard preset filters the checkstyleMain and pmdMain tasks.
+  private static final int FILTERED_TASKS = 2;
   private static final String GROOVY = "build.gradle";
   private static final String KOTLIN = "build.gradle.kts";
   private static final String GROOVY_PLUGINS = "plugins {\n    id 'java'\n}\n";
@@ -85,7 +87,7 @@ class GradlePathFilterBlockTest {
 
     assertThat(second.changed()).isFalse();
     assertThat(Files.readString(root.resolve(KOTLIN))).isEqualTo(first);
-    assertThat(first.split("val sentinelPaths =", -1)).hasSize(3);
+    assertThat(first.split("val sentinelPaths =", -1)).hasSize(FILTERED_TASKS + 1);
   }
 
   private String configure(final String file, final String script, final QualityPreset preset)

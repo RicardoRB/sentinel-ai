@@ -11,6 +11,7 @@ public final class StderrLogHandler extends Handler {
   private final Consumer<String> sink;
   private final Runnable flush;
 
+  /** Creates a handler writing records at or above {@code threshold} to {@code writer}. */
   public StderrLogHandler(final PrintWriter writer, final Level threshold) {
     super();
     sink = writer::print;

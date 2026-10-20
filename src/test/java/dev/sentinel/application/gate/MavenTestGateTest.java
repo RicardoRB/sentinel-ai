@@ -12,7 +12,6 @@ import dev.sentinel.domain.project.Framework;
 import dev.sentinel.domain.project.Language;
 import dev.sentinel.domain.project.Project;
 import java.nio.file.Path;
-import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -33,7 +32,7 @@ class MavenTestGateTest {
     assertThat(result.status()).isEqualTo(GateStatus.PASSED);
     assertThat(result.exitCode()).isZero();
     assertThat(result.stdout()).isEqualTo("BUILD SUCCESS");
-    assertThat(result.duration()).isEqualTo(Duration.ofMillis(1234));
+    assertThat(result.duration()).isEqualTo(FakeCommandExecutor.DURATION);
     assertThat(executor.commands).containsExactly(List.of("./mvnw", "test"));
     assertThat(executor.workingDirectories).containsExactly(Path.of("/work/app"));
   }

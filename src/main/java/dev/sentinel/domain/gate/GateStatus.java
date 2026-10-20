@@ -1,5 +1,6 @@
 package dev.sentinel.domain.gate;
 
+/** The outcome of one gate. */
 public enum GateStatus {
   PASSED,
   FAILED,

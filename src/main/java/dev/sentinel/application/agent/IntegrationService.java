@@ -15,27 +15,38 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.inject.Inject;
 
+/** Installs, refreshes, and removes agent integrations in the project containing a path. */
 public final class IntegrationService {
   private static final Logger LOGGER = Logger.getLogger(IntegrationService.class.getName());
   private final ProjectDetector detector;
   private final List<AgentIntegration> integrations;
 
+  /** Creates the service offering {@code integrations} in the given order. */
   public IntegrationService(
       final ProjectDetector detector, final List<AgentIntegration> integrations) {
     this.detector = detector;
     this.integrations = List.copyOf(integrations);
   }
 
+  /** Creates the service offering every bound integration. */
   @Inject
   public IntegrationService(
       final ProjectDetector detector, final Set<AgentIntegration> integrations) {
     this(detector, List.copyOf(integrations));
   }
 
+  /**
+   * Installs or, when {@code remove}, removes the integration {@code agent}, keeping the guard
+   * setting.
+   */
   public IntegrationResult integrate(final String agent, final Path start, final boolean remove) {
     return integrate(agent, start, remove ? IntegrationRequest.REMOVE : IntegrationRequest.INSTALL);
   }
 
+  /**
+   * Applies {@code request} to the integration {@code agent} in the project containing {@code
+   * start}.
+   */
   public IntegrationResult integrate(
       final String agent, final Path start, final IntegrationRequest request) {
     LOGGER.log(

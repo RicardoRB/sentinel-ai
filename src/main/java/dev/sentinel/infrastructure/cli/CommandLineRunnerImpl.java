@@ -16,6 +16,10 @@ public class CommandLineRunnerImpl {
   private final SentinelCommand rootCommand;
   private final DaggerCommandFactory factory;
 
+  /**
+   * Creates the runner; {@code factory} builds subcommands and {@code rootCommand} is the {@code
+   * sentinel} command.
+   */
   @Inject
   public CommandLineRunnerImpl(
       final DaggerCommandFactory factory, final SentinelCommand rootCommand) {
@@ -23,6 +27,7 @@ public class CommandLineRunnerImpl {
     this.rootCommand = rootCommand;
   }
 
+  /** Runs {@code args} with UTF-8 standard output and error and returns the exit code. */
   public int run(final String... args) {
     return run(
         new PrintWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8), true),
@@ -30,6 +35,7 @@ public class CommandLineRunnerImpl {
         args);
   }
 
+  /** Runs {@code args}, writing to {@code out} and {@code err}, and returns the exit code. */
   public int run(final PrintWriter out, final PrintWriter err, final String... args) {
     final CommandLine commandLine = createCommandLine(rootCommand, factory, out, err);
     final int exitCode = commandLine.execute(args);
@@ -38,6 +44,7 @@ public class CommandLineRunnerImpl {
     return exitCode;
   }
 
+  /** Creates the configured Picocli command line for {@code root}. */
   public static CommandLine createCommandLine(
       final SentinelCommand root,
       final DaggerCommandFactory factory,
@@ -51,6 +58,9 @@ public class CommandLineRunnerImpl {
     return commandLine;
   }
 
+  /**
+   * Returns the execution strategy that enables {@code --verbose} logging for the executed command.
+   */
   public static CommandLine.IExecutionStrategy executionStrategy() {
     return new VerboseExecutionStrategy(new CommandLine.RunLast());
   }

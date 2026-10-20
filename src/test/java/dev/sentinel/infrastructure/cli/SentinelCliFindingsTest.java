@@ -10,6 +10,9 @@ import java.nio.file.attribute.PosixFilePermissions;
 import org.junit.jupiter.api.Test;
 
 class SentinelCliFindingsTest extends SentinelCliIntegrationSupport {
+  // configureFailingGates() configures checkstyle, gitleaks, and tests; SARIF has a run per gate.
+  private static final int CONFIGURED_GATES = 3;
+  private static final int JAVADOC_LINE = 42;
   private static final String SARIF = "sarif";
   private static final String OUTPUT_OPTION = "--output";
   private static final String SECRET = "ghp_FAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKE1234";
@@ -72,7 +75,7 @@ class SentinelCliFindingsTest extends SentinelCliIntegrationSupport {
     final JsonTree finding = checkstyle.get("findings").get(0);
     assertThat(finding.get("rule").asString()).isEqualTo("MissingJavadocMethod");
     assertThat(finding.get("file").asString()).isEqualTo("src/main/java/Foo.java");
-    assertThat(finding.get("line").asInt()).isEqualTo(42);
+    assertThat(finding.get("line").asInt()).isEqualTo(JAVADOC_LINE);
     final JsonTree gitleaks = checks.get(1);
     assertThat(gitleaks.get("findings").get(0).get("file").asString()).isEqualTo("config/app.yml");
     assertThat(checks.get(2).get("findings").size()).isZero();
@@ -108,7 +111,7 @@ class SentinelCliFindingsTest extends SentinelCliIntegrationSupport {
     assertThat(stdout).doesNotContain(SECRET);
     final JsonTree log = JsonTree.parse(stdout);
     assertThat(log.get("version").asString()).isEqualTo("2.1.0");
-    assertThat(log.get("runs").size()).isEqualTo(3);
+    assertThat(log.get("runs").size()).isEqualTo(CONFIGURED_GATES);
     assertThat(log.get("runs").get(0).get("results").get(0).get("ruleId").asString())
         .isEqualTo("MissingJavadocMethod");
     assertThat(log.get("runs").get(2).get("results").size()).isZero();
@@ -131,7 +134,8 @@ class SentinelCliFindingsTest extends SentinelCliIntegrationSupport {
 
     assertThat(exit).isEqualTo(ExitCodes.FAILED);
     assertThat(out.toString()).contains("Quality Gate: FAILED").doesNotContain("\"runs\"");
-    assertThat(JsonTree.parse(Files.readString(report)).get("runs").size()).isEqualTo(3);
+    assertThat(JsonTree.parse(Files.readString(report)).get("runs").size())
+        .isEqualTo(CONFIGURED_GATES);
   }
 
   @Test

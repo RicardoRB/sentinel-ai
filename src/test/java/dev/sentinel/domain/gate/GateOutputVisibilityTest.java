@@ -33,7 +33,13 @@ class GateOutputVisibilityTest {
   }
 
   private static GateResult result(final GateStatus status, final GateFindings findings) {
-    return new GateResult("g", status, List.of("g"), 1, Duration.ZERO, "out", "err")
+    return GateResult.builder("g", status)
+        .command(List.of("g"))
+        .exitCode(1)
+        .duration(Duration.ZERO)
+        .stdout("out")
+        .stderr("err")
+        .build()
         .withFindings(findings);
   }
 

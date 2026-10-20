@@ -260,7 +260,7 @@
                 <artifactId>maven-checkstyle-plugin</artifactId>
                 <version>3.6.0</version>
                 <configuration>
-                    <configLocation>config/google_checks.xml</configLocation>
+                    <configLocation>config/checkstyle.xml</configLocation>
                     <includeTestSourceDirectory>true</includeTestSourceDirectory>
                     <excludeGeneratedSources>true</excludeGeneratedSources>
                 </configuration>

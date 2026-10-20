@@ -38,10 +38,11 @@ class InitPomValidationRollbackTest {
             new ProjectDetector(new FileSystemProjectInspection()),
             Set.of(integration),
             new InitSetupCatalog(new FakeEnvironmentInspection()),
-            new PomToolConfigurator(),
-            new ArchitectureTestGenerator(),
-            new FileConfigurationStorage(),
-            new PresetRuleFileWriter());
+            new InitProjectFiles(
+                new PomToolConfigurator(),
+                new PresetRuleFileWriter(),
+                new ArchitectureTestGenerator(),
+                new FileConfigurationStorage()));
 
     assertThatThrownBy(
             () -> service.initialize(root, new InitSelection(List.of("opencode"), List.of("pmd"))))

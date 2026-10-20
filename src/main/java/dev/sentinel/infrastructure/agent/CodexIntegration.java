@@ -60,6 +60,7 @@ public final class CodexIntegration implements NativeHarnessAdapter {
     return NativeHookText.phaseWrapper(DEFINITION.id(), DEFINITION.hookFile(), guardMode);
   }
 
+  /** Returns the hook response that blocks the tool call and tells the agent {@code reason}. */
   public String denyResponse(final String reason) {
     return "{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":"
         + NativeHookText.quote(reason)
@@ -121,6 +122,7 @@ public final class CodexIntegration implements NativeHarnessAdapter {
     }
   }
 
+  /** The tool input of a Codex hook payload; its public field mirrors the event JSON. */
   @JsonType
   public static final class ToolInput {
     public String command;

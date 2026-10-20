@@ -2,6 +2,7 @@ package dev.sentinel.infrastructure.cli.init;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import dev.sentinel.application.init.InitProjectFiles;
 import dev.sentinel.application.init.InitService;
 import dev.sentinel.application.init.InitSetupCatalog;
 import dev.sentinel.application.project.ProjectDetector;
@@ -29,6 +30,8 @@ import org.junit.jupiter.api.io.TempDir;
 import picocli.CommandLine;
 
 class InitCompatibilityCliTest {
+  private static final int JAVA_17 = 17;
+
   @Test
   void refusalLeavesExistingPluginUnchanged(@TempDir final Path root) throws Exception {
     writePom(root);
@@ -68,17 +71,18 @@ class InitCompatibilityCliTest {
                 new CompatibilityProjectSnapshot(
                     project,
                     new ToolchainSnapshot(
-                        17, Optional.of("3.9.0"), Optional.empty(), Framework.NONE),
+                        JAVA_17, Optional.of("3.9.0"), Optional.empty(), Framework.NONE),
                     Map.of("spotless-maven-plugin", "1.0.0")));
     final InitService service =
         new InitService(
             detector,
             Set.of(),
             new InitSetupCatalog(new FakeEnvironmentInspection()),
-            configurator,
-            new ArchitectureTestGenerator(),
-            new FileConfigurationStorage(),
-            new PresetRuleFileWriter());
+            new InitProjectFiles(
+                configurator,
+                new PresetRuleFileWriter(),
+                new ArchitectureTestGenerator(),
+                new FileConfigurationStorage()));
     final InitCommand init =
         new InitCommand(service, new ByteArrayInputStream(input.getBytes(StandardCharsets.UTF_8)));
     final CommandLine command = new CommandLine(init);

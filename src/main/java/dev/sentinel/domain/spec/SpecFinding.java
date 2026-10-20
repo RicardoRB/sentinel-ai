@@ -12,6 +12,11 @@ public record SpecFinding(Level level, String location, String message) {
     INFO
   }
 
+  /**
+   * Validates the level; a missing message means empty.
+   *
+   * @throws NullPointerException if {@code level} is missing
+   */
   public SpecFinding {
     Objects.requireNonNull(level, "level");
     message = message == null ? "" : message;

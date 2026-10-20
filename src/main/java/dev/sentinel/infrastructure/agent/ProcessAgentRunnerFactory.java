@@ -11,6 +11,7 @@ import javax.inject.Inject;
 public final class ProcessAgentRunnerFactory implements AgentRunnerFactory {
   private final CommandExecutor executor;
 
+  /** Creates the factory; {@code executor} starts the agent processes. */
   @Inject
   public ProcessAgentRunnerFactory(final CommandExecutor executor) {
     this.executor = executor;

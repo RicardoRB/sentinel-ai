@@ -15,6 +15,7 @@ public record InitResult(
     ArchitectureTestChange architectureTest,
     List<Path> preservedRuleFiles,
     List<String> pomWarnings) {
+  /** Copies the lists; missing values mean empty. */
   public InitResult {
     gates = gates == null ? List.of() : List.copyOf(gates);
     integrations = integrations == null ? List.of() : List.copyOf(integrations);
@@ -23,10 +24,12 @@ public record InitResult(
     pomWarnings = pomWarnings == null ? List.of() : List.copyOf(pomWarnings);
   }
 
+  /** Creates a result for a configuration-only initialization. */
   public InitResult(final Path file, final boolean created) {
     this(file, created, false, List.of(), List.of(), List.of(), null, List.of(), List.of());
   }
 
+  /** Creates a result without build-file changes. */
   public InitResult(
       final Path file,
       final boolean created,
@@ -35,6 +38,7 @@ public record InitResult(
     this(file, created, false, gates, integrations, List.of(), null, List.of(), List.of());
   }
 
+  /** Creates a result that did not overwrite an existing configuration. */
   public InitResult(
       final Path file,
       final boolean created,
@@ -42,25 +46,5 @@ public record InitResult(
       final List<IntegrationResult> integrations,
       final List<String> pomChanges) {
     this(file, created, false, gates, integrations, pomChanges, null, List.of(), List.of());
-  }
-
-  public InitResult(
-      final Path file,
-      final boolean created,
-      final boolean overwritten,
-      final List<InitGateOption> gates,
-      final List<IntegrationResult> integrations,
-      final List<String> pomChanges,
-      final ArchitectureTestChange architectureTest) {
-    this(
-        file,
-        created,
-        overwritten,
-        gates,
-        integrations,
-        pomChanges,
-        architectureTest,
-        List.of(),
-        List.of());
   }
 }

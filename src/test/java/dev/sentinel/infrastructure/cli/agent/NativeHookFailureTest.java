@@ -54,9 +54,10 @@ class NativeHookFailureTest {
     final FakeOpenSpecEnvironment environment = new FakeOpenSpecEnvironment(true);
     final NativeHookCommand command =
         new NativeHookCommand(
-            SpecValidationFixtures.checks(passing, environment),
-            SpecValidationFixtures.service(
-                passing, environment, SpecValidationFixtures.checks(passing, environment)),
+            new HookChecks(
+                SpecValidationFixtures.checks(passing, environment),
+                SpecValidationFixtures.service(
+                    passing, environment, SpecValidationFixtures.checks(passing, environment))),
             new ApprovedArtifactGuardService(
                 new ProjectDetector(new FileSystemProjectInspection()),
                 new FileSystemProjectPaths()),

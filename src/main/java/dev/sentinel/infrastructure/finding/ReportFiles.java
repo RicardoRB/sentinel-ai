@@ -16,6 +16,7 @@ import java.util.logging.Logger;
 
 /** Locates tool reports written during the current gate run and normalises reported paths. */
 final class ReportFiles {
+  private static final String FILE_SCHEME = "file://";
   private static final Logger LOGGER = Logger.getLogger(ReportFiles.class.getName());
 
   private ReportFiles() {}
@@ -70,7 +71,8 @@ final class ReportFiles {
     if (reported == null || reported.isBlank()) {
       return null;
     }
-    final String value = reported.startsWith("file://") ? reported.substring(7) : reported;
+    final String value =
+        reported.startsWith(FILE_SCHEME) ? reported.substring(FILE_SCHEME.length()) : reported;
     final Path path = Path.of(value).normalize();
     if (!path.isAbsolute()) {
       return slashes(path.toString());

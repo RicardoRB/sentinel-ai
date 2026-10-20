@@ -21,6 +21,11 @@ public record GuardRefusal(Reason reason, String subject, String delta) {
     UNINSPECTABLE
   }
 
+  /**
+   * Validates the refusal.
+   *
+   * @throws NullPointerException if the reason, subject, or delta is missing
+   */
   public GuardRefusal {
     Objects.requireNonNull(reason, "reason");
     Objects.requireNonNull(subject, "subject");
@@ -39,6 +44,7 @@ public record GuardRefusal(Reason reason, String subject, String delta) {
     };
   }
 
+  /** Creates a refusal without a delta to edit instead. */
   public static GuardRefusal of(final Reason reason, final String subject) {
     return new GuardRefusal(reason, subject, "");
   }

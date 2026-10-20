@@ -22,11 +22,13 @@ import java.util.stream.Stream;
 import javax.inject.Inject;
 import org.apache.fory.json.annotation.JsonType;
 
+/** Stores the learning ledger in {@code .sentinel/learning.json}. */
 public final class JsonLearningStore implements LearningStore {
   private static final String DIRECTORY = ".sentinel";
   private static final String FILE = "learning.json";
   private final JsonCodec codec;
 
+  /** Creates the store; {@code codec} reads and writes the JSON file. */
   @Inject
   public JsonLearningStore(final JsonCodec codec) {
     this.codec = codec;
@@ -137,12 +139,14 @@ public final class JsonLearningStore implements LearningStore {
     return file;
   }
 
+  /** The file schema; its public fields are serialized. */
   @JsonType
   public static final class FileDto {
     public int formatVersion;
     public Map<String, RecordDto> records;
   }
 
+  /** One record in the file schema; its public fields are serialized. */
   @JsonType
   public static final class RecordDto {
     public String key;

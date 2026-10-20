@@ -58,6 +58,10 @@ public final class LoggingScope implements AutoCloseable {
     descendantLevels.keySet().forEach(logger -> logger.setLevel(null));
   }
 
+  /**
+   * Sends Sentinel's log records to {@code writer} until the scope closes: warnings and above, or
+   * fine-level details when {@code verbose}.
+   */
   public static LoggingScope open(final PrintWriter writer, final boolean verbose) {
     return new LoggingScope(writer, verbose);
   }

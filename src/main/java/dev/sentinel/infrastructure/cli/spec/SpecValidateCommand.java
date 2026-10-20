@@ -18,6 +18,7 @@ import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 import picocli.CommandLine.Spec;
 
+/** The {@code sentinel spec validate} command: validates specification artifacts. */
 @Command(
     name = "validate",
     description = {
@@ -44,6 +45,7 @@ public final class SpecValidateCommand implements Callable<Integer> {
 
   private final SpecValidationService service;
 
+  /** Creates the command; {@code service} runs the validation. */
   @Inject
   public SpecValidateCommand(final SpecValidationService service) {
     this.service = service;

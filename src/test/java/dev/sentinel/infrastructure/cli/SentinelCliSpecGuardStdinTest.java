@@ -21,6 +21,7 @@ import picocli.CommandLine;
 
 /** {@code sentinel spec guard} reading patches and shell commands from stdin. */
 class SentinelCliSpecGuardStdinTest extends SentinelCliSpecSupport {
+  private static final int GUARD_PAYLOAD_LIMIT = 16 * 1024 * 1024;
 
   @BeforeEach
   void openSpecTree() throws IOException {
@@ -76,7 +77,7 @@ class SentinelCliSpecGuardStdinTest extends SentinelCliSpecSupport {
         .isEqualTo(ExitCodes.FAILED);
     assertThat(out.toString()).contains("could not inspect the patch");
 
-    final byte[] oversized = new byte[16 * 1024 * 1024 + 1];
+    final byte[] oversized = new byte[GUARD_PAYLOAD_LIMIT + 1];
     Arrays.fill(oversized, (byte) 'a');
     assertThat(
             guard(

@@ -72,6 +72,7 @@ public final class FactoryDroidIntegration implements NativeHarnessAdapter {
     return NativeHookText.phaseWrapper(DEFINITION.id(), DEFINITION.hookFile(), guardMode);
   }
 
+  /** Returns the hook response that blocks the tool call and tells the agent {@code reason}. */
   public String denyResponse(final String reason) {
     return "{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":"
         + NativeHookText.quote(reason)

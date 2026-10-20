@@ -28,6 +28,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 class QualityLoopScenarioTest {
+  // Longer than the one-second agent timeout the timeout scenario configures.
+  private static final long SLOW_AGENT_MILLIS = 1500;
   private static final String GIT_COMMAND = "git";
 
   @Test
@@ -54,9 +56,7 @@ class QualityLoopScenarioTest {
             checks,
             agent,
             new GitStateInspector(executor),
-            dir,
-            "fix it",
-            new LoopConfiguration(2, 2, true));
+            request(dir, "fix it", new LoopConfiguration(2, 2, true)));
     assertThat(result.state()).isEqualTo(LoopTerminalState.PASSED);
     assertThat(result.iterations()).isEqualTo(1);
   }
@@ -85,9 +85,7 @@ class QualityLoopScenarioTest {
             checks,
             agent,
             new GitStateInspector(executor),
-            dir,
-            "fix it",
-            new LoopConfiguration(2, 2, true));
+            request(dir, "fix it", new LoopConfiguration(2, 2, true)));
     assertThat(result.state()).isEqualTo(LoopTerminalState.MAX_ITERATIONS_REACHED);
     assertThat(result.iterations()).isEqualTo(2);
   }
@@ -109,7 +107,7 @@ class QualityLoopScenarioTest {
           @Override
           public AgentResult run(AgentRequest r) {
             try {
-              Thread.sleep(1500);
+              Thread.sleep(SLOW_AGENT_MILLIS);
             } catch (InterruptedException interrupted) {
               Thread.currentThread().interrupt();
             }
@@ -121,9 +119,7 @@ class QualityLoopScenarioTest {
                     checks,
                     timeout,
                     new GitStateInspector(executor),
-                    dir,
-                    "wait",
-                    new LoopConfiguration(1, 1, true))
+                    request(dir, "wait", new LoopConfiguration(1, 1, true)))
                 .state())
         .isEqualTo(LoopTerminalState.TIMEOUT);
     final AgentRunner failure =
@@ -143,9 +139,7 @@ class QualityLoopScenarioTest {
                     checks,
                     failure,
                     new GitStateInspector(executor),
-                    dir,
-                    "fail",
-                    new LoopConfiguration(1, 1, true))
+                    request(dir, "fail", new LoopConfiguration(1, 1, true)))
                 .state())
         .isEqualTo(LoopTerminalState.AGENT_ERROR);
   }
@@ -184,9 +178,7 @@ class QualityLoopScenarioTest {
             checks,
             agent,
             new GitStateInspector(executor),
-            dir,
-            "fix it",
-            new LoopConfiguration(3, 2, true));
+            request(dir, "fix it", new LoopConfiguration(3, 2, true)));
     assertThat(result.state()).isEqualTo(LoopTerminalState.PASSED);
     assertThat(agentCalls[0]).isEqualTo(2);
   }
@@ -218,9 +210,7 @@ class QualityLoopScenarioTest {
             checks,
             agent,
             ignored -> new GitState(false, "main", false, "clean"),
-            dir,
-            "fix it",
-            new LoopConfiguration(1, 2, true));
+            request(dir, "fix it", new LoopConfiguration(1, 2, true)));
 
     assertThat(result.state()).isEqualTo(LoopTerminalState.GATE_ERROR);
     assertThat(result.message()).isEqualTo("gate exploded");
@@ -230,11 +220,12 @@ class QualityLoopScenarioTest {
       final CheckService checks,
       final AgentRunner agent,
       final GitStateInspection git,
-      final Path root,
-      final String task,
-      final LoopConfiguration configuration) {
-    final QualityLoopService service =
-        new QualityLoopService(checks, (directory, arguments) -> agent, git);
-    return service.run(new LoopRequest(root, List.of("fake"), task, configuration));
+      final LoopRequest request) {
+    return new QualityLoopService(checks, (directory, arguments) -> agent, git).run(request);
+  }
+
+  private static LoopRequest request(
+      final Path root, final String task, final LoopConfiguration configuration) {
+    return new LoopRequest(root, List.of("fake"), task, configuration);
   }
 }

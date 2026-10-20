@@ -14,6 +14,11 @@ public final class CommandLineTokenizer {
 
   private CommandLineTokenizer() {}
 
+  /**
+   * Splits {@code commandLine} at whitespace outside quotes and removes the quotes.
+   *
+   * @throws SentinelException if a quote is not closed
+   */
   public static List<String> tokenize(final String commandLine) {
     final Tokens tokens = new Tokens();
     final StringBuilder current = new StringBuilder();

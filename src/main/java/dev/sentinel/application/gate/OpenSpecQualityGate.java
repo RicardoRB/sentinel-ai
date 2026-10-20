@@ -20,6 +20,10 @@ public final class OpenSpecQualityGate implements QualityGate {
   private final EnvironmentInspection environment;
   private final List<String> command;
 
+  /**
+   * Creates an OpenSpec validation gate; {@code environment} checks that the OpenSpec executable is
+   * available.
+   */
   public OpenSpecQualityGate(
       final String name,
       final CommandExecutor executor,
@@ -52,11 +56,24 @@ public final class OpenSpecQualityGate implements QualityGate {
   }
 
   private GateResult unavailable(final String message) {
-    return new GateResult(
-        name, GateStatus.UNAVAILABLE, command, -1, Duration.ZERO, "", message, message);
+    return GateResult.builder(name, GateStatus.UNAVAILABLE)
+        .command(command)
+        .exitCode(-1)
+        .duration(Duration.ZERO)
+        .stdout("")
+        .stderr(message)
+        .summary(message)
+        .build();
   }
 
   private GateResult failure(final String message) {
-    return new GateResult(name, GateStatus.FAILED, command, 1, Duration.ZERO, "", message, message);
+    return GateResult.builder(name, GateStatus.FAILED)
+        .command(command)
+        .exitCode(1)
+        .duration(Duration.ZERO)
+        .stdout("")
+        .stderr(message)
+        .summary(message)
+        .build();
   }
 }

@@ -2,6 +2,8 @@ package dev.sentinel.config;
 
 import dagger.Binds;
 import dagger.Module;
+import dagger.Provides;
+import dev.sentinel.application.init.InitProjectFiles;
 import dev.sentinel.domain.init.ArchitectureTestGeneration;
 import dev.sentinel.domain.init.BuildToolConfiguration;
 import dev.sentinel.domain.init.ConfigurationStorage;
@@ -44,4 +46,13 @@ interface InitBindingsModule {
 
   @Binds
   ToolInstaller toolInstaller(CompositeToolInstaller implementation);
+
+  @Provides
+  static InitProjectFiles initProjectFiles(
+      final BuildToolConfiguration buildTools,
+      final RuleFileGeneration ruleFiles,
+      final ArchitectureTestGeneration architectureTests,
+      final ConfigurationStorage configuration) {
+    return new InitProjectFiles(buildTools, ruleFiles, architectureTests, configuration);
+  }
 }

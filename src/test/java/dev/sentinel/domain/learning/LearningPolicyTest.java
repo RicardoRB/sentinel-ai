@@ -17,6 +17,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class LearningPolicyTest {
+  private static final int PROMPT_AFTER = 3;
   private static final String CHECKSTYLE_FAILED = "checkstyle:FAILED";
   private static final Instant NOW = Instant.parse("2026-01-01T00:00:00Z");
   private static final Project PROJECT =
@@ -47,7 +48,8 @@ class LearningPolicyTest {
               assertThat(prompt.occurrences()).isEqualTo(2);
               assertThat(prompt.instruction()).contains("AGENTS.md", "checkstyle");
             });
-    assertThat(secondFailure.ledger().records().get(CHECKSTYLE_FAILED).summary()).hasSize(200);
+    assertThat(secondFailure.ledger().records().get(CHECKSTYLE_FAILED).summary())
+        .hasSize(LearningRecord.MAX_SUMMARY_LENGTH);
   }
 
   @Test
@@ -76,20 +78,19 @@ class LearningPolicyTest {
   void gateSkippedByAPartialCheckKeepsItsFailureStreak() {
     LearningLedger ledger = LearningLedger.empty();
     for (final GateStatus status : List.of(GateStatus.FAILED, GateStatus.PASSED)) {
-      ledger = LearningPolicy.apply(ledger, report(status, "bad"), 3, NOW).ledger();
+      ledger = LearningPolicy.apply(ledger, report(status, "bad"), PROMPT_AFTER, NOW).ledger();
     }
     final LearningLedger failing =
-        LearningPolicy.apply(ledger, report(GateStatus.FAILED, "bad"), 3, NOW).ledger();
+        LearningPolicy.apply(ledger, report(GateStatus.FAILED, "bad"), PROMPT_AFTER, NOW).ledger();
     final GateResult skipped =
-        new GateResult(
-                "checkstyle",
-                GateStatus.SKIPPED,
-                List.of(),
-                0,
-                Duration.ZERO,
-                "",
-                "",
-                "Not affected by the edited files")
+        GateResult.builder("checkstyle", GateStatus.SKIPPED)
+            .command(List.of())
+            .exitCode(0)
+            .duration(Duration.ZERO)
+            .stdout("")
+            .stderr("")
+            .summary("Not affected by the edited files")
+            .build()
             .withScope(GateScope.SKIPPED);
 
     final LearningOutcome outcome =
@@ -139,7 +140,7 @@ class LearningPolicyTest {
     assertThat(record.summary()).doesNotContain("stdout must not be stored");
     assertThat(record.summary()).doesNotContain("stderr must not be stored");
     assertThat(record).hasNoNullFieldsOrProperties();
-    assertThat(record.summary()).hasSizeLessThanOrEqualTo(200);
+    assertThat(record.summary()).hasSizeLessThanOrEqualTo(LearningRecord.MAX_SUMMARY_LENGTH);
   }
 
   @Test
@@ -161,29 +162,27 @@ class LearningPolicyTest {
     return new CheckReport(
         PROJECT,
         List.of(
-            new GateResult(
-                "checkstyle",
-                GateStatus.FAILED,
-                List.of("checkstyle"),
-                1,
-                Duration.ZERO,
-                "stdout must not be stored",
-                "stderr must not be stored",
-                "Build broke")));
+            GateResult.builder("checkstyle", GateStatus.FAILED)
+                .command(List.of("checkstyle"))
+                .exitCode(1)
+                .duration(Duration.ZERO)
+                .stdout("stdout must not be stored")
+                .stderr("stderr must not be stored")
+                .summary("Build broke")
+                .build()));
   }
 
   private static CheckReport report(final GateStatus status, final String summary) {
     return new CheckReport(
         PROJECT,
         List.of(
-            new GateResult(
-                "checkstyle",
-                status,
-                List.of("checkstyle"),
-                status == GateStatus.PASSED ? 0 : 1,
-                Duration.ZERO,
-                "stdout must not be stored",
-                "stderr must not be stored",
-                summary)));
+            GateResult.builder("checkstyle", status)
+                .command(List.of("checkstyle"))
+                .exitCode(status == GateStatus.PASSED ? 0 : 1)
+                .duration(Duration.ZERO)
+                .stdout("stdout must not be stored")
+                .stderr("stderr must not be stored")
+                .summary(summary)
+                .build()));
   }
 }

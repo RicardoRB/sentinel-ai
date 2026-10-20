@@ -8,12 +8,47 @@ final class ShellSegmentBuffer {
 
   /** What the next word means after a redirection operator. */
   enum Pending {
-    NONE,
-    WRITE,
-    WRITE_OR_DESCRIPTOR,
-    SKIP,
-    HEREDOC,
-    HEREDOC_TABS
+    NONE {
+      @Override
+      void route(final ShellSegmentBuffer buffer, final ShellWord word) {
+        buffer.words.add(word);
+      }
+    },
+    WRITE {
+      @Override
+      void route(final ShellSegmentBuffer buffer, final ShellWord word) {
+        buffer.writes.add(word);
+      }
+    },
+    WRITE_OR_DESCRIPTOR {
+      @Override
+      void route(final ShellSegmentBuffer buffer, final ShellWord word) {
+        if (!word.text().matches("\\d+|-")) {
+          buffer.writes.add(word);
+        }
+      }
+    },
+    SKIP {
+      @Override
+      void route(final ShellSegmentBuffer buffer, final ShellWord word) {
+        // An input source is only read.
+      }
+    },
+    HEREDOC {
+      @Override
+      void route(final ShellSegmentBuffer buffer, final ShellWord word) {
+        buffer.heredocs.add(word.text());
+      }
+    },
+    HEREDOC_TABS {
+      @Override
+      void route(final ShellSegmentBuffer buffer, final ShellWord word) {
+        buffer.heredocs.add("\t" + word.text());
+      }
+    };
+
+    /** Routes {@code word} into {@code buffer} as this redirection state requires. */
+    abstract void route(ShellSegmentBuffer buffer, ShellWord word);
   }
 
   private final List<ShellSegment> segments = new ArrayList<>();
@@ -27,20 +62,7 @@ final class ShellSegmentBuffer {
   }
 
   void accept(final ShellWord word) {
-    switch (pending) {
-      case NONE -> words.add(word);
-      case WRITE -> writes.add(word);
-      case WRITE_OR_DESCRIPTOR -> {
-        if (!word.text().matches("\\d+|-")) {
-          writes.add(word);
-        }
-      }
-      case HEREDOC -> heredocs.add(word.text());
-      case HEREDOC_TABS -> heredocs.add("\t" + word.text());
-      case SKIP -> {
-        // An input source is only read.
-      }
-    }
+    pending.route(this, word);
     pending = Pending.NONE;
   }
 

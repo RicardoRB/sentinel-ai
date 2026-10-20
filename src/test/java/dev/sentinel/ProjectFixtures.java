@@ -5,6 +5,7 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+/** Minimal project files for tests. */
 public final class ProjectFixtures {
 
   public static final String PLAIN_POM =
@@ -30,6 +31,7 @@ public final class ProjectFixtures {
 
   private ProjectFixtures() {}
 
+  /** Writes {@code pom} as the {@code pom.xml} of {@code dir} and returns {@code dir}. */
   public static Path withPom(final Path dir, final String pom) {
     try {
       Files.writeString(dir.resolve("pom.xml"), pom);

@@ -30,15 +30,18 @@ public class QualityGateFactory {
   private final TestMappingInventory testMappingInventory;
   private final ReportDirectories reportDirectories;
 
+  /** Creates a factory for command gates only. */
   public QualityGateFactory(final CommandExecutor executor) {
     this(executor, null, null, null);
   }
 
+  /** Creates a factory that can check executable availability. */
   public QualityGateFactory(
       final CommandExecutor executor, final EnvironmentInspection environment) {
     this(executor, environment, null, null);
   }
 
+  /** Creates a factory that can also build the traceability gate. */
   public QualityGateFactory(
       final CommandExecutor executor,
       final EnvironmentInspection environment,
@@ -47,6 +50,10 @@ public class QualityGateFactory {
     this(executor, environment, scenarioInventory, testMappingInventory, ReportDirectories.NONE);
   }
 
+  /**
+   * Creates the factory. {@code reportDirectories} tells command gates where their tools write
+   * reports.
+   */
   @Inject
   public QualityGateFactory(
       final CommandExecutor executor,
@@ -61,10 +68,16 @@ public class QualityGateFactory {
     this.testMappingInventory = testMappingInventory;
   }
 
+  /** Creates one gate per configured ID, without project-specific commands. */
   public List<QualityGate> create(final SentinelConfiguration configuration) {
     return create(configuration, null);
   }
 
+  /**
+   * Creates one gate per configured ID; disabled gates become skipped gates.
+   *
+   * @throws SentinelException if a gate ID is unknown
+   */
   public List<QualityGate> create(
       final SentinelConfiguration configuration, final Project project) {
     final List<QualityGate> gates = new ArrayList<>();
