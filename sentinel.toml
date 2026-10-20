@@ -93,7 +93,8 @@ command = "./mvnw dependency-check:check"
 [quality-gates.trivy]
 enabled = true
 profiles = ["ci"]
-command = "trivy fs --exit-code 1 ."
+# Offline: resolve Maven POMs from ~/.m2 (filled by earlier gates); Maven Central rate-limits CI runners.
+command = "trivy fs --offline-scan --exit-code 1 ."
 
 [quality-gates.license]
 enabled = true
