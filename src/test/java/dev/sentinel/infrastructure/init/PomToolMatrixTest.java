@@ -87,14 +87,14 @@ class PomToolMatrixTest {
     after.getDependencies().stream().map(Dependency::getArtifactId).forEach(projectLevel::add);
     assertThat(projectLevel).containsAll(change.tools());
     assertThat(profilePlugins(after)).isEqualTo(profilePlugins(before));
-    if (before.getBuild() != null && before.getBuild().getPluginManagement() != null) {
-      assertThat(after.getBuild().getPluginManagement().getPlugins())
-          .extracting(Plugin::getArtifactId)
-          .isEqualTo(
-              before.getBuild().getPluginManagement().getPlugins().stream()
-                  .map(Plugin::getArtifactId)
-                  .toList());
-    }
+    final List<String> managedBefore = managed(before);
+    final List<String> managedAfter = managed(after);
+    assertThat(managedAfter.subList(0, managedBefore.size())).isEqualTo(managedBefore);
+    assertThat(managedAfter.subList(managedBefore.size(), managedAfter.size()))
+        .isSubsetOf(
+            PresetPluginSnippets.LIFECYCLE_PLUGINS.stream()
+                .map(PresetPluginSnippets.LifecyclePlugin::artifact)
+                .toList());
   }
 
   @Test
@@ -141,6 +141,15 @@ class PomToolMatrixTest {
       }
     }
     return arguments.stream();
+  }
+
+  private static List<String> managed(final Model model) {
+    if (model.getBuild() == null || model.getBuild().getPluginManagement() == null) {
+      return List.of();
+    }
+    return model.getBuild().getPluginManagement().getPlugins().stream()
+        .map(Plugin::getArtifactId)
+        .toList();
   }
 
   private static List<List<String>> profilePlugins(final Model model) {

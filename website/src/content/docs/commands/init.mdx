@@ -49,9 +49,10 @@ project directory. Exit codes: `0` success, `2` invalid usage or
 inability to initialize (including cancelled or invalid selection).
 
 Maven plugins are added only to the project-level `<build><plugins>` and dependencies only to the
-project-level `<dependencies>`. Profiles, `pluginManagement`, `dependencyManagement`, and plugin
-dependencies are never edited, and missing `<build>`, `<plugins>`, or `<dependencies>` sections are
-created. New declarations match the file's indentation. The rest of `pom.xml` is left byte for byte as
+project-level `<dependencies>`. Profiles, `dependencyManagement`, and plugin dependencies are never
+edited, and missing `<build>`, `<plugins>`, or `<dependencies>` sections are created. The one addition
+to `<build><pluginManagement>` is the strict `enforcer` pins described under
+[First failures under `strict`](#first-failures-under-strict); existing entries there are never changed. New declarations match the file's indentation. The rest of `pom.xml` is left byte for byte as
 it was. Before writing, Sentinel checks the edited `pom.xml` in-process, without running Maven or
 fetching anything: the file must be well-formed XML, and each added declaration must contain only
 elements Maven allows there. If a check fails, `pom.xml` is not written, the error names the tool being
@@ -103,11 +104,13 @@ finding. With `strict`, expect these on most existing projects:
 
 - `checkstyle`: findings such as `MagicNumber`, `MissingJavadocMethod`, or `MethodLength` in
   existing code.
-- `enforcer`: Maven projects fail `requirePluginVersions`, which lists every plugin that runs
-  without a pinned version, including plugins Maven adds through its default lifecycle, such as
-  `maven-site-plugin` or `maven-install-plugin`. Pin them in `<pluginManagement>` with the versions
-  the message reports. Strict requires reproducible plugin versions on purpose. Use `standard` if you
-  do not want that rule.
+- `enforcer`: strict keeps `requirePluginVersions` on purpose, so every plugin needs a pinned
+  version. Init pins the plugins Maven adds through its default lifecycle (clean, resources, compiler,
+  surefire, jar, install, deploy, and site) in `<pluginManagement>`, using the versions Maven 3.9.16
+  binds by default, and skips any plugin the POM already declares. The pins appear in `--dry-run`.
+  `requirePluginVersions` can still fail on plugins outside that list, such as `maven-war-plugin`,
+  or when a parent POM supplies a version; pin those in `<pluginManagement>` with the versions the
+  message reports. Use `standard` if you do not want that rule.
 
 Init-generated configurations assign gates to cumulative execution phases. Fast gates (`format`,
 `checkstyle`, `pmd`, and `gitleaks`) belong to `default`, `pre-commit`, `pre-push`, and

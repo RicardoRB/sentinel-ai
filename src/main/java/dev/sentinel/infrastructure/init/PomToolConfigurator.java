@@ -82,16 +82,10 @@ public final class PomToolConfigurator implements BuildToolConfiguration {
                       <type>jar</type>
                     </dependency>
                   </oldVersion>
-                  <newVersion>
-                    <file>
-                      <path>${project.build.directory}/${project.build.finalName}.jar</path>
-                    </file>
-                  </newVersion>
+                  <newVersion><file><path>${project.build.directory}/${project.build.finalName}.jar</path></file></newVersion>
                   <parameter>
                     <breakBuildOnBinaryIncompatibleModifications>true</breakBuildOnBinaryIncompatibleModifications>
-                    <includes>
-                      <include>${project.groupId}.*</include>
-                    </includes>
+                    <includes><include>${project.groupId}.*</include></includes>
                   </parameter>
                 </configuration>
               </plugin>
@@ -340,6 +334,7 @@ public final class PomToolConfigurator implements BuildToolConfiguration {
         applySelectedTool(tool, preset, findings.get(tool.artifact()), approval, edit);
       }
     }
+    edit.content = PresetPluginSnippets.pinLifecycle(edit.content, selected, preset, edit.details);
     if (!edit.tools.isEmpty()) {
       PomDeclarationValidator.validate(
           edit.content, addedDeclarations(edit.original, edit.content, selected));

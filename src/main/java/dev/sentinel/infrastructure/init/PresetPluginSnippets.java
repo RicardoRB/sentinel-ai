@@ -1,9 +1,26 @@
 package dev.sentinel.infrastructure.init;
 
 import dev.sentinel.domain.init.QualityPreset;
+import java.util.List;
+import java.util.Set;
 
 /** Plugin declarations tuned by a quality preset, used instead of the default declarations. */
 final class PresetPluginSnippets {
+  /**
+   * Default lifecycle plugins with the versions Maven 3.9.16 binds, so pinning them changes no
+   * build behavior while satisfying {@code requirePluginVersions}.
+   */
+  static final List<LifecyclePlugin> LIFECYCLE_PLUGINS =
+      List.of(
+          new LifecyclePlugin("maven-clean-plugin", "3.2.0"),
+          new LifecyclePlugin("maven-resources-plugin", "3.4.0"),
+          new LifecyclePlugin("maven-compiler-plugin", "3.15.0"),
+          new LifecyclePlugin("maven-surefire-plugin", "3.5.4"),
+          new LifecyclePlugin("maven-jar-plugin", "3.5.0"),
+          new LifecyclePlugin("maven-install-plugin", "3.1.4"),
+          new LifecyclePlugin("maven-deploy-plugin", "3.1.4"),
+          new LifecyclePlugin("maven-site-plugin", "3.12.1"));
+
   private PresetPluginSnippets() {}
 
   static String pmd() {
@@ -100,5 +117,40 @@ final class PresetPluginSnippets {
             </plugin>
           """
         .replace("THRESHOLD", String.valueOf(preset.rules().mutationThreshold()));
+  }
+
+  /**
+   * Pins each unpinned lifecycle plugin when the preset's Enforcer rules require plugin versions,
+   * recording one plan detail per pin.
+   */
+  static String pinLifecycle(
+      final String pom,
+      final Set<String> gates,
+      final QualityPreset preset,
+      final List<String> details) {
+    if (!gates.contains("enforcer")
+        || preset == null
+        || !preset.rules().enforcerRules().contains("requirePluginVersions")) {
+      return pom;
+    }
+    String pinned = pom;
+    for (final LifecyclePlugin plugin : LIFECYCLE_PLUGINS) {
+      if (!pinned.contains("<artifactId>" + plugin.artifact() + "</artifactId>")) {
+        pinned = PomXml.addManagedPlugin(pinned, plugin.snippet());
+        details.add("+ " + plugin.artifact() + " " + plugin.version() + " (pluginManagement)");
+      }
+    }
+    return pinned;
+  }
+
+  /** A default lifecycle plugin and the version init pins for it. */
+  record LifecyclePlugin(String artifact, String version) {
+    String snippet() {
+      return "<plugin>\n  <groupId>org.apache.maven.plugins</groupId>\n  <artifactId>"
+          + artifact
+          + "</artifactId>\n  <version>"
+          + version
+          + "</version>\n</plugin>\n";
+    }
   }
 }
