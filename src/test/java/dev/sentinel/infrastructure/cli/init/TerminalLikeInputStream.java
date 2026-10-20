@@ -8,6 +8,7 @@ import java.nio.charset.StandardCharsets;
  * user has not typed the next answer yet.
  */
 final class TerminalLikeInputStream extends InputStream {
+  private static final int UNSIGNED_BYTE = 0xFF;
   private static final byte LINE_END = '\n';
 
   private final byte[] bytes;
@@ -23,7 +24,7 @@ final class TerminalLikeInputStream extends InputStream {
     if (position >= bytes.length) {
       return -1;
     }
-    final int next = bytes[position] & 0xFF;
+    final int next = bytes[position] & UNSIGNED_BYTE;
     position++;
     return next;
   }

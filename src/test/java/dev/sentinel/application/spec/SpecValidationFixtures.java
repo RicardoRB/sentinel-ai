@@ -15,6 +15,10 @@ import dev.sentinel.infrastructure.spec.FileSystemProjectPaths;
 public final class SpecValidationFixtures {
   private SpecValidationFixtures() {}
 
+  /**
+   * Returns a check service with real adapters, running commands through {@code executor} and
+   * finding executables with {@code environment}.
+   */
   public static CheckService checks(
       final CommandExecutor executor, final EnvironmentInspection environment) {
     return new CheckService(
@@ -25,6 +29,10 @@ public final class SpecValidationFixtures {
         new FilePathExistence());
   }
 
+  /**
+   * Returns a spec validation service built on {@code checks}, running OpenSpec through {@code
+   * executor}.
+   */
   public static SpecValidationService service(
       final CommandExecutor executor,
       final EnvironmentInspection environment,

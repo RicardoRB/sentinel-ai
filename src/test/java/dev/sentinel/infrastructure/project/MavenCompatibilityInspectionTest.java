@@ -15,6 +15,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 class MavenCompatibilityInspectionTest {
+  private static final int JAVA_17 = 17;
+
   @Test
   void readsToolchainPropertiesAndDeclaredPluginVersions(@TempDir final Path root)
       throws Exception {
@@ -35,7 +37,7 @@ class MavenCompatibilityInspectionTest {
     final CompatibilityProjectSnapshot snapshot =
         new MavenCompatibilityInspection(commands).inspect(project);
 
-    assertThat(snapshot.toolchain().compilerRelease()).contains(17);
+    assertThat(snapshot.toolchain().compilerRelease()).contains(JAVA_17);
     assertThat(snapshot.toolchain().mavenVersion()).contains("3.9.8");
     assertThat(snapshot.pluginVersion("spotless-maven-plugin")).contains("2.44.4");
     assertThat(commands.commands).containsExactly(List.of("mvn", "--version"));

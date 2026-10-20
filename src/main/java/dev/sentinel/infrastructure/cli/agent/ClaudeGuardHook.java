@@ -27,6 +27,7 @@ public final class ClaudeGuardHook {
   private final ApprovedArtifactGuardService service;
   private final JsonCodec codec;
 
+  /** Creates the hook; {@code service} decides guard requests and {@code codec} reads the event. */
   @Inject
   public ClaudeGuardHook(final ApprovedArtifactGuardService service, final JsonCodec codec) {
     this.service = service;

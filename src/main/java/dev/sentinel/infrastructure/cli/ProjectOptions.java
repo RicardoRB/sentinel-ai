@@ -12,6 +12,7 @@ public class ProjectOptions {
       description = "Run as if started in <dir> (default: current directory).")
   private Path directory;
 
+  /** Returns the {@code --directory} value, or the current directory when it is not given. */
   public Path directory() {
     return directory != null ? directory : Path.of("").toAbsolutePath();
   }

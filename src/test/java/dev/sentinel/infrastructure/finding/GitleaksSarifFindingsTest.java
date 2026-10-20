@@ -14,6 +14,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 class GitleaksSarifFindingsTest {
+  // Region of the secret in the SARIF fixture below.
+  private static final int SECRET_LINE = 3;
+  private static final int SECRET_COLUMN = 9;
   static final String SECRET = "ghp_FAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKE1234";
 
   static final String REPORT =
@@ -60,8 +63,8 @@ class GitleaksSarifFindingsTest {
     final Finding first = findings.getFirst();
     assertThat(first.ruleId()).isEqualTo("github-pat");
     assertThat(first.file()).isEqualTo("config/app.yml");
-    assertThat(first.line()).isEqualTo(3);
-    assertThat(first.column()).isEqualTo(9);
+    assertThat(first.line()).isEqualTo(SECRET_LINE);
+    assertThat(first.column()).isEqualTo(SECRET_COLUMN);
     assertThat(first.severity()).isEqualTo(FindingSeverity.ERROR);
     assertThat(findings.get(1).ruleId()).isEqualTo("gitleaks");
     assertThat(findings.get(1).located()).isFalse();

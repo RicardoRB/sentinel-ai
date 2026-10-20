@@ -7,6 +7,7 @@ public record MappingObservation(
     SourceLocation location,
     boolean supportedTest,
     String problem) {
+  /** Replaces missing texts with empty ones. */
   public MappingObservation {
     if (capabilityPath == null) {
       capabilityPath = "";
@@ -19,6 +20,10 @@ public record MappingObservation(
     }
   }
 
+  /**
+   * Returns whether the annotation is on a supported test and names a capability and scenario
+   * without problems.
+   */
   public boolean validShape() {
     return supportedTest
         && !capabilityPath.isBlank()
@@ -26,6 +31,7 @@ public record MappingObservation(
         && problem.isBlank();
   }
 
+  /** Returns the scenario the annotation names. */
   public ScenarioIdentity identity() {
     return new ScenarioIdentity(capabilityPath, scenarioName);
   }

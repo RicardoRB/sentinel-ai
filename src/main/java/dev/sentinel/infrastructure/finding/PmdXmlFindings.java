@@ -14,8 +14,11 @@ import javax.xml.stream.XMLStreamReader;
 
 /** Reads PMD XML reports written by the Maven or Gradle PMD plugin. */
 public final class PmdXmlFindings implements GateFindingSource {
+  // PMD priorities run from 1 (high) to 5 (low); 3 is medium.
+  private static final int MEDIUM_PRIORITY = 3;
   static final String GATE = "pmd";
 
+  /** Creates the stateless adapter that Dagger injects. */
   @Inject
   public PmdXmlFindings() {}
 
@@ -73,9 +76,9 @@ public final class PmdXmlFindings implements GateFindingSource {
   }
 
   private static FindingSeverity severity(final Integer priority) {
-    if (priority == null || priority <= 2) {
+    if (priority == null || priority < MEDIUM_PRIORITY) {
       return FindingSeverity.ERROR;
     }
-    return priority == 3 ? FindingSeverity.WARNING : FindingSeverity.NOTE;
+    return priority == MEDIUM_PRIORITY ? FindingSeverity.WARNING : FindingSeverity.NOTE;
   }
 }

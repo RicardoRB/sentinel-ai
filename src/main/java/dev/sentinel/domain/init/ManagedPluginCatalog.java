@@ -6,8 +6,13 @@ import java.util.Map;
 
 /** Sentinel-managed Maven plugin compatibility catalog. */
 public final class ManagedPluginCatalog {
+  private static final int JAVA_8 = 8;
+  private static final int JAVA_11 = 11;
+  private static final int NEWEST_SUPPORTED_JAVA = 25;
+
   private ManagedPluginCatalog() {}
 
+  /** Returns each managed plugin's current and legacy versions with their toolchain ranges. */
   public static Map<String, List<ManagedPluginCandidate>> entries() {
     final Map<String, List<ManagedPluginCandidate>> entries = new LinkedHashMap<>();
     entries.put("maven-checkstyle-plugin", candidates("maven-checkstyle-plugin", "3.6.0", "3.3.1"));
@@ -30,9 +35,13 @@ public final class ManagedPluginCatalog {
   private static List<ManagedPluginCandidate> candidates(
       final String artifact, final String current, final String legacy) {
     final int currentJava =
-        "spotless-maven-plugin".equals(artifact) || "sonar-maven-plugin".equals(artifact) ? 11 : 8;
+        "spotless-maven-plugin".equals(artifact) || "sonar-maven-plugin".equals(artifact)
+            ? JAVA_11
+            : JAVA_8;
     return List.of(
-        new ManagedPluginCandidate(artifact, current, currentJava, 25, "3.6", "default"),
-        new ManagedPluginCandidate(artifact, legacy, 8, 25, "3.5", "legacy"));
+        new ManagedPluginCandidate(
+            artifact, current, currentJava, NEWEST_SUPPORTED_JAVA, "3.6", "default"),
+        new ManagedPluginCandidate(
+            artifact, legacy, JAVA_8, NEWEST_SUPPORTED_JAVA, "3.5", "legacy"));
   }
 }

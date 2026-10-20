@@ -18,6 +18,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class QualityGateRunnerTest {
+  private static final Duration GATE_DURATION = Duration.ofMillis(10);
 
   private final Project project =
       new Project(Path.of("/p"), Language.JAVA, BuildTool.MAVEN, Framework.NONE);
@@ -32,14 +33,13 @@ class QualityGateRunnerTest {
 
       @Override
       public GateResult execute(Project project) {
-        return new GateResult(
-            name,
-            status,
-            List.of("x"),
-            status == GateStatus.PASSED ? 0 : 1,
-            Duration.ofMillis(10),
-            "",
-            "");
+        return GateResult.builder(name, status)
+            .command(List.of("x"))
+            .exitCode(status == GateStatus.PASSED ? 0 : 1)
+            .duration(GATE_DURATION)
+            .stdout("")
+            .stderr("")
+            .build();
       }
     };
   }
@@ -155,7 +155,13 @@ class QualityGateRunnerTest {
       @Override
       public GateResult execute(Project ignored) {
         executed.add(name);
-        return new GateResult(name, status, List.of("x"), 0, Duration.ZERO, "", "");
+        return GateResult.builder(name, status)
+            .command(List.of("x"))
+            .exitCode(0)
+            .duration(Duration.ZERO)
+            .stdout("")
+            .stderr("")
+            .build();
       }
     };
   }

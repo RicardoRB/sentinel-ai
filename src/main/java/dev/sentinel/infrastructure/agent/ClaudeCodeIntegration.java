@@ -106,10 +106,12 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
             """
           .replace("%s", HOOK_MARKER);
 
+  /** Creates the integration with the default JSON codec. */
   public ClaudeCodeIntegration() {
     this(new ForyJsonCodec());
   }
 
+  /** Creates the integration; {@code codec} reads and writes {@code .claude/settings.json}. */
   @Inject
   public ClaudeCodeIntegration(final JsonCodec codec) {
     settingsDocument = new ClaudeSettingsDocument(Objects.requireNonNull(codec));

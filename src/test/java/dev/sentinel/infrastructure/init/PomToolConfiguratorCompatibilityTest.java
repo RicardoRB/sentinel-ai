@@ -21,12 +21,16 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 class PomToolConfiguratorCompatibilityTest {
+  private static final int JAVA_17 = 17;
+  // Older than every managed plugin supports.
+  private static final int JAVA_7 = 7;
+
   @Test
   void selectsCatalogVersionForMissingPlugin(@TempDir final Path root) throws IOException {
     writePom(root, "<project><build/></project>");
     final Project project = project(root);
     final PomToolConfigurator configurator =
-        new PomToolConfigurator(ignored -> snapshot(17, Map.of()));
+        new PomToolConfigurator(ignored -> snapshot(JAVA_17, Map.of()));
 
     configurator.apply(project, List.of(gate("format")), null, finding -> true);
 
@@ -43,7 +47,8 @@ class PomToolConfiguratorCompatibilityTest {
             + "</plugin></plugins></build></project>");
     final Project project = project(root);
     final PomToolConfigurator configurator =
-        new PomToolConfigurator(ignored -> snapshot(17, Map.of("spotless-maven-plugin", "1.0.0")));
+        new PomToolConfigurator(
+            ignored -> snapshot(JAVA_17, Map.of("spotless-maven-plugin", "1.0.0")));
     final String original = Files.readString(root.resolve("pom.xml"));
 
     final PomChange change =
@@ -59,7 +64,7 @@ class PomToolConfiguratorCompatibilityTest {
     writePom(root, "<project><build/></project>");
     final Project project = project(root);
     final PomToolConfigurator configurator =
-        new PomToolConfigurator(ignored -> snapshot(7, Map.of()));
+        new PomToolConfigurator(ignored -> snapshot(JAVA_7, Map.of()));
     final String original = Files.readString(root.resolve("pom.xml"));
 
     assertThatThrownBy(

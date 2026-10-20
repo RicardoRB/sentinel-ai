@@ -1,0 +1,11 @@
+<!-- managed-by: sentinel preset=strict -->
+<enforcer>
+<rules>
+  <dependencyConvergence/>
+  <banDuplicatePomDependencyVersions/>
+  <requireMavenVersion><version>[3.9,)</version></requireMavenVersion>
+  <requireUpperBoundDeps/>
+  <requirePluginVersions/>
+  <banDynamicVersions/>
+</rules>
+</enforcer>

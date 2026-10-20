@@ -11,10 +11,12 @@ public final class OpenSpecDistribution {
 
   private OpenSpecDistribution() {}
 
+  /** Returns the npm package that provides the OpenSpec CLI. */
   public static String packageName() {
     return PACKAGE;
   }
 
+  /** Returns the Node.js version OpenSpec requires, as shown to users. */
   public static String nodeRequirement() {
     return NODE_REQUIREMENT;
   }

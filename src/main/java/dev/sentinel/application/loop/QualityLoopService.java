@@ -27,12 +27,20 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.inject.Inject;
 
+/**
+ * Runs an agent and the quality gates in a loop until the gates pass, the agent fails, or the
+ * iterations run out.
+ */
 public final class QualityLoopService {
   private static final Logger LOGGER = Logger.getLogger(QualityLoopService.class.getName());
   private final CheckService checks;
   private final AgentRunnerFactory agents;
   private final GitStateInspection git;
 
+  /**
+   * Creates the service. {@code agents} starts the agent, and {@code git} checks the working tree
+   * before the loop starts.
+   */
   @Inject
   public QualityLoopService(
       final CheckService checks, final AgentRunnerFactory agents, final GitStateInspection git) {
@@ -41,6 +49,7 @@ public final class QualityLoopService {
     this.git = git;
   }
 
+  /** Runs the loop for {@code request}, feeding each failed check back to the agent. */
   public LoopResult run(final LoopRequest request) {
     final Path root = request.workingDirectory();
     final String task = request.task();
@@ -55,13 +64,13 @@ public final class QualityLoopService {
           List.of(),
           "Refusing to start with a dirty working tree.");
     }
+    final LoopContext context = new LoopContext(agent, root, config.timeoutSeconds());
     final List<CheckReport> history = new ArrayList<>();
     String feedback = task;
     for (int iteration = 1; iteration <= config.maxIterations(); iteration++) {
       final int currentIteration = iteration;
       LOGGER.log(Level.INFO, () -> "event=loop-iteration-start iteration=" + currentIteration);
-      final Optional<LoopResult> outcome =
-          iterate(agent, feedback, root, config.timeoutSeconds(), iteration, history);
+      final Optional<LoopResult> outcome = iterate(context, feedback, iteration, history);
       if (outcome.isPresent()) {
         LOGGER.log(
             Level.INFO,
@@ -84,15 +93,13 @@ public final class QualityLoopService {
 
   /** Runs one agent attempt and quality check; returns a result when the loop must stop. */
   private Optional<LoopResult> iterate(
-      final AgentRunner agent,
+      final LoopContext context,
       final String task,
-      final Path root,
-      final int timeoutSeconds,
       final int iteration,
       final List<CheckReport> history) {
     final AgentResult agentResult;
     try {
-      agentResult = runAgent(agent, task, timeoutSeconds);
+      agentResult = runAgent(context.agent(), task, context.timeoutSeconds());
     } catch (TimeoutException e) {
       LOGGER.log(Level.WARNING, "event=loop-terminal status=timeout");
       return Optional.of(
@@ -113,7 +120,7 @@ public final class QualityLoopService {
       return Optional.of(
           new LoopResult(LoopTerminalState.AGENT_ERROR, iteration, history, agentResult.summary()));
     }
-    return checkQuality(root, iteration, history);
+    return checkQuality(context.root(), iteration, history);
   }
 
   private static AgentResult runAgent(
@@ -178,4 +185,7 @@ public final class QualityLoopService {
                     + result.stderr())
         .reduce("Fix these failed quality gates:\n", (a, b) -> a + b + "\n");
   }
+
+  /** The agent, project root, and per-attempt timeout that stay fixed for one loop. */
+  private record LoopContext(AgentRunner agent, Path root, int timeoutSeconds) {}
 }

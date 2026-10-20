@@ -7,6 +7,7 @@ package dev.sentinel.domain.gate;
 public class FindingExtractionException extends RuntimeException {
   private static final long serialVersionUID = 1L;
 
+  /** Creates the exception for an unreadable report. */
   public FindingExtractionException(final String message, final Throwable cause) {
     super(message, cause);
   }

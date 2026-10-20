@@ -21,6 +21,7 @@ public final class JavaTestMappingInventory implements TestMappingInventory {
       Pattern.compile(
           "(?:[A-Za-z_$][\\w$]*\\s+)*[A-Za-z_$][\\w$]*\\s*\\([^;{}]*\\)\\s*(?:throws\\s+[^{}]+)?\\{");
 
+  /** Creates the stateless adapter that Dagger injects. */
   @Inject
   public JavaTestMappingInventory() {}
 

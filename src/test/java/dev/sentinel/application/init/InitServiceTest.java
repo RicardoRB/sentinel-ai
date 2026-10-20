@@ -39,10 +39,11 @@ class InitServiceTest {
           new ProjectDetector(new FileSystemProjectInspection()),
           Set.of(),
           new InitSetupCatalog(new FakeEnvironmentInspection()),
-          new PomToolConfigurator(),
-          new ArchitectureTestGenerator(),
-          new FileConfigurationStorage(),
-          new PresetRuleFileWriter());
+          new InitProjectFiles(
+              new PomToolConfigurator(),
+              new PresetRuleFileWriter(),
+              new ArchitectureTestGenerator(),
+              new FileConfigurationStorage()));
 
   @Test
   void generatedConfigurationAssignsCumulativeProfiles(@TempDir final Path dir) throws Exception {
@@ -74,10 +75,11 @@ class InitServiceTest {
             new ProjectDetector(new FileSystemProjectInspection()),
             Set.of(),
             new InitSetupCatalog(new FakeEnvironmentInspection(), new QualityHookInstaller()),
-            new PomToolConfigurator(),
-            new ArchitectureTestGenerator(),
-            new FileConfigurationStorage(),
-            new PresetRuleFileWriter(),
+            new InitProjectFiles(
+                new PomToolConfigurator(),
+                new PresetRuleFileWriter(),
+                new ArchitectureTestGenerator(),
+                new FileConfigurationStorage()),
             new UnavailableToolInstaller());
 
     qualityService.initialize(
@@ -141,10 +143,11 @@ class InitServiceTest {
             new ProjectDetector(new FileSystemProjectInspection()),
             Set.of(conflict),
             new InitSetupCatalog(new FakeEnvironmentInspection()),
-            new PomToolConfigurator(),
-            new ArchitectureTestGenerator(),
-            new FileConfigurationStorage(),
-            new PresetRuleFileWriter());
+            new InitProjectFiles(
+                new PomToolConfigurator(),
+                new PresetRuleFileWriter(),
+                new ArchitectureTestGenerator(),
+                new FileConfigurationStorage()));
     assertThatThrownBy(
             () ->
                 conflicting.initialize(

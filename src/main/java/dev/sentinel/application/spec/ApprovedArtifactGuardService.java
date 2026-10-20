@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -36,12 +37,16 @@ public final class ApprovedArtifactGuardService {
   private final ProjectDetector detector;
   private final ProjectPaths paths;
 
+  /** Creates the service; {@code paths} resolves and inspects project paths. */
   @Inject
   public ApprovedArtifactGuardService(final ProjectDetector detector, final ProjectPaths paths) {
     this.detector = detector;
     this.paths = paths;
   }
 
+  /**
+   * Decides whether the tool call in {@code request} may change approved specs or archived changes.
+   */
   public GuardDecision evaluate(final GuardRequest request) {
     final long started = System.nanoTime();
     final Project project =
@@ -131,7 +136,7 @@ public final class ApprovedArtifactGuardService {
         + " decision="
         + (evaluation.refusals().isEmpty() ? "allowed" : "refused")
         + " durationMs="
-        + (System.nanoTime() - started) / 1_000_000;
+        + TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started);
   }
 
   private static String kind(final GuardRequest request) {

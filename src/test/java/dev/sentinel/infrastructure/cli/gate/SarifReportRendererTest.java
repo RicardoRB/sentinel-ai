@@ -21,6 +21,11 @@ import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 
 class SarifReportRendererTest {
+  private static final int UNUSED_VARIABLE_LINE = 10;
+  private static final int REPORTED = 120;
+  private static final int DISTINCT_RULES = 3;
+  private static final int OUTSIDE_LINE = 3;
+  private static final int OUTSIDE_COLUMN = 4;
   private static final String RUNS = "runs";
   private static final String RESULTS = "results";
 
@@ -28,7 +33,13 @@ class SarifReportRendererTest {
       new Project(Path.of("/p"), Language.JAVA, BuildTool.MAVEN, Framework.NONE);
 
   private static GateResult result(final String name, final GateStatus status) {
-    return new GateResult(name, status, List.of("x"), 1, Duration.ZERO, "", "");
+    return GateResult.builder(name, status)
+        .command(List.of("x"))
+        .exitCode(1)
+        .duration(Duration.ZERO)
+        .stdout("")
+        .stderr("")
+        .build();
   }
 
   private static Finding pmd(final int line, final String rule) {
@@ -73,7 +84,9 @@ class SarifReportRendererTest {
         result("pmd", GateStatus.FAILED)
             .withFindings(
                 GateFindings.of(
-                    List.of(pmd(10, "UnusedLocalVariable"), pmd(12, "UnusedLocalVariable"))));
+                    List.of(
+                        pmd(UNUSED_VARIABLE_LINE, "UnusedLocalVariable"),
+                        pmd(UNUSED_VARIABLE_LINE + 2, "UnusedLocalVariable"))));
 
     final JsonTree run = render(pmd).get(RUNS).get(0);
 
@@ -90,7 +103,7 @@ class SarifReportRendererTest {
     final JsonTree location = first.get("locations").get(0).get("physicalLocation");
     assertThat(location.get("artifactLocation").get("uri").asString())
         .isEqualTo("src/main/java/Foo.java");
-    assertThat(location.get("region").get("startLine").asInt()).isEqualTo(10);
+    assertThat(location.get("region").get("startLine").asInt()).isEqualTo(UNUSED_VARIABLE_LINE);
     assertThat(location.get("region").has("startColumn")).isFalse();
   }
 
@@ -118,13 +131,15 @@ class SarifReportRendererTest {
   void truncatedRunRecordsTotal() {
     final GateFindings findings =
         GateFindings.of(
-            IntStream.rangeClosed(1, 120).mapToObj(i -> pmd(i, "R" + (i % 3))).toList());
+            IntStream.rangeClosed(1, REPORTED)
+                .mapToObj(i -> pmd(i, "R" + (i % DISTINCT_RULES)))
+                .toList());
 
     final JsonTree run =
         render(result("pmd", GateStatus.FAILED).withFindings(findings)).get(RUNS).get(0);
 
-    assertThat(run.get(RESULTS).size()).isEqualTo(50);
-    assertThat(run.get("properties").get("findingsTotal").asInt()).isEqualTo(120);
+    assertThat(run.get(RESULTS).size()).isEqualTo(GateFindings.LIMIT);
+    assertThat(run.get("properties").get("findingsTotal").asInt()).isEqualTo(REPORTED);
     assertThat(run.get("properties").get("findingsTruncated").asBoolean()).isTrue();
   }
 
@@ -135,7 +150,15 @@ class SarifReportRendererTest {
             "format", "spotless", "format", FindingSeverity.ERROR, "m", "A.java", null, null, null);
     final Finding outside =
         new Finding(
-            "compile", "javac", "javac.error", FindingSeverity.ERROR, "m", "/x/B.java", 3, 4, null);
+            "compile",
+            "javac",
+            "javac.error",
+            FindingSeverity.ERROR,
+            "m",
+            "/x/B.java",
+            OUTSIDE_LINE,
+            OUTSIDE_COLUMN,
+            null);
 
     final JsonTree log =
         render(
@@ -159,6 +182,6 @@ class SarifReportRendererTest {
         compileRun.get(RESULTS).get(0).get("locations").get(0).get("physicalLocation");
     assertThat(physical.get("artifactLocation").get("uri").asString())
         .isEqualTo("file:///x/B.java");
-    assertThat(physical.get("region").get("startColumn").asInt()).isEqualTo(4);
+    assertThat(physical.get("region").get("startColumn").asInt()).isEqualTo(OUTSIDE_COLUMN);
   }
 }

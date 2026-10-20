@@ -73,12 +73,13 @@ final class InitWizard {
     final List<String> ids = choices.stream().map(InitIntegrationOption::id).toList();
     final Optional<List<String>> fromMenu =
         menu(
-            "Select agent integrations",
-            choices.stream().map(InitIntegrationOption::label).toList(),
-            "Select at least one integration, or choose none.",
-            Set.of(),
-            ids,
-            false);
+            new MenuSpec(
+                "Select agent integrations",
+                choices.stream().map(InitIntegrationOption::label).toList(),
+                "Select at least one integration, or choose none.",
+                Set.of(),
+                false),
+            ids);
     if (fromMenu.isPresent()) {
       return fromMenu.get();
     }
@@ -114,15 +115,16 @@ final class InitWizard {
     final List<String> presetGates = preselected;
     final Optional<List<String>> fromMenu =
         menu(
-            "Select quality gates",
-            choices.stream().map(InitWizard::gateLabel).toList(),
-            "Select at least one quality gate.",
-            IntStream.range(0, ids.size())
-                .filter(i -> presetGates.contains(ids.get(i)))
-                .boxed()
-                .collect(Collectors.toSet()),
-            ids,
-            false);
+            new MenuSpec(
+                "Select quality gates",
+                choices.stream().map(InitWizard::gateLabel).toList(),
+                "Select at least one quality gate.",
+                IntStream.range(0, ids.size())
+                    .filter(i -> presetGates.contains(ids.get(i)))
+                    .boxed()
+                    .collect(Collectors.toSet()),
+                false),
+            ids);
     if (fromMenu.isPresent()) {
       return fromMenu.get();
     }
@@ -153,12 +155,13 @@ final class InitWizard {
     final List<String> ids = choices.stream().map(InitToolOption::id).toList();
     final Optional<List<String>> fromMenu =
         menu(
-            "Select optional tools",
-            choices.stream().map(c -> c.id() + " - " + c.description()).toList(),
-            "",
-            Set.of(),
-            ids,
-            true);
+            new MenuSpec(
+                "Select optional tools",
+                choices.stream().map(c -> c.id() + " - " + c.description()).toList(),
+                "",
+                Set.of(),
+                true),
+            ids);
     if (fromMenu.isPresent()) {
       return fromMenu.get();
     }
@@ -179,13 +182,15 @@ final class InitWizard {
     final List<String> ids = catalog.openSpecValidations();
     final Optional<List<String>> fromMenu =
         menu(
-            "Select OpenSpec validations",
-            List.of(
-                "openspec - active strict validation", "openspec-archived - archived validation"),
-            "",
-            Set.of(),
-            ids,
-            true);
+            new MenuSpec(
+                "Select OpenSpec validations",
+                List.of(
+                    "openspec - active strict validation",
+                    "openspec-archived - archived validation"),
+                "",
+                Set.of(),
+                true),
+            ids);
     if (fromMenu.isPresent()) {
       return fromMenu.get();
     }
@@ -242,31 +247,14 @@ final class InitWizard {
   }
 
   /** Runs a raw-key menu when a raw terminal is available and maps the chosen rows to ids. */
-  private Optional<List<String>> menu(
-      final String title,
-      final List<String> labels,
-      final String emptySelectionMessage,
-      final Set<Integer> initialSelections,
-      final List<String> ids,
-      final boolean allowEmpty) {
+  private Optional<List<String>> menu(final MenuSpec spec, final List<String> ids) {
     final Optional<RawSession> raw = rawTerminal.get();
     if (raw.isEmpty()) {
       return Optional.empty();
     }
     try (RawSession session = raw.get()) {
       return Optional.of(
-          new MultiSelectMenu()
-                  .select(
-                      title,
-                      labels,
-                      emptySelectionMessage,
-                      session::read,
-                      out,
-                      initialSelections,
-                      allowEmpty)
-                  .stream()
-                  .map(ids::get)
-                  .toList());
+          new MultiSelectMenu().select(spec, session::read, out).stream().map(ids::get).toList());
     }
   }
 }

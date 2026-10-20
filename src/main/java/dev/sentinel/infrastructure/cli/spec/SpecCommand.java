@@ -7,6 +7,7 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Model.CommandSpec;
 import picocli.CommandLine.Spec;
 
+/** The {@code sentinel spec} command group; it runs only through a subcommand. */
 @Command(
     name = "spec",
     description = "Work with the project's specification artifacts.",
@@ -15,6 +16,7 @@ public final class SpecCommand implements Callable<Integer> {
 
   @Spec private CommandSpec spec;
 
+  /** Creates the command group. */
   @Inject
   public SpecCommand() {
     // Container command; Dagger constructs it through this constructor.

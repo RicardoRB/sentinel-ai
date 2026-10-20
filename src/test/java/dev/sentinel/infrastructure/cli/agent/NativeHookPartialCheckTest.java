@@ -115,7 +115,8 @@ class NativeHookPartialCheckTest {
   }
 
   private static NativeHookInput event(final String path, final String patch) {
-    return new NativeHookInput("PostToolUse", "apply_patch", null, path, null, patch, null, false);
+    return new NativeHookInput(
+        "PostToolUse", "apply_patch", null, path, null, patch, null, false, false);
   }
 
   private static String postPatch(final String patch) {
@@ -134,9 +135,10 @@ class NativeHookPartialCheckTest {
     final FakeOpenSpecEnvironment environment = new FakeOpenSpecEnvironment(true);
     final NativeHookCommand command =
         new NativeHookCommand(
-            SpecValidationFixtures.checks(executor, environment),
-            SpecValidationFixtures.service(
-                executor, environment, SpecValidationFixtures.checks(executor, environment)),
+            new HookChecks(
+                SpecValidationFixtures.checks(executor, environment),
+                SpecValidationFixtures.service(
+                    executor, environment, SpecValidationFixtures.checks(executor, environment))),
             new ApprovedArtifactGuardService(
                 new ProjectDetector(new FileSystemProjectInspection()),
                 new FileSystemProjectPaths()),

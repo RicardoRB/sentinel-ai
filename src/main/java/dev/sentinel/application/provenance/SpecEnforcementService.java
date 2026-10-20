@@ -34,33 +34,29 @@ public final class SpecEnforcementService {
   private final GitRepository git;
   private final ArchiveReplay replay;
   private final CheckService checks;
-  private final ProvenancePolicy provenance;
-  private final BootstrapPolicy bootstrap;
+  private final ProvenancePolicy provenance = new ProvenancePolicy();
+  private final BootstrapPolicy bootstrap = new BootstrapPolicy();
 
+  /**
+   * Creates the service. {@code git} reads revisions, {@code replay} replays archived changes onto
+   * the baseline, and {@code checks} runs the configured quality gates.
+   */
   @Inject
   public SpecEnforcementService(
       final ProjectDetector detector,
       final GitRepository git,
       final ArchiveReplay replay,
       final CheckService checks) {
-    this(detector, git, replay, checks, new ProvenancePolicy(), new BootstrapPolicy());
-  }
-
-  public SpecEnforcementService(
-      final ProjectDetector detector,
-      final GitRepository git,
-      final ArchiveReplay replay,
-      final CheckService checks,
-      final ProvenancePolicy provenance,
-      final BootstrapPolicy bootstrap) {
     this.detector = detector;
     this.git = git;
     this.replay = replay;
     this.checks = checks;
-    this.provenance = provenance;
-    this.bootstrap = bootstrap;
   }
 
+  /**
+   * Enforces OpenSpec provenance between the merge base of {@code base} and HEAD, then runs the
+   * configured checks of {@code profiles}.
+   */
   public EnforcementReport enforce(
       final Path start,
       final String base,

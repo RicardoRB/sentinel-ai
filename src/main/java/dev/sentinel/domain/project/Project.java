@@ -2,12 +2,22 @@ package dev.sentinel.domain.project;
 
 import java.nio.file.Path;
 
+/**
+ * A detected project.
+ *
+ * @param root the project root directory
+ * @param language its primary language
+ * @param buildTool its build tool
+ * @param framework its framework
+ * @param mavenWrapperAvailable whether the build tool's wrapper, such as {@code mvnw}, is present
+ */
 public record Project(
     Path root,
     Language language,
     BuildTool buildTool,
     Framework framework,
     boolean mavenWrapperAvailable) {
+  /** Creates a project without a Maven Wrapper. */
   public Project(
       final Path root,
       final Language language,

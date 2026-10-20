@@ -16,20 +16,24 @@ public record SentinelConfiguration(
   public static final int SUPPORTED_VERSION = 1;
   public static final String DEFAULT_PROFILE = "default";
 
+  /** Copies the gates, keeping their order. */
   public SentinelConfiguration {
     gates = Collections.unmodifiableMap(new LinkedHashMap<>(gates));
   }
 
+  /** Creates a configuration without explicit profiles. */
   public SentinelConfiguration(final int version, final Map<String, GateConfiguration> gates) {
     this(version, gates, null);
   }
 
+  /** Returns every profile any gate belongs to, in first-seen order. */
   public Set<String> profileNames() {
     final Set<String> names = new LinkedHashSet<>();
     gates.values().forEach(gate -> names.addAll(gate.profiles()));
     return Collections.unmodifiableSet(names);
   }
 
+  /** Returns the enabled gates, in configuration order. */
   public Map<String, GateConfiguration> enabledGates() {
     final Map<String, GateConfiguration> enabled = new LinkedHashMap<>();
     gates.forEach(

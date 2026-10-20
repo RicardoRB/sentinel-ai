@@ -8,9 +8,11 @@ import java.nio.file.Path;
 import java.util.List;
 import javax.inject.Inject;
 
+/** Reads the working-tree state with {@code git status}. */
 public final class GitStateInspector implements GitStateInspection {
   private final CommandExecutor executor;
 
+  /** Creates the inspector; {@code executor} runs Git. */
   @Inject
   public GitStateInspector(final CommandExecutor executor) {
     this.executor = executor;

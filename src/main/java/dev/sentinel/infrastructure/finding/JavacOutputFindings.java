@@ -18,11 +18,14 @@ public final class JavacOutputFindings implements GateFindingSource {
   private static final String TOOL = "javac";
   // Maven: [ERROR] /abs/Foo.java:[12,8] cannot find symbol
   private static final Pattern MAVEN =
-      Pattern.compile("^\\[(ERROR|WARNING)\\]\\s+(\\S.*?\\.java):\\[(\\d+),(\\d+)\\]\\s*(.*)$");
+      Pattern.compile(
+          "^\\[(?<level>ERROR|WARNING)\\]\\s+(?<file>\\S.*?\\.java):\\[(?<line>\\d+),(?<column>\\d+)\\]\\s*(?<message>.*)$");
   // Gradle: /abs/Foo.java:12: error: cannot find symbol
   private static final Pattern GRADLE =
-      Pattern.compile("^(\\S.*?\\.java):(\\d+):\\s*(error|warning):\\s*(.*)$");
+      Pattern.compile(
+          "^(?<file>\\S.*?\\.java):(?<line>\\d+):\\s*(?<level>error|warning):\\s*(?<message>.*)$");
 
+  /** Creates the stateless adapter that Dagger injects. */
   @Inject
   public JavacOutputFindings() {}
 
@@ -42,11 +45,9 @@ public final class JavacOutputFindings implements GateFindingSource {
         findings.add(
             finding(
                 project,
-                "ERROR".equals(maven.group(1)),
-                maven.group(2),
-                maven.group(3),
-                maven.group(4),
-                maven.group(5)));
+                "ERROR".equals(maven.group("level")),
+                new SourceLocation(maven.group("file"), maven.group("line"), maven.group("column")),
+                maven.group("message")));
         continue;
       }
       final Matcher gradle = GRADLE.matcher(line);
@@ -54,11 +55,9 @@ public final class JavacOutputFindings implements GateFindingSource {
         findings.add(
             finding(
                 project,
-                "error".equals(gradle.group(3)),
-                gradle.group(1),
-                gradle.group(2),
-                null,
-                gradle.group(4)));
+                "error".equals(gradle.group("level")),
+                new SourceLocation(gradle.group("file"), gradle.group("line"), null),
+                gradle.group("message")));
       }
     }
     return List.copyOf(findings);
@@ -67,9 +66,7 @@ public final class JavacOutputFindings implements GateFindingSource {
   private static Finding finding(
       final Project project,
       final boolean error,
-      final String file,
-      final String line,
-      final String column,
+      final SourceLocation location,
       final String message) {
     return new Finding(
         GATE,
@@ -77,9 +74,9 @@ public final class JavacOutputFindings implements GateFindingSource {
         error ? "javac.error" : "javac.warning",
         error ? FindingSeverity.ERROR : FindingSeverity.WARNING,
         message.isBlank() ? "Compilation problem." : message.strip(),
-        ReportFiles.relativize(project, file),
-        positive(line),
-        positive(column),
+        ReportFiles.relativize(project, location.file()),
+        positive(location.line()),
+        positive(location.column()),
         null);
   }
 
@@ -94,4 +91,7 @@ public final class JavacOutputFindings implements GateFindingSource {
       return null;
     }
   }
+
+  /** A compiler-reported position; {@code line} and {@code column} are unparsed and may be null. */
+  private record SourceLocation(String file, String line, String column) {}
 }

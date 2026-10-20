@@ -9,6 +9,7 @@ import picocli.CommandLine;
 public class DaggerCommandFactory implements CommandLine.IFactory {
   private final Map<Class<?>, Provider<Object>> commands;
 
+  /** Creates the factory from the Dagger provider of each command class. */
   @Inject
   public DaggerCommandFactory(final Map<Class<?>, Provider<Object>> commands) {
     this.commands = Map.copyOf(commands);

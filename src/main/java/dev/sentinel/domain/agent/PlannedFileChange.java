@@ -6,12 +6,18 @@ import java.util.Objects;
 
 /** One file that initialization would create, modify, remove, keep, or stop on. */
 public record PlannedFileChange(Path file, Action action, List<String> details) {
+  /**
+   * Validates the change and copies its details.
+   *
+   * @throws NullPointerException if the file or action is missing
+   */
   public PlannedFileChange {
     Objects.requireNonNull(file, "file");
     Objects.requireNonNull(action, "action");
     details = details == null ? List.of() : List.copyOf(details);
   }
 
+  /** Creates a change without details. */
   public PlannedFileChange(final Path file, final Action action) {
     this(file, action, List.of());
   }

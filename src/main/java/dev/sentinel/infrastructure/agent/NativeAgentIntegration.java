@@ -18,10 +18,12 @@ public interface NativeAgentIntegration {
       String events,
       Set<IntegrationCapability> capabilities,
       String priorHookFile) {
+    /** Copies the capabilities. */
     public Definition {
       capabilities = Set.copyOf(capabilities);
     }
 
+    /** Creates a definition whose hook file never moved. */
     public Definition(
         final String id,
         final String configFile,

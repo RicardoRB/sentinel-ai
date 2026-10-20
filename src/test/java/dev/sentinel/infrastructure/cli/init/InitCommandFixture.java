@@ -1,5 +1,6 @@
 package dev.sentinel.infrastructure.cli.init;
 
+import dev.sentinel.application.init.InitProjectFiles;
 import dev.sentinel.application.init.InitService;
 import dev.sentinel.application.init.InitSetupCatalog;
 import dev.sentinel.application.project.ProjectDetector;
@@ -70,10 +71,11 @@ final class InitCommandFixture {
                 new FakeEnvironmentInspection(executables),
                 new QualityHookInstaller(),
                 new TomlConfigurationReader()),
-            buildTools,
-            new ArchitectureTestGenerator(),
-            new FileConfigurationStorage(),
-            new PresetRuleFileWriter());
+            new InitProjectFiles(
+                buildTools,
+                new PresetRuleFileWriter(),
+                new ArchitectureTestGenerator(),
+                new FileConfigurationStorage()));
     final CommandLine command =
         new CommandLine(
             new InitCommand(

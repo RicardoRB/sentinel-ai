@@ -91,17 +91,15 @@ class ClaudeCodeHookTestSupport {
     final CheckService checks = SpecValidationFixtures.checks(executor, environment);
     final ClaudeCodeHookCommand command =
         new ClaudeCodeHookCommand(
-            checks,
+            new HookChecks(checks, SpecValidationFixtures.service(executor, environment, checks)),
             new LearningService(new JsonLearningStore(codec)),
             codec,
-            SpecValidationFixtures.service(executor, environment, checks),
             new ClaudeGuardHook(
                 new ApprovedArtifactGuardService(
                     new ProjectDetector(new FileSystemProjectInspection()),
                     new FileSystemProjectPaths()),
                 codec),
-            input,
-            () -> interactive);
+            new HookStdin(input, () -> interactive));
     final CommandLine cli = new CommandLine(command);
     cli.setOut(new PrintWriter(out, true));
     cli.setErr(new PrintWriter(err, true));

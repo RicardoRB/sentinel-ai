@@ -104,6 +104,7 @@ public final class ClaudeHookEvent {
     return Optional.ofNullable(toolInput);
   }
 
+  /** The tool input of a Claude Code hook event; its fields mirror the event JSON. */
   @JsonType
   public static final class ToolInput {
     private static final String NOTEBOOK_EDIT = "NotebookEdit";

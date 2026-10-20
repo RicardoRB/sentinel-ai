@@ -17,6 +17,10 @@ public final class PackageManagerToolInstaller implements ToolInstaller {
   private final CommandExecutor executor;
   private final EnvironmentInspection environment;
 
+  /**
+   * Creates the installer; {@code environment} finds the package managers and {@code executor} runs
+   * them.
+   */
   @Inject
   public PackageManagerToolInstaller(
       final CommandExecutor executor, final EnvironmentInspection environment) {

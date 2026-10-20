@@ -22,6 +22,7 @@ public class OpenSpecValidator {
   private final CommandExecutor executor;
   private final EnvironmentInspection environment;
 
+  /** Creates the validator; {@code executor} runs OpenSpec and {@code environment} finds it. */
   @Inject
   public OpenSpecValidator(
       final CommandExecutor executor, final EnvironmentInspection environment) {

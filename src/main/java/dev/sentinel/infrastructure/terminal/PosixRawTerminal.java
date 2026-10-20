@@ -23,6 +23,7 @@ public final class PosixRawTerminal implements RawTerminal {
   private static final int INT_FLAG_BYTES = Integer.BYTES;
   private final Layout layout;
 
+  /** Creates the terminal for the current operating system. */
   @Inject
   public PosixRawTerminal() {
     this(System.getProperty("os.name", ""));
@@ -253,23 +254,34 @@ public final class PosixRawTerminal implements RawTerminal {
     }
   }
 
+  /** The {@code isatty} downcall. */
   @FunctionalInterface
   public interface Isatty {
+    /** Returns 1 when {@code fileDescriptor} is a terminal. */
     int call(int fileDescriptor);
   }
 
+  /** The {@code tcgetattr} downcall. */
   @FunctionalInterface
   public interface Tcgetattr {
+    /** Reads the terminal attributes of {@code fileDescriptor}; returns 0 on success. */
     int call(int fileDescriptor, MemorySegment attributes);
   }
 
+  /** The {@code tcsetattr} downcall. */
   @FunctionalInterface
   public interface Tcsetattr {
+    /** Sets the terminal attributes of {@code fileDescriptor}; returns 0 on success. */
     int call(int fileDescriptor, int action, MemorySegment attributes);
   }
 
+  /** The {@code read} downcall. */
   @FunctionalInterface
   public interface NativeRead {
+    /**
+     * Reads up to {@code count} bytes into {@code buffer}; returns the bytes read, 0 at end of
+     * input, or -1 on error.
+     */
     long call(int fileDescriptor, MemorySegment buffer, long count);
   }
 
@@ -281,9 +293,16 @@ public final class PosixRawTerminal implements RawTerminal {
       int vmin,
       int vtime,
       long disableFlags) {
+    // c_lflag bits from <termios.h>: canonical input, echo, and signal keys.
+    private static final long LINUX_ICANON = 0x00000002L;
+    private static final long LINUX_ECHO = 0x00000008L;
+    private static final long LINUX_ISIG = 0x00000001L;
+    private static final long MAC_ICANON = 0x00000100L;
+    private static final long MAC_ECHO = 0x00000008L;
+    private static final long MAC_ISIG = 0x00000080L;
     private static final Layout LINUX =
-        new Layout(60, 4, 12, 17, 6, 5, 0x00000002L | 0x00000008L | 0x00000001L);
+        new Layout(60, 4, 12, 17, 6, 5, LINUX_ICANON | LINUX_ECHO | LINUX_ISIG);
     private static final Layout MAC =
-        new Layout(72, 8, 24, 32, 16, 17, 0x00000100L | 0x00000008L | 0x00000080L);
+        new Layout(72, 8, 24, 32, 16, 17, MAC_ICANON | MAC_ECHO | MAC_ISIG);
   }
 }

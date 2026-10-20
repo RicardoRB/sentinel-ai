@@ -32,6 +32,7 @@ public class ProcessCommandExecutor implements CommandExecutor {
   private static final int EXIT_OUTPUT_CAPTURE_FAILED = -2;
   private static final int EXIT_INTERRUPTED = 130;
 
+  /** Creates the stateless adapter that Dagger injects. */
   @Inject
   public ProcessCommandExecutor() {}
 

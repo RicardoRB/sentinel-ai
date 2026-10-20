@@ -28,6 +28,7 @@ public final class GitleaksSarifFindings implements GateFindingSource {
 
   private final JsonCodec codec;
 
+  /** Creates the extractor; {@code codec} parses the SARIF report. */
   @Inject
   public GitleaksSarifFindings(final JsonCodec codec) {
     this.codec = codec;

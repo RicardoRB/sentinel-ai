@@ -14,6 +14,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 class ClaudeCodeHookPreToolUseTest extends ClaudeCodeHookTestSupport {
+  // hookEventName, permissionDecision, and permissionDecisionReason.
+  private static final int DECISION_FIELDS = 3;
   private static final String GUARD = "--guard-approved-specs";
   private static final String EVENT_STDIN = "--event-stdin";
 
@@ -49,7 +51,7 @@ class ClaudeCodeHookPreToolUseTest extends ClaudeCodeHookTestSupport {
 
     final JsonTree decision = decision();
     assertThat(JsonTree.parse(out.toString()).size()).isEqualTo(1);
-    assertThat(decision.size()).isEqualTo(3);
+    assertThat(decision.size()).isEqualTo(DECISION_FIELDS);
     assertThat(decision.get("hookEventName").asString()).isEqualTo("PreToolUse");
     assertThat(decision.get("permissionDecision").asString()).isEqualTo("deny");
     assertThat(decision.get("permissionDecisionReason").asString())

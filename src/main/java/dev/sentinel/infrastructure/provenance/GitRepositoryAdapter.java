@@ -16,8 +16,11 @@ import javax.inject.Inject;
 
 /** Git adapter using fixed argument vectors and deterministic output formats. */
 public final class GitRepositoryAdapter implements GitRepository {
+  // A -z rename record is the status followed by the old and new path.
+  private static final int RENAME_FIELDS = 3;
   private final CommandExecutor executor;
 
+  /** Creates the adapter; {@code executor} runs Git. */
   @Inject
   public GitRepositoryAdapter(final CommandExecutor executor) {
     this.executor = executor;
@@ -65,7 +68,7 @@ public final class GitRepositoryAdapter implements GitRepository {
         final String oldPath = fields.get(index + 1);
         final String newPath = fields.get(index + 2);
         changes.add(GitChange.renamed(oldPath, newPath));
-        index += 3;
+        index += RENAME_FIELDS;
       } else if (index + 1 < fields.size()) {
         final String path = fields.get(index + 1);
         changes.add(

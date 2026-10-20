@@ -124,11 +124,9 @@ class CheckServicePartialTest {
         CheckServiceFixtures.checks(executor)
             .checkPartial(
                 dir,
-                List.of("pre-push"),
                 List.of(dir.resolve(ORDER)),
-                CheckProgressListener.NO_OP,
-                false,
-                Set.of());
+                new CheckRunOptions(
+                    List.of("pre-push"), CheckProgressListener.NO_OP, false, Set.of()));
 
     assertThat(report.results()).extracting(GateResult::name).containsExactly("tests");
     assertThat(report.results().getFirst().scope()).isEqualTo(GateScope.FULL);
@@ -143,16 +141,17 @@ class CheckServicePartialTest {
         CheckServiceFixtures.checks(executor)
             .checkPartial(
                 dir,
-                List.of(),
                 List.of(dir.resolve(ORDER)),
-                new CheckProgressListener() {
-                  @Override
-                  public void gateFinished(final GateResult result) {
-                    finished.add(result.name());
-                  }
-                },
-                true,
-                SupportedQualityGates.specIds());
+                new CheckRunOptions(
+                    List.of(),
+                    new CheckProgressListener() {
+                      @Override
+                      public void gateFinished(final GateResult result) {
+                        finished.add(result.name());
+                      }
+                    },
+                    true,
+                    SupportedQualityGates.specIds()));
 
     assertThat(executor.commands).containsExactly(FORMAT);
     assertThat(finished).containsExactly("format", "checkstyle", "pmd");

@@ -10,6 +10,9 @@ import java.util.Set;
 
 /** Maps project-relative paths to active OpenSpec items without touching the filesystem. */
 public final class OpenSpecLayout {
+  // openspec/<changes|specs>/<name> names an item; a change file is one level below it.
+  private static final int ITEM_SEGMENTS = 3;
+  private static final int CHANGE_FILE_SEGMENTS = 4;
   static final String ROOT = "openspec";
   static final String CHANGES = "changes";
   static final String SPECS = "specs";
@@ -30,7 +33,7 @@ public final class OpenSpecLayout {
   /** Returns the active item a normalized project-relative path belongs to, if any. */
   public static Optional<SpecItem> item(final Path projectRelativePath) {
     final List<String> segments = segments(projectRelativePath);
-    if (segments.size() < 3 || !ROOT.equals(segments.get(0))) {
+    if (segments.size() < ITEM_SEGMENTS || !ROOT.equals(segments.get(0))) {
       return Optional.empty();
     }
     return switch (segments.get(1)) {
@@ -49,7 +52,9 @@ public final class OpenSpecLayout {
 
   private static Optional<SpecItem> change(final List<String> segments) {
     final String name = segments.get(2);
-    if (segments.size() < 4 || ARCHIVE.equals(name) || name.startsWith(CURRENT)) {
+    if (segments.size() < CHANGE_FILE_SEGMENTS
+        || ARCHIVE.equals(name)
+        || name.startsWith(CURRENT)) {
       return Optional.empty();
     }
     return Optional.of(new SpecItem(SpecItem.Kind.CHANGE, name));

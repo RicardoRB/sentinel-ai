@@ -17,6 +17,7 @@ import javax.inject.Inject;
 
 /** Reads only durable live specs, never active changes or archives. */
 public final class FileSystemScenarioInventory implements ScenarioInventory {
+  /** Creates the stateless adapter that Dagger injects. */
   @Inject
   public FileSystemScenarioInventory() {}
 

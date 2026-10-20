@@ -9,9 +9,16 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+/** Tracks consecutive gate failures and prompts once a failure repeats {@code threshold} times. */
 public final class LearningPolicy {
   private LearningPolicy() {}
 
+  /**
+   * Updates {@code ledger} with the gate results of {@code report} at time {@code now}; skipped
+   * gates keep their streak.
+   *
+   * @throws IllegalArgumentException if {@code threshold} is less than 1
+   */
   public static LearningOutcome apply(
       final LearningLedger ledger,
       final CheckReport report,

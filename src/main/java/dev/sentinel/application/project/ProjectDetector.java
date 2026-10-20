@@ -14,11 +14,13 @@ public final class ProjectDetector {
   private static final Logger LOGGER = Logger.getLogger(ProjectDetector.class.getName());
   private final ProjectInspection inspection;
 
+  /** Creates the detector; {@code inspection} reads the file system. */
   @Inject
   public ProjectDetector(final ProjectInspection inspection) {
     this.inspection = inspection;
   }
 
+  /** Returns the project containing {@code start}, if it is supported. */
   public Optional<Project> detect(final Path start) {
     final Optional<Project> result = inspection.detect(start);
     LOGGER.log(

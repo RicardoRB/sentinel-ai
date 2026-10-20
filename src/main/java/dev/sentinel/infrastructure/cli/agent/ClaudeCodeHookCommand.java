@@ -1,8 +1,6 @@
 package dev.sentinel.infrastructure.cli.agent;
 
-import dev.sentinel.application.gate.CheckService;
 import dev.sentinel.application.learning.LearningService;
-import dev.sentinel.application.spec.SpecValidationService;
 import dev.sentinel.domain.config.SentinelException;
 import dev.sentinel.domain.gate.CheckReport;
 import dev.sentinel.domain.gate.SupportedQualityGates;
@@ -11,7 +9,6 @@ import dev.sentinel.domain.learning.LearningOutcome;
 import dev.sentinel.domain.spec.SpecValidationReport;
 import dev.sentinel.infrastructure.cli.ExitCodes;
 import dev.sentinel.infrastructure.cli.ProjectOptions;
-import java.io.InputStream;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -19,7 +16,6 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
-import java.util.function.BooleanSupplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.inject.Inject;
@@ -30,6 +26,7 @@ import picocli.CommandLine.Model.CommandSpec;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Spec;
 
+/** The {@code sentinel hook claude-code} command run by the generated Claude Code hooks. */
 @Command(name = "claude-code", description = "Run the Claude Code edit/write and stop hook.")
 public final class ClaudeCodeHookCommand implements Callable<Integer> {
   private static final Logger LOGGER = Logger.getLogger(ClaudeCodeHookCommand.class.getName());
@@ -59,60 +56,51 @@ public final class ClaudeCodeHookCommand implements Callable<Integer> {
       description = "Read the Claude Code hook event JSON from stdin (used by generated hooks).")
   private boolean eventStdin;
 
-  private final CheckService checkService;
+  private final HookChecks hookChecks;
   private final LearningService learningService;
   private final JsonCodec codec;
-  private final SpecValidationService specService;
   private final ClaudeGuardHook guardHook;
-  private final InputStream input;
-  private final BooleanSupplier interactiveInput;
+  private final HookStdin stdin;
 
+  /**
+   * Creates the hook command reading its event from standard input. {@code hookChecks} runs the
+   * quality gates and spec validation, {@code learningService} records repeated failures, and
+   * {@code guardHook} answers approved-artifact guard requests.
+   */
   @Inject
   public ClaudeCodeHookCommand(
-      final CheckService checkService,
+      final HookChecks hookChecks,
       final LearningService learningService,
       final JsonCodec codec,
-      final SpecValidationService specService,
       final ClaudeGuardHook guardHook) {
-    this(
-        checkService,
-        learningService,
-        codec,
-        specService,
-        guardHook,
-        System.in,
-        () -> System.console() != null && System.console().isTerminal());
+    this(hookChecks, learningService, codec, guardHook, HookStdin.system());
   }
 
-  public ClaudeCodeHookCommand(
-      final CheckService checkService,
+  ClaudeCodeHookCommand(
+      final HookChecks hookChecks,
       final LearningService learningService,
       final JsonCodec codec,
-      final SpecValidationService specService,
       final ClaudeGuardHook guardHook,
-      final InputStream input,
-      final BooleanSupplier interactiveInput) {
-    this.checkService = checkService;
+      final HookStdin stdin) {
+    this.hookChecks = hookChecks;
     this.learningService = learningService;
     this.codec = codec;
-    this.specService = specService;
     this.guardHook = guardHook;
-    this.input = input;
-    this.interactiveInput = interactiveInput;
+    this.stdin = stdin;
   }
 
   // The hook must always answer Claude Code with an exit code, even on unexpected failures.
   @Override
   public Integer call() {
     if (guard) {
-      return guardHook.run(options.directory(), readsPayload(), input, output(), error());
+      return guardHook.run(options.directory(), readsPayload(), stdin.stream(), output(), error());
     }
     if (threshold < MIN_LEARN_AFTER) {
       error().println("--learn-after must be at least 1");
       return ExitCodes.ERROR;
     }
     final ClaudeHookEvent event =
-        readsPayload() ? ClaudeHookEvent.read(input, codec) : new ClaudeHookEvent();
+        readsPayload() ? ClaudeHookEvent.read(stdin.stream(), codec) : new ClaudeHookEvent();
     final boolean stop = event.isStop();
     LOGGER.log(Level.INFO, () -> "event=claude-hook-start kind=" + (stop ? "stop" : "post-tool"));
     final FutureTask<Integer> execution =
@@ -130,24 +118,28 @@ public final class ClaudeCodeHookCommand implements Callable<Integer> {
 
   /** Whether stdin carries a hook payload: only when asked to and not an interactive terminal. */
   private boolean readsPayload() {
-    return eventStdin && !interactiveInput.getAsBoolean();
+    return eventStdin && !stdin.interactive().getAsBoolean();
   }
 
   private Integer executePostToolUse(final ClaudeHookEvent event) {
     final Set<String> excluded = excludeSpec ? SupportedQualityGates.specIds() : Set.of();
     final CheckReport report =
-        checkService.checkPartial(
-            options.directory(),
-            event
-                .editedPath()
-                .map(path -> List.of(options.directory().toAbsolutePath().resolve(path)))
-                .orElseGet(List::of),
-            excluded);
+        hookChecks
+            .checks()
+            .checkPartial(
+                options.directory(),
+                event
+                    .editedPath()
+                    .map(path -> List.of(options.directory().toAbsolutePath().resolve(path)))
+                    .orElseGet(List::of),
+                excluded);
     final LearningOutcome learning = learningService.learn(report, threshold);
     final SpecValidationReport specs =
         event
             .editedPath()
-            .map(path -> specService.validatePaths(options.directory(), List.of(), List.of(path)))
+            .map(
+                path ->
+                    hookChecks.specs().validatePaths(options.directory(), List.of(), List.of(path)))
             .orElse(SpecValidationReport.EMPTY);
     final boolean failed = !report.passed() || specs.hasFindings();
     if (failed) {
@@ -169,9 +161,9 @@ public final class ClaudeCodeHookCommand implements Callable<Integer> {
    */
   private Integer executeStop(final ClaudeHookEvent event) {
     final CheckReport report =
-        checkService.checkExcluding(options.directory(), SupportedQualityGates.specIds());
+        hookChecks.checks().checkExcluding(options.directory(), SupportedQualityGates.specIds());
     final SpecValidationReport specs =
-        specService.validateConfigured(options.directory(), List.of());
+        hookChecks.specs().validateConfigured(options.directory(), List.of());
     if (report.passed() && !specs.hasFindings()) {
       return ExitCodes.OK;
     }
@@ -221,6 +213,7 @@ public final class ClaudeCodeHookCommand implements Callable<Integer> {
     public HookSpecificOutput hookSpecificOutput;
   }
 
+  /** The event-specific part of a Claude Code hook response; its public fields are serialized. */
   @JsonType
   public static final class HookSpecificOutput {
     public String hookEventName;

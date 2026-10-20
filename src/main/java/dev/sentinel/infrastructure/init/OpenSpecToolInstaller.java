@@ -19,6 +19,9 @@ import javax.inject.Inject;
 
 /** Installs the reviewed OpenSpec distribution into Sentinel-owned project-local storage. */
 public final class OpenSpecToolInstaller implements ToolInstaller {
+  // OpenSpec requires Node.js 20.19 or newer.
+  private static final int MINIMUM_NODE_MAJOR = 20;
+  private static final int MINIMUM_NODE_MINOR = 19;
   private static final Logger LOGGER = Logger.getLogger(OpenSpecToolInstaller.class.getName());
   public static final String PACKAGE = OpenSpecDistribution.packageName();
   public static final Path DESTINATION = OpenSpecDistribution.destination(Path.of(""));
@@ -26,6 +29,7 @@ public final class OpenSpecToolInstaller implements ToolInstaller {
 
   private final CommandExecutor executor;
 
+  /** Creates the installer; {@code executor} runs Node.js and npm. */
   @Inject
   public OpenSpecToolInstaller(final CommandExecutor executor) {
     this.executor = executor;
@@ -192,7 +196,8 @@ public final class OpenSpecToolInstaller implements ToolInstaller {
       final String[] parts = value.split("\\.");
       final int major = Integer.parseInt(parts[0]);
       final int minor = parts.length > 1 ? Integer.parseInt(parts[1]) : 0;
-      return major > 20 || (major == 20 && minor >= 19);
+      return major > MINIMUM_NODE_MAJOR
+          || major == MINIMUM_NODE_MAJOR && minor >= MINIMUM_NODE_MINOR;
     } catch (NumberFormatException ignored) {
       return false;
     }

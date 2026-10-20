@@ -1,8 +1,6 @@
 package dev.sentinel.infrastructure.cli;
 
 import dev.sentinel.application.agent.IntegrationService;
-import dev.sentinel.application.init.InitService;
-import dev.sentinel.application.init.InitSetupCatalog;
 import dev.sentinel.application.project.ProjectDetector;
 import dev.sentinel.config.DaggerSentinelComponent;
 import dev.sentinel.config.SentinelComponent;
@@ -10,10 +8,6 @@ import dev.sentinel.infrastructure.agent.ClaudeCodeIntegration;
 import dev.sentinel.infrastructure.agent.OpenCodeIntegration;
 import dev.sentinel.infrastructure.cli.agent.IntegrateCommand;
 import dev.sentinel.infrastructure.cli.init.InitCommand;
-import dev.sentinel.infrastructure.doctor.SystemEnvironmentInspection;
-import dev.sentinel.infrastructure.init.ArchitectureTestGenerator;
-import dev.sentinel.infrastructure.init.FileConfigurationStorage;
-import dev.sentinel.infrastructure.init.PomToolConfigurator;
 import dev.sentinel.infrastructure.project.FileSystemProjectInspection;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -24,7 +18,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.io.TempDir;
@@ -104,13 +97,7 @@ class SentinelCliIntegrationSupport {
   protected int runInitWithInput(final String input, final String... args) {
     final InitCommand init =
         new InitCommand(
-            new InitService(
-                new ProjectDetector(new FileSystemProjectInspection()),
-                Set.of(new OpenCodeIntegration(), new ClaudeCodeIntegration()),
-                new InitSetupCatalog(new SystemEnvironmentInspection()),
-                new PomToolConfigurator(),
-                new ArchitectureTestGenerator(),
-                new FileConfigurationStorage()),
+            CliInitServices.openCodeAndClaude(),
             new ByteArrayInputStream(input.getBytes(StandardCharsets.UTF_8)));
     final CommandLine cli = new CommandLine(init);
     cli.setOut(new PrintWriter(out, true));

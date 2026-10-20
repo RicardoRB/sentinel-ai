@@ -11,21 +11,30 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.inject.Inject;
 
+/**
+ * Updates the persisted learning ledger after a check and returns prompts for repeated failures.
+ */
 public final class LearningService {
   private static final Logger LOGGER = Logger.getLogger(LearningService.class.getName());
   private final LearningStore store;
   private final Clock clock;
 
+  /** Creates the service using the system UTC clock. */
   @Inject
   public LearningService(final LearningStore store) {
     this(store, Clock.systemUTC());
   }
 
+  /** Creates the service; {@code clock} timestamps the records. */
   public LearningService(final LearningStore store, final Clock clock) {
     this.store = store;
     this.clock = clock;
   }
 
+  /**
+   * Records the results of {@code report} and prompts for failures repeated {@code threshold}
+   * times. A store failure disables learning for this run and is returned as a warning.
+   */
   public LearningOutcome learn(final CheckReport report, final int threshold) {
     try {
       final LearningLedger ledger =

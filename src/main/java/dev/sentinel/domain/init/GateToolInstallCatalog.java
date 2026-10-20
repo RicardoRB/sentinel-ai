@@ -30,10 +30,14 @@ public final class GateToolInstallCatalog {
 
   private GateToolInstallCatalog() {}
 
+  /** Returns how to install {@code executable}, if the catalog knows it. */
   public static Optional<Entry> forExecutable(final String executable) {
     return Optional.ofNullable(ENTRIES.get(executable));
   }
 
+  /**
+   * Returns the manual installation guidance for {@code executable}, or {@code null} when unknown.
+   */
   public static String installHint(final String executable) {
     return forExecutable(executable).map(Entry::manualGuidance).orElse(null);
   }
@@ -48,13 +52,28 @@ public final class GateToolInstallCatalog {
         manager, Stream.concat(List.of(manager).stream(), List.of(arguments).stream()).toList());
   }
 
+  /**
+   * How to install one gate executable.
+   *
+   * @param executable the executable name on the path
+   * @param methods package-manager commands, in order of preference
+   * @param manualGuidance where to read installation instructions
+   */
   public record Entry(String executable, List<InstallMethod> methods, String manualGuidance) {
+    /** Copies the methods. */
     public Entry {
       methods = List.copyOf(methods);
     }
   }
 
+  /**
+   * One package-manager command that installs an executable.
+   *
+   * @param manager the package manager executable
+   * @param arguments the arguments passed to it
+   */
   public record InstallMethod(String manager, List<String> arguments) {
+    /** Copies the arguments. */
     public InstallMethod {
       arguments = List.copyOf(arguments);
     }

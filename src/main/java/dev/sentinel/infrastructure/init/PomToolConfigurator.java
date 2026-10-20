@@ -218,6 +218,10 @@ public final class PomToolConfigurator implements BuildToolConfiguration {
 
   private final Optional<CompatibilityFindings> compatibility;
 
+  /**
+   * Creates the configurator; {@code compatibilityInspection} reads the toolchain to choose
+   * compatible plugin versions.
+   */
   @Inject
   public PomToolConfigurator(final CompatibilityInspection compatibilityInspection) {
     this.compatibility = Optional.of(new CompatibilityFindings(compatibilityInspection));

@@ -24,6 +24,7 @@ import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 
 class QualityGateRunnerFindingsTest {
+  private static final int REPORTED = 120;
 
   private final Project project =
       new Project(Path.of("/p"), Language.JAVA, BuildTool.MAVEN, Framework.NONE);
@@ -37,7 +38,13 @@ class QualityGateRunnerFindingsTest {
 
       @Override
       public GateResult execute(final Project ignored) {
-        return new GateResult(name, status, List.of("x"), 1, Duration.ZERO, "out", "err");
+        return GateResult.builder(name, status)
+            .command(List.of("x"))
+            .exitCode(1)
+            .duration(Duration.ZERO)
+            .stdout("out")
+            .stderr("err")
+            .build();
       }
     };
   }
@@ -62,7 +69,9 @@ class QualityGateRunnerFindingsTest {
     final FindingExtractor extractor =
         (ignored, result, gateStart) -> {
           starts.add(gateStart);
-          return IntStream.rangeClosed(1, 120).mapToObj(i -> finding(result.name(), i)).toList();
+          return IntStream.rangeClosed(1, REPORTED)
+              .mapToObj(i -> finding(result.name(), i))
+              .toList();
         };
 
     final CheckReport report =
@@ -71,8 +80,8 @@ class QualityGateRunnerFindingsTest {
 
     final GateResult result = report.results().getFirst();
     assertThat(result.status()).isEqualTo(GateStatus.FAILED);
-    assertThat(result.findings().items()).hasSize(120);
-    assertThat(result.findings().total()).isEqualTo(120);
+    assertThat(result.findings().items()).hasSize(REPORTED);
+    assertThat(result.findings().total()).isEqualTo(REPORTED);
     assertThat(result.findings().visible(SeverityThreshold.ERROR).truncated()).isTrue();
     assertThat(starts)
         .singleElement()

@@ -4,6 +4,11 @@ import java.util.Optional;
 
 /** Explicit-only first-baseline policy. */
 public final class BootstrapPolicy {
+  /**
+   * Checks the first live-spec baseline. Without {@code selected}, a merge base with no live specs
+   * is a finding. With it, the bootstrap needs a {@code declaration}, a merge base without live
+   * specs, and a candidate that has them.
+   */
   public Optional<EnforcementFinding> check(
       final GitRevisionSnapshot baseline,
       final GitRevisionSnapshot candidate,

@@ -19,12 +19,14 @@ public final class NativeIntegrationSupport {
 
   private NativeIntegrationSupport() {}
 
+  /** Returns whether both files of {@code plan} exist and carry the Sentinel ownership marker. */
   public static boolean installed(final Path projectRoot, final NativeArtifactPlan plan) {
     final Path root = projectRoot.toAbsolutePath().normalize();
     return owned(root.resolve(plan.configPath()), plan.marker())
         && owned(root.resolve(plan.hookPath()), plan.marker());
   }
 
+  /** Reports whether the files of {@code plan} are installed, missing, partial, or user-owned. */
   public static IntegrationHealth health(final Path projectRoot, final NativeArtifactPlan plan) {
     final Path root = projectRoot.toAbsolutePath().normalize();
     final Path config = root.resolve(plan.configPath());
@@ -48,6 +50,10 @@ public final class NativeIntegrationSupport {
         IntegrationHealth.Status.PARTIAL, "Integration is partially installed; re-run integrate.");
   }
 
+  /**
+   * Writes or removes the files of {@code plan} as {@code request} says, never overwriting
+   * user-owned files.
+   */
   public static IntegrationResult integrate(
       final Path projectRoot, final IntegrationRequest request, final NativeArtifactPlan plan) {
     final Path root = projectRoot.toAbsolutePath().normalize();

@@ -20,6 +20,7 @@ public final class OpenSpecArchiveReplayAdapter implements ArchiveReplay {
   private static final String OPENSPEC_VERSION = "1.14.1";
   private final CommandExecutor executor;
 
+  /** Creates the adapter; {@code executor} runs OpenSpec in the staging tree. */
   @Inject
   public OpenSpecArchiveReplayAdapter(final CommandExecutor executor) {
     this.executor = executor;

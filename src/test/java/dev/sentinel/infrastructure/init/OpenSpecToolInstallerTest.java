@@ -15,6 +15,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 class OpenSpecToolInstallerTest {
+  // npm install --prefix <staging> <package>
+  private static final int STAGING_ARGUMENT = 3;
   private static final String NODE = "node";
 
   @Test
@@ -62,8 +64,8 @@ class OpenSpecToolInstallerTest {
     public CommandResult execute(final List<String> command, final Path root) {
       commands.add(List.copyOf(command));
       try {
-        if (command.size() > 3 && "npm".equals(command.getFirst())) {
-          final Path staging = Path.of(command.get(3));
+        if (command.size() > STAGING_ARGUMENT && "npm".equals(command.getFirst())) {
+          final Path staging = Path.of(command.get(STAGING_ARGUMENT));
           final Path executable = staging.resolve("node_modules/.bin/openspec");
           Files.createDirectories(executable.getParent());
           Files.writeString(executable, "#!/bin/sh\n");

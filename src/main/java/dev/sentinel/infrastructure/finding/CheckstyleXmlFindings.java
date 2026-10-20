@@ -17,6 +17,7 @@ public final class CheckstyleXmlFindings implements GateFindingSource {
   private static final String CHECKS_PACKAGE = "com.puppycrawl.tools.checkstyle.checks.";
   private static final String CHECK_SUFFIX = "Check";
 
+  /** Creates the stateless adapter that Dagger injects. */
   @Inject
   public CheckstyleXmlFindings() {}
 

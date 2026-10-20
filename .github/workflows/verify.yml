@@ -19,12 +19,21 @@ on:
 permissions:
   contents: read
 
+env:
+  GITLEAKS_VERSION: 8.30.1
+  TRIVY_VERSION: 0.76.0
+  SEMGREP_VERSION: 1.181.0
+  OPENSPEC_VERSION: 1.14.1
+
 jobs:
   quality:
-    name: Quality gates and coverage
+    name: Sentinel ci profile
     runs-on: ubuntu-24.04
     steps:
+      # Full history for gitleaks.
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       - name: Set up JDK 25
         uses: actions/setup-java@v5
@@ -33,16 +42,64 @@ jobs:
           java-version: '25'
           cache: maven
 
-      # ArchUnit, tests, Spotless, Checkstyle, PMD, SpotBugs, and >= 80% JaCoCo instruction coverage.
-      - name: Run quality verification
-        run: ./verify-quality.sh
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
 
-      - name: Upload coverage report
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      - name: Install gate tools
+        run: |
+          set -eu
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
+            | sudo tar -xz -C /usr/local/bin gitleaks
+          curl -sSfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
+            | sudo sh -s -- -b /usr/local/bin "v${TRIVY_VERSION}"
+          pip install "semgrep==${SEMGREP_VERSION}"
+          npm install -g "@fission-ai/openspec@${OPENSPEC_VERSION}"
+
+      # Restore and save separately so the cache is kept even when a gate fails.
+      - name: Restore trivy cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.cache/trivy
+          key: trivy-${{ github.run_id }}
+          restore-keys: trivy-
+
+      - name: Install Sentinel
+        env:
+          SENTINEL_INSTALL_DIR: ${{ runner.temp }}/sentinel/bin
+        run: |
+          ./install.sh
+          echo "$SENTINEL_INSTALL_DIR" >> "$GITHUB_PATH"
+
+      - name: Run quality gates
+        run: sentinel check --profile ci
+
+      - name: Save trivy cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.cache/trivy
+          key: trivy-${{ github.run_id }}
+
+      - name: Generate coverage report
+        if: always()
+        run: ./mvnw -B -q jacoco:report
+
+      - name: Upload reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: jacoco-report
-          path: target/site/jacoco/
+          name: quality-reports
+          path: |
+            target/site/jacoco/
+            target/pit-reports/
+            target/gitleaks.sarif
           if-no-files-found: ignore
 
   native:

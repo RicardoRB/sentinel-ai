@@ -4,7 +4,6 @@ import dev.sentinel.domain.agent.SupportedAgents;
 import dev.sentinel.domain.config.SentinelException;
 import dev.sentinel.domain.doctor.EnvironmentInspection;
 import dev.sentinel.domain.gate.SupportedQualityGates;
-import dev.sentinel.domain.gate.ToolReports;
 import dev.sentinel.domain.init.GateToolInstallCatalog;
 import dev.sentinel.domain.init.InitArchitectureOption;
 import dev.sentinel.domain.init.InitGateOption;
@@ -23,11 +22,13 @@ public class InitGeneralCatalog {
   public static final String NO_INTEGRATION = "none";
   private final EnvironmentInspection environment;
 
+  /** Creates the catalog; {@code environment} resolves which executables are on the path. */
   @Inject
   public InitGeneralCatalog(final EnvironmentInspection environment) {
     this.environment = environment;
   }
 
+  /** Returns the agent integration choices, starting with the option to install none. */
   public List<InitIntegrationOption> integrations() {
     final List<InitIntegrationOption> options = new ArrayList<>();
     options.add(new InitIntegrationOption(NO_INTEGRATION, "No agent integration"));
@@ -37,6 +38,7 @@ public class InitGeneralCatalog {
     return List.copyOf(options);
   }
 
+  /** Returns the supported architecture styles for the generated ArchUnit test. */
   public List<InitArchitectureOption> architectures() {
     return List.of(
         new InitArchitectureOption("layered", "Layered (controller -> service -> repository)"),
@@ -44,6 +46,11 @@ public class InitGeneralCatalog {
         new InitArchitectureOption("clean", "Clean (domain isolated from outer layers)"));
   }
 
+  /**
+   * Returns the architecture style with {@code id}.
+   *
+   * @throws SentinelException if {@code id} is not a supported style
+   */
   public InitArchitectureOption architecture(final String id) {
     return architectures().stream()
         .filter(option -> option.id().equals(id))
@@ -56,7 +63,26 @@ public class InitGeneralCatalog {
                         + "'. Supported architectures: layered, hexagonal, clean"));
   }
 
+  /**
+   * Returns every gate choice for {@code project}, in wizard order, with availability resolved
+   * against the project's build tool and the executables on the path.
+   */
   public List<InitGateOption> gates(final Project project) {
+    final BuildToolGates buildTool = buildToolGates(project);
+    final List<InitGateOption> options = new ArrayList<>(buildTool.analysisGates());
+    options.addAll(new BinaryToolGates(environment, project).gates());
+    options.addAll(buildTool.policyGates());
+    options.add(
+        new InitGateOption(
+            SupportedQualityGates.TRACEABILITY,
+            "Maps live OpenSpec scenarios to explicitly annotated JUnit tests (opt-in).",
+            List.of(),
+            true,
+            "Source-level mapping analysis; it does not execute tests."));
+    return List.copyOf(options);
+  }
+
+  private BuildToolGates buildToolGates(final Project project) {
     final boolean gradle = project.buildTool() == BuildTool.GRADLE;
     final String executable = project.buildExecutable();
     final String toolName = gradle ? "Gradle" : "Maven";
@@ -73,194 +99,14 @@ public class InitGeneralCatalog {
                 + " or add a "
                 + toolName
                 + " Wrapper before running this gate.";
-    final List<InitGateOption> options = new ArrayList<>();
-    options.add(
-        InitGateOptionFactory.option(
-            "tests", "Runs the project's tests.", toolAvailable, availability, executable, "test"));
-    options.add(
-        InitGateOptionFactory.option(
-            "compile",
-            "Checks that the project compiles.",
-            toolAvailable,
-            availability,
-            executable,
-            task(gradle, "classes", "compile")));
-    options.add(
-        InitGateOptionFactory.option(
-            "coverage",
-            "Enforces minimum test coverage.",
-            toolAvailable,
-            availability
-                + (gradle
-                    ? " (minimum coverage is configured in the Gradle build.)"
-                    : " (minimum coverage is configured in pom.xml.)"),
-            executable,
-            task(gradle, "jacocoTestCoverageVerification", "jacoco:check")));
-    options.add(
-        InitGateOptionFactory.option(
-            "spotbugs",
-            "Finds potential bugs through static analysis.",
-            toolAvailable,
-            availability,
-            executable,
-            task(gradle, "spotbugsMain", "spotbugs:check")));
-    options.add(
-        InitGateOptionFactory.option(
-            "checkstyle",
-            "Checks source style and formatting rules.",
-            toolAvailable,
-            availability,
-            executable,
-            task(gradle, "checkstyleMain", "checkstyle:check")));
-    options.add(
-        InitGateOptionFactory.option(
-            "pmd",
-            "Finds common Java design and implementation problems with PMD.",
-            toolAvailable,
-            availability,
-            executable,
-            task(gradle, "pmdMain", "pmd:check")));
-    options.add(
-        InitGateOptionFactory.option(
-            "sonar",
-            "Checks code quality, smells, and duplication.",
-            toolAvailable,
-            availability,
-            executable,
-            "sonar"));
-    options.add(
-        InitGateOptionFactory.option(
-            "dependency-check",
-            "Scans dependencies for known CVEs.",
-            toolAvailable,
-            availability,
-            executable,
-            task(gradle, "dependencyCheckAnalyze", "dependency-check:check")));
-    // Gradle task options follow their task: test --tests <pattern>.
-    options.add(
-        gradle
-            ? InitGateOptionFactory.option(
-                "archunit",
-                "Checks architecture rules with ArchitectureTest.",
-                toolAvailable,
-                availability + " (runs only ArchitectureTest.)",
-                executable,
-                "test",
-                "--tests",
-                "*ArchitectureTest")
-            : InitGateOptionFactory.option(
-                "archunit",
-                "Checks architecture rules with ArchitectureTest.",
-                toolAvailable,
-                availability + " (runs only ArchitectureTest.)",
-                executable,
-                "-Dtest=ArchitectureTest",
-                "test"));
-    options.add(
-        InitGateOptionFactory.option(
-            "mutation",
-            "Measures test strength with mutation testing.",
-            toolAvailable,
-            availability,
-            executable,
-            task(gradle, "pitest", "pitest:mutationCoverage")));
-    options.add(
-        InitGateOptionFactory.option(
-            "format",
-            "Checks formatting with Spotless and google-java-format.",
-            toolAvailable,
-            availability,
-            executable,
-            task(gradle, "spotlessCheck", "spotless:check")));
-    options.add(
-        InitGateOptionFactory.binaryOption(
-            environment,
-            project,
-            "semgrep",
-            "Runs SAST and custom security rules with Semgrep.",
-            List.of("semgrep", "scan", "--config", "p/java", "--error"),
-            "Install Semgrep (needs network access to fetch the p/java ruleset)."));
-    options.add(
-        InitGateOptionFactory.binaryOption(
-            environment,
-            project,
-            "gitleaks",
-            "Detects committed secrets with Gitleaks.",
-            List.of(
-                "gitleaks",
-                "detect",
-                "--no-banner",
-                "--redact",
-                "--report-format",
-                "sarif",
-                "--report-path",
-                ToolReports.gitleaksSarif(project)),
-            "Install Gitleaks."));
-    options.add(
-        InitGateOptionFactory.binaryOption(
-            environment,
-            project,
-            "zap",
-            "Runs an OWASP ZAP baseline DAST scan against a running application; replace <TARGET_URL> in -t with an authorized target before running.",
-            List.of("zap-baseline.py", "-t", SupportedQualityGates.ZAP_TARGET_PLACEHOLDER),
-            "Install ZAP and replace "
-                + SupportedQualityGates.ZAP_TARGET_PLACEHOLDER
-                + " with a target you are authorized to scan before running."));
-    options.add(
-        InitGateOptionFactory.binaryOption(
-            environment,
-            project,
-            "trivy",
-            "Scans dependencies, containers, and IaC with Trivy.",
-            List.of("trivy", "fs", "--exit-code", "1", "."),
-            "Install Trivy."));
-    options.add(
-        InitGateOptionFactory.option(
-            "enforcer",
-            "Enforces dependency and build rules with Maven Enforcer.",
-            toolAvailable,
-            availability + " (dependency and build rules are configured in pom.xml.)",
-            executable,
-            task(gradle, "check", "enforcer:enforce")));
-    options.add(
-        InitGateOptionFactory.option(
-            "license",
-            "Checks dependency license compliance with the License Maven Plugin.",
-            toolAvailable,
-            availability + " (license policy is configured in pom.xml.)",
-            executable,
-            task(gradle, "licenseMain", "license:add-third-party")));
-    options.add(
-        InitGateOptionFactory.option(
-            "api-compat",
-            "Checks binary/API compatibility between versions with japicmp.",
-            toolAvailable,
-            availability + " (the comparison baseline is configured in pom.xml.)",
-            executable,
-            task(gradle, "japicmp", "japicmp:cmp")));
-    options.add(
-        InitGateOptionFactory.option(
-            "command",
-            "Runs a custom command from sentinel.toml.",
-            toolAvailable,
-            availability + " (customize the command in sentinel.toml after initialization.)",
-            executable,
-            "test"));
-    options.add(
-        new InitGateOption(
-            SupportedQualityGates.TRACEABILITY,
-            "Maps live OpenSpec scenarios to explicitly annotated JUnit tests (opt-in).",
-            List.of(),
-            true,
-            "Source-level mapping analysis; it does not execute tests."));
-    return List.copyOf(options);
+    return new BuildToolGates(gradle, toolAvailable, availability, executable);
   }
 
-  private static String task(
-      final boolean gradle, final String gradleTask, final String mavenTask) {
-    return gradle ? gradleTask : mavenTask;
-  }
-
+  /**
+   * Returns the agent integration with {@code id}.
+   *
+   * @throws SentinelException if {@code id} is not a supported integration
+   */
   public InitIntegrationOption integration(final String id) {
     return integrations().stream()
         .filter(option -> option.id().equals(id))
@@ -274,6 +120,11 @@ public class InitGeneralCatalog {
                         + SupportedAgents.idsText()));
   }
 
+  /**
+   * Returns the gate choice with {@code id} for {@code project}.
+   *
+   * @throws SentinelException if {@code id} is an OpenSpec tool or not a supported gate
+   */
   public InitGateOption gate(final Project project, final String id) {
     if ("openspec".equals(id) || "openspec-archived".equals(id)) {
       throw new SentinelException(
@@ -293,6 +144,10 @@ public class InitGeneralCatalog {
                         + SupportedQualityGates.IDS));
   }
 
+  /**
+   * Plans how to install the executable a missing {@code gate} needs, preferring the first package
+   * manager found on the path; empty when the gate is available or runs no command.
+   */
   public Optional<PlannedGateInstallation> gateInstallation(
       final Project project, final InitGateOption gate) {
     if (gate.available() || gate.command().isEmpty()) {
@@ -320,10 +175,16 @@ public class InitGeneralCatalog {
                                 executable, null, List.of(), entry.manualGuidance())));
   }
 
+  /** Returns the quality presets init can apply. */
   public List<QualityPreset> presets() {
     return List.of(QualityPreset.STANDARD, QualityPreset.STRICT);
   }
 
+  /**
+   * Returns the quality preset with {@code id}.
+   *
+   * @throws SentinelException if {@code id} is not a supported preset
+   */
   public QualityPreset preset(final String id) {
     return presets().stream()
         .filter(candidate -> candidate.id().equals(id))

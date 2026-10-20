@@ -47,6 +47,7 @@ public final class ClineIntegration implements NativeHarnessAdapter {
     return ClineHookScripts.preToolUse(NativeHookText.marker(DEFINITION.id()), guardMode);
   }
 
+  /** Returns the hook response that blocks the tool call and tells the agent {@code reason}. */
   public String denyResponse(final String reason) {
     return "{\"cancel\":true,\"errorMessage\":" + NativeHookText.quote(reason) + "}";
   }
@@ -90,6 +91,7 @@ public final class ClineIntegration implements NativeHarnessAdapter {
         command,
         parameters.input,
         null,
+        false,
         false);
   }
 
@@ -115,6 +117,7 @@ public final class ClineIntegration implements NativeHarnessAdapter {
     public ToolUse postToolUse;
   }
 
+  /** The tool call in a Cline hook payload; its public fields mirror the event JSON. */
   @JsonType
   public static final class ToolUse {
     public String toolName;
@@ -129,6 +132,7 @@ public final class ClineIntegration implements NativeHarnessAdapter {
     public String commands;
   }
 
+  /** The commands of a Cline tool call; its public field mirrors the event JSON. */
   @JsonType
   public static final class CommandList {
     public List<String> commands;

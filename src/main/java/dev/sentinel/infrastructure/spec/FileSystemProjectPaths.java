@@ -18,6 +18,7 @@ public final class FileSystemProjectPaths implements ProjectPaths {
   private static final String ARCHIVE = "archive";
   private static final String HIDDEN = ".";
 
+  /** Creates the stateless adapter that Dagger injects. */
   @Inject
   public FileSystemProjectPaths() {
     // Stateless adapter; Dagger constructs it through this constructor.

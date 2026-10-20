@@ -4,7 +4,12 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
 
+/** An agent integration that writes project-local hook and instruction files. */
 public interface AgentIntegration extends AgentAdapter {
+  /**
+   * Installs or refreshes the integration under {@code projectRoot}, or removes its Sentinel-owned
+   * files when {@code remove}.
+   */
   IntegrationResult integrate(Path projectRoot, boolean remove);
 
   /**
@@ -13,14 +18,19 @@ public interface AgentIntegration extends AgentAdapter {
    */
   List<PlannedFileChange> plan(Path projectRoot, GuardMode guard);
 
+  /** Returns what the installed integration enforces; the default is nothing. */
   default Set<IntegrationCapability> capabilities() {
     return Set.of();
   }
 
+  /**
+   * Returns whether the integration is installed under {@code projectRoot}; the default is false.
+   */
   default boolean installed(final Path projectRoot) {
     return false;
   }
 
+  /** Reports whether the integration is installed, for {@code sentinel doctor}. */
   default IntegrationHealth health(final Path projectRoot) {
     return installed(projectRoot)
         ? new IntegrationHealth(IntegrationHealth.Status.INSTALLED, "Integration is installed.")

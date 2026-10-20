@@ -12,6 +12,8 @@ import org.junit.jupiter.api.condition.OS;
 
 @DisabledOnOs(OS.WINDOWS)
 class SentinelCliContract5Test extends SentinelCliIntegrationSupport {
+  private static final int CONFIGURED_GATES = 3;
+
   @Test
   void rejectsCombiningNoIntegrationWithAnAgent() {
     assertThat(runInitWithInput("3\n1 2\n1\n", "-C", project.toString()))
@@ -132,7 +134,7 @@ class SentinelCliContract5Test extends SentinelCliIntegrationSupport {
 
     assertThat(exit).isNotZero();
     final JsonTree json = JsonTree.parse(out.toString());
-    assertThat(json.get(CHECKS).size()).isEqualTo(3);
+    assertThat(json.get(CHECKS).size()).isEqualTo(CONFIGURED_GATES);
     assertThat(json.get(CHECKS).get(0).get("name").asString()).isEqualTo("gitleaks");
     assertThat(json.get(CHECKS).get(0).get(STATUS).asString()).isNotEqualTo("PASSED");
     assertThat(json.get(CHECKS).get(1).get("name").asString()).isEqualTo("format");

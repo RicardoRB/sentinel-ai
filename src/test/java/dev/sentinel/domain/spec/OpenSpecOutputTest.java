@@ -71,7 +71,7 @@ class OpenSpecOutputTest {
 
     final String longLine = "x".repeat(5_000);
     assertThat(OpenSpecOutput.parse(longLine, "", false).getFirst().message())
-        .hasSize(OpenSpecOutput.EXCERPT_CHARACTERS + 3);
+        .hasSize(OpenSpecOutput.EXCERPT_CHARACTERS + "...".length());
 
     assertThat(
             OpenSpecOutput.parse("boom\nNext steps:\n  - hint\n", "", false).getFirst().message())

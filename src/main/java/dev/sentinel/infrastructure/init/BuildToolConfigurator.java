@@ -18,6 +18,7 @@ public final class BuildToolConfigurator implements BuildToolConfiguration {
   private final PomToolConfigurator maven;
   private final GradleToolConfigurator gradle;
 
+  /** Creates the configurator that delegates to the Maven or Gradle configurator. */
   @Inject
   public BuildToolConfigurator(
       final PomToolConfigurator maven, final GradleToolConfigurator gradle) {

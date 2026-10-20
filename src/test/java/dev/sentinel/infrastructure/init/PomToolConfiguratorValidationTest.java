@@ -22,6 +22,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 class PomToolConfiguratorValidationTest {
+  private static final int JAVA_17 = 17;
+
   /** Well-formed apart from an undefined entity, so only the pre-write check can reject it. */
   private static final String UNDEFINED_ENTITY_POM =
       "<project>\n  <name>&undefined;</name>\n  <build>\n    <plugins>\n    </plugins>\n"
@@ -52,7 +54,7 @@ class PomToolConfiguratorValidationTest {
                 new CompatibilityProjectSnapshot(
                     project(Path.of(".")),
                     new ToolchainSnapshot(
-                        17, Optional.of("3.9.0"), Optional.empty(), Framework.NONE),
+                        JAVA_17, Optional.of("3.9.0"), Optional.empty(), Framework.NONE),
                     Map.of()));
     final Predicate<Object> approveAll = ignored -> true;
 

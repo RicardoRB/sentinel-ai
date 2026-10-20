@@ -1,24 +1,20 @@
 package dev.sentinel.infrastructure.learning;
 
-import static dev.sentinel.infrastructure.learning.LearningJsonContractFixtures.*;
+import static dev.sentinel.infrastructure.learning.LearningJsonContractFixtures.fixture;
+import static dev.sentinel.infrastructure.learning.LearningJsonContractFixtures.report;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import dev.sentinel.domain.learning.LearningLedger;
 import dev.sentinel.domain.learning.LearningOutcome;
 import dev.sentinel.domain.learning.LearningPrompt;
-import dev.sentinel.domain.learning.LearningRecord;
-import dev.sentinel.domain.learning.LearningState;
 import dev.sentinel.infrastructure.cli.agent.ClaudeCodeHookCommand.HookOutput;
 import dev.sentinel.infrastructure.cli.agent.ClaudeCodeHookCommand.HookSpecificOutput;
 import dev.sentinel.infrastructure.cli.gate.JsonReportRenderer;
 import dev.sentinel.infrastructure.json.ForyJsonCodec;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 
-/** Byte-for-byte contract verification of persistence, report, and hook JSON. */
+/** Byte-for-byte contract verification of codec, report, and hook JSON. */
 class LearningJsonContractTest {
 
   @Test
@@ -35,56 +31,6 @@ class LearningJsonContractTest {
             Class.forName(
                 "dev.sentinel.infrastructure.cli.agent.ClaudeCodeHookCommand_d_HookOutput_ForyJsonCodec"))
         .isNotNull();
-  }
-
-  @Test
-  void storeSaveMatchesContractFixtureIncludingUnicodeAndTimestamps(@TempDir final Path root)
-      throws Exception {
-    final LearningLedger ledger = ledger();
-    new JsonLearningStore(new ForyJsonCodec()).save(root, ledger);
-
-    final String saved = Files.readString(root.resolve(".sentinel/learning.json"));
-    // Record ordering is not contractual; content must match the fixture item for item.
-    assertThat(recordsOf(saved)).isEqualTo(recordsOf(fixture("store-ledger.json")));
-    assertThat(saved)
-        .contains("Unicode ✓ and \\\"quotes\\\" — строка", "2026-01-01T00:00:00Z")
-        .contains("escapes \\n \\t \\\\")
-        .doesNotContain("stdout", "stderr", "command");
-  }
-
-  @Test
-  void storeLoadsContractFixtureBackToSameValues() throws Exception {
-    final Path root = Files.createTempDirectory("sentinel-load");
-    Files.createDirectories(root.resolve(".sentinel"));
-    Files.writeString(root.resolve(".sentinel/learning.json"), fixture("store-ledger.json"));
-    final LearningLedger loaded =
-        new JsonLearningStore(new ForyJsonCodec()).load(root).orElseThrow();
-
-    new JsonLearningStore(new ForyJsonCodec()).save(root, loaded);
-    assertThat(recordsOf(Files.readString(root.resolve(".sentinel/learning.json"))))
-        .isEqualTo(recordsOf(fixture("store-ledger.json")));
-
-    final LearningRecord unicode = loaded.records().get("tests:FAILED");
-    assertThat(unicode.summary()).isEqualTo("Unicode ✓ and \"quotes\" — строка");
-    assertThat(unicode.occurrences()).isEqualTo(2);
-    assertThat(unicode.state()).isEqualTo(LearningState.RESOLVED);
-    assertThat(unicode.firstSeen()).isEqualTo(TIME);
-    assertThat(unicode.lastSeen()).isEqualTo(TIME);
-    assertThat(unicode.prompted()).isTrue();
-
-    final LearningRecord escaped = loaded.records().get("checkstyle:ERROR");
-    assertThat(escaped.summary()).isEqualTo("escapes \n \t \\");
-    assertThat(escaped.state()).isEqualTo(LearningState.FAILING);
-    assertThat(escaped.prompted()).isFalse();
-  }
-
-  @Test
-  void emptyCollectionsRoundTrip(@TempDir final Path root) throws Exception {
-    final JsonLearningStore store = new JsonLearningStore(new ForyJsonCodec());
-    store.save(root, LearningLedger.empty());
-    assertThat(Files.readString(root.resolve(".sentinel/learning.json")))
-        .isEqualTo("{\"formatVersion\":1,\"records\":{}}");
-    assertThat(store.load(root)).get().satisfies(ledger -> assertThat(ledger.records()).isEmpty());
   }
 
   @Test

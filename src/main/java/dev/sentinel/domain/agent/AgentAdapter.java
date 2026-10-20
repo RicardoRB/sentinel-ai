@@ -6,5 +6,6 @@ package dev.sentinel.domain.agent;
  */
 @FunctionalInterface
 public interface AgentAdapter {
+  /** Returns the agent ID used on the command line, such as {@code claude-code}. */
   String id();
 }

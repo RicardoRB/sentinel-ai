@@ -21,6 +21,10 @@ import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 import picocli.CommandLine.Spec;
 
+/**
+ * The {@code sentinel spec guard} command: decides whether an agent tool call may change approved
+ * artifacts.
+ */
 @Command(
     name = "guard",
     description = {
@@ -60,11 +64,13 @@ public final class SpecGuardCommand implements Callable<Integer> {
   private final ApprovedArtifactGuardService service;
   private final InputStream input;
 
+  /** Creates the command reading the tool call from standard input. */
   @Inject
   public SpecGuardCommand(final ApprovedArtifactGuardService service) {
     this(service, System.in);
   }
 
+  /** Creates the command reading the tool call from {@code input}. */
   public SpecGuardCommand(final ApprovedArtifactGuardService service, final InputStream input) {
     this.service = service;
     this.input = input;

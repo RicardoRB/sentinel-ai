@@ -9,6 +9,7 @@ public record ToolInstallationResult(
     Path executable,
     String message,
     ToolInstallationChange change) {
+  /** Creates a result without a rollback handle. */
   public ToolInstallationResult(
       final String tool, final boolean installed, final Path executable, final String message) {
     this(tool, installed, executable, message, null);

@@ -23,6 +23,9 @@ import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 
 class JsonFindingsRendererTest {
+  private static final int REPORTED = 120;
+  private static final int FINDING_COLUMN = 5;
+  private static final int LOG_LINES = 500;
   private final Project project =
       new Project(Path.of("/p"), Language.JAVA, BuildTool.MAVEN, Framework.NONE);
 
@@ -35,12 +38,18 @@ class JsonFindingsRendererTest {
         "Missing a Javadoc comment.",
         "src/main/java/Foo.java",
         line,
-        5,
+        FINDING_COLUMN,
         "https://checkstyle.org/checks/javadoc/missingjavadocmethod.html");
   }
 
   private static GateResult result(final String name, final GateStatus status, final String out) {
-    return new GateResult(name, status, List.of("x"), 1, Duration.ZERO, out, "");
+    return GateResult.builder(name, status)
+        .command(List.of("x"))
+        .exitCode(1)
+        .duration(Duration.ZERO)
+        .stdout(out)
+        .stderr("")
+        .build();
   }
 
   private JsonTree render(final GateResult... results) {
@@ -64,15 +73,17 @@ class JsonFindingsRendererTest {
   void truncatedGateListsFiftyFindingsWithTotal() {
     final GateFindings findings =
         GateFindings.of(
-            IntStream.rangeClosed(1, 120).mapToObj(JsonFindingsRendererTest::finding).toList());
+            IntStream.rangeClosed(1, REPORTED)
+                .mapToObj(JsonFindingsRendererTest::finding)
+                .toList());
 
     final JsonTree check =
         render(result("checkstyle", GateStatus.FAILED, "log").withFindings(findings))
             .get("checks")
             .get(0);
 
-    assertThat(check.get("findings").size()).isEqualTo(50);
-    assertThat(check.get("findingsTotal").asInt()).isEqualTo(120);
+    assertThat(check.get("findings").size()).isEqualTo(GateFindings.LIMIT);
+    assertThat(check.get("findingsTotal").asInt()).isEqualTo(REPORTED);
     assertThat(check.get("findingsTruncated").asBoolean()).isTrue();
     final JsonTree first = check.get("findings").get(0);
     assertThat(first.get("tool").asString()).isEqualTo("checkstyle");
@@ -81,7 +92,7 @@ class JsonFindingsRendererTest {
     assertThat(first.get("message").asString()).isEqualTo("Missing a Javadoc comment.");
     assertThat(first.get("file").asString()).isEqualTo("src/main/java/Foo.java");
     assertThat(first.get("line").asInt()).isEqualTo(1);
-    assertThat(first.get("column").asInt()).isEqualTo(5);
+    assertThat(first.get("column").asInt()).isEqualTo(FINDING_COLUMN);
     assertThat(first.get("helpUri").asString()).startsWith("https://checkstyle.org/");
   }
 
@@ -97,7 +108,9 @@ class JsonFindingsRendererTest {
   @Test
   void outputKeepsTailWhileStdoutStaysComplete() {
     final String log =
-        IntStream.rangeClosed(1, 500).mapToObj(i -> "line " + i).collect(Collectors.joining("\n"));
+        IntStream.rangeClosed(1, LOG_LINES)
+            .mapToObj(i -> "line " + i)
+            .collect(Collectors.joining("\n"));
 
     final JsonTree check = renderInfo(result("tests", GateStatus.FAILED, log)).get("checks").get(0);
 

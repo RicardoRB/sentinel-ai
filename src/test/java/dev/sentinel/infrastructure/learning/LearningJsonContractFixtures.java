@@ -24,6 +24,9 @@ import java.util.List;
 import java.util.Map;
 
 final class LearningJsonContractFixtures {
+  private static final Duration TESTS_DURATION = Duration.ofMillis(3847);
+  private static final long CHECKSTYLE_FIRST_SEEN_SECONDS = 5;
+  private static final long CHECKSTYLE_LAST_SEEN_SECONDS = 9;
   static final String CONTRACTS = "fixtures/learning-contracts/";
   static final Instant TIME = Instant.parse("2026-01-01T00:00:00Z");
   static final Project PROJECT =
@@ -35,14 +38,13 @@ final class LearningJsonContractFixtures {
     return new CheckReport(
         PROJECT,
         List.of(
-            new GateResult(
-                "tests",
-                GateStatus.PASSED,
-                List.of("./mvnw", "test"),
-                0,
-                Duration.ofMillis(3847),
-                "ok\n",
-                "")));
+            GateResult.builder("tests", GateStatus.PASSED)
+                .command(List.of("./mvnw", "test"))
+                .exitCode(0)
+                .duration(TESTS_DURATION)
+                .stdout("ok\n")
+                .stderr("")
+                .build()));
   }
 
   static LearningLedger ledger() {
@@ -68,8 +70,8 @@ final class LearningJsonContractFixtures {
             "escapes \n \t \\",
             1,
             LearningState.FAILING,
-            TIME.plusSeconds(5),
-            TIME.plusSeconds(9),
+            TIME.plusSeconds(CHECKSTYLE_FIRST_SEEN_SECONDS),
+            TIME.plusSeconds(CHECKSTYLE_LAST_SEEN_SECONDS),
             false));
     return new LearningLedger(1, records);
   }

@@ -11,6 +11,7 @@ public final class CompositeToolInstaller implements ToolInstaller {
   private final OpenSpecToolInstaller openSpec;
   private final PackageManagerToolInstaller gateTools;
 
+  /** Creates the installer that delegates OpenSpec and gate executables to their installers. */
   @Inject
   public CompositeToolInstaller(
       final OpenSpecToolInstaller openSpec, final PackageManagerToolInstaller gateTools) {

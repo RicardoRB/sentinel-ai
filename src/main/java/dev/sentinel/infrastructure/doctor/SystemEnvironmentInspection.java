@@ -34,6 +34,7 @@ public final class SystemEnvironmentInspection implements EnvironmentInspection 
           "semgrep",
           "zap-baseline.py");
 
+  /** Creates the stateless adapter that Dagger injects. */
   @Inject
   public SystemEnvironmentInspection() {}
 

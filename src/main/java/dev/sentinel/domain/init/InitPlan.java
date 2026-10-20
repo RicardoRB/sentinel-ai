@@ -9,11 +9,13 @@ public record InitPlan(
     List<PlannedFileChange> files,
     Optional<PlannedInstallation> installation,
     List<PlannedGateInstallation> gateInstallations) {
+  /** Creates a plan that installs no gate executables. */
   public InitPlan(
       final List<PlannedFileChange> files, final Optional<PlannedInstallation> installation) {
     this(files, installation, List.of());
   }
 
+  /** Copies the lists; missing values mean nothing to install. */
   public InitPlan {
     files = List.copyOf(files);
     installation = installation == null ? Optional.empty() : installation;

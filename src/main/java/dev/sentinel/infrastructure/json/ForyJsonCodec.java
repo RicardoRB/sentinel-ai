@@ -10,6 +10,7 @@ import org.apache.fory.json.ForyJson;
 public final class ForyJsonCodec implements JsonCodec {
   private final ForyJson json;
 
+  /** Creates the codec backed by Fory's generated JSON serializers. */
   @Inject
   public ForyJsonCodec() {
     json = ForyJson.builder().build();

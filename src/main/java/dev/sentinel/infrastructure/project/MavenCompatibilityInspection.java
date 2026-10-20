@@ -32,6 +32,7 @@ public final class MavenCompatibilityInspection implements CompatibilityInspecti
   private static final Pattern MAVEN_VERSION = Pattern.compile("Apache Maven\\s+([0-9][^\\s]*)");
   private final CommandExecutor commands;
 
+  /** Creates the inspection; {@code commands} runs Maven to read the toolchain. */
   @Inject
   public MavenCompatibilityInspection(final CommandExecutor commands) {
     this.commands = commands;

@@ -124,7 +124,14 @@ class CoverageProjectMutationTest {
     assertThat(new SkippedQualityGate("skip").execute(PROJECT).status())
         .isEqualTo(GateStatus.SKIPPED);
     assertThat(
-            new GateResult("x", GateStatus.PASSED, List.of("x"), 0, Duration.ZERO, "", "").passed())
+            GateResult.builder("x", GateStatus.PASSED)
+                .command(List.of("x"))
+                .exitCode(0)
+                .duration(Duration.ZERO)
+                .stdout("")
+                .stderr("")
+                .build()
+                .passed())
         .isTrue();
   }
 }

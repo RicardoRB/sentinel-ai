@@ -17,6 +17,7 @@ public class MavenTestGate implements QualityGate {
   private final CommandExecutor executor;
   private final List<String> command;
 
+  /** Creates the tests gate running {@code command} through {@code executor}. */
   public MavenTestGate(final CommandExecutor executor, final List<String> command) {
     this.executor = executor;
     this.command = List.copyOf(command);

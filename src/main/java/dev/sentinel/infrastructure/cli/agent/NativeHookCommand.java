@@ -1,9 +1,7 @@
 package dev.sentinel.infrastructure.cli.agent;
 
 import dev.sentinel.application.agent.NativeHookProtocol;
-import dev.sentinel.application.gate.CheckService;
 import dev.sentinel.application.spec.ApprovedArtifactGuardService;
-import dev.sentinel.application.spec.SpecValidationService;
 import dev.sentinel.domain.agent.AgentIntegration;
 import dev.sentinel.domain.agent.NativeHookInput;
 import dev.sentinel.domain.agent.NativeHookOutcome;
@@ -46,32 +44,33 @@ public final class NativeHookCommand implements Callable<Integer> {
   @Option(names = "--guard-approved-specs")
   private boolean guard;
 
-  private final CheckService checkService;
-  private final SpecValidationService specService;
+  private final HookChecks hookChecks;
   private final ApprovedArtifactGuardService guardService;
   private final JsonCodec codec;
   private final Set<AgentIntegration> integrations;
   private final InputStream input;
 
+  /**
+   * Creates the native hook command reading its event from standard input. {@code hookChecks} runs
+   * the quality gates and spec validation, {@code guardService} decides approved-artifact guard
+   * requests, and {@code integrations} supply each harness's hook protocol.
+   */
   @Inject
   public NativeHookCommand(
-      final CheckService checkService,
-      final SpecValidationService specService,
+      final HookChecks hookChecks,
       final ApprovedArtifactGuardService guardService,
       final JsonCodec codec,
       final Set<AgentIntegration> integrations) {
-    this(checkService, specService, guardService, codec, integrations, System.in);
+    this(hookChecks, guardService, codec, integrations, System.in);
   }
 
   NativeHookCommand(
-      final CheckService checkService,
-      final SpecValidationService specService,
+      final HookChecks hookChecks,
       final ApprovedArtifactGuardService guardService,
       final JsonCodec codec,
       final Set<AgentIntegration> integrations,
       final InputStream input) {
-    this.checkService = checkService;
-    this.specService = specService;
+    this.hookChecks = hookChecks;
     this.guardService = guardService;
     this.codec = codec;
     this.integrations = Set.copyOf(integrations);
@@ -89,20 +88,24 @@ public final class NativeHookCommand implements Callable<Integer> {
       }
       if (protocol.turnEnds(event)) {
         final CheckReport report =
-            checkService.checkExcluding(options.directory(), SupportedQualityGates.specIds());
+            hookChecks
+                .checks()
+                .checkExcluding(options.directory(), SupportedQualityGates.specIds());
         return NativeHookTurnEnd.deliver(
             protocol,
             event,
-            report,
-            specService.validateConfigured(options.directory(), List.of()),
+            new TurnEndResults(
+                report, hookChecks.specs().validateConfigured(options.directory(), List.of())),
             output(),
             error());
       }
       final CheckReport report =
-          checkService.checkPartial(
-              options.directory(),
-              NativeHookEditedPaths.of(event, options.directory()),
-              SupportedQualityGates.specIds());
+          hookChecks
+              .checks()
+              .checkPartial(
+                  options.directory(),
+                  NativeHookEditedPaths.of(event, options.directory()),
+                  SupportedQualityGates.specIds());
       final SpecValidationReport specs = validateEditedPath(event);
       if (report.passed() && !specs.hasFindings()) {
         return ExitCodes.OK;
@@ -146,7 +149,7 @@ public final class NativeHookCommand implements Callable<Integer> {
   private SpecValidationReport validateEditedPath(final NativeHookInput event) {
     return event.path() == null
         ? SpecValidationReport.EMPTY
-        : specService.validatePaths(options.directory(), List.of(), List.of(event.path()));
+        : hookChecks.specs().validatePaths(options.directory(), List.of(), List.of(event.path()));
   }
 
   private NativeHookProtocol protocol() {

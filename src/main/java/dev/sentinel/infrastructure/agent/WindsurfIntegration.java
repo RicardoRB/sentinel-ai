@@ -65,6 +65,7 @@ public final class WindsurfIntegration implements NativeHarnessAdapter {
     return NativeHookText.phaseWrapper(DEFINITION.id(), DEFINITION.hookFile(), guardMode);
   }
 
+  /** Returns {@code reason} unchanged: Windsurf shows the text a blocking hook prints. */
   public String denyResponse(final String reason) {
     return reason;
   }
@@ -111,6 +112,7 @@ public final class WindsurfIntegration implements NativeHarnessAdapter {
           info.commandLine,
           null,
           null,
+          false,
           false);
     }
   }

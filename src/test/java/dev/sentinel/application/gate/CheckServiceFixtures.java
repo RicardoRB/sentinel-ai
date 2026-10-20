@@ -10,6 +10,9 @@ import dev.sentinel.infrastructure.project.FileSystemProjectInspection;
 public final class CheckServiceFixtures {
   private CheckServiceFixtures() {}
 
+  /**
+   * Returns a check service with real adapters that runs gate commands through {@code executor}.
+   */
   public static CheckService checks(final CommandExecutor executor) {
     return new CheckService(
         new ProjectDetector(new FileSystemProjectInspection()),

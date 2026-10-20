@@ -7,10 +7,13 @@ import java.util.Optional;
 
 /** Application boundary for harness-specific native hook translation. */
 public interface NativeHookProtocol {
+  /** Extracts the harness-neutral event from a hook {@code payload}. */
   NativeHookInput parse(JsonCodec codec, String payload);
 
+  /** Returns whether {@code input} is the harness's turn-end event. */
   boolean turnEnds(NativeHookInput input);
 
+  /** Serializes {@code outcome} in the harness's response format. */
   String serialize(NativeHookOutcome outcome);
 
   /**

@@ -103,8 +103,13 @@ class LearningServiceTest {
     return new CheckReport(
         PROJECT,
         List.of(
-            new GateResult(
-                "checkstyle", GateStatus.PASSED, List.of("checkstyle"), 0, Duration.ZERO, "", "")));
+            GateResult.builder("checkstyle", GateStatus.PASSED)
+                .command(List.of("checkstyle"))
+                .exitCode(0)
+                .duration(Duration.ZERO)
+                .stdout("")
+                .stderr("")
+                .build()));
   }
 
   private static final class FakeStore implements LearningStore {

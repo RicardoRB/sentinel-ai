@@ -11,6 +11,7 @@ import java.util.function.Consumer;
 import javax.inject.Inject;
 import javax.inject.Named;
 
+/** Prints gate progress and the human-readable check summary. */
 public class TextReportRenderer implements CheckProgressListener {
   private static final int RENDER_CAPACITY = 512;
 
@@ -20,6 +21,10 @@ public class TextReportRenderer implements CheckProgressListener {
   private Consumer<String> println = ignored -> {};
   private Runnable flush = () -> {};
 
+  /**
+   * Creates the renderer. {@code terminal} decides whether in-place progress is shown, and {@code
+   * version} is printed in the header.
+   */
   @Inject
   public TextReportRenderer(
       final TerminalCapabilities terminal, @Named("sentinel.version") final String version) {
@@ -27,6 +32,7 @@ public class TextReportRenderer implements CheckProgressListener {
     this.version = version;
   }
 
+  /** Creates a renderer for plain, non-interactive output. */
   public TextReportRenderer() {
     this(
         new TerminalCapabilities() {
@@ -43,6 +49,7 @@ public class TextReportRenderer implements CheckProgressListener {
         "dev");
   }
 
+  /** Prints the header to {@code output} and sends later progress there. */
   public void begin(final PrintWriter output) {
     print = output::print;
     println = output::println;
@@ -69,28 +76,34 @@ public class TextReportRenderer implements CheckProgressListener {
     flush.run();
   }
 
+  /** Prints the summary of {@code report}. */
   public void summary(final CheckReport report) {
     summary(report, null);
   }
 
+  /** Prints the summary of {@code report} with its learning prompts. */
   public void summary(final CheckReport report, final LearningOutcome learning) {
     summary(report, learning, SeverityThreshold.WARNING);
   }
 
+  /** Prints the summary of {@code report}, listing findings at or above {@code threshold}. */
   public void summary(
       final CheckReport report, final LearningOutcome learning, final SeverityThreshold threshold) {
     print.accept(ReportText.summary(report, learning, threshold));
     flush.run();
   }
 
+  /** Returns the complete text report for {@code report}. */
   public String render(final CheckReport report) {
     return render(report, null);
   }
 
+  /** Returns the complete text report with its learning prompts. */
   public String render(final CheckReport report, final LearningOutcome learning) {
     return render(report, learning, SeverityThreshold.WARNING);
   }
 
+  /** Returns the complete text report, listing findings at or above {@code threshold}. */
   public String render(
       final CheckReport report, final LearningOutcome learning, final SeverityThreshold threshold) {
     final StringBuilder output = new StringBuilder(RENDER_CAPACITY);

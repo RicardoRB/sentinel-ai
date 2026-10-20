@@ -15,6 +15,10 @@ public final class ProcessAgentRunner implements AgentRunner {
   private final Path root;
   private final List<String> command;
 
+  /**
+   * Creates a runner that starts {@code command} in {@code root} with the task as its last
+   * argument.
+   */
   public ProcessAgentRunner(
       final CommandExecutor executor, final Path root, final List<String> command) {
     this.executor = executor;

@@ -142,10 +142,11 @@ class InitServicePlanTest {
         new ProjectDetector(new FileSystemProjectInspection()),
         Set.of(new ClaudeCodeIntegration()),
         new InitSetupCatalog(new FakeEnvironmentInspection(), new QualityHookInstaller()),
-        pom,
-        new ArchitectureTestGenerator(),
-        new FileConfigurationStorage(),
-        new PresetRuleFileWriter());
+        new InitProjectFiles(
+            pom,
+            new PresetRuleFileWriter(),
+            new ArchitectureTestGenerator(),
+            new FileConfigurationStorage()));
   }
 
   private static PlannedFileChange pom(final Path dir, final InitPlan plan) {

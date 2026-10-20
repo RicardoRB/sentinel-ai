@@ -432,11 +432,10 @@ cd sentinel-ai
 java -jar target/sentinel.jar check -C src/test/resources/fixtures/maven-project   # run locally
 
 ./mvnw spotless:apply                         # format code
-./verify-quality.sh                           # required before every PR
+sentinel check --profile pre-push             # required before every PR
 ```
 
-`verify-quality.sh` runs ArchUnit boundary tests, the full test suite, Spotless, Checkstyle, PMD,
-and SpotBugs, and it requires **≥ 80% JaCoCo instruction coverage**.
+CI runs `sentinel check --profile ci`, which runs every gate in [`sentinel.toml`](sentinel.toml).
 
 ### Architecture overview
 
@@ -467,7 +466,7 @@ See [AGENTS.md](AGENTS.md) for the full conventions.
 
 ## 🤝 Community
 
-- **Contributing:** fork the repo, create a branch, make sure `./verify-quality.sh` passes, and open
+- **Contributing:** fork the repo, create a branch, make sure `sentinel check --profile pre-push` passes, and open
   a pull request. Conventions are in [AGENTS.md](AGENTS.md).
 - **Bugs:** [open an issue](https://github.com/RicardoRB/sentinel-ai/issues/new) with your
   `sentinel --version`, OS, and `sentinel doctor` output.

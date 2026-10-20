@@ -6,6 +6,10 @@ import java.util.Map;
 /** Pure, deterministic selection of compatible managed Maven plugin versions. */
 public final class CompatibilityResolver {
 
+  /**
+   * Chooses, for each selected plugin, the newest catalog version compatible with the project's
+   * toolchain.
+   */
   public CompatibilityPlan resolve(
       final CompatibilityProjectSnapshot snapshot,
       final Map<String, List<ManagedPluginCandidate>> catalog,

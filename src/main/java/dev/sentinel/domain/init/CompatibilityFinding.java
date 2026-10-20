@@ -7,6 +7,11 @@ public record CompatibilityFinding(
     String selectedVersion,
     CompatibilityOutcome outcome,
     String message) {
+  /**
+   * Validates the finding.
+   *
+   * @throws IllegalArgumentException if the artifact or outcome is missing
+   */
   public CompatibilityFinding {
     if (artifactId == null || artifactId.isBlank()) {
       throw new IllegalArgumentException("Plugin artifactId is required");
@@ -19,6 +24,7 @@ public record CompatibilityFinding(
     }
   }
 
+  /** Returns whether resolving this finding means changing the declared plugin version. */
   public boolean changesVersion() {
     return selectedVersion != null
         && !selectedVersion.equals(currentVersion)

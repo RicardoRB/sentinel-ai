@@ -97,25 +97,7 @@ class NativeInitTerminalSmokeTest {
               .redirectError(ProcessBuilder.Redirect.appendTo(device))
               .start();
       try {
-        terminal.awaitOutput(process, "Choose a preset", PROMPT_TIMEOUT);
-        terminal.write("1\n".getBytes(StandardCharsets.US_ASCII));
-        terminal.awaitOutput(process, "Select agent integrations", PROMPT_TIMEOUT);
-        terminal.write(" ".getBytes(StandardCharsets.US_ASCII));
-        terminal.awaitOutput(process, "> [x] 1) No agent integration", KEY_TIMEOUT);
-        terminal.write(ENTER);
-        terminal.awaitOutput(process, "Select quality gates", PROMPT_TIMEOUT);
-        for (int row = 1; row < PMD_ROW; row++) {
-          terminal.write(ARROW_DOWN);
-        }
-        terminal.awaitOutput(process, "> [x] 6) pmd", KEY_TIMEOUT);
-        terminal.write(" ".getBytes(StandardCharsets.US_ASCII));
-        terminal.awaitOutput(process, "> [ ] 6) pmd", KEY_TIMEOUT);
-        terminal.write(ENTER);
-        terminal.awaitOutput(process, "Select optional tools", PROMPT_TIMEOUT);
-        terminal.write(ENTER);
-        terminal.awaitOutput(process, "quality hooks? [y/N]", PROMPT_TIMEOUT);
-        terminal.write("y\n".getBytes(StandardCharsets.US_ASCII));
-        terminal.awaitOutput(process, "Proceed? [Y/n]", PROMPT_TIMEOUT);
+        answerEveryScreenUntickingPmd(terminal, process);
         assertThat(terminal.output())
             .contains(
                 "create     sentinel.toml",
@@ -142,6 +124,29 @@ class NativeInitTerminalSmokeTest {
         process.destroyForcibly();
       }
     }
+  }
+
+  private static void answerEveryScreenUntickingPmd(
+      final PseudoTerminal terminal, final Process process) throws InterruptedException {
+    terminal.awaitOutput(process, "Choose a preset", PROMPT_TIMEOUT);
+    terminal.write("1\n".getBytes(StandardCharsets.US_ASCII));
+    terminal.awaitOutput(process, "Select agent integrations", PROMPT_TIMEOUT);
+    terminal.write(" ".getBytes(StandardCharsets.US_ASCII));
+    terminal.awaitOutput(process, "> [x] 1) No agent integration", KEY_TIMEOUT);
+    terminal.write(ENTER);
+    terminal.awaitOutput(process, "Select quality gates", PROMPT_TIMEOUT);
+    for (int row = 1; row < PMD_ROW; row++) {
+      terminal.write(ARROW_DOWN);
+    }
+    terminal.awaitOutput(process, "> [x] 6) pmd", KEY_TIMEOUT);
+    terminal.write(" ".getBytes(StandardCharsets.US_ASCII));
+    terminal.awaitOutput(process, "> [ ] 6) pmd", KEY_TIMEOUT);
+    terminal.write(ENTER);
+    terminal.awaitOutput(process, "Select optional tools", PROMPT_TIMEOUT);
+    terminal.write(ENTER);
+    terminal.awaitOutput(process, "quality hooks? [y/N]", PROMPT_TIMEOUT);
+    terminal.write("y\n".getBytes(StandardCharsets.US_ASCII));
+    terminal.awaitOutput(process, "Proceed? [Y/n]", PROMPT_TIMEOUT);
   }
 
   @Test

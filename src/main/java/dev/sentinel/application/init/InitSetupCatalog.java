@@ -27,10 +27,12 @@ public final class InitSetupCatalog extends InitGeneralCatalog {
   private final Supplier<QualityHookGeneration> qualityHooks;
   private final SentinelConfigurationReader configurations;
 
+  /** Creates a catalog that installs no quality hooks. */
   public InitSetupCatalog(final EnvironmentInspection environment) {
     this(environment, new NoQualityHookGeneration());
   }
 
+  /** Creates a catalog that cannot read an existing configuration. */
   public InitSetupCatalog(
       final EnvironmentInspection environment, final QualityHookGeneration qualityHooks) {
     this(
@@ -41,6 +43,10 @@ public final class InitSetupCatalog extends InitGeneralCatalog {
         });
   }
 
+  /**
+   * Creates the catalog. {@code qualityHooks} installs Git hooks, and {@code configurations} reads
+   * the configuration being replaced.
+   */
   @Inject
   public InitSetupCatalog(
       final EnvironmentInspection environment,
@@ -76,26 +82,36 @@ public final class InitSetupCatalog extends InitGeneralCatalog {
     return qualityHooks.get();
   }
 
+  /** Removes the Sentinel-owned quality hooks from {@code projectRoot}. */
   public IntegrationResult removeQualityHooks(final Path projectRoot) {
     return qualityHooks.get().remove(projectRoot);
   }
 
+  /** Returns the optional tools init can install. */
   public List<InitToolOption> tools() {
     return List.of(new InitToolOption("openspec", "OpenSpec project validation tool"));
   }
 
+  /** Returns the OpenSpec validation IDs. */
   public List<String> openSpecValidations() {
     return List.of("openspec", "openspec-archived");
   }
 
+  /** Returns whether a usable OpenSpec executable is on the path of {@code project}. */
   public boolean openSpecAvailable(final Project project) {
     return environment.inspectExecutable(project.root(), "openspec").usable();
   }
 
+  /** Returns whether {@code NVD_API_KEY} is set, which dependency-check needs to update quickly. */
   public boolean nvdApiKeySet(final Project project) {
     return environment.inspect(project.root()).isSet("NVD_API_KEY");
   }
 
+  /**
+   * Returns the gate choice for the OpenSpec validation {@code id}, run with {@code executable}.
+   *
+   * @throws SentinelException if {@code id} is unknown
+   */
   public InitGateOption openSpecValidation(
       final Project project, final String id, final String executable) {
     if (!openSpecValidations().contains(id)) {

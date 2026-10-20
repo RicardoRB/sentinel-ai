@@ -24,6 +24,7 @@ import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 import picocli.CommandLine.Spec;
 
+/** The {@code sentinel integrate} command: installs or removes an agent integration. */
 @Command(
     name = "integrate",
     description = "Configure a supported coding-agent integration.",
@@ -56,11 +57,13 @@ public final class IntegrateCommand implements Callable<Integer> {
   private final IntegrationService service;
   private final InputStream input;
 
+  /** Creates the command reading confirmations from standard input. */
   @Inject
   public IntegrateCommand(final IntegrationService service) {
     this(service, System.in);
   }
 
+  /** Creates the command reading confirmations from {@code input}. */
   public IntegrateCommand(final IntegrationService service, final InputStream input) {
     this.service = service;
     this.input = input;

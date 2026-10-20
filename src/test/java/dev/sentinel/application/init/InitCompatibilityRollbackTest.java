@@ -31,6 +31,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 class InitCompatibilityRollbackTest {
+  private static final int JAVA_17 = 17;
+
   @Test
   void restoresCompatibilityUpdateWhenLaterInitializationStepFails(@TempDir final Path root)
       throws Exception {
@@ -44,7 +46,7 @@ class InitCompatibilityRollbackTest {
                 new CompatibilityProjectSnapshot(
                     new Project(Path.of("."), Language.JAVA, BuildTool.MAVEN, Framework.NONE),
                     new ToolchainSnapshot(
-                        17, Optional.of("3.9.0"), Optional.empty(), Framework.NONE),
+                        JAVA_17, Optional.of("3.9.0"), Optional.empty(), Framework.NONE),
                     Map.of("spotless-maven-plugin", "1.0.0")));
     final RuleFileGeneration failingRules =
         new RuleFileGeneration() {
@@ -68,10 +70,11 @@ class InitCompatibilityRollbackTest {
             new ProjectDetector(new FileSystemProjectInspection()),
             Set.of(),
             new InitSetupCatalog(new FakeEnvironmentInspection()),
-            configurator,
-            new ArchitectureTestGenerator(),
-            new FileConfigurationStorage(),
-            failingRules);
+            new InitProjectFiles(
+                configurator,
+                failingRules,
+                new ArchitectureTestGenerator(),
+                new FileConfigurationStorage()));
 
     assertThatThrownBy(
             () ->

@@ -5,7 +5,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import javax.inject.Inject;
 
+/** Checks the traceability prerequisites on the file system. */
 public final class FileSystemTraceabilityPrerequisites implements TraceabilityPrerequisites {
+  /** Creates the stateless adapter that Dagger injects. */
   @Inject
   public FileSystemTraceabilityPrerequisites() {}
 

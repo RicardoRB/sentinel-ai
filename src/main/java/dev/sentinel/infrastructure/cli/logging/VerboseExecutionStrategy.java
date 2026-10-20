@@ -9,6 +9,10 @@ public final class VerboseExecutionStrategy implements CommandLine.IExecutionStr
   private static final Logger LOGGER = Logger.getLogger(VerboseExecutionStrategy.class.getName());
   private final CommandLine.IExecutionStrategy delegate;
 
+  /**
+   * Wraps {@code delegate} so each invocation logs warnings to stderr, or details with {@code
+   * --verbose}.
+   */
   public VerboseExecutionStrategy(final CommandLine.IExecutionStrategy delegate) {
     this.delegate = delegate;
   }

@@ -15,6 +15,7 @@ public final class FileSystemReportDirectories implements ReportDirectories {
   private static final Logger LOGGER =
       Logger.getLogger(FileSystemReportDirectories.class.getName());
 
+  /** Creates the stateless adapter that Dagger injects. */
   @Inject
   public FileSystemReportDirectories() {}
 

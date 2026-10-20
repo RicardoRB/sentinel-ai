@@ -16,6 +16,7 @@ import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.inject.Inject;
@@ -31,6 +32,10 @@ public class SpecValidationService {
   private final OpenSpecValidator validator;
   private final ConfiguredSpecValidation configured;
 
+  /**
+   * Creates the service. {@code validator} validates single items, and {@code configured} runs the
+   * OpenSpec gates from the configuration.
+   */
   @Inject
   public SpecValidationService(
       final ProjectDetector detector,
@@ -140,6 +145,6 @@ public class SpecValidationService {
                 + " with-findings="
                 + report.items().stream().filter(SpecItemReport::hasFindings).count()
                 + " durationMs="
-                + (System.nanoTime() - started) / 1_000_000);
+                + TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started));
   }
 }

@@ -10,6 +10,12 @@ import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 
 class SpecReportRendererTest {
+  private static final int WARNINGS = 25;
+  private static final int ITEMS = 40;
+  private static final int FINDINGS_PER_ITEM = 5;
+  // The omission notice may follow the last finding that fits.
+  private static final int OMISSION_NOTICE = 80;
+  private static final int TRUNCATION_NOTICE = 30;
 
   @Test
   void rendersItemsWithCountsAndSeverityOrderedFindings() {
@@ -44,7 +50,7 @@ class SpecReportRendererTest {
   void perItemLimitReportsOmittedFindings() {
     final List<SpecFinding> findings =
         new ArrayList<>(
-            IntStream.range(0, 25)
+            IntStream.range(0, WARNINGS)
                 .mapToObj(i -> new SpecFinding(SpecFinding.Level.WARNING, "a.md", "w" + i))
                 .toList());
     findings.add(new SpecFinding(SpecFinding.Level.ERROR, "a.md", "e"));
@@ -62,14 +68,17 @@ class SpecReportRendererTest {
   void totalLimitStopsBeforeOverflowingAndCountsTheRest() {
     final SpecFinding finding = new SpecFinding(SpecFinding.Level.ERROR, "f.md", "x".repeat(60));
     final List<SpecItemReport> items =
-        IntStream.range(0, 40)
+        IntStream.range(0, ITEMS)
             .mapToObj(
-                i -> new SpecItemReport("openspec change c" + i, Collections.nCopies(5, finding)))
+                i ->
+                    new SpecItemReport(
+                        "openspec change c" + i, Collections.nCopies(FINDINGS_PER_ITEM, finding)))
             .toList();
 
     final String rendered = SpecReportRenderer.render(new SpecValidationReport(items));
 
-    assertThat(rendered.length()).isLessThanOrEqualTo(SpecReportRenderer.MAX_CHARACTERS + 80);
+    assertThat(rendered.length())
+        .isLessThanOrEqualTo(SpecReportRenderer.MAX_CHARACTERS + OMISSION_NOTICE);
     assertThat(rendered)
         .containsPattern("\\.\\.\\. \\d+ more findings omitted \\(output limit reached\\)$");
   }
@@ -82,7 +91,8 @@ class SpecReportRendererTest {
             new SpecValidationReport(List.of(new SpecItemReport("openspec", List.of(huge)))));
 
     assertThat(rendered).endsWith("\n... output truncated");
-    assertThat(rendered.length()).isLessThanOrEqualTo(SpecReportRenderer.MAX_CHARACTERS + 30);
+    assertThat(rendered.length())
+        .isLessThanOrEqualTo(SpecReportRenderer.MAX_CHARACTERS + TRUNCATION_NOTICE);
   }
 
   private static List<SpecFinding> sorted(final List<SpecFinding> findings) {

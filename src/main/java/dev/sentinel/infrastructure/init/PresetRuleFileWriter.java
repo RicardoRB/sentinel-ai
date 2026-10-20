@@ -20,6 +20,7 @@ import javax.inject.Inject;
 public final class PresetRuleFileWriter implements RuleFileGeneration {
   private static final String MARKER = "<!-- managed-by: sentinel preset=";
 
+  /** Creates the stateless adapter that Dagger injects. */
   @Inject
   public PresetRuleFileWriter() {}
 

@@ -8,21 +8,24 @@ public record ManagedPluginCandidate(
     int maximumJava,
     String minimumMaven,
     String configurationStrategy) {
+  /**
+   * Validates the entry.
+   *
+   * @throws IllegalArgumentException if a required value is blank or the Java range is invalid
+   */
   public ManagedPluginCandidate {
-    if (artifactId == null || artifactId.isBlank()) {
-      throw new IllegalArgumentException("Plugin artifactId is required");
-    }
-    if (version == null || version.isBlank()) {
-      throw new IllegalArgumentException("Plugin version is required");
-    }
+    requireText(artifactId, "Plugin artifactId is required");
+    requireText(version, "Plugin version is required");
     if (minimumJava < 1 || maximumJava < minimumJava) {
       throw new IllegalArgumentException("Invalid Java compatibility range");
     }
-    if (minimumMaven == null || minimumMaven.isBlank()) {
-      throw new IllegalArgumentException("Minimum Maven version is required");
-    }
-    if (configurationStrategy == null || configurationStrategy.isBlank()) {
-      throw new IllegalArgumentException("Configuration strategy is required");
+    requireText(minimumMaven, "Minimum Maven version is required");
+    requireText(configurationStrategy, "Configuration strategy is required");
+  }
+
+  private static void requireText(final String value, final String message) {
+    if (value == null || value.isBlank()) {
+      throw new IllegalArgumentException(message);
     }
   }
 }

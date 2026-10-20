@@ -16,6 +16,8 @@ import java.time.Instant;
 import java.util.List;
 
 final class FindingFixtures {
+  private static final long CLOCK_SKEW_SECONDS = 5;
+
   private FindingFixtures() {}
 
   static Project maven(final Path root) {
@@ -27,11 +29,23 @@ final class FindingFixtures {
   }
 
   static GateResult failed(final String gate, final String stdout) {
-    return new GateResult(gate, GateStatus.FAILED, List.of("x"), 1, Duration.ZERO, stdout, "");
+    return GateResult.builder(gate, GateStatus.FAILED)
+        .command(List.of("x"))
+        .exitCode(1)
+        .duration(Duration.ZERO)
+        .stdout(stdout)
+        .stderr("")
+        .build();
   }
 
   static GateResult failedWithStderr(final String gate, final String stderr) {
-    return new GateResult(gate, GateStatus.FAILED, List.of("x"), 1, Duration.ZERO, "", stderr);
+    return GateResult.builder(gate, GateStatus.FAILED)
+        .command(List.of("x"))
+        .exitCode(1)
+        .duration(Duration.ZERO)
+        .stdout("")
+        .stderr(stderr)
+        .build();
   }
 
   static Path write(final Path file, final String content) {
@@ -53,6 +67,6 @@ final class FindingFixtures {
 
   /** A gate start slightly in the past, so freshly written fixtures count as current. */
   static Instant justBefore() {
-    return Instant.now().minusSeconds(5);
+    return Instant.now().minusSeconds(CLOCK_SKEW_SECONDS);
   }
 }

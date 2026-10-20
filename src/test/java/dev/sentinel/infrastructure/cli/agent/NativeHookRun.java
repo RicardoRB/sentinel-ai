@@ -50,9 +50,10 @@ final class NativeHookRun {
     final FakeOpenSpecEnvironment environment = new FakeOpenSpecEnvironment(true);
     final NativeHookCommand command =
         new NativeHookCommand(
-            SpecValidationFixtures.checks(executor, environment),
-            SpecValidationFixtures.service(
-                executor, environment, SpecValidationFixtures.checks(executor, environment)),
+            new HookChecks(
+                SpecValidationFixtures.checks(executor, environment),
+                SpecValidationFixtures.service(
+                    executor, environment, SpecValidationFixtures.checks(executor, environment))),
             new ApprovedArtifactGuardService(
                 new ProjectDetector(new FileSystemProjectInspection()),
                 new FileSystemProjectPaths()),

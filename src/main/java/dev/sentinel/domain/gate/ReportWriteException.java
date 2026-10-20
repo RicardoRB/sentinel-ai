@@ -4,6 +4,7 @@ package dev.sentinel.domain.gate;
 public class ReportWriteException extends RuntimeException {
   private static final long serialVersionUID = 1L;
 
+  /** Creates the exception for a report file that could not be written. */
   public ReportWriteException(final String message, final Throwable cause) {
     super(message, cause);
   }

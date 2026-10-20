@@ -15,6 +15,10 @@ public final class ProvenancePolicy {
   private static final String SPECS = "openspec/specs/";
   private static final String ARCHIVE = "openspec/changes/archive/";
 
+  /**
+   * Returns findings for archives that changed after their merge, and for live-spec changes that no
+   * new archive's replay in {@code replays} explains.
+   */
   public List<EnforcementFinding> evaluate(
       final GitRevisionSnapshot baseline,
       final GitRevisionSnapshot candidate,

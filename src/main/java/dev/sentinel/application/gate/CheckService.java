@@ -18,6 +18,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.inject.Inject;
 
+/** Runs the quality gates configured in {@code sentinel.toml} for a project. */
 public class CheckService {
   private static final Logger LOGGER = Logger.getLogger(CheckService.class.getName());
 
@@ -27,6 +28,10 @@ public class CheckService {
   private final QualityGateRunner runner;
   private final PathExistence pathExistence;
 
+  /**
+   * Creates the service. {@code pathExistence} decides which edited paths still exist during a
+   * partial check.
+   */
   @Inject
   public CheckService(
       final ProjectDetector detector,
@@ -41,14 +46,17 @@ public class CheckService {
     this.pathExistence = pathExistence;
   }
 
+  /** Runs the {@code default} profile gates of the project containing {@code start}. */
   public CheckReport check(final Path start) {
     return check(start, List.of());
   }
 
+  /** Runs the gates of {@code requestedProfiles}; empty selects the {@code default} profile. */
   public CheckReport check(final Path start, final List<String> requestedProfiles) {
     return check(start, requestedProfiles, CheckProgressListener.NO_OP, false);
   }
 
+  /** Runs the gates of {@code requestedProfiles}, reporting progress to {@code listener}. */
   public CheckReport check(
       final Path start,
       final List<String> requestedProfiles,
@@ -64,7 +72,10 @@ public class CheckService {
   /** Runs a partial check of the {@code default} profile, without progress output. */
   public CheckReport checkPartial(
       final Path start, final List<Path> paths, final Set<String> excludedGates) {
-    return checkPartial(start, List.of(), paths, CheckProgressListener.NO_OP, false, excludedGates);
+    return checkPartial(
+        start,
+        paths,
+        new CheckRunOptions(List.of(), CheckProgressListener.NO_OP, false, excludedGates));
   }
 
   /**
@@ -73,15 +84,10 @@ public class CheckService {
    * paths every gate runs in full.
    */
   public CheckReport checkPartial(
-      final Path start,
-      final List<String> requestedProfiles,
-      final List<Path> paths,
-      final CheckProgressListener listener,
-      final boolean failFast,
-      final Set<String> excludedGates) {
+      final Path start, final List<Path> paths, final CheckRunOptions options) {
     final Project project = detector.detect(start).orElseThrow(ProjectNotFoundException::new);
     final Optional<SentinelConfiguration> selected =
-        select(project, requestedProfiles, excludedGates);
+        select(project, options.profiles(), options.excludedGates());
     if (selected.isEmpty()) {
       return new CheckReport(project, List.of());
     }
@@ -99,7 +105,8 @@ public class CheckService {
                 + " full="
                 + plan.count(PartialCheckPlan.Scope.FULL));
     final List<QualityGate> gates = PartialGates.create(selected.get(), plan, gateFactory, project);
-    return PartialGates.scoped(runner.run(project, gates, listener, failFast), plan, paths);
+    return PartialGates.scoped(
+        runner.run(project, gates, options.listener(), options.failFast()), plan, paths);
   }
 
   /**
@@ -123,6 +130,10 @@ public class CheckService {
         project, gateFactory.create(selected, project), CheckProgressListener.NO_OP, false);
   }
 
+  /**
+   * Runs the gates of {@code requestedProfiles}, stopping after the first failure when {@code
+   * failFast}.
+   */
   public CheckReport check(
       final Path start,
       final List<String> requestedProfiles,

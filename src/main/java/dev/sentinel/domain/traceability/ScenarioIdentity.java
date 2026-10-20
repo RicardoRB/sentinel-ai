@@ -1,8 +1,15 @@
 package dev.sentinel.domain.traceability;
 
+import java.util.Objects;
+
 /** The exact, fully-qualified identity of an OpenSpec scenario. */
 public record ScenarioIdentity(String capabilityPath, String scenarioName)
     implements Comparable<ScenarioIdentity> {
+  /**
+   * Validates the identity.
+   *
+   * @throws IllegalArgumentException if the capability path or scenario name is blank
+   */
   public ScenarioIdentity {
     if (capabilityPath == null
         || capabilityPath.isBlank()
@@ -19,10 +26,11 @@ public record ScenarioIdentity(String capabilityPath, String scenarioName)
   }
 
   @Override
-  public int hashCode() {
-    return 31 * capabilityPath.hashCode() + scenarioName.hashCode();
+  public String toString() {
+    return capabilityPath + " / " + scenarioName;
   }
 
+  // Comparable records keep explicit equality that matches compareTo.
   @Override
   public boolean equals(final Object object) {
     return object instanceof ScenarioIdentity other
@@ -31,7 +39,7 @@ public record ScenarioIdentity(String capabilityPath, String scenarioName)
   }
 
   @Override
-  public String toString() {
-    return capabilityPath + " / " + scenarioName;
+  public int hashCode() {
+    return Objects.hash(capabilityPath, scenarioName);
   }
 }

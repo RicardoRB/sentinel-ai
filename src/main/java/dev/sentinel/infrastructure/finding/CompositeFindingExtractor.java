@@ -18,6 +18,7 @@ public final class CompositeFindingExtractor implements FindingExtractor {
 
   private final Map<String, GateFindingSource> sources;
 
+  /** Creates the extractor that delegates to the extractor of each supported gate. */
   @Inject
   public CompositeFindingExtractor(
       final CheckstyleXmlFindings checkstyle,

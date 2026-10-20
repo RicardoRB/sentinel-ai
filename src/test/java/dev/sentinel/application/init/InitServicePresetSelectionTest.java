@@ -32,10 +32,11 @@ class InitServicePresetSelectionTest {
           new ProjectDetector(new FileSystemProjectInspection()),
           Set.of(),
           new InitSetupCatalog(new FakeEnvironmentInspection()),
-          new PomToolConfigurator(),
-          new ArchitectureTestGenerator(),
-          new FileConfigurationStorage(),
-          new PresetRuleFileWriter());
+          new InitProjectFiles(
+              new PomToolConfigurator(),
+              new PresetRuleFileWriter(),
+              new ArchitectureTestGenerator(),
+              new FileConfigurationStorage()));
 
   @Test
   void ordersSelectedPresetGatesBeforeOtherGates(@TempDir final Path dir) throws Exception {

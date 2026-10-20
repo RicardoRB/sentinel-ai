@@ -5,6 +5,7 @@ import java.nio.file.Path;
 /** Port used by partial-check planning to distinguish existing from deleted files. */
 @FunctionalInterface
 public interface PathExistence {
+  /** Returns whether {@code path} exists. */
   boolean exists(Path path);
 
   /**

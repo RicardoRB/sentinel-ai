@@ -110,14 +110,17 @@ public enum QualityPreset {
     this.rules = rules;
   }
 
+  /** Returns the preset ID used in {@code sentinel.toml} and on the command line. */
   public String id() {
     return id;
   }
 
+  /** Returns the gates the preset enables, in configuration order. */
   public List<String> gates() {
     return gates;
   }
 
+  /** Returns the tool rules the preset writes. */
   public PresetRules rules() {
     return rules;
   }
@@ -140,9 +143,17 @@ public enum QualityPreset {
     return Stream.concat(gates.stream(), explicit.stream()).distinct().toList();
   }
 
+  /**
+   * Optional rules added to the generated ArchUnit test.
+   *
+   * @param cycles whether packages must be free of cycles
+   * @param noFieldInjection whether field injection is forbidden
+   * @param noStandardStreams whether writing to System.out and System.err is forbidden
+   */
   public record ArchitectureExtras(
       boolean cycles, boolean noFieldInjection, boolean noStandardStreams) {}
 
+  /** The tool rules a preset writes into rule files and the build. */
   public record PresetRules(
       List<String> pmdRules,
       List<String> checkstyleModules,
@@ -154,6 +165,7 @@ public enum QualityPreset {
       List<String> enforcerRules,
       Integer mutationThreshold,
       ArchitectureExtras architectureExtras) {
+    /** Copies the collections. */
     public PresetRules {
       pmdRules = List.copyOf(pmdRules);
       checkstyleModules = List.copyOf(checkstyleModules);

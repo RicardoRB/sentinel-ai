@@ -1,5 +1,6 @@
 package dev.sentinel.domain.project;
 
+/** The primary language of a project. */
 public enum Language {
   JAVA("Java"),
   KOTLIN("Kotlin"),
@@ -16,6 +17,7 @@ public enum Language {
     this.displayName = displayName;
   }
 
+  /** Returns the name shown to users. */
   public String displayName() {
     return displayName;
   }

@@ -19,6 +19,11 @@ public record Finding(
     Integer column,
     String helpUri) {
 
+  /**
+   * Validates the required fields.
+   *
+   * @throws NullPointerException if the gate, tool, rule, severity, or message is missing
+   */
   public Finding {
     Objects.requireNonNull(gateId, "gateId");
     Objects.requireNonNull(tool, "tool");
@@ -30,6 +35,7 @@ public record Finding(
     }
   }
 
+  /** Returns whether the finding points at a file. */
   public boolean located() {
     return file != null;
   }

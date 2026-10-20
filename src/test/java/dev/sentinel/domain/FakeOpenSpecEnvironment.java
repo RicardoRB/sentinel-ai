@@ -12,6 +12,7 @@ import java.util.Set;
 public final class FakeOpenSpecEnvironment implements EnvironmentInspection {
   private final boolean available;
 
+  /** Creates an environment where the OpenSpec executable is usable only when {@code available}. */
   public FakeOpenSpecEnvironment(final boolean available) {
     this.available = available;
   }

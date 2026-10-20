@@ -7,6 +7,7 @@ import java.util.Objects;
 public record PartialGateConfiguration(
     List<String> inputs, List<String> config, List<String> args, String item, String separator) {
 
+  /** Copies the lists. */
   public PartialGateConfiguration {
     inputs = List.copyOf(inputs);
     config = List.copyOf(config);

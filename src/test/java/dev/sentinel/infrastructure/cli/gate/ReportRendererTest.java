@@ -18,6 +18,10 @@ import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 
 class ReportRendererTest {
+  private static final long DURATION_MILLIS = 3847;
+  private static final int LOG_LINES = 100;
+  private static final int ERRORS = 3;
+  private static final int WARNINGS = 7;
 
   private final Project project =
       new Project(Path.of("/p"), Language.JAVA, BuildTool.MAVEN, Framework.SPRING_BOOT);
@@ -26,14 +30,13 @@ class ReportRendererTest {
     return new CheckReport(
         project,
         List.of(
-            new GateResult(
-                "tests",
-                status,
-                List.of("./mvnw", "test"),
-                status == GateStatus.PASSED ? 0 : 1,
-                Duration.ofMillis(3847),
-                stdout,
-                stderr)));
+            GateResult.builder("tests", status)
+                .command(List.of("./mvnw", "test"))
+                .exitCode(status == GateStatus.PASSED ? 0 : 1)
+                .duration(Duration.ofMillis(DURATION_MILLIS))
+                .stdout(stdout)
+                .stderr(stderr)
+                .build()));
   }
 
   @Test
@@ -52,7 +55,7 @@ class ReportRendererTest {
     assertThat(check.get("status").asString()).isEqualTo("FAILED");
     assertThat(check.get("command").asString()).isEqualTo("./mvnw test");
     assertThat(check.get("exitCode").asInt()).isEqualTo(1);
-    assertThat(check.get("durationMs").asLong()).isEqualTo(3847);
+    assertThat(check.get("durationMs").asLong()).isEqualTo(DURATION_MILLIS);
     assertThat(check.get("output").asString()).isEqualTo("line \"1\"\n");
     assertThat(check.has("stdout")).isFalse();
     assertThat(check.has("stderr")).isFalse();
@@ -79,7 +82,7 @@ class ReportRendererTest {
   @Test
   void textReportForFailingGateShowsCommandAndOutputTail() {
     final String stdout =
-        String.join("\n", IntStream.rangeClosed(1, 100).mapToObj(i -> "line " + i).toList());
+        String.join("\n", IntStream.rangeClosed(1, LOG_LINES).mapToObj(i -> "line " + i).toList());
 
     final String text = new TextReportRenderer().render(report(GateStatus.FAILED, stdout, "boom"));
 
@@ -100,16 +103,20 @@ class ReportRendererTest {
         new CheckReport(
             project,
             List.of(
-                new GateResult(
-                    "customGate", GateStatus.SKIPPED, List.of(), 0, Duration.ZERO, "", ""),
-                new GateResult(
-                    "gitleaks",
-                    GateStatus.UNAVAILABLE,
-                    List.of("gitleaks"),
-                    -1,
-                    Duration.ZERO,
-                    "",
-                    "missing")));
+                GateResult.builder("customGate", GateStatus.SKIPPED)
+                    .command(List.of())
+                    .exitCode(0)
+                    .duration(Duration.ZERO)
+                    .stdout("")
+                    .stderr("")
+                    .build(),
+                GateResult.builder("gitleaks", GateStatus.UNAVAILABLE)
+                    .command(List.of("gitleaks"))
+                    .exitCode(-1)
+                    .duration(Duration.ZERO)
+                    .stdout("")
+                    .stderr("missing")
+                    .build()));
 
     final String text = new TextReportRenderer().render(report);
 
@@ -124,15 +131,14 @@ class ReportRendererTest {
         new CheckReport(
             project,
             List.of(
-                new GateResult(
-                    "compile",
-                    GateStatus.SKIPPED,
-                    List.of(),
-                    0,
-                    Duration.ZERO,
-                    "",
-                    "",
-                    "not run (fail-fast)")));
+                GateResult.builder("compile", GateStatus.SKIPPED)
+                    .command(List.of())
+                    .exitCode(0)
+                    .duration(Duration.ZERO)
+                    .stdout("")
+                    .stderr("")
+                    .summary("not run (fail-fast)")
+                    .build()));
 
     assertThat(new TextReportRenderer().render(report))
         .contains("– compile — not run (fail-fast)", "0 passed · 0 failed · 1 skipped");
@@ -141,17 +147,16 @@ class ReportRendererTest {
   @Test
   void textReportShowsReportedFindingCountsOnly() {
     final GateResult counted =
-        new GateResult(
-            "checkstyle",
-            GateStatus.FAILED,
-            List.of("checkstyle"),
-            1,
-            Duration.ZERO,
-            "",
-            "",
-            null,
-            3,
-            7);
+        GateResult.builder("checkstyle", GateStatus.FAILED)
+            .command(List.of("checkstyle"))
+            .exitCode(1)
+            .duration(Duration.ZERO)
+            .stdout("")
+            .stderr("")
+            .summary(null)
+            .errors(ERRORS)
+            .warnings(WARNINGS)
+            .build();
     final CheckReport report = new CheckReport(project, List.of(counted));
 
     assertThat(new TextReportRenderer().render(report))

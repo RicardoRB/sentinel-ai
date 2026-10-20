@@ -26,6 +26,7 @@ import picocli.CommandLine.Model.CommandSpec;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Spec;
 
+/** The {@code sentinel init} command: sets up Sentinel through options or the setup wizard. */
 @Command(
     name = "init",
     description = "Create sentinel.toml with an interactive setup wizard.",
@@ -118,19 +119,26 @@ public class InitCommand implements Callable<Integer> {
   private final RawTerminal rawTerminal;
   private final boolean terminal;
 
+  /** Creates the command reading answers from standard input without raw-key menus. */
   public InitCommand(final InitService service) {
     this(service, System.in, UNAVAILABLE_TERMINAL);
   }
 
+  /** Creates the command reading answers from {@code input} without raw-key menus. */
   public InitCommand(final InitService service, final InputStream input) {
     this(service, input, UNAVAILABLE_TERMINAL);
   }
 
+  /** Creates the command reading standard input, with raw-key menus from {@code rawTerminal}. */
   @Inject
   public InitCommand(final InitService service, final RawTerminal rawTerminal) {
     this(service, System.in, rawTerminal);
   }
 
+  /**
+   * Creates the command reading answers from {@code input}, treating it as a terminal only when it
+   * is the console.
+   */
   public InitCommand(
       final InitService service, final InputStream input, final RawTerminal rawTerminal) {
     this(service, input, rawTerminal, input.equals(System.in) && consoleIsTerminal());
@@ -167,12 +175,10 @@ public class InitCommand implements Callable<Integer> {
     final InitQuestions questions =
         new InitQuestions(
             answers(),
-            wizard,
-            confirmations,
+            new InitPrompts(wizard, confirmations, new QuestionProgress(output())),
             catalog,
             project,
-            terminal,
-            new QuestionProgress(output()));
+            terminal);
     final boolean exists = init.configurationExists(project);
     if (exists
         && !overwriteOption

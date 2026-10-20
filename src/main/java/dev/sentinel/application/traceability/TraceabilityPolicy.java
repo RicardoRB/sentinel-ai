@@ -16,6 +16,10 @@ import java.util.Map;
 public final class TraceabilityPolicy {
   private static final int MULTIPLE_MATCHES = 2;
 
+  /**
+   * Compares the live scenarios with the test mappings and reports missing, ambiguous, malformed,
+   * unknown, and unreadable entries.
+   */
   public TraceabilityResult evaluate(
       final TraceabilityInventory<ScenarioDefinition> scenarios,
       final TraceabilityInventory<MappingObservation> mappings) {

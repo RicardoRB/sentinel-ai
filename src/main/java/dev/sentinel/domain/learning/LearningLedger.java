@@ -4,9 +4,21 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 
+/**
+ * The persisted learning records, keyed by gate and status.
+ *
+ * @param formatVersion the store format version
+ * @param records the records by key
+ */
 public record LearningLedger(int formatVersion, Map<String, LearningRecord> records) {
   public static final int CURRENT_FORMAT_VERSION = 1;
 
+  /**
+   * Validates the ledger and copies the records.
+   *
+   * @throws IllegalArgumentException if the format version is unsupported or a key does not match
+   *     its record
+   */
   public LearningLedger {
     if (formatVersion != CURRENT_FORMAT_VERSION) {
       throw new IllegalArgumentException("Unsupported learning format version: " + formatVersion);
@@ -23,6 +35,7 @@ public record LearningLedger(int formatVersion, Map<String, LearningRecord> reco
     records = Map.copyOf(copy);
   }
 
+  /** Returns a ledger without records. */
   public static LearningLedger empty() {
     return new LearningLedger(CURRENT_FORMAT_VERSION, Map.of());
   }

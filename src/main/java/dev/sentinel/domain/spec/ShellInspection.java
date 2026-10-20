@@ -12,10 +12,12 @@ import java.util.List;
 public record ShellInspection(
     boolean inspectable, boolean archiveCommand, List<GuardTarget> targets) {
 
+  /** Copies the targets. */
   public ShellInspection {
     targets = List.copyOf(targets);
   }
 
+  /** Returns the inspection of a command that could not be interpreted. */
   public static ShellInspection uninspectable() {
     return new ShellInspection(false, false, List.of());
   }
