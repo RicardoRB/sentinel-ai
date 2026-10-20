@@ -97,7 +97,7 @@ class SentinelCliContract5Test extends SentinelCliIntegrationSupport {
     out.getBuffer().setLength(0);
     assertThat(run(CHECK, "--profile", "strict", FORMAT_OPTION, JSON, "-C", project.toString()))
         .isZero();
-    assertThat(out.toString()).contains("\"policies\"", "\"status\" : \"PASSED\"");
+    assertThat(out.toString()).contains("\"policies\"", "\"status\":\"PASSED\"");
     out.getBuffer().setLength(0);
     assertThat(
             run(CHECK, "--profile", "fast,strict", FORMAT_OPTION, JSON, "-C", project.toString()))
@@ -109,11 +109,11 @@ class SentinelCliContract5Test extends SentinelCliIntegrationSupport {
     out.getBuffer().setLength(0);
     assertThat(run(CHECK, FORMAT_OPTION, JSON, "-C", project.toString()))
         .isEqualTo(ExitCodes.ERROR);
-    assertThat(out.toString()).contains("\"status\" : \"ERROR\"").doesNotContain("Unknown");
+    assertThat(out.toString()).contains("\"status\":\"ERROR\"").doesNotContain("Unknown");
     out.getBuffer().setLength(0);
     assertThat(run(CHECK, "--profile", "unknown", FORMAT_OPTION, JSON, "-C", project.toString()))
         .isEqualTo(ExitCodes.ERROR);
-    assertThat(out.toString()).contains("\"status\" : \"ERROR\"");
+    assertThat(out.toString()).contains("\"status\":\"ERROR\"");
   }
 
   @Test
