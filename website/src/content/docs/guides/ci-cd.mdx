@@ -283,6 +283,39 @@ build. Add a `branches` pipeline for pushes when quality gates should run outsid
 Init does not generate a provider-specific CI workflow; add the command above to the CI system of
 your choice.
 
+## Trivy offline scans
+
+When init configures `trivy` after a Maven or Gradle gate, it generates
+`trivy fs --offline-scan --exit-code 1 .`. Without `--offline-scan`, Trivy downloads POM files from
+Maven Central to resolve the dependency tree, and Maven Central answers shared CI runners with
+`429 Too Many Requests`. The earlier build-tool gates have already filled the local Maven repository,
+so Trivy resolves dependencies from it instead. A `trivy` gate with no earlier build gate stays online.
+
+The limit: offline resolution sees only what the build already downloaded. If Trivy and Maven ever
+resolve the dependency tree differently, an offline scan misses the difference without failing.
+
+Offline scanning covers only dependency metadata. Trivy still downloads its vulnerability database,
+so cache `~/.cache/trivy` separately from the build dependency cache. Save it even when a gate fails,
+or a failing run never stores it:
+
+```yaml
+      - name: Restore Trivy cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.cache/trivy
+          key: trivy-${{ github.run_id }}
+          restore-keys: trivy-
+
+      # ... install tools and Sentinel, then run the gates ...
+
+      - name: Save Trivy cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.cache/trivy
+          key: trivy-${{ github.run_id }}
+```
+
 ## Security
 
 Do not run Sentinel on untrusted pull requests, such as those from forks, without isolation:

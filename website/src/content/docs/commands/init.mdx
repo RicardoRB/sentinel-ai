@@ -39,7 +39,9 @@ selected compatible version, detected constraints, and affected file before aski
 updates without prompting; it does not bypass unresolved prerequisites
 or install standalone binaries such as Semgrep, Gitleaks, Trivy, or ZAP. Missing Trivy, Gitleaks, or
 Semgrep tools may be installed with explicit per-tool consent when Homebrew or pipx is available;
-use `--install-tool <gate>` for non-interactive consent. ZAP has manual guidance only. Declined updates leave the POM
+use `--install-tool <gate>` for non-interactive consent. ZAP has manual guidance only. When `trivy` runs
+after a selected Maven or Gradle gate, init adds `--offline-scan` so Trivy resolves dependencies from
+the local repository instead of Maven Central ([why](/guides/ci-cd/#trivy-offline-scans)). Declined updates leave the POM
 unchanged and report that the selected gate was not reconfigured. Preset rule files are Sentinel-owned;
 unmarked existing files are preserved and reported. With `--preset`, `--gate` only adds gates to the
 preset's set; it never removes preset gates. `-C <dir>` selects the
