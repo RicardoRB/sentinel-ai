@@ -101,9 +101,9 @@ class InitServiceTest {
         .contains("profiles = [\"default\", \"pre-commit\", \"pre-push\", \"ci\"]")
         .contains("profiles = [\"ci\"]");
     assertThat(Files.readString(dir.resolve(".git/hooks/pre-commit")))
-        .contains("sentinel check --profile pre-commit");
+        .contains("sentinel check --profile pre-commit --format json");
     assertThat(Files.readString(dir.resolve(".git/hooks/pre-push")))
-        .contains("sentinel check --profile pre-push");
+        .contains("sentinel check --profile pre-push --format json");
   }
 
   @Test

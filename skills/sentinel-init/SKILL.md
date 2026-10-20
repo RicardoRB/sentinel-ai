@@ -124,7 +124,7 @@ order:
 7. **Agent integration.** Recommend the harness you are running in (for example `claude-code`,
    `opencode`, or `codex`), plus any other the user names. `none` is valid.
 8. **Git quality hooks.** These add Sentinel sections to `.git/hooks/pre-commit` and `pre-push`
-   without replacing existing hook logic. Recommend them when the project has no CI, and mention that
+   without replacing existing hook logic; they print `--format json` reports so agents can act on findings. Recommend them when the project has no CI, and mention that
    they slow down commits and pushes.
 9. **CI workflow** (only for GitHub repositories: a `github.com` remote or a `.github/` directory).
    `--ci github` writes `.github/workflows/sentinel.yml`, which runs the `ci` profile, installs the

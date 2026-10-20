@@ -135,8 +135,8 @@ without findings; re-run `sentinel init` or add the four report arguments to ena
 Quality hooks are separate from agent integrations and are opt-in. Pass `--quality-hooks` to add
 Sentinel-managed checks to `.git/hooks/pre-commit` and `.git/hooks/pre-push`. Each managed section is
 inserted after the shebang and before existing user logic; it does not replace the hook. The
-pre-commit section runs `sentinel check --profile pre-commit`, and the pre-push section runs
-`sentinel check --profile pre-push`. Re-run the option to refresh the managed sections. Use
+pre-commit section runs `sentinel check --profile pre-commit --format json`, and the pre-push section runs
+`sentinel check --profile pre-push --format json`. Re-run the option to refresh the managed sections. Use
 `--remove-quality-hooks` to remove only Sentinel's marked sections, preserving user content,
 executable permissions, and other Sentinel integrations. A malformed or duplicate quality-hook marker
 is reported as a conflict and left unchanged.
