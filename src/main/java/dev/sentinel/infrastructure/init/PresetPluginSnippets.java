@@ -86,12 +86,12 @@ final class PresetPluginSnippets {
             <plugin>
               <groupId>org.pitest</groupId>
               <artifactId>pitest-maven</artifactId>
-              <version>1.17.4</version>
+              <version>1.30.1</version>
               <dependencies>
                 <dependency>
                   <groupId>org.pitest</groupId>
                   <artifactId>pitest-junit5-plugin</artifactId>
-                  <version>1.2.1</version>
+                  <version>1.2.3</version>
                 </dependency>
               </dependencies>
               <configuration>

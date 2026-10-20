@@ -73,6 +73,33 @@ class CompatibilityResolverTest {
         .isEqualTo(CompatibilityOutcome.UNKNOWN);
   }
 
+  @Test
+  void catalogSelectsJava25CapablePitForMissingAndStalePlugins() {
+    final String pit = "pitest-maven";
+    final Map<String, List<ManagedPluginCandidate>> catalog =
+        Map.of(pit, ManagedPluginCatalog.entries().get(pit));
+
+    final CompatibilityPlan missing =
+        RESOLVER.resolve(
+            snapshot(NEWEST_JAVA, Optional.of("3.9.9"), Optional.empty(), Map.of()),
+            catalog,
+            List.of(pit));
+    final CompatibilityPlan stale =
+        RESOLVER.resolve(
+            snapshot(NEWEST_JAVA, Optional.of("3.9.9"), Optional.empty(), Map.of(pit, "1.17.4")),
+            catalog,
+            List.of(pit));
+
+    assertThat(missing.findings())
+        .singleElement()
+        .extracting(CompatibilityFinding::selectedVersion)
+        .isEqualTo("1.30.1");
+    assertThat(stale.findings())
+        .singleElement()
+        .extracting(CompatibilityFinding::selectedVersion)
+        .isEqualTo("1.30.1");
+  }
+
   private static CompatibilityProjectSnapshot snapshot(
       final int java,
       final Optional<String> maven,

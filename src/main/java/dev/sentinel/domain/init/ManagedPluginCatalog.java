@@ -24,7 +24,7 @@ public final class ManagedPluginCatalog {
         "sonar-maven-plugin", candidates("sonar-maven-plugin", "5.1.0.4751", "3.11.0.3922"));
     entries.put("jacoco-maven-plugin", candidates("jacoco-maven-plugin", "0.8.13", "0.8.8"));
     entries.put("dependency-check-maven", candidates("dependency-check-maven", "12.1.0", "8.4.0"));
-    entries.put("pitest-maven", candidates("pitest-maven", "1.17.4", "1.9.11"));
+    entries.put("pitest-maven", candidates("pitest-maven", "1.30.1", "1.9.11"));
     entries.put("maven-enforcer-plugin", candidates("maven-enforcer-plugin", "3.5.0", "3.0.0"));
     entries.put("spotless-maven-plugin", candidates("spotless-maven-plugin", "3.10.3", "2.44.4"));
     entries.put("license-maven-plugin", candidates("license-maven-plugin", "2.5.0", "2.0.0"));

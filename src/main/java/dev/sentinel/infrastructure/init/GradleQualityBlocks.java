@@ -15,7 +15,8 @@ final class GradleQualityBlocks {
   static final String COVERAGE_TASK = "jacocoTestCoverageVerification";
   static final String PITEST_JUNIT5 = "junit5PluginVersion";
   static final String ARCHUNIT_VERSION = "1.3.0";
-  private static final String PITEST_JUNIT5_VERSION = "1.2.1";
+  private static final String PITEST_VERSION = "1.30.1";
+  private static final String PITEST_JUNIT5_VERSION = "1.2.3";
   private static final Map<String, Double> DEFAULT_MINIMUMS = Map.of("LINE", 0.80);
   private static final int LIMIT_LENGTH = 128;
 
@@ -96,10 +97,15 @@ final class GradleQualityBlocks {
         + "        }\n    }\n}";
   }
 
-  /** PIT needs its JUnit 5 plugin to find JUnit Jupiter tests. */
+  /**
+   * PIT needs its JUnit 5 plugin to find JUnit Jupiter tests; the Gradle plugin's default PIT
+   * cannot read Java 25 class files, so the engine version is pinned.
+   */
   static String pitest(final boolean kotlin, final QualityPreset preset) {
     final Integer threshold = preset == null ? null : preset.rules().mutationThreshold();
-    return "pitest {\n    "
+    return "pitest {\n    pitestVersion = "
+        + quote(kotlin, PITEST_VERSION)
+        + "\n    "
         + PITEST_JUNIT5
         + " = "
         + quote(kotlin, PITEST_JUNIT5_VERSION)

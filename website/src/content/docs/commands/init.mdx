@@ -68,10 +68,17 @@ use what it generated:
 - `spotless { java { googleJavaFormat() } }` for `format`, unless a `spotless { }` block exists.
 - `jacocoTestCoverageVerification` with the preset's minimums, or `LINE` `0.80` without a preset. The
   `coverage` gate runs `jacocoTestCoverageVerification`, which fails below a minimum.
-- `pitest { junit5PluginVersion = '1.2.1' }` for `mutation`, plus the preset's `mutationThreshold`.
+- `pitest { pitestVersion = '1.30.1'; junit5PluginVersion = '1.2.3' }` for `mutation`, plus the
+  preset's `mutationThreshold`. The PIT version is pinned because the Gradle plugin's default PIT
+  cannot read Java 25 class files. PIT derives `targetClasses` from the project `group`, so set
+  `group` in the build script.
 
 The Kotlin DSL gets the same blocks in Kotlin syntax. A block is added only once, so running init
 again does not duplicate it.
+
+For `mutation` on Maven, init adds `pitest-maven` 1.30.1 with `pitest-junit5-plugin` 1.2.3, which
+read Java 25 class files. Neither build tool gets PIT history settings: since PIT 1.30, incremental
+analysis needs the commercial Arcmutate history plugin.
 
 The generated `sentinel.toml` includes [`partial` tables](/configuration/gates/#partial-checks) for
 `checkstyle`, `pmd`, `format`, and `semgrep`, so the check after each agent edit skips gates the edit
