@@ -41,6 +41,9 @@ public class InitCommand implements Callable<Integer> {
   @Mixin private final ProjectOptions options = new ProjectOptions();
 
   // Picocli assigns annotated fields reflectively, so they cannot be final.
+  @Mixin private final GeneratedFileOptions generatedFiles = new GeneratedFileOptions();
+
+  // Picocli assigns annotated fields reflectively, so they cannot be final.
   @Option(
       names = "--integration",
       split = ",",
@@ -212,6 +215,8 @@ public class InitCommand implements Callable<Integer> {
         openSpecValidations,
         installTools,
         qualityHooks,
+        generatedFiles.ci(),
+        generatedFiles.agentRules(),
         yesOption);
   }
 

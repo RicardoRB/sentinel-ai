@@ -133,12 +133,7 @@ public class InitService {
       catalog.get().architecture(selection.architecture());
     }
     final InitChanges changes =
-        new InitChanges(
-            project.root(),
-            selection.integrations(),
-            files,
-            installer,
-            catalog.get().qualityHooks());
+        new InitChanges(project.root(), selection.integrations(), files, installer, catalog.get());
     boolean completed = false;
     try {
       changes.apply(project, selection, gates, approval);

@@ -76,7 +76,16 @@ class InitServicePlanTest {
     final InitService service = service(CompatibilityFixtures.outdatedSpotless());
     final InitSelection format =
         new InitSelection(
-            List.of("none"), List.of("format"), null, null, List.of(), List.of(), List.of(), false);
+            List.of("none"),
+            List.of("format"),
+            null,
+            null,
+            List.of(),
+            List.of(),
+            List.of(),
+            false,
+            null,
+            false);
 
     assertThat(pom(dir, service.plan(dir, format, false)).details())
         .containsExactly("~ spotless-maven-plugin 1.0.0 -> 3.10.3 (requires approval)");
@@ -134,7 +143,9 @@ class InitServicePlanTest {
         install.isEmpty() ? List.of() : List.of("openspec"),
         List.of(),
         install,
-        hooks);
+        hooks,
+        null,
+        false);
   }
 
   private static InitService service(final PomToolConfigurator pom) {

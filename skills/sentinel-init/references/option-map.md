@@ -17,6 +17,8 @@ as a whole is not that yes.
 | OpenSpec validations | `--openspec-validation <id>[,<id>...]` | `openspec`, `openspec-archived`. Only together with `--tool openspec` | No |
 | Agent integrations | `--integration <id>[,<id>...]` | `none`, or any of `claude-code`, `opencode`, `codex`, `cursor`, `copilot`, `gemini`, `windsurf`, `cline`, `factory-droid`, `amp` | No |
 | Git quality hooks | `--quality-hooks` | Present to install; leave it out to skip | No |
+| CI workflow | `--ci github` | `github`. Leave it out to skip | No |
+| Agent rules in `AGENTS.md` | `--agent-rules` | Present to write the section; leave it out to skip | No |
 | Remove quality hooks | `--remove-quality-hooks` | Present to remove Sentinel's hook sections | No |
 | Install a missing tool | `--install-tool <id>[,<id>...]` | `openspec`, or a selected gate id that the plan shows with an `install` line | **Yes, per tool** |
 | Replace an existing `sentinel.toml` | `--overwrite` | Present | **Yes** |

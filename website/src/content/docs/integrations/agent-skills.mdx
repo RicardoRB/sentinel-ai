@@ -10,7 +10,7 @@ explains each choice for this codebase, and changes files only after you approve
 | Skill | What it does |
 |---|---|
 | `sentinel-init` | Inspects the project, asks about the preset, gates, architecture style, tools, agent integration, and Git hooks one question at a time, with a recommendation based on what it found. It then previews the exact changes with `sentinel init --dry-run` and applies the same options after you approve the plan. |
-| `sentinel-tune` | Fits the rules of the gates you already run to the code: Checkstyle and PMD rule selection, the JaCoCo coverage threshold, and ArchUnit architecture rules. Every edit is grounded in findings from `sentinel check`, shown as a diff, and written only after you approve it. |
+| `sentinel-tune` | Fits the rules of the gates you already run to the code: Checkstyle and PMD rule selection, the JaCoCo coverage threshold, PIT mutation testing, and ArchUnit architecture rules. For a large backlog of findings it plans the fixes rule by rule instead of hiding them. Every edit is grounded in findings from `sentinel check`, shown as a diff, and written only after you approve it. |
 
 The skills follow the open [Agent Skills](https://agentskills.io) format, so the same files work in
 Claude Code, OpenCode, Codex, Cursor, and other agents that support skills. They are distributed
@@ -47,8 +47,8 @@ doing anything else, and stops with an upgrade offer when the CLI is older.
 
 | Skill | Minimum `sentinel` version |
 |---|---|
-| `sentinel-init` | 0.0.10 |
-| `sentinel-tune` | 0.0.10 |
+| `sentinel-init` | 0.0.12 |
+| `sentinel-tune` | 0.0.12 |
 
 Both skills need a Maven or Gradle Java project and a shell. `sentinel-tune` also needs an existing
 `sentinel.toml`.

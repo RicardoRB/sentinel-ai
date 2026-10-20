@@ -64,6 +64,8 @@ class InitToolLifecycleTest {
                 List.of(),
                 List.of(),
                 List.of("semgrep"),
+                false,
+                null,
                 false));
 
     assertThat(installer.installed).containsExactly("semgrep");
@@ -93,6 +95,8 @@ class InitToolLifecycleTest {
         List.of("openspec"),
         validations,
         installTools,
+        false,
+        null,
         false);
   }
 

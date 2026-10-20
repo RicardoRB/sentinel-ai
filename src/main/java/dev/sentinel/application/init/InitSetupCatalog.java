@@ -19,6 +19,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
+import javax.inject.Named;
 
 /** Stable OpenSpec tool choices and project-aware defaults used by init. */
 public final class InitSetupCatalog extends InitGeneralCatalog {
@@ -27,6 +28,7 @@ public final class InitSetupCatalog extends InitGeneralCatalog {
 
   private final Supplier<QualityHookGeneration> qualityHooks;
   private final SentinelConfigurationReader configurations;
+  private final String sentinelVersion;
 
   /** Creates a catalog that installs no quality hooks. */
   public InitSetupCatalog(final EnvironmentInspection environment) {
@@ -44,19 +46,30 @@ public final class InitSetupCatalog extends InitGeneralCatalog {
         });
   }
 
+  /** Creates a catalog for a development build, whose CI workflow installs the latest release. */
+  public InitSetupCatalog(
+      final EnvironmentInspection environment,
+      final QualityHookGeneration qualityHooks,
+      final SentinelConfigurationReader configurations) {
+    this(environment, qualityHooks, configurations, CiWorkflowTemplate.DEVELOPMENT_VERSION);
+  }
+
   /**
-   * Creates the catalog. {@code qualityHooks} installs Git hooks, and {@code configurations} reads
-   * the configuration being replaced.
+   * Creates the catalog. {@code qualityHooks} installs Git hooks, {@code configurations} reads the
+   * configuration being replaced, and {@code sentinelVersion} is the release a generated CI
+   * workflow installs.
    */
   @Inject
   public InitSetupCatalog(
       final EnvironmentInspection environment,
       final QualityHookGeneration qualityHooks,
-      final SentinelConfigurationReader configurations) {
+      final SentinelConfigurationReader configurations,
+      @Named("sentinel.version") final String sentinelVersion) {
     super(environment);
     this.environment = environment;
     this.qualityHooks = () -> qualityHooks;
     this.configurations = configurations;
+    this.sentinelVersion = sentinelVersion;
   }
 
   /**
@@ -77,6 +90,10 @@ public final class InitSetupCatalog extends InitGeneralCatalog {
         new PreviousChoices(
             configuration.preset() == null ? null : preset(configuration.preset()),
             configuration.enabledGates().keySet().stream().filter(offered::contains).toList()));
+  }
+
+  String sentinelVersion() {
+    return sentinelVersion;
   }
 
   QualityHookGeneration qualityHooks() {

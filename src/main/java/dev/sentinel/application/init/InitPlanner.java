@@ -51,8 +51,18 @@ final class InitPlanner {
       changes.addAll(catalog.get().qualityHooks().plan(project.root()));
     }
     changes.add(files.buildTools().plan(project, gates, selection.preset(), approved));
-    changes.addAll(files.ruleFiles().plan(project, selection.preset(), gates));
+    final List<PlannedFileChange> ruleFiles =
+        files.ruleFiles().plan(project, selection.preset(), gates);
+    changes.addAll(ruleFiles);
     changes.addAll(architectureFiles(project, selection, existingArchUnitTests));
+    final List<Path> userOwned =
+        ruleFiles.stream()
+            .filter(file -> file.action() == PlannedFileChange.Action.PRESERVE_USER_OWNED)
+            .map(PlannedFileChange::file)
+            .toList();
+    OwnedSections.of(catalog.get(), project, selection, gates, userOwned).stream()
+        .map(files.sections()::plan)
+        .forEach(changes::add);
     return new InitPlan(
         changes,
         installs

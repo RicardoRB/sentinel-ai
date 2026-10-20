@@ -7,6 +7,8 @@ import dev.sentinel.domain.init.CompatibilityFinding;
 import dev.sentinel.domain.init.InitGateOption;
 import dev.sentinel.domain.init.InitResult;
 import dev.sentinel.domain.init.InitSelection;
+import dev.sentinel.domain.init.OwnedSection;
+import dev.sentinel.domain.init.OwnedSectionChange;
 import dev.sentinel.domain.init.PomChange;
 import dev.sentinel.domain.init.QualityHookChange;
 import dev.sentinel.domain.init.QualityHookGeneration;
@@ -25,8 +27,10 @@ final class InitChanges {
   private final List<String> integrationIds;
   private final InitProjectFiles files;
   private final IntegrationInstaller installer;
+  private final InitSetupCatalog catalog;
   private final QualityHookGeneration qualityHooks;
   private final List<IntegrationResult> installed = new ArrayList<>();
+  private final List<OwnedSectionChange> sectionChanges = new ArrayList<>();
   private PomChange pomChange;
   private RuleFileChange ruleFileChange;
   private ArchitectureTestChange architectureTest;
@@ -37,12 +41,13 @@ final class InitChanges {
       final List<String> integrationIds,
       final InitProjectFiles files,
       final IntegrationInstaller installer,
-      final QualityHookGeneration qualityHooks) {
+      final InitSetupCatalog catalog) {
     this.root = root;
     this.integrationIds = integrationIds;
     this.files = files;
     this.installer = installer;
-    this.qualityHooks = qualityHooks;
+    this.catalog = catalog;
+    this.qualityHooks = catalog.qualityHooks();
   }
 
   void apply(
@@ -71,6 +76,10 @@ final class InitChanges {
                       ? new QualityPreset.ArchitectureExtras(false, false, false)
                       : preset.rules().architectureExtras());
     }
+    for (final OwnedSection section :
+        OwnedSections.of(catalog, project, selection, gates, ruleFileChange.preserved())) {
+      sectionChanges.add(files.sections().apply(section));
+    }
   }
 
   InitResult result(
@@ -92,10 +101,15 @@ final class InitChanges {
         appliedPom.tools(),
         architectureTest,
         ruleFileChange == null ? List.of() : ruleFileChange.preserved(),
-        Stream.concat(appliedPom.warnings().stream(), warnings.stream()).toList());
+        Stream.concat(appliedPom.warnings().stream(), warnings.stream()).toList(),
+        sectionChanges.stream()
+            .filter(OwnedSectionChange::changed)
+            .map(OwnedSectionChange::file)
+            .toList());
   }
 
   void rollback() {
+    sectionChanges.reversed().forEach(files.sections()::rollback);
     files.architectureTests().rollback(architectureTest);
     files.ruleFiles().rollback(ruleFileChange);
     files.buildTools().rollback(pomChange);

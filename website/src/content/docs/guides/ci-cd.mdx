@@ -18,6 +18,10 @@ by individual gates. Sentinel does not install those tools. A missing executable
 
 ## GitHub Actions
 
+`sentinel init --ci github` writes a Sentinel-owned `.github/workflows/sentinel.yml` that installs
+the tools your selected gates need, runs the `ci` profile, and uploads SARIF to code scanning. See
+[`sentinel init`](/commands/init/). To write the workflow yourself, start from this one:
+
 ```yaml
 name: Quality gate
 
