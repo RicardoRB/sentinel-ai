@@ -4,7 +4,8 @@ description: The check command's machine-readable result format.
 ---
 
 `sentinel check --format json` emits schema version `2`. It writes **only JSON to stdout**;
-diagnostics go to stderr. Consumers should inspect `schemaVersion` and may ignore fields added in
+diagnostics go to stderr. The document is compact (a single line, no indentation) to keep it
+small for agents and tools; it is shown indented below for readability. Consumers should inspect `schemaVersion` and may ignore fields added in
 later compatible versions; existing fields keep their meaning within a schema version.
 
 ```json

@@ -46,7 +46,7 @@ public class SarifReportRenderer {
         runs.add(run(result, threshold));
       }
     }
-    return codec.toPrettyJson(new LogDto(SCHEMA, VERSION, runs));
+    return codec.toJson(new LogDto(SCHEMA, VERSION, runs));
   }
 
   private static RunDto run(final GateResult result, final SeverityThreshold threshold) {

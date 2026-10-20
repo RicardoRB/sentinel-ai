@@ -63,7 +63,7 @@ Failed `checkstyle`, `pmd`, `gitleaks`, `compile`, and `format` gates include st
 
 Use `--format sarif` for code-scanning tools, CI annotations, and IDEs. Sentinel writes one
 [SARIF 2.1.0](https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html) log with one run per
-executed gate: each visible finding becomes a located result, and a failed gate without visible findings becomes one
+executed gate, as compact JSON without indentation: each visible finding becomes a located result, and a failed gate without visible findings becomes one
 result without a location whose rule id is the gate id. At most 50 results are listed per gate; the
 run's `properties.findingsTotal` and `findingsHidden` hold the full and hidden counts. When Sentinel cannot run at all, SARIF mode
 writes nothing to stdout and reports the error on stderr.

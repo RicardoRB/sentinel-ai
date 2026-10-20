@@ -115,7 +115,7 @@ public class JsonReportRenderer {
             policies,
             learningDto,
             report.partialPaths().isEmpty() ? null : new PartialDto(report.partialPaths()));
-    return codec.toPrettyJson(root);
+    return codec.toJson(root);
   }
 
   /** Renders the error document printed when the check could not run. */
@@ -123,7 +123,7 @@ public class JsonReportRenderer {
     final ErrorDto error = new ErrorDto();
     error.status = "ERROR";
     error.error = message;
-    return codec.toPrettyJson(error);
+    return codec.toJson(error);
   }
 
   /** Top-level JSON report; its public fields are the report schema. */
