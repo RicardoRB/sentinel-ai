@@ -246,7 +246,10 @@ The wizard has a separate optional Tools screen. OpenSpec, its active validation
 (`openspec validate --all --strict --no-interactive`), and its archived validation
 (`openspec validate --archived --no-interactive`) are unselected by default. Selecting a tool or
 validation is not installation consent. `--install-tool openspec` is explicit consent; without it
-Sentinel only writes selected validations and reports manual remediation.
+Sentinel only writes selected validations and reports manual remediation. When a selected validation's
+`openspec/` directory is ignored by Git, init still writes the gate but prints a warning: CI checkouts
+will not contain the specs, so the gate fails there.
+
 ## Troubleshooting with verbose diagnostics
 
 Add `--verbose` to the root command or `init` command to route initialization decisions to stderr.

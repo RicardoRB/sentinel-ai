@@ -23,6 +23,11 @@ public interface EnvironmentInspection {
     return false;
   }
 
+  /** Returns whether Git ignores the project-root {@code openspec/} directory. */
+  default boolean isOpenSpecDirectoryIgnored(final Path projectRoot) {
+    return false;
+  }
+
   /** Returns how the project's Dependency-Check build configuration sets the OSS Index analyzer. */
   default OssIndexSetting ossIndexSetting(final Path projectRoot) {
     return OssIndexSetting.ABSENT;

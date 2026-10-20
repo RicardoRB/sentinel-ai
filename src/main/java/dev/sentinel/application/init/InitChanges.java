@@ -17,6 +17,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 /** Tracks one initialization transaction and rolls back its changes as a unit. */
 final class InitChanges {
@@ -76,7 +77,8 @@ final class InitChanges {
       final Path file,
       final boolean created,
       final boolean overwrite,
-      final List<InitGateOption> gates) {
+      final List<InitGateOption> gates,
+      final List<String> warnings) {
     final PomChange appliedPom = pomChange;
     if (appliedPom == null) {
       throw new IllegalStateException("Initialization changes have not been applied");
@@ -90,7 +92,7 @@ final class InitChanges {
         appliedPom.tools(),
         architectureTest,
         ruleFileChange == null ? List.of() : ruleFileChange.preserved(),
-        appliedPom.warnings());
+        Stream.concat(appliedPom.warnings().stream(), warnings.stream()).toList());
   }
 
   void rollback() {

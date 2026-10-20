@@ -4,12 +4,15 @@ import dev.sentinel.domain.doctor.EnvironmentFacts;
 import dev.sentinel.domain.doctor.EnvironmentInspection;
 import dev.sentinel.domain.doctor.ExecutableObservation;
 import dev.sentinel.domain.doctor.OssIndexSetting;
+import dev.sentinel.domain.process.CommandExecutor;
+import dev.sentinel.domain.process.CommandResult;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -35,9 +38,13 @@ public final class SystemEnvironmentInspection implements EnvironmentInspection 
           "semgrep",
           "zap-baseline.py");
 
-  /** Creates the stateless adapter that Dagger injects. */
+  private final CommandExecutor executor;
+
+  /** Creates the adapter; {@code executor} runs Git to check ignore rules. */
   @Inject
-  public SystemEnvironmentInspection() {}
+  public SystemEnvironmentInspection(final CommandExecutor executor) {
+    this.executor = executor;
+  }
 
   @Override
   public EnvironmentFacts inspect(final Path projectRoot) {
@@ -99,6 +106,14 @@ public final class SystemEnvironmentInspection implements EnvironmentInspection 
   @Override
   public boolean hasOpenSpecDirectory(final Path projectRoot) {
     return Files.isDirectory(projectRoot.resolve("openspec"));
+  }
+
+  /** Asks Git, so nested ignore files, global excludes, and negations all apply. */
+  @Override
+  public boolean isOpenSpecDirectoryIgnored(final Path projectRoot) {
+    final CommandResult result =
+        executor.execute(List.of("git", "check-ignore", "-q", "openspec"), projectRoot);
+    return result.executionError() == null && result.exitCode() == 0;
   }
 
   @Override

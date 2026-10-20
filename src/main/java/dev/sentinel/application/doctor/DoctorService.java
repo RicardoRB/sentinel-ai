@@ -11,6 +11,7 @@ import dev.sentinel.domain.config.SentinelException;
 import dev.sentinel.domain.doctor.EnvironmentFacts;
 import dev.sentinel.domain.doctor.EnvironmentInspection;
 import dev.sentinel.domain.doctor.ExecutableObservation;
+import dev.sentinel.domain.doctor.OpenSpecIgnoreWarning;
 import dev.sentinel.domain.project.BuildTool;
 import dev.sentinel.domain.project.Project;
 import dev.sentinel.domain.traceability.TraceabilityPrerequisites;
@@ -274,6 +275,9 @@ public final class DoctorService {
               entry.getKey(),
               Status.OK,
               "OpenSpec executable and project directory are available."));
+      if (environment.isOpenSpecDirectoryIgnored(root)) {
+        findings.add(new Finding(entry.getKey(), Status.WARNING, OpenSpecIgnoreWarning.MESSAGE));
+      }
       return;
     }
     final String executableMessage =
