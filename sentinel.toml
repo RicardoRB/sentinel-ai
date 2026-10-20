@@ -42,7 +42,7 @@ command = "./mvnw pmd:check"
 
 [quality-gates.pmd.partial]
 inputs = ["src/**/*.java"]
-config = ["config/pmd-ruleset.xml", "pmd-ruleset-additions.xml", "pom.xml"]
+config = ["config/pmd-ruleset.xml", "pom.xml"]
 
 [quality-gates.spotbugs]
 enabled = true

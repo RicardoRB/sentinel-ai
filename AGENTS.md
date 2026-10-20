@@ -19,6 +19,20 @@
 - Commands from `sentinel.toml` run from the project root as argument vectors, never through a shell.
 - When implementing or changing operational behavior, add useful JUL diagnostics at meaningful decision and execution boundaries when logs would aid troubleshooting. Keep logs invocation-scoped, stderr-only, and safe: never log secrets, prompts, configuration or environment contents, raw argument vectors, or captured process output.
 
+## Quality Gate Rules
+
+Gates in `sentinel.toml`; edit hooks run the `default` profile (format, checkstyle, pmd, gitleaks) on edited files. Checkstyle and PMD also cover tests.
+
+- Checkstyle (`config/checkstyle.xml`): file ≤500 lines, method ≤60, ≤5 params, cyclomatic ≤10; Javadoc on public types and methods; no magic numbers (use named constants); no star/unused imports; no `catch (Exception|RuntimeException|Throwable)`; no empty catch; `switch` needs `default`; one declaration/statement per line; no field-hiding locals/params except constructors and setters.
+- PMD (`config/pmd-ruleset.xml`): all errorprone, bestpractices, design, codestyle, multithreading, performance, security categories minus listed excludes. Mark locals and parameters `final`; no `var`; ≤8 duplicate literals per file; keep classes small (design rules flag god classes, too many methods/imports, coupling, cognitive complexity).
+- SpotBugs: effort Max, threshold Medium; only generated Dagger/Fory classes excluded. Copy mutable collections in and out of records/constructors.
+- Coverage (JaCoCo): bundle ≥85% line, ≥75% branch. Mutation (PIT, `ci`): ≥60%. New code needs tests that assert behavior.
+- ArchUnit gate runs a fixed test list; add any new architecture/native contract test to that command.
+- Enforcer (`config/enforcer-rules.xml`): pin every plugin version, no dynamic versions, converging dependencies, Maven ≥3.9.
+- License: no GPL/AGPL dependencies. japicmp (`ci`): no binary-incompatible changes to public API vs last release.
+- gitleaks: no secrets, including in tests and fixtures. Semgrep `p/java`, dependency-check (fails CVSS ≥7), Trivy run in `ci`.
+- OpenSpec (`ci`): `openspec validate --all --strict` must pass for changes under `openspec/`.
+
 ## Testing
 
 - JDK 25 and Maven wrapper are required: `./mvnw -q test`.

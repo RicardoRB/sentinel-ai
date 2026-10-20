@@ -47,7 +47,8 @@
         <exclude name="LoosePackageCoupling" />
     </rule>
 
-    <!-- Naming, readability, and coding conventions -->
+    <!-- Naming, readability, and coding conventions.
+         Includes LocalVariableCouldBeFinal, MethodArgumentCouldBeFinal, and UseExplicitTypes (no var). -->
     <rule ref="category/java/codestyle.xml">
         <!-- Forbids guard clauses and adds the nesting the complexity rules penalise. -->
         <exclude name="OnlyOneReturn" />
