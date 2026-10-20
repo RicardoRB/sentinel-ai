@@ -14,6 +14,10 @@ concurrency:
 
 jobs:
   verify:
+    # verify.yml uploads SARIF on pull requests; a called job cannot exceed its caller's grant.
+    permissions:
+      contents: read
+      security-events: write
     uses: ./.github/workflows/verify.yml
     with:
       harness-compatibility: true
