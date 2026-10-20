@@ -29,7 +29,10 @@ jobs:
   sentinel:
     runs-on: ubuntu-24.04
     steps:
+      # Full history, so gitleaks scans every commit.
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       # Use the runtime required by your project. This is not required by
       # the Sentinel native binary itself.
@@ -46,8 +49,23 @@ jobs:
           curl -fsSL https://raw.githubusercontent.com/RicardoRB/sentinel-ai/main/install.sh | sh
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
+      # Restore and save separately: actions/cache saves only when the job succeeds.
+      - name: Restore Trivy cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.cache/trivy
+          key: trivy-${{ github.run_id }}
+          restore-keys: trivy-
+
       - name: Run quality gates
         run: sentinel check --profile ci --format json > sentinel-report.json
+
+      - name: Save Trivy cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.cache/trivy
+          key: trivy-${{ github.run_id }}
 
       - name: Upload Sentinel report
         if: always()
@@ -282,6 +300,55 @@ build. Add a `branches` pipeline for pushes when quality gates should run outsid
 
 Init does not generate a provider-specific CI workflow; add the command above to the CI system of
 your choice.
+
+## Common first-run failures
+
+The first `sentinel check --profile ci` in a new pipeline often fails for setup reasons rather than
+code findings:
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| gitleaks reports nothing on an old leak, or scans one commit | The checkout is shallow | Check out with full history (`fetch-depth: 0` on GitHub Actions) |
+| Every run downloads the Trivy or Dependency-Check database again | The cache is saved only when the job succeeds, and a gate failed | Restore and save the cache in separate steps and run the save step on failure (`if: always()`) |
+| `trivy` fails with `429 Too Many Requests` from `repo.maven.apache.org` | Trivy downloads POMs itself and Maven Central rate-limits shared runners | Run Trivy offline after the build-tool gates; see [Trivy offline scans](#trivy-offline-scans) |
+| `dependency-check` runs for over an hour, or fails with `401 Unauthorized` from OSS Index | No `NVD_API_KEY`, or OSS Index is enabled without credentials | Set `NVD_API_KEY` and keep OSS Index off unless you have credentials ([details](/configuration/gates/)), or rely on `trivy`, which needs no key |
+| A gate reports `UNAVAILABLE` | Its tool is not installed on the runner | Install the tool in an earlier step; Sentinel never installs tools |
+
+Install Sentinel with the verified installer rather than building it from source in CI: the native
+binary needs no JDK and starts faster.
+
+## Trivy offline scans
+
+When init configures `trivy` after a Maven or Gradle gate, it generates
+`trivy fs --offline-scan --exit-code 1 .`. Without `--offline-scan`, Trivy downloads POM files from
+Maven Central to resolve the dependency tree, and Maven Central answers shared CI runners with
+`429 Too Many Requests`. The earlier build-tool gates have already filled the local Maven repository,
+so Trivy resolves dependencies from it instead. A `trivy` gate with no earlier build gate stays online.
+
+The limit: offline resolution sees only what the build already downloaded. If Trivy and Maven ever
+resolve the dependency tree differently, an offline scan misses the difference without failing.
+
+Offline scanning covers only dependency metadata. Trivy still downloads its vulnerability database,
+so cache `~/.cache/trivy` separately from the build dependency cache. Save it even when a gate fails,
+or a failing run never stores it:
+
+```yaml
+      - name: Restore Trivy cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.cache/trivy
+          key: trivy-${{ github.run_id }}
+          restore-keys: trivy-
+
+      # ... install tools and Sentinel, then run the gates ...
+
+      - name: Save Trivy cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.cache/trivy
+          key: trivy-${{ github.run_id }}
+```
 
 ## Security
 

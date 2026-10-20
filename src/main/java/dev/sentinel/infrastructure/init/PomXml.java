@@ -11,21 +11,43 @@ import java.util.Optional;
  */
 final class PomXml {
   private static final String DEFAULT_UNIT = "  ";
+  private static final String PLUGINS = "plugins";
+  private static final String BUILD = "build";
+  private static final String PLUGIN_MANAGEMENT = "pluginManagement";
 
   private PomXml() {}
 
   /** Adds a plugin to {@code project/build/plugins}, creating missing parents. */
   static String addPlugin(final String pom, final String plugin) {
     final Element project = PomElements.project(pom);
-    final Optional<Element> build = PomElements.child(pom, project, "build");
+    final Optional<Element> build = PomElements.child(pom, project, BUILD);
     if (build.isEmpty()) {
-      return insertChild(pom, project, "project", wrap("build", wrap("plugins", plugin)));
+      return insertChild(pom, project, "project", wrap(BUILD, wrap(PLUGINS, plugin)));
     }
-    final Optional<Element> plugins = PomElements.child(pom, build.get(), "plugins");
+    final Optional<Element> plugins = PomElements.child(pom, build.get(), PLUGINS);
     if (plugins.isEmpty()) {
-      return insertChild(pom, build.get(), "build", wrap("plugins", plugin));
+      return insertChild(pom, build.get(), BUILD, wrap(PLUGINS, plugin));
     }
-    return insertChild(pom, plugins.get(), "plugins", plugin);
+    return insertChild(pom, plugins.get(), PLUGINS, plugin);
+  }
+
+  /** Adds a plugin to {@code project/build/pluginManagement/plugins}, creating missing parents. */
+  static String addManagedPlugin(final String pom, final String plugin) {
+    final Element project = PomElements.project(pom);
+    final Optional<Element> build = PomElements.child(pom, project, BUILD);
+    if (build.isEmpty()) {
+      return insertChild(
+          pom, project, "project", wrap(BUILD, wrap(PLUGIN_MANAGEMENT, wrap(PLUGINS, plugin))));
+    }
+    final Optional<Element> management = PomElements.child(pom, build.get(), PLUGIN_MANAGEMENT);
+    if (management.isEmpty()) {
+      return insertChild(pom, build.get(), BUILD, wrap(PLUGIN_MANAGEMENT, wrap(PLUGINS, plugin)));
+    }
+    final Optional<Element> plugins = PomElements.child(pom, management.get(), PLUGINS);
+    if (plugins.isEmpty()) {
+      return insertChild(pom, management.get(), PLUGIN_MANAGEMENT, wrap(PLUGINS, plugin));
+    }
+    return insertChild(pom, plugins.get(), PLUGINS, plugin);
   }
 
   /** Adds a dependency to {@code project/dependencies}, creating the element when missing. */
@@ -47,8 +69,8 @@ final class PomXml {
   static Optional<String> replacePluginVersion(
       final String pom, final String artifact, final String current, final String selected) {
     final Optional<Element> plugin =
-        PomElements.child(pom, PomElements.project(pom), "build")
-            .flatMap(build -> PomElements.child(pom, build, "plugins"))
+        PomElements.child(pom, PomElements.project(pom), BUILD)
+            .flatMap(build -> PomElements.child(pom, build, PLUGINS))
             .flatMap(plugins -> PomElements.declaration(pom, plugins, artifact));
     if (plugin.isEmpty()) {
       return Optional.empty();

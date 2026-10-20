@@ -11,6 +11,7 @@ import dev.sentinel.domain.config.SentinelException;
 import dev.sentinel.domain.doctor.EnvironmentFacts;
 import dev.sentinel.domain.doctor.EnvironmentInspection;
 import dev.sentinel.domain.doctor.ExecutableObservation;
+import dev.sentinel.domain.doctor.OpenSpecIgnoreWarning;
 import dev.sentinel.domain.project.BuildTool;
 import dev.sentinel.domain.project.Project;
 import dev.sentinel.domain.traceability.TraceabilityPrerequisites;
@@ -149,13 +150,9 @@ public final class DoctorService {
       final SentinelConfiguration configuration =
           configurationReader.read(root.resolve(SentinelConfiguration.FILE_NAME));
       final GateConfiguration gate = configuration.gates().get("dependency-check");
-      if (gate != null && gate.enabled() && !facts.isSet("NVD_API_KEY")) {
-        findings.add(
-            new Finding(
-                "dependency-check-nvd-api-key",
-                Status.WARNING,
-                "NVD_API_KEY is not set; dependency-check scans may be very slow or rate-limited."
-                    + " Request a key from the NVD API."));
+      if (gate != null && gate.enabled()) {
+        findings.addAll(
+            DependencyCheckDiagnosis.findings(facts, environment.ossIndexSetting(root)));
       }
     } catch (SentinelException ignored) {
       // The configuration finding already reports malformed configuration.
@@ -278,6 +275,9 @@ public final class DoctorService {
               entry.getKey(),
               Status.OK,
               "OpenSpec executable and project directory are available."));
+      if (environment.isOpenSpecDirectoryIgnored(root)) {
+        findings.add(new Finding(entry.getKey(), Status.WARNING, OpenSpecIgnoreWarning.MESSAGE));
+      }
       return;
     }
     final String executableMessage =

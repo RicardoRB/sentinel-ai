@@ -5,6 +5,7 @@ import dev.sentinel.domain.config.SentinelConfiguration;
 import dev.sentinel.domain.config.SentinelConfigurationReader;
 import dev.sentinel.domain.config.SentinelException;
 import dev.sentinel.domain.doctor.EnvironmentInspection;
+import dev.sentinel.domain.doctor.OpenSpecIgnoreWarning;
 import dev.sentinel.domain.init.InitGateOption;
 import dev.sentinel.domain.init.InitToolOption;
 import dev.sentinel.domain.init.QualityHookGeneration;
@@ -100,6 +101,15 @@ public final class InitSetupCatalog extends InitGeneralCatalog {
   /** Returns whether a usable OpenSpec executable is on the path of {@code project}. */
   public boolean openSpecAvailable(final Project project) {
     return environment.inspectExecutable(project.root(), "openspec").usable();
+  }
+
+  /** Returns the warning for enabled OpenSpec validations whose directory Git ignores. */
+  public List<String> openSpecWarnings(final Project project, final List<InitGateOption> gates) {
+    final boolean openSpec =
+        gates.stream().anyMatch(gate -> openSpecValidations().contains(gate.id()));
+    return openSpec && environment.isOpenSpecDirectoryIgnored(project.root())
+        ? List.of(OpenSpecIgnoreWarning.MESSAGE)
+        : List.of();
   }
 
   /** Returns whether {@code NVD_API_KEY} is set, which dependency-check needs to update quickly. */

@@ -100,6 +100,10 @@ order:
      only point to a manual guide (a `guidance` line).
    - `dependency-check` without `NVD_API_KEY`: the first scans are slow or rate-limited. The key is
      read from the environment and never written to files.
+   - `dependency-check` OSS Index: init turns the analyzer off because Sonatype OSS Index needs
+     credentials. To use it, set `OSS_INDEX_PASSWORD` in the environment (Maven reads it through a
+     `settings.xml` server with id `ossindex`); never commit the credentials. `trivy` covers
+     dependency vulnerabilities without any key.
    - `zap` needs a running application and a `<TARGET_URL>` that the user is authorized to scan.
      `check` fails until it is replaced.
    - `archunit` when the layering checks in the inspection found violations: the gate fails on its

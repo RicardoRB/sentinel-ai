@@ -188,7 +188,8 @@ public class InitService {
     } else {
       created = files.configuration().create(file, content);
     }
-    return changes.result(file, created, overwrite, gates);
+    return changes.result(
+        file, created, overwrite, gates, catalog.get().openSpecWarnings(project, gates));
   }
 
   // Cleanup is best effort: any failure here must not hide the original setup failure.

@@ -122,6 +122,8 @@ sentinel init -C <dir> --dry-run --preset strict --integration none --architectu
 ```
 
 Add `--overwrite` when `sentinel.toml` already exists. Without it the probe prints nothing useful.
+On a Maven project whose `pom.xml` has no `<distributionManagement>`, drop `api-compat` from the
+list: init offers it only for published libraries and rejects it otherwise.
 The probe still writes nothing.
 
 Read these lines from the output:
@@ -134,6 +136,8 @@ Read these lines from the output:
 - `guidance   <tool>: <url>` means the tool can only be installed by hand.
 - `Warning: NVD_API_KEY is not set` means `dependency-check` will be slow or rate-limited without a
   key.
+- `Warning: openspec/ is ignored by Git` means the OpenSpec gate passes locally but fails in CI.
+  Ask whether to track `openspec/` or keep the validation out of the `ci` profile.
 
 Ignore the rest of the probe's plan. It reflects the probe's selection, not the user's.
 

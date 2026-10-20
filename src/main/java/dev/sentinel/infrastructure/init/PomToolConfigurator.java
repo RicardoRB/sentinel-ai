@@ -82,8 +82,10 @@ public final class PomToolConfigurator implements BuildToolConfiguration {
                       <type>jar</type>
                     </dependency>
                   </oldVersion>
+                  <newVersion><file><path>${project.build.directory}/${project.build.finalName}.jar</path></file></newVersion>
                   <parameter>
                     <breakBuildOnBinaryIncompatibleModifications>true</breakBuildOnBinaryIncompatibleModifications>
+                    <includes><include>${project.groupId}.*</include></includes>
                   </parameter>
                 </configuration>
               </plugin>
@@ -153,6 +155,8 @@ public final class PomToolConfigurator implements BuildToolConfiguration {
                  <configuration>
                    <failBuildOnCVSS>7</failBuildOnCVSS>
                    <nvdApiKeyEnvironmentVariable>NVD_API_KEY</nvdApiKeyEnvironmentVariable>
+                   <ossindexAnalyzerEnabled>false</ossindexAnalyzerEnabled>
+                   <ossIndexServerId>ossindex</ossIndexServerId>
                  </configuration>
               </plugin>
             """;
@@ -161,12 +165,12 @@ public final class PomToolConfigurator implements BuildToolConfiguration {
               <plugin>
                 <groupId>org.pitest</groupId>
                 <artifactId>pitest-maven</artifactId>
-                <version>1.17.4</version>
+                <version>1.30.1</version>
                 <dependencies>
                   <dependency>
                     <groupId>org.pitest</groupId>
                     <artifactId>pitest-junit5-plugin</artifactId>
-                    <version>1.2.1</version>
+                    <version>1.2.3</version>
                   </dependency>
                 </dependencies>
               </plugin>
@@ -330,6 +334,7 @@ public final class PomToolConfigurator implements BuildToolConfiguration {
         applySelectedTool(tool, preset, findings.get(tool.artifact()), approval, edit);
       }
     }
+    edit.content = PresetPluginSnippets.pinLifecycle(edit.content, selected, preset, edit.details);
     if (!edit.tools.isEmpty()) {
       PomDeclarationValidator.validate(
           edit.content, addedDeclarations(edit.original, edit.content, selected));

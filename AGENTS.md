@@ -39,6 +39,7 @@ Gates in `sentinel.toml`; edit hooks run the `default` profile (format, checksty
 - CLI integration tests use the offline fixture `src/test/resources/fixtures/maven-project` and its stub `mvnw`.
 - Use `FakeCommandExecutor` for process tests. Existing test names use descriptive camelCase.
 - `NativeInitTerminalSmokeTest` drives a built executable's `init` wizard through a pseudo-terminal and is skipped unless `-Dsentinel.native.binary` is set: `./mvnw -Dtest=NativeInitTerminalSmokeTest -Dsentinel.native.binary=target/sentinel test` after `native:compile`.
+- `GradleMutationJava25SmokeTest` runs the generated Gradle `pitest` task on Java 25 and is skipped unless `-Dsentinel.gradle.binary` points to a Gradle executable (needs network).
 - Testcontainers is not configured; do not invent or claim that check.
 
 ## Security

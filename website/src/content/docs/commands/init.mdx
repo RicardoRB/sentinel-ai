@@ -27,7 +27,9 @@ gates. `standard` and `strict` presets pre-select their offline gates; `custom` 
 The gates you confirm are exactly the gates configured: unticking a pre-selected preset gate removes its
 `sentinel.toml` section, Maven declarations, and rule file, while the preset's rules still apply to the
 remaining gates. `zap` writes a `<TARGET_URL>` placeholder that you must replace
-with an authorized target before `check` will run it. For `format`, `enforcer`, `license`, `api-compat`, and
+with an authorized target before `check` will run it. On Maven, `api-compat` is offered only when
+`pom.xml` declares `<distributionManagement>`, because it needs a released baseline; passing
+`--gate api-compat` otherwise fails with that explanation. For `format`, `enforcer`, `license`, `api-compat`, and
 `pmd`, missing Maven plugins are added to `pom.xml` using Sentinel's embedded Java/Maven compatibility catalog.
 For Gradle projects, equivalent pinned plugin declarations are added to `build.gradle` or
 `build.gradle.kts` using the detected DSL, and the Gradle Wrapper is preferred when available.
@@ -37,7 +39,9 @@ selected compatible version, detected constraints, and affected file before aski
 updates without prompting; it does not bypass unresolved prerequisites
 or install standalone binaries such as Semgrep, Gitleaks, Trivy, or ZAP. Missing Trivy, Gitleaks, or
 Semgrep tools may be installed with explicit per-tool consent when Homebrew or pipx is available;
-use `--install-tool <gate>` for non-interactive consent. ZAP has manual guidance only. Declined updates leave the POM
+use `--install-tool <gate>` for non-interactive consent. ZAP has manual guidance only. When `trivy` runs
+after a selected Maven or Gradle gate, init adds `--offline-scan` so Trivy resolves dependencies from
+the local repository instead of Maven Central ([why](/guides/ci-cd/#trivy-offline-scans)). Declined updates leave the POM
 unchanged and report that the selected gate was not reconfigured. Preset rule files are Sentinel-owned;
 unmarked existing files are preserved and reported. With `--preset`, `--gate` only adds gates to the
 preset's set; it never removes preset gates. `-C <dir>` selects the
@@ -45,9 +49,10 @@ project directory. Exit codes: `0` success, `2` invalid usage or
 inability to initialize (including cancelled or invalid selection).
 
 Maven plugins are added only to the project-level `<build><plugins>` and dependencies only to the
-project-level `<dependencies>`. Profiles, `pluginManagement`, `dependencyManagement`, and plugin
-dependencies are never edited, and missing `<build>`, `<plugins>`, or `<dependencies>` sections are
-created. New declarations match the file's indentation. The rest of `pom.xml` is left byte for byte as
+project-level `<dependencies>`. Profiles, `dependencyManagement`, and plugin dependencies are never
+edited, and missing `<build>`, `<plugins>`, or `<dependencies>` sections are created. The one addition
+to `<build><pluginManagement>` is the strict `enforcer` pins described under
+[First failures under `strict`](#first-failures-under-strict); existing entries there are never changed. New declarations match the file's indentation. The rest of `pom.xml` is left byte for byte as
 it was. Before writing, Sentinel checks the edited `pom.xml` in-process, without running Maven or
 fetching anything: the file must be well-formed XML, and each added declaration must contain only
 elements Maven allows there. If a check fails, `pom.xml` is not written, the error names the tool being
@@ -68,10 +73,17 @@ use what it generated:
 - `spotless { java { googleJavaFormat() } }` for `format`, unless a `spotless { }` block exists.
 - `jacocoTestCoverageVerification` with the preset's minimums, or `LINE` `0.80` without a preset. The
   `coverage` gate runs `jacocoTestCoverageVerification`, which fails below a minimum.
-- `pitest { junit5PluginVersion = '1.2.1' }` for `mutation`, plus the preset's `mutationThreshold`.
+- `pitest { pitestVersion = '1.30.1'; junit5PluginVersion = '1.2.3' }` for `mutation`, plus the
+  preset's `mutationThreshold`. The PIT version is pinned because the Gradle plugin's default PIT
+  cannot read Java 25 class files. PIT derives `targetClasses` from the project `group`, so set
+  `group` in the build script.
 
 The Kotlin DSL gets the same blocks in Kotlin syntax. A block is added only once, so running init
 again does not duplicate it.
+
+For `mutation` on Maven, init adds `pitest-maven` 1.30.1 with `pitest-junit5-plugin` 1.2.3, which
+read Java 25 class files. Neither build tool gets PIT history settings: since PIT 1.30, incremental
+analysis needs the commercial Arcmutate history plugin.
 
 The generated `sentinel.toml` includes [`partial` tables](/configuration/gates/#partial-checks) for
 `checkstyle`, `pmd`, `format`, and `semgrep`, so the check after each agent edit skips gates the edit
@@ -92,11 +104,13 @@ finding. With `strict`, expect these on most existing projects:
 
 - `checkstyle`: findings such as `MagicNumber`, `MissingJavadocMethod`, or `MethodLength` in
   existing code.
-- `enforcer`: Maven projects fail `requirePluginVersions`, which lists every plugin that runs
-  without a pinned version, including plugins Maven adds through its default lifecycle, such as
-  `maven-site-plugin` or `maven-install-plugin`. Pin them in `<pluginManagement>` with the versions
-  the message reports. Strict requires reproducible plugin versions on purpose. Use `standard` if you
-  do not want that rule.
+- `enforcer`: strict keeps `requirePluginVersions` on purpose, so every plugin needs a pinned
+  version. Init pins the plugins Maven adds through its default lifecycle (clean, resources, compiler,
+  surefire, jar, install, deploy, and site) in `<pluginManagement>`, using the versions Maven 3.9.16
+  binds by default, and skips any plugin the POM already declares. The pins appear in `--dry-run`.
+  `requirePluginVersions` can still fail on plugins outside that list, such as `maven-war-plugin`,
+  or when a parent POM supplies a version; pin those in `<pluginManagement>` with the versions the
+  message reports. Use `standard` if you do not want that rule.
 
 Init-generated configurations assign gates to cumulative execution phases. Fast gates (`format`,
 `checkstyle`, `pmd`, and `gitleaks`) belong to `default`, `pre-commit`, `pre-push`, and
@@ -232,7 +246,10 @@ The wizard has a separate optional Tools screen. OpenSpec, its active validation
 (`openspec validate --all --strict --no-interactive`), and its archived validation
 (`openspec validate --archived --no-interactive`) are unselected by default. Selecting a tool or
 validation is not installation consent. `--install-tool openspec` is explicit consent; without it
-Sentinel only writes selected validations and reports manual remediation.
+Sentinel only writes selected validations and reports manual remediation. When a selected validation's
+`openspec/` directory is ignored by Git, init still writes the gate but prints a warning: CI checkouts
+will not contain the specs, so the gate fails there.
+
 ## Troubleshooting with verbose diagnostics
 
 Add `--verbose` to the root command or `init` command to route initialization decisions to stderr.

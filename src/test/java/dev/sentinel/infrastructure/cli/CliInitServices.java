@@ -10,6 +10,7 @@ import dev.sentinel.infrastructure.doctor.SystemEnvironmentInspection;
 import dev.sentinel.infrastructure.init.ArchitectureTestGenerator;
 import dev.sentinel.infrastructure.init.FileConfigurationStorage;
 import dev.sentinel.infrastructure.init.PomToolConfigurator;
+import dev.sentinel.infrastructure.process.ProcessCommandExecutor;
 import dev.sentinel.infrastructure.project.FileSystemProjectInspection;
 import java.util.Set;
 
@@ -22,7 +23,7 @@ final class CliInitServices {
     return new InitService(
         new ProjectDetector(new FileSystemProjectInspection()),
         Set.of(new OpenCodeIntegration(), new ClaudeCodeIntegration()),
-        new InitSetupCatalog(new SystemEnvironmentInspection()),
+        new InitSetupCatalog(new SystemEnvironmentInspection(new ProcessCommandExecutor())),
         new InitProjectFiles(
             new PomToolConfigurator(),
             new ArchitectureTestGenerator(),

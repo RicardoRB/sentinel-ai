@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import dev.sentinel.domain.config.SentinelException;
 import dev.sentinel.domain.init.QualityPreset;
 import java.util.Arrays;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class PomXmlTest {
@@ -152,5 +153,21 @@ class PomXmlTest {
             "</dependencies>\n        <configuration>\n          <mutationThreshold>"
                 + preset.rules().mutationThreshold()
                 + "</mutationThreshold>\n        </configuration>\n      </plugin>");
+  }
+
+  @Test
+  void pitSnippetsPinJava25CapableVersionsWithoutHistorySettings() {
+    final String plain = PomToolConfigurator.PIT_PLUGIN;
+    final String strict = PresetPluginSnippets.pit(QualityPreset.STRICT);
+
+    for (final String snippet : List.of(plain, strict)) {
+      assertThat(snippet)
+          .contains(
+              "<artifactId>pitest-maven</artifactId>\n",
+              "<version>1.30.1</version>",
+              "<artifactId>pitest-junit5-plugin</artifactId>",
+              "<version>1.2.3</version>")
+          .doesNotContain("history");
+    }
   }
 }

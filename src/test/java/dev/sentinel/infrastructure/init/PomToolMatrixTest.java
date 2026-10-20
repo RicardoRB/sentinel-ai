@@ -23,7 +23,9 @@ import org.apache.maven.model.Model;
 import org.apache.maven.model.Plugin;
 import org.apache.maven.model.Profile;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
+import org.codehaus.plexus.util.xml.Xpp3Dom;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -85,14 +87,36 @@ class PomToolMatrixTest {
     after.getDependencies().stream().map(Dependency::getArtifactId).forEach(projectLevel::add);
     assertThat(projectLevel).containsAll(change.tools());
     assertThat(profilePlugins(after)).isEqualTo(profilePlugins(before));
-    if (before.getBuild() != null && before.getBuild().getPluginManagement() != null) {
-      assertThat(after.getBuild().getPluginManagement().getPlugins())
-          .extracting(Plugin::getArtifactId)
-          .isEqualTo(
-              before.getBuild().getPluginManagement().getPlugins().stream()
-                  .map(Plugin::getArtifactId)
-                  .toList());
-    }
+    final List<String> managedBefore = managed(before);
+    final List<String> managedAfter = managed(after);
+    assertThat(managedAfter.subList(0, managedBefore.size())).isEqualTo(managedBefore);
+    assertThat(managedAfter.subList(managedBefore.size(), managedAfter.size()))
+        .isSubsetOf(
+            PresetPluginSnippets.LIFECYCLE_PLUGINS.stream()
+                .map(PresetPluginSnippets.LifecyclePlugin::artifact)
+                .toList());
+  }
+
+  @Test
+  void dependencyCheckDisablesOssIndexWithoutCredentials(@TempDir final Path root)
+      throws IOException {
+    Files.writeString(root.resolve("pom.xml"), Files.readString(FIXTURES.resolve("minimal.xml")));
+
+    new PomToolConfigurator()
+        .apply(
+            new Project(root, Language.JAVA, BuildTool.MAVEN, Framework.NONE),
+            List.of(gate("dependency-check")),
+            null);
+
+    final Plugin plugin =
+        read(Files.readString(root.resolve("pom.xml"))).getBuild().getPlugins().stream()
+            .filter(candidate -> "dependency-check-maven".equals(candidate.getArtifactId()))
+            .findFirst()
+            .orElseThrow();
+    final Xpp3Dom configuration = (Xpp3Dom) plugin.getConfiguration();
+    assertThat(configuration.getChild("ossindexAnalyzerEnabled").getValue()).isEqualTo("false");
+    assertThat(configuration.getChild("ossIndexServerId").getValue()).isEqualTo("ossindex");
+    assertThat(configuration.toString()).doesNotContainIgnoringCase("password");
   }
 
   static Stream<Path> fixtures() throws IOException {
@@ -117,6 +141,15 @@ class PomToolMatrixTest {
       }
     }
     return arguments.stream();
+  }
+
+  private static List<String> managed(final Model model) {
+    if (model.getBuild() == null || model.getBuild().getPluginManagement() == null) {
+      return List.of();
+    }
+    return model.getBuild().getPluginManagement().getPlugins().stream()
+        .map(Plugin::getArtifactId)
+        .toList();
   }
 
   private static List<List<String>> profilePlugins(final Model model) {
