@@ -4,185 +4,107 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import dev.sentinel.domain.gate.CheckReport;
 import dev.sentinel.domain.gate.GateResult;
-import dev.sentinel.domain.gate.GateScope;
 import dev.sentinel.domain.gate.GateStatus;
-import dev.sentinel.domain.project.BuildTool;
-import dev.sentinel.domain.project.Framework;
-import dev.sentinel.domain.project.Language;
-import dev.sentinel.domain.project.Project;
-import java.nio.file.Path;
-import java.time.Duration;
-import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
-class LearningPolicyTest {
-  private static final int PROMPT_AFTER = 3;
-  private static final String CHECKSTYLE_FAILED = "checkstyle:FAILED";
-  private static final Instant NOW = Instant.parse("2026-01-01T00:00:00Z");
-  private static final Project PROJECT =
-      new Project(Path.of("/project"), Language.JAVA, BuildTool.MAVEN, Framework.NONE);
-
+/** Recurrence counting, resolution and prompting of rule records. */
+class LearningPolicyTest extends LearningPolicyTestSupport {
   @Test
-  void countsEpisodesAndPromptsOnResolution() {
-    final CheckReport failure = report(GateStatus.FAILED, "x".repeat(250));
+  void countsRecurrencesAndPromptsOnResolution() {
+    final CheckReport failure = failed(PMD, finding(PMD, UNUSED, "x".repeat(250)));
     final LearningOutcome first = LearningPolicy.apply(LearningLedger.empty(), failure, 2, NOW);
-    final LearningOutcome persistent =
-        LearningPolicy.apply(first.ledger(), failure, 2, NOW.plusSeconds(1));
-    final LearningOutcome resolved =
-        LearningPolicy.apply(
-            persistent.ledger(), report(GateStatus.PASSED, "ok"), 2, NOW.plusSeconds(2));
-    final LearningOutcome secondFailure =
-        LearningPolicy.apply(resolved.ledger(), failure, 2, NOW.plusSeconds(3));
-    final LearningOutcome secondResolved =
-        LearningPolicy.apply(
-            secondFailure.ledger(), report(GateStatus.PASSED, "ok"), 2, NOW.plusSeconds(4));
+    final LearningOutcome persistent = apply(first, failure, 2, 1);
+    final LearningOutcome resolved = apply(persistent, passed(PMD), 2, 2);
+    final LearningOutcome secondFailure = apply(resolved, failure, 2, 3);
+    final LearningOutcome secondResolved = apply(secondFailure, passed(PMD), 2, 4);
 
-    assertThat(first.ledger().records().get(CHECKSTYLE_FAILED).occurrences()).isOne();
-    assertThat(persistent.ledger().records().get(CHECKSTYLE_FAILED).occurrences()).isOne();
+    assertThat(first.ledger().records().get(UNUSED_KEY).occurrences()).isOne();
+    assertThat(persistent.ledger().records().get(UNUSED_KEY).occurrences()).isOne();
     assertThat(resolved.prompts()).isEmpty();
+    assertThat(secondFailure.prompts()).isEmpty();
     assertThat(secondResolved.prompts())
         .singleElement()
         .satisfies(
             prompt -> {
+              assertThat(prompt.key()).isEqualTo(UNUSED_KEY);
+              assertThat(prompt.rule()).isEqualTo(UNUSED);
               assertThat(prompt.occurrences()).isEqualTo(2);
-              assertThat(prompt.instruction()).contains("AGENTS.md", "checkstyle");
             });
-    assertThat(secondFailure.ledger().records().get(CHECKSTYLE_FAILED).summary())
+    assertThat(secondFailure.ledger().records().get(UNUSED_KEY).summary())
         .hasSize(LearningRecord.MAX_SUMMARY_LENGTH);
+    assertThat(secondFailure.ledger().records().get(UNUSED_KEY).firstSeen()).isEqualTo(NOW);
   }
 
   @Test
-  void skipsDoNotTouchRecordsAndPromptIsNotDuplicated() {
-    final LearningOutcome failed =
-        LearningPolicy.apply(LearningLedger.empty(), report(GateStatus.FAILED, "bad"), 1, NOW);
-    final LearningOutcome skipped =
-        LearningPolicy.apply(
-            failed.ledger(), report(GateStatus.SKIPPED, "not run"), 1, NOW.plusSeconds(1));
-    final LearningOutcome resolved =
-        LearningPolicy.apply(
-            skipped.ledger(), report(GateStatus.PASSED, "ok"), 1, NOW.plusSeconds(2));
-    final LearningOutcome recurring =
-        LearningPolicy.apply(
-            resolved.ledger(), report(GateStatus.FAILED, "bad"), 1, NOW.plusSeconds(3));
-    final LearningOutcome resolvedAgain =
-        LearningPolicy.apply(
-            recurring.ledger(), report(GateStatus.PASSED, "ok"), 1, NOW.plusSeconds(4));
+  void ruleFixedWhileItsGateStillFailsResolvesAndCountsItsRecurrence() {
+    final LearningOutcome first =
+        LearningPolicy.apply(LearningLedger.empty(), unusedVariable(), 2, NOW);
+    final LearningOutcome otherRule = apply(first, failed(PMD, finding(PMD, PRIVATE, "p")), 2, 1);
+    final LearningOutcome recurred = apply(otherRule, unusedVariable(), 2, 2);
 
-    assertThat(skipped.ledger()).isEqualTo(failed.ledger());
+    assertThat(otherRule.ledger().records().get(UNUSED_KEY).state())
+        .isEqualTo(LearningState.RESOLVED);
+    assertThat(otherRule.ledger().records().get(PRIVATE_KEY).state())
+        .isEqualTo(LearningState.FAILING);
+    assertThat(recurred.ledger().records().get(UNUSED_KEY).occurrences()).isEqualTo(2);
+    assertThat(recurred.ledger().records().get(PRIVATE_KEY).state())
+        .isEqualTo(LearningState.RESOLVED);
+  }
+
+  @ParameterizedTest
+  @EnumSource(
+      value = GateStatus.class,
+      names = {"SKIPPED", "UNAVAILABLE", "EXECUTION_ERROR"})
+  void gatesNotEvaluatedKeepTheirRecords(final GateStatus status) {
+    final LearningLedger failing =
+        LearningPolicy.apply(LearningLedger.empty(), unusedVariable(), 1, NOW).ledger();
+    final CheckReport report =
+        new CheckReport(PROJECT, List.of(GateResult.builder(PMD, status).build()));
+
+    final LearningOutcome outcome = LearningPolicy.apply(failing, report, 1, NOW.plusSeconds(1));
+
+    assertThat(outcome.ledger()).isEqualTo(failing);
+    assertThat(outcome.prompts()).isEmpty();
+  }
+
+  @Test
+  void failedGateWithoutRuleFindingsResolvesNothing() {
+    final LearningLedger failing =
+        LearningPolicy.apply(LearningLedger.empty(), unusedVariable(), 1, NOW).ledger();
+
+    assertThat(LearningPolicy.apply(failing, failed(PMD), 1, NOW.plusSeconds(1)).ledger())
+        .isEqualTo(failing);
+  }
+
+  @Test
+  void noPromptWhileFailingAndNoDuplicatePromptAfterRecurrence() {
+    final LearningOutcome first =
+        LearningPolicy.apply(LearningLedger.empty(), unusedVariable(), 1, NOW);
+    final LearningOutcome persistent = apply(first, unusedVariable(), 1, 1);
+    final LearningOutcome resolved = apply(persistent, passed(PMD), 1, 2);
+    final LearningOutcome recurring = apply(resolved, unusedVariable(), 1, 3);
+    final LearningOutcome resolvedAgain = apply(recurring, passed(PMD), 1, 4);
+
+    assertThat(persistent.prompts()).isEmpty();
+    assertThat(persistent.ledger().records().get(UNUSED_KEY).prompted()).isFalse();
     assertThat(resolved.prompts()).hasSize(1);
     assertThat(resolvedAgain.prompts()).isEmpty();
   }
 
   @Test
-  void gateSkippedByAPartialCheckKeepsItsFailureStreak() {
-    LearningLedger ledger = LearningLedger.empty();
-    for (final GateStatus status : List.of(GateStatus.FAILED, GateStatus.PASSED)) {
-      ledger = LearningPolicy.apply(ledger, report(status, "bad"), PROMPT_AFTER, NOW).ledger();
-    }
-    final LearningLedger failing =
-        LearningPolicy.apply(ledger, report(GateStatus.FAILED, "bad"), PROMPT_AFTER, NOW).ledger();
-    final GateResult skipped =
-        GateResult.builder("checkstyle", GateStatus.SKIPPED)
-            .command(List.of())
-            .exitCode(0)
-            .duration(Duration.ZERO)
-            .stdout("")
-            .stderr("")
-            .summary("Not affected by the edited files")
-            .build()
-            .withScope(GateScope.SKIPPED);
-
-    final LearningOutcome outcome =
-        LearningPolicy.apply(
-            failing, new CheckReport(PROJECT, List.of(skipped)), 3, NOW.plusSeconds(1));
-
-    assertThat(outcome.ledger()).isEqualTo(failing);
-    assertThat(outcome.ledger().records().get(CHECKSTYLE_FAILED).occurrences()).isEqualTo(2);
-    assertThat(outcome.ledger().records().get(CHECKSTYLE_FAILED).state())
-        .isEqualTo(LearningState.FAILING);
-    assertThat(outcome.prompts()).isEmpty();
-  }
-
-  @Test
-  void noPromptWhileFailingEvenAfterThresholdIsReached() {
-    final LearningOutcome failure = LearningPolicy.apply(LearningLedger.empty(), failure(), 1, NOW);
-    final LearningOutcome persistent =
-        LearningPolicy.apply(failure.ledger(), failure(), 1, NOW.plusSeconds(1));
-
-    assertThat(persistent.prompts()).isEmpty();
-    assertThat(persistent.ledger().records().get(CHECKSTYLE_FAILED).occurrences()).isOne();
-    assertThat(persistent.ledger().records().get(CHECKSTYLE_FAILED).state())
-        .isEqualTo(LearningState.FAILING);
-    assertThat(persistent.ledger().records().get("checkstyle:FAILED").prompted()).isFalse();
-  }
-
-  @Test
   void belowThresholdResolutionEmitsNoPromptAndMarksResolved() {
-    final LearningOutcome failure = LearningPolicy.apply(LearningLedger.empty(), failure(), 3, NOW);
-    final LearningOutcome resolved =
-        LearningPolicy.apply(
-            failure.ledger(), report(GateStatus.PASSED, "ok"), 3, NOW.plusSeconds(1));
+    final LearningOutcome failure =
+        LearningPolicy.apply(LearningLedger.empty(), unusedVariable(), 3, NOW);
+
+    final LearningOutcome resolved = apply(failure, passed(PMD), 3, 1);
 
     assertThat(resolved.prompts()).isEmpty();
-    final LearningRecord record = resolved.ledger().records().get(CHECKSTYLE_FAILED);
+    final LearningRecord record = resolved.ledger().records().get(UNUSED_KEY);
     assertThat(record.occurrences()).isOne();
     assertThat(record.state()).isEqualTo(LearningState.RESOLVED);
     assertThat(record.prompted()).isFalse();
-  }
-
-  @Test
-  void recordsStoreOnlyTheShortSummaryNeverStdoutOrStderr() {
-    final LearningOutcome failure = LearningPolicy.apply(LearningLedger.empty(), failure(), 1, NOW);
-
-    final LearningRecord record = failure.ledger().records().get("checkstyle:FAILED");
-    assertThat(record.summary()).isEqualTo("Build broke");
-    assertThat(record.summary()).doesNotContain("stdout must not be stored");
-    assertThat(record.summary()).doesNotContain("stderr must not be stored");
-    assertThat(record).hasNoNullFieldsOrProperties();
-    assertThat(record.summary()).hasSizeLessThanOrEqualTo(LearningRecord.MAX_SUMMARY_LENGTH);
-  }
-
-  @Test
-  void failsToFixThenFailsAgainCountsTwoOccurrences() {
-    final LearningOutcome failure = LearningPolicy.apply(LearningLedger.empty(), failure(), 1, NOW);
-    final LearningOutcome resolved =
-        LearningPolicy.apply(
-            failure.ledger(), report(GateStatus.PASSED, "ok"), 1, NOW.plusSeconds(1));
-    final LearningOutcome secondFailure =
-        LearningPolicy.apply(resolved.ledger(), failure(), 1, NOW.plusSeconds(2));
-
-    final LearningRecord record = secondFailure.ledger().records().get("checkstyle:FAILED");
-    assertThat(record.occurrences()).isEqualTo(2);
-    assertThat(record.state()).isEqualTo(LearningState.FAILING);
-    assertThat(record.firstSeen()).isEqualTo(NOW);
-  }
-
-  private static CheckReport failure() {
-    return new CheckReport(
-        PROJECT,
-        List.of(
-            GateResult.builder("checkstyle", GateStatus.FAILED)
-                .command(List.of("checkstyle"))
-                .exitCode(1)
-                .duration(Duration.ZERO)
-                .stdout("stdout must not be stored")
-                .stderr("stderr must not be stored")
-                .summary("Build broke")
-                .build()));
-  }
-
-  private static CheckReport report(final GateStatus status, final String summary) {
-    return new CheckReport(
-        PROJECT,
-        List.of(
-            GateResult.builder("checkstyle", status)
-                .command(List.of("checkstyle"))
-                .exitCode(status == GateStatus.PASSED ? 0 : 1)
-                .duration(Duration.ZERO)
-                .stdout("stdout must not be stored")
-                .stderr("stderr must not be stored")
-                .summary(summary)
-                .build()));
   }
 }

@@ -35,7 +35,7 @@ class LearningStoreSaveContractTest {
     final JsonLearningStore store = new JsonLearningStore(new ForyJsonCodec());
     store.save(root, LearningLedger.empty());
     assertThat(Files.readString(root.resolve(".sentinel/learning.json")))
-        .isEqualTo("{\"formatVersion\":1,\"records\":{}}");
+        .isEqualTo("{\"formatVersion\":2,\"records\":{}}");
     assertThat(store.load(root)).get().satisfies(ledger -> assertThat(ledger.records()).isEmpty());
   }
 }

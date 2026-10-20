@@ -6,10 +6,10 @@ import java.util.Objects;
 /**
  * One tracked failure.
  *
- * @param key the gate and status
+ * @param key the gate and rule
  * @param gate the gate ID
- * @param status the failing status
- * @param summary a short failure summary
+ * @param rule the tool rule that failed
+ * @param summary one example finding message
  * @param occurrences how many consecutive times it failed
  * @param state whether it is still failing
  * @param firstSeen when it first failed
@@ -19,7 +19,7 @@ import java.util.Objects;
 public record LearningRecord(
     String key,
     String gate,
-    String status,
+    String rule,
     String summary,
     int occurrences,
     LearningState state,
@@ -37,12 +37,12 @@ public record LearningRecord(
   public LearningRecord {
     Objects.requireNonNull(key);
     Objects.requireNonNull(gate);
-    Objects.requireNonNull(status);
+    Objects.requireNonNull(rule);
     Objects.requireNonNull(summary);
     Objects.requireNonNull(state);
     Objects.requireNonNull(firstSeen);
     Objects.requireNonNull(lastSeen);
-    if (key.isBlank() || gate.isBlank() || status.isBlank()) {
+    if (key.isBlank() || gate.isBlank() || rule.isBlank()) {
       throw new IllegalArgumentException("Learning record identity must not be blank");
     }
     if (summary.length() > MAX_SUMMARY_LENGTH) {
@@ -60,6 +60,6 @@ public record LearningRecord(
   public LearningRecord withState(
       final LearningState nextState, final Instant seen, final boolean nextPrompted) {
     return new LearningRecord(
-        key, gate, status, summary, occurrences, nextState, firstSeen, seen, nextPrompted);
+        key, gate, rule, summary, occurrences, nextState, firstSeen, seen, nextPrompted);
   }
 }

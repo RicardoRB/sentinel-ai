@@ -25,7 +25,7 @@ class SentinelCliContract7Test extends SentinelCliIntegrationSupport {
 
   @Test
   void hookPassingWithPromptsEmitsPostToolUseJson() throws IOException {
-    run(INIT, INTEGRATION_OPTION, NONE, GATE_OPTION, "format", "-C", project.toString());
+    run(INIT, INTEGRATION_OPTION, NONE, GATE_OPTION, "checkstyle", "-C", project.toString());
     fail();
     assertThat(run("hook", CLAUDE_CODE, LEARN_AFTER, "1", "-C", project.toString()))
         .isEqualTo(ExitCodes.ERROR);
@@ -39,7 +39,7 @@ class SentinelCliContract7Test extends SentinelCliIntegrationSupport {
     assertThat(hook.get("hookSpecificOutput").get("hookEventName").asString())
         .isEqualTo("PostToolUse");
     final String context = hook.get("hookSpecificOutput").get("additionalContext").asString();
-    assertThat(context).contains("AGENTS.md", "format");
+    assertThat(context).contains("AGENTS.md", "checkstyle", "LineLength");
     assertThat(out.toString()).doesNotContain("\u001b");
   }
 

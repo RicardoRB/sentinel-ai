@@ -35,16 +35,19 @@ class LearningServiceTest {
   void promptsArePropagatedAndResolvedLedgerIsSaved() {
     final LearningRecord failing =
         new LearningRecord(
-            "checkstyle:FAILED",
+            "checkstyle:LineLength",
             "checkstyle",
-            "FAILED",
+            "LineLength",
             "line too long",
             2,
             LearningState.FAILING,
             NOW.minusSeconds(10),
             NOW,
             false);
-    final FakeStore store = new FakeStore(new LearningLedger(1, Map.of(failing.key(), failing)));
+    final FakeStore store =
+        new FakeStore(
+            new LearningLedger(
+                LearningLedger.CURRENT_FORMAT_VERSION, Map.of(failing.key(), failing)));
 
     final LearningOutcome outcome = new LearningService(store, CLOCK).learn(passingReport(), 2);
 
@@ -54,13 +57,13 @@ class LearningServiceTest {
             prompt -> {
               assertThat(prompt.gate()).isEqualTo("checkstyle");
               assertThat(prompt.occurrences()).isEqualTo(2);
-              assertThat(prompt.instruction()).contains("AGENTS.md");
+              assertThat(prompt.instruction()).contains("AGENTS.md", "LineLength", "line too long");
             });
     assertThat(outcome.warnings()).isEmpty();
     assertThat(store.saved).isNotNull();
-    assertThat(store.saved.records().get("checkstyle:FAILED").state())
+    assertThat(store.saved.records().get("checkstyle:LineLength").state())
         .isEqualTo(LearningState.RESOLVED);
-    assertThat(store.saved.records().get("checkstyle:FAILED").prompted()).isTrue();
+    assertThat(store.saved.records().get("checkstyle:LineLength").prompted()).isTrue();
   }
 
   @Test
@@ -81,21 +84,24 @@ class LearningServiceTest {
   void thresholdIsRespectedWhenBuildingPrompts() {
     final LearningRecord failing =
         new LearningRecord(
-            "checkstyle:FAILED",
+            "checkstyle:LineLength",
             "checkstyle",
-            "FAILED",
+            "LineLength",
             "line too long",
             1,
             LearningState.FAILING,
             NOW.minusSeconds(10),
             NOW,
             false);
-    final FakeStore store = new FakeStore(new LearningLedger(1, Map.of(failing.key(), failing)));
+    final FakeStore store =
+        new FakeStore(
+            new LearningLedger(
+                LearningLedger.CURRENT_FORMAT_VERSION, Map.of(failing.key(), failing)));
 
     final LearningOutcome outcome = new LearningService(store, CLOCK).learn(passingReport(), 2);
 
     assertThat(outcome.prompts()).isEmpty();
-    assertThat(store.saved.records().get("checkstyle:FAILED").state())
+    assertThat(store.saved.records().get("checkstyle:LineLength").state())
         .isEqualTo(LearningState.RESOLVED);
   }
 

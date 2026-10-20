@@ -28,7 +28,7 @@ class LearningStoreLoadContractTest {
     assertThat(recordsOf(Files.readString(root.resolve(".sentinel/learning.json"))))
         .isEqualTo(recordsOf(fixture("store-ledger.json")));
 
-    final LearningRecord unicode = loaded.records().get("tests:FAILED");
+    final LearningRecord unicode = loaded.records().get("pmd:UnusedLocalVariable");
     assertThat(unicode.summary()).isEqualTo("Unicode ✓ and \"quotes\" — строка");
     assertThat(unicode.occurrences()).isEqualTo(2);
     assertThat(unicode.state()).isEqualTo(LearningState.RESOLVED);
@@ -36,7 +36,7 @@ class LearningStoreLoadContractTest {
     assertThat(unicode.lastSeen()).isEqualTo(TIME);
     assertThat(unicode.prompted()).isTrue();
 
-    final LearningRecord escaped = loaded.records().get("checkstyle:ERROR");
+    final LearningRecord escaped = loaded.records().get("checkstyle:MagicNumber");
     assertThat(escaped.summary()).isEqualTo("escapes \n \t \\");
     assertThat(escaped.state()).isEqualTo(LearningState.FAILING);
     assertThat(escaped.prompted()).isFalse();

@@ -24,22 +24,24 @@ class JsonLearningStoreTest {
     final Instant time = Instant.parse("2026-01-01T00:00:00Z");
     final LearningRecord record =
         new LearningRecord(
-            "tests:FAILED",
-            "tests",
-            "FAILED",
+            "pmd:UnusedLocalVariable",
+            "pmd",
+            "UnusedLocalVariable",
             "Unicode ✓ and \"quotes\"",
             2,
             LearningState.FAILING,
             time,
             time,
             false);
-    store.save(root, new LearningLedger(1, Map.of(record.key(), record)));
+    store.save(
+        root,
+        new LearningLedger(LearningLedger.CURRENT_FORMAT_VERSION, Map.of(record.key(), record)));
     assertThat(store.load(root))
         .get()
         .extracting(LearningLedger::records)
         .satisfies(
             records -> {
-              assertThat(records.get("tests:FAILED")).isEqualTo(record);
+              assertThat(records.get("pmd:UnusedLocalVariable")).isEqualTo(record);
             });
     assertThat(Files.list(root.resolve(".sentinel")).toList()).singleElement();
   }
@@ -60,19 +62,34 @@ class JsonLearningStoreTest {
   }
 
   @Test
+  void legacyVersionOneStoreLoadsAsEmptyLedger(@TempDir final Path root) throws Exception {
+    final Path file = root.resolve(".sentinel/learning.json");
+    Files.createDirectories(file.getParent());
+    Files.writeString(
+        file,
+        "{\"formatVersion\":1,\"records\":{\"pmd:FAILED\":{\"key\":\"pmd:FAILED\","
+            + "\"gate\":\"pmd\",\"status\":\"FAILED\",\"summary\":\"FAILED\",\"occurrences\":4,"
+            + "\"state\":\"FAILING\",\"firstSeen\":\"2026-01-01T00:00:00Z\","
+            + "\"lastSeen\":\"2026-01-01T00:00:00Z\",\"prompted\":true}}}");
+
+    assertThat(new JsonLearningStore(new ForyJsonCodec()).load(root))
+        .contains(LearningLedger.empty());
+  }
+
+  @Test
   void rejectsInvalidRecordsWithoutReplacingFile(@TempDir final Path root) throws Exception {
     final Path file = root.resolve(".sentinel/learning.json");
     Files.createDirectories(file.getParent());
 
-    final String nullRecord = "{\"formatVersion\":1,\"records\":{\"tests:FAILED\":null}}";
+    final String nullRecord = "{\"formatVersion\":2,\"records\":{\"tests:FAILED\":null}}";
     Files.writeString(file, nullRecord);
     assertThatThrownBy(() -> new JsonLearningStore(new ForyJsonCodec()).load(root))
         .isInstanceOf(LearningStoreException.class);
     assertThat(file).hasContent(nullRecord);
 
     final String badState =
-        "{\"formatVersion\":1,\"records\":{\"tests:FAILED\":{\"key\":\"tests:FAILED\","
-            + "\"gate\":\"tests\",\"status\":\"FAILED\",\"summary\":\"boom\",\"occurrences\":1,"
+        "{\"formatVersion\":2,\"records\":{\"tests:FAILED\":{\"key\":\"tests:FAILED\","
+            + "\"gate\":\"tests\",\"rule\":\"FAILED\",\"summary\":\"boom\",\"occurrences\":1,"
             + "\"state\":\"BOGUS\",\"firstSeen\":\"2026-01-01T00:00:00Z\","
             + "\"lastSeen\":\"2026-01-01T00:00:00Z\",\"prompted\":false}}}";
     Files.writeString(file, badState);
@@ -81,8 +98,8 @@ class JsonLearningStoreTest {
     assertThat(file).hasContent(badState);
 
     final String mismatchedKey =
-        "{\"formatVersion\":1,\"records\":{\"other:FAILED\":{\"key\":\"tests:FAILED\","
-            + "\"gate\":\"tests\",\"status\":\"FAILED\",\"summary\":\"boom\",\"occurrences\":1,"
+        "{\"formatVersion\":2,\"records\":{\"other:FAILED\":{\"key\":\"tests:FAILED\","
+            + "\"gate\":\"tests\",\"rule\":\"FAILED\",\"summary\":\"boom\",\"occurrences\":1,"
             + "\"state\":\"FAILING\",\"firstSeen\":\"2026-01-01T00:00:00Z\","
             + "\"lastSeen\":\"2026-01-01T00:00:00Z\",\"prompted\":false}}}";
     Files.writeString(file, mismatchedKey);
@@ -97,26 +114,38 @@ class JsonLearningStoreTest {
     final Instant time = Instant.parse("2026-01-01T00:00:00Z");
     final LearningRecord first =
         new LearningRecord(
-            "tests:FAILED", "tests", "FAILED", "one", 1, LearningState.FAILING, time, time, false);
-    store.save(root, new LearningLedger(1, Map.of(first.key(), first)));
+            "pmd:UnusedLocalVariable",
+            "pmd",
+            "UnusedLocalVariable",
+            "one",
+            1,
+            LearningState.FAILING,
+            time,
+            time,
+            false);
+    store.save(
+        root,
+        new LearningLedger(LearningLedger.CURRENT_FORMAT_VERSION, Map.of(first.key(), first)));
 
     final LearningRecord second =
         new LearningRecord(
-            "tests:FAILED",
-            "tests",
-            "FAILED",
+            "pmd:UnusedLocalVariable",
+            "pmd",
+            "UnusedLocalVariable",
             "two",
             2,
             LearningState.FAILING,
             time,
             time.plusSeconds(1),
             false);
-    store.save(root, new LearningLedger(1, Map.of(second.key(), second)));
+    store.save(
+        root,
+        new LearningLedger(LearningLedger.CURRENT_FORMAT_VERSION, Map.of(second.key(), second)));
 
     assertThat(store.load(root))
         .get()
         .extracting(LearningLedger::records)
-        .satisfies(records -> assertThat(records.get("tests:FAILED")).isEqualTo(second));
+        .satisfies(records -> assertThat(records.get("pmd:UnusedLocalVariable")).isEqualTo(second));
     try (Stream<Path> entries = Files.list(root.resolve(".sentinel"))) {
       assertThat(entries.map(p -> p.getFileName().toString()).toList())
           .containsExactly("learning.json");

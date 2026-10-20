@@ -80,9 +80,10 @@ sentinel check --profile ci --format sarif --output build/sentinel.sarif
 The format values are exactly `text`, `json`, and `sarif`; an unknown value is a usage error. `--learn-after`
 must be at least `1`, and invalid values are reported as usage errors without emitting a partial
 report.
-Learning is opt-in: `--learn-after <n>` records recurring gate failures in `.sentinel/learning.json`.
-A failure is counted once per failing episode; when a recurring failure later passes, the text report
-adds a `Learning` section asking the agent to add a preventive rule to `AGENTS.md`. Sentinel never
+Learning is opt-in: `--learn-after <n>` records recurring Checkstyle, PMD, and gitleaks rule findings
+in `.sentinel/learning.json`. A rule is counted once per failing episode; when a recurring rule is
+later fixed, the text report adds a `Learning` section asking the agent to add a preventive coding rule
+to `AGENTS.md`. See [learning](/configuration/learning/). Sentinel never
 edits that file, and learning prompts do not change the gate exit code.
 OpenSpec registrations use their configured vectors exactly. They require both the configured
 executable and a project-root `openspec/` directory; missing prerequisites are reported as gate
