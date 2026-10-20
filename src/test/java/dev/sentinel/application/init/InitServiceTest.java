@@ -92,7 +92,9 @@ class InitServiceTest {
             List.of(),
             List.of(),
             List.of(),
-            true));
+            true,
+            null,
+            false));
 
     final String configuration = Files.readString(dir.resolve(SENTINEL_TOML));
     assertThat(configuration)

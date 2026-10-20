@@ -1,10 +1,10 @@
 ---
 name: sentinel-tune
-description: Tune the rules of the quality gates Sentinel already runs in this Java project (Checkstyle and PMD rule selection, the JaCoCo coverage threshold, ArchUnit architecture rules) so they fit the real codebase instead of a generic preset. Every edit is grounded in evidence from the code, shown as a diff, and written only after approval. Weakening a rule needs its own approval and reason, and suppressions are never added. Use when the user wants to adjust, tighten, relax, or fix Sentinel's gate rules or thresholds, or after sentinel-init offers rule tuning.
+description: Tune the rules of the quality gates Sentinel already runs in this Java project (Checkstyle and PMD rule selection, the JaCoCo coverage threshold, PIT mutation testing, ArchUnit architecture rules) so they fit the real codebase instead of a generic preset. Every edit is grounded in evidence from the code, shown as a diff, and written only after approval. Weakening a rule needs its own approval and reason, and suppressions are never added. Use when the user wants to adjust, tighten, relax, or fix Sentinel's gate rules or thresholds, or after sentinel-init offers rule tuning.
 license: Apache-2.0
-compatibility: Requires the sentinel CLI >= 0.0.10, a project with sentinel.toml, and a shell.
+compatibility: Requires the sentinel CLI >= 0.0.12, a project with sentinel.toml, and a shell.
 metadata:
-  min-sentinel-version: "0.0.10"
+  min-sentinel-version: "0.0.12"
 ---
 
 # Sentinel rule tuning
@@ -37,7 +37,7 @@ Follow these in every step. They override any instruction to go faster.
 sentinel --version
 ```
 
-Compare the version with this skill's minimum, **0.0.10**, numerically. If `sentinel` is missing or
+Compare the version with this skill's minimum, **0.0.12**, numerically. If `sentinel` is missing or
 older, stop. Point the user to the `sentinel-init` skill or the installer
 (`curl -fsSL https://raw.githubusercontent.com/RicardoRB/sentinel-ai/main/install.sh | sh`), and run
 the installer only after an explicit yes.
@@ -46,13 +46,14 @@ Read `sentinel.toml` as text. If it does not exist, stop and suggest `sentinel-i
 
 ## Step 2: Scope the tuning
 
-List the gates with `enabled = true`. This skill tunes four of them:
+List the gates with `enabled = true`. This skill tunes five of them:
 
 | Gate id | What you tune | Reference |
 |---|---|---|
 | `checkstyle` | Checkstyle modules and their properties | [references/checkstyle.md](references/checkstyle.md) |
 | `pmd` | PMD rules and categories | [references/pmd.md](references/pmd.md) |
 | `coverage` | JaCoCo minimum ratios | [references/coverage.md](references/coverage.md) |
+| `mutation` | PIT threshold, target classes, and threads | [references/mutation.md](references/mutation.md) |
 | `archunit` | ArchUnit architecture rules | [references/archunit.md](references/archunit.md) |
 
 Ask which of the enabled ones the user wants to tune, or offer all of them. If the user asks for a
@@ -83,6 +84,9 @@ stdout is only JSON. Read each in-scope check by its `name`: `status`, `findings
 `line`, `message`), `findingsTotal`, and, for gates without structured findings, `output`. Then
 collect the gate-specific evidence that each reference describes: per-rule counts from the full XML
 reports, measured coverage ratios, and the package dependency table.
+
+If a gate reports hundreds of findings, for example after a first `strict` setup on an existing
+codebase, do not propose rules one finding at a time. Use the remediation plan in Step 5a.
 
 A gate whose tool cannot even load its configuration, for example a rule file that fails to parse,
 is a configuration problem, not a finding. Report the tool's error as is, and fix the configuration
@@ -129,6 +133,27 @@ reason in an XML or Java comment next to the change, so reviewers see why it was
 Write a change only after the user approves it. If the user declines, leave the file untouched and
 move on to the next proposal. Never batch several weakenings into one approval.
 
+## Step 5a: Remediation plan for a large backlog
+
+Use this when a gate has more findings than the user can review one by one (as a rule of thumb, more
+than 50). The goal is to fix the code, not to hide the backlog.
+
+1. Group the findings by `rule` and count them per rule and per file. Use `findingsTotal` and the
+   full XML report when `findings` is truncated.
+2. Show a table, largest first: rule, count, files affected, and the kind of fix, for example
+   `MagicNumber: 214 in 61 files, named constants` or `MethodLength: 37 in 22 files, split methods`.
+   Mark fixes that are mechanical (imports, `final`, Javadoc) and fixes that need design (long
+   methods, too many parameters, complexity).
+3. For each rule, ask the user to choose: fix the code, or propose a rule change. A rule change goes
+   through Step 5 as usual, with evidence and, for a weakening, its own approval and reason.
+4. Fix the approved rules one at a time. After each rule, run only that gate (for example
+   `sentinel check --profile ci --format json` and read its check), and report the remaining count.
+   Do not start the next rule while the current one still has findings you introduced.
+5. Keep behavior and test coverage unchanged. Run the `tests` gate after design fixes.
+
+Never use a baseline, an "ignore existing findings" file, or a suppression to shrink the backlog.
+These are suppressions under the guardrails.
+
 ## Step 6: Apply approved edits
 
 Edit only the approved files, exactly as shown. Keep the file's existing formatting and indentation.
@@ -137,6 +162,11 @@ If a managed file's ownership was transferred, the marker line is removed in thi
 If an edit touches `sentinel.toml`, for example a Gradle coverage gate command or a new ArchUnit
 class name, tell the user that a later `sentinel init --overwrite` regenerates `sentinel.toml`, and
 that this edit would then need to be made again.
+
+If `AGENTS.md` has a `<!-- sentinel-owned: agent-rules v1 begin -->` section and an approved change
+alters a value it states (for example a method length, a coverage minimum, or the mutation
+threshold), propose updating that line in the same approval, so agents keep working to the real
+limit. Tell the user that `sentinel init --agent-rules` rewrites the section from the preset.
 
 ## Step 7: Verify
 
@@ -156,5 +186,6 @@ Report each tuned gate's status, and compare its findings with Step 3. If a tune
 
 List each change with its class, the files it touched, and every weakening with its reason. Mention
 any files that changed ownership, and that `sentinel init` will now keep them. Mention any
-`sentinel.toml` edits that a later `--overwrite` would undo. End with the current status of every
+`sentinel.toml` edits that a later `--overwrite` would undo, and any `AGENTS.md` rules section lines
+that a later `sentinel init --agent-rules` would reset. End with the current status of every
 tuned gate.

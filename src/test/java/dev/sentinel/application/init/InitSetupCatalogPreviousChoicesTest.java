@@ -71,6 +71,8 @@ class InitSetupCatalogPreviousChoicesTest {
             List.of("openspec"),
             List.of("openspec"),
             List.of(),
+            false,
+            null,
             false));
 
     assertThat(catalog.previousChoices(project(dir)))

@@ -11,7 +11,7 @@ each choice for this codebase, and runs `init` with explicit options after you a
 `--dry-run` plan.
 
 ```sh
-sentinel init [-C <dir>] [--preset <standard|strict>] [--integration <none|agent>[,...]] [--quality-hooks] [--remove-quality-hooks] [--gate <id>[,...]] [--tool openspec] [--openspec-validation <openspec|openspec-archived>[,...]] [--install-tool <tool|gate>[,...]] [--architecture <style>] [--overwrite] [--dry-run] [--accept-compatibility-updates] [--yes]
+sentinel init [-C <dir>] [--preset <standard|strict>] [--integration <none|agent>[,...]] [--quality-hooks] [--remove-quality-hooks] [--ci github] [--agent-rules] [--gate <id>[,...]] [--tool openspec] [--openspec-validation <openspec|openspec-archived>[,...]] [--install-tool <tool|gate>[,...]] [--architecture <style>] [--overwrite] [--dry-run] [--accept-compatibility-updates] [--yes]
 ```
 
 `agent` accepts the IDs documented for [`integrate`](/commands/integrate/), including `codex`, `cursor`,
@@ -141,6 +141,25 @@ pre-commit section runs `sentinel check --profile pre-commit`, and the pre-push 
 executable permissions, and other Sentinel integrations. A malformed or duplicate quality-hook marker
 is reported as a conflict and left unchanged.
 
+Pass `--ci github` to write `.github/workflows/sentinel.yml`, a GitHub Actions workflow that runs
+`sentinel check --profile ci` on pull requests and pushes to `main`. It installs the Sentinel release
+that ran init (`SENTINEL_VERSION`), pins the tools the selected gates need (gitleaks, trivy, semgrep,
+OpenSpec), fetches full history for gitleaks, caches the trivy database, passes the `NVD_API_KEY`
+secret to `dependency-check`, and uploads the SARIF report to code scanning for pull requests from
+the same repository. The file is Sentinel-owned: re-running init refreshes it, and an existing
+workflow at that path without Sentinel's marker blocks initialization as a conflict. Gates that need
+a running application, such as `zap`, are not set up in the workflow.
+
+Pass `--agent-rules` to write a Sentinel-owned section into `AGENTS.md` that tells coding agents the
+limits the selected gates enforce: the preset's Checkstyle limits, PMD rule sets, SpotBugs effort,
+coverage and mutation minimums, and enforcer rules. Content outside the section's markers is kept.
+When a rule file is user-owned, the section points to the file instead of quoting preset values. Init
+changes `AGENTS.md` only when `--agent-rules` is given, and then rewrites the section from the preset,
+so pass it again after tuning rules only if you want the preset values back.
+
+When both `dependency-check` and `trivy` are selected, init warns that trivy already scans
+dependencies without an API key, so one of them can usually be dropped.
+
 On supported macOS and Linux terminals, use Up/Down to move, Space to toggle, and Enter to confirm.
 Press `q`, `Q`, or Ctrl+C to cancel. On Windows, piped input, or when raw terminal mode is unavailable,
 the wizard uses numbered prompts instead. Numbered prompts show pre-selected items as `[x]`; each number
@@ -219,7 +238,8 @@ without the other effects of `--yes`.
 Each question is answered by the first of these that applies:
 
 1. The option that answers it, such as `--preset`, `--gate`, `--integration`, `--architecture`,
-   `--tool`, or `--quality-hooks`.
+   `--tool`, or `--quality-hooks`. `--ci` and `--agent-rules` are options only; the wizard does not
+   ask for them.
 2. Its default, when `--yes` is given: preset `standard` with its gates, integration `none`, no tools,
    OpenSpec validations, or installation, no quality hooks, and architecture `layered`. `--yes` never
    overwrites an existing `sentinel.toml` (use `--overwrite`) and never installs OpenSpec (use

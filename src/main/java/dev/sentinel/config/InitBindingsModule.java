@@ -7,6 +7,7 @@ import dev.sentinel.application.init.InitProjectFiles;
 import dev.sentinel.domain.init.ArchitectureTestGeneration;
 import dev.sentinel.domain.init.BuildToolConfiguration;
 import dev.sentinel.domain.init.ConfigurationStorage;
+import dev.sentinel.domain.init.OwnedSectionGeneration;
 import dev.sentinel.domain.init.QualityHookGeneration;
 import dev.sentinel.domain.init.RawTerminal;
 import dev.sentinel.domain.init.RuleFileGeneration;
@@ -16,6 +17,7 @@ import dev.sentinel.infrastructure.init.ArchitectureTestGenerator;
 import dev.sentinel.infrastructure.init.BuildToolConfigurator;
 import dev.sentinel.infrastructure.init.CompositeToolInstaller;
 import dev.sentinel.infrastructure.init.FileConfigurationStorage;
+import dev.sentinel.infrastructure.init.OwnedSectionWriter;
 import dev.sentinel.infrastructure.init.PresetRuleFileWriter;
 import dev.sentinel.infrastructure.init.QualityHookInstaller;
 import dev.sentinel.infrastructure.terminal.JdkTerminalCapabilities;
@@ -45,6 +47,9 @@ interface InitBindingsModule {
   QualityHookGeneration qualityHookGeneration(QualityHookInstaller implementation);
 
   @Binds
+  OwnedSectionGeneration ownedSectionGeneration(OwnedSectionWriter implementation);
+
+  @Binds
   ToolInstaller toolInstaller(CompositeToolInstaller implementation);
 
   @Provides
@@ -52,7 +57,8 @@ interface InitBindingsModule {
       final BuildToolConfiguration buildTools,
       final RuleFileGeneration ruleFiles,
       final ArchitectureTestGeneration architectureTests,
-      final ConfigurationStorage configuration) {
-    return new InitProjectFiles(buildTools, ruleFiles, architectureTests, configuration);
+      final ConfigurationStorage configuration,
+      final OwnedSectionGeneration sections) {
+    return new InitProjectFiles(buildTools, ruleFiles, architectureTests, configuration, sections);
   }
 }

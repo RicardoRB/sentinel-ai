@@ -145,8 +145,13 @@ Ignore the rest of the probe's plan. It reflects the probe's selection, not the 
 
 - `.git/hooks/pre-commit` and `.git/hooks/pre-push`: existing hooks. Sentinel's quality hooks are
   inserted into them without replacing user logic.
-- `.github/workflows/`, `.gitlab-ci.yml`, `Jenkinsfile`: CI already exists. Init does not generate a
-  CI workflow, but the `ci` profile can be run from it.
+- `.github/workflows/`, `.gitlab-ci.yml`, `Jenkinsfile`: CI already exists. Check with `grep -l
+  'sentinel check' .github/workflows/*` whether a workflow already runs Sentinel. A first line
+  `# sentinel-owned: github-ci v1 begin` in `.github/workflows/sentinel.yml` means init wrote it.
+  Init generates only GitHub workflows (`--ci github`); for other CI, the `ci` profile can be run
+  from the existing pipeline.
+- `AGENTS.md`: a `<!-- sentinel-owned: agent-rules v1 begin -->` section means init wrote the gate
+  rules there before.
 - The harness you are running in, for example Claude Code, OpenCode, or Codex. It is the natural
   candidate for `--integration`.
 
@@ -162,5 +167,6 @@ ArchUnit: none found, so init would generate ArchitectureTest.java
 Config: no sentinel.toml yet
 Rule files: none
 Unavailable tools: semgrep, gitleaks (brew can install them), zap (manual)
+CI: GitHub repository, no workflow runs Sentinel yet
 Notes: NVD_API_KEY is not set
 ```

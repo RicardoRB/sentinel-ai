@@ -12,6 +12,7 @@ import dev.sentinel.infrastructure.cli.ExitCodes;
 import dev.sentinel.infrastructure.config.TomlConfigurationReader;
 import dev.sentinel.infrastructure.init.ArchitectureTestGenerator;
 import dev.sentinel.infrastructure.init.FileConfigurationStorage;
+import dev.sentinel.infrastructure.init.OwnedSectionWriter;
 import dev.sentinel.infrastructure.init.PomToolConfigurator;
 import dev.sentinel.infrastructure.init.PresetRuleFileWriter;
 import dev.sentinel.infrastructure.init.QualityHookInstaller;
@@ -70,12 +71,14 @@ final class InitCommandFixture {
             new InitSetupCatalog(
                 new FakeEnvironmentInspection(executables),
                 new QualityHookInstaller(),
-                new TomlConfigurationReader()),
+                new TomlConfigurationReader(),
+                "1.2.3"),
             new InitProjectFiles(
                 buildTools,
                 new PresetRuleFileWriter(),
                 new ArchitectureTestGenerator(),
-                new FileConfigurationStorage()));
+                new FileConfigurationStorage(),
+                new OwnedSectionWriter()));
     final CommandLine command =
         new CommandLine(
             new InitCommand(

@@ -112,6 +112,7 @@ class CoverageConfigurationTest {
                     null,
                     null,
                     List.of(),
+                    List.of(),
                     List.of())
                 .gates())
         .isEmpty();

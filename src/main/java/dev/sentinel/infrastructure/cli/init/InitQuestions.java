@@ -90,7 +90,9 @@ final class InitQuestions {
         tools.tools(),
         tools.validations(),
         tools.installs(),
-        qualityHooks);
+        qualityHooks,
+        answers.ci(),
+        answers.agentRules());
   }
 
   private QualityPreset preset(final boolean gatesGiven) {
@@ -200,6 +202,8 @@ final class InitQuestions {
       List<String> validations,
       List<String> installTools,
       Boolean qualityHooks,
+      String ci,
+      boolean agentRules,
       boolean yes) {
     boolean setupGiven() {
       return preset != null || gates != null || integrations != null;

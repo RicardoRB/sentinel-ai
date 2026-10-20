@@ -2,9 +2,9 @@
 name: sentinel-init
 description: Set up or reconfigure Sentinel quality gates in a Java (Maven or Gradle) project together with the user. Inspects the project, explains each choice (preset, gates, architecture style, tools, agent integration, Git hooks) with a recommendation grounded in what it found, previews the exact changes with `sentinel init --dry-run`, and applies them only after approval. Use when the user wants to add Sentinel, initialize or change sentinel.toml, choose quality gates, or asks how to set up Sentinel for this repository.
 license: Apache-2.0
-compatibility: Requires the sentinel CLI >= 0.0.10, a Maven or Gradle Java project, and a shell.
+compatibility: Requires the sentinel CLI >= 0.0.12, a Maven or Gradle Java project, and a shell.
 metadata:
-  min-sentinel-version: "0.0.10"
+  min-sentinel-version: "0.0.12"
 ---
 
 # Sentinel guided setup
@@ -37,8 +37,8 @@ Run:
 sentinel --version
 ```
 
-- It prints `sentinel X.Y.Z`. Compare `X.Y.Z` with this skill's minimum, **0.0.10**, numerically
-  (`0.0.10` is newer than `0.0.9`).
+- It prints `sentinel X.Y.Z`. Compare `X.Y.Z` with this skill's minimum, **0.0.12**, numerically
+  (`0.0.12` is newer than `0.0.9`).
 - If `sentinel` is not found, or the version is older than the minimum, stop and tell the user. Offer
   the official installer, which installs the latest release into `~/.local/bin` and verifies its
   checksum:
@@ -103,7 +103,9 @@ order:
    - `dependency-check` OSS Index: init turns the analyzer off because Sonatype OSS Index needs
      credentials. To use it, set `OSS_INDEX_PASSWORD` in the environment (Maven reads it through a
      `settings.xml` server with id `ossindex`); never commit the credentials. `trivy` covers
-     dependency vulnerabilities without any key.
+     dependency vulnerabilities without any key. When both `dependency-check` and `trivy` are
+     selected, the plan prints `Warning: trivy already scans dependencies`; recommend keeping only
+     `trivy` unless the user needs Dependency-Check's reports.
    - `zap` needs a running application and a `<TARGET_URL>` that the user is authorized to scan.
      `check` fails until it is replaced.
    - `archunit` when the layering checks in the inspection found violations: the gate fails on its
@@ -124,6 +126,17 @@ order:
 8. **Git quality hooks.** These add Sentinel sections to `.git/hooks/pre-commit` and `pre-push`
    without replacing existing hook logic. Recommend them when the project has no CI, and mention that
    they slow down commits and pushes.
+9. **CI workflow** (only for GitHub repositories: a `github.com` remote or a `.github/` directory).
+   `--ci github` writes `.github/workflows/sentinel.yml`, which runs the `ci` profile, installs the
+   gate tools, and uploads SARIF to code scanning. Recommend it when the project has no workflow that
+   runs Sentinel. If `.github/workflows/sentinel.yml` already exists and is not Sentinel's, the plan
+   shows a `conflict`. Mention that `dependency-check` needs an `NVD_API_KEY` repository secret, and
+   that `zap` is not run by the workflow.
+10. **Agent rules** (offer when an agent integration is selected). `--agent-rules` writes a
+    Sentinel-owned section into `AGENTS.md` that lists the limits the gates enforce (file and method
+    length, parameters, coverage and mutation minimums), so agents meet them before the first check
+    fails. Existing `AGENTS.md` content is kept. Recommend it for `strict`, where the limits are
+    hardest to guess.
 
 If the user changes an earlier answer, update it and continue. Do not restart the conversation.
 
@@ -198,15 +211,18 @@ sentinel init --preset strict --architecture hexagonal --integration claude-code
 Tell the user:
 
 1. What is configured now: preset, gates and the profiles they run in, integration, hooks.
+   Mention any CI workflow or `AGENTS.md` section init wrote (`Wrote Sentinel section:` lines).
    Mention that `sentinel.toml` has `partial` tables for Checkstyle, PMD, format, and Semgrep: the
    check after each agent edit skips gates the edit does not affect and narrows supported tools to
    the edited files. Claude Code and the native harnesses still run the full `default` check when the
    turn ends; git hooks and CI always check the whole project.
 2. Every manual step still open, taken from the output. For example: tools that are still
-   `UNAVAILABLE`, replacing `<TARGET_URL>` for `zap`, setting `NVD_API_KEY` for `dependency-check`,
-   or a declined compatibility update.
+   `UNAVAILABLE`, replacing `<TARGET_URL>` for `zap`, setting `NVD_API_KEY` for `dependency-check`
+   (as a repository secret too when `--ci github` was used), committing the generated workflow, or a
+   declined compatibility update.
 3. How to run the gates: `sentinel check` (the `default` profile, fast gates) and
    `sentinel check --profile ci` (every gate). Offer to run the fast profile now. This session wrote
    the `sentinel.toml`, so it is trusted. Ask first anyway, because it runs the build.
-4. When `checkstyle`, `pmd`, `coverage`, or `archunit` is enabled, offer the `sentinel-tune` skill.
+4. When `checkstyle`, `pmd`, `coverage`, `mutation`, or `archunit` is enabled, offer the
+   `sentinel-tune` skill.
    It can fit their rules and thresholds to this codebase instead of the generic preset.

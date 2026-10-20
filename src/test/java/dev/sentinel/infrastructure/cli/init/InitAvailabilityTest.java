@@ -71,6 +71,25 @@ class InitAvailabilityTest {
         .contains("Selected quality gate 'semgrep': UNAVAILABLE - " + remediation);
   }
 
+  @Test
+  void selectingDependencyCheckAndTrivyWarnsAboutTheOverlap() throws IOException {
+    final InitCommandFixture init = new InitCommandFixture(root);
+
+    init.run(
+        "", "--dry-run", "--integration", "none", "--gate", "dependency-check", "--gate", "trivy");
+
+    assertThat(init.output()).contains("Warning: trivy already scans dependencies");
+  }
+
+  @Test
+  void selectingOnlyTrivyDoesNotWarnAboutTheOverlap() throws IOException {
+    final InitCommandFixture init = new InitCommandFixture(root);
+
+    init.run("", "--dry-run", "--integration", "none", "--gate", "trivy");
+
+    assertThat(init.output()).doesNotContain("trivy already scans dependencies");
+  }
+
   /** Replays the given keys, then reports end of input. */
   private static final class ScriptedSession implements RawSession {
     private final Iterator<Integer> keys;

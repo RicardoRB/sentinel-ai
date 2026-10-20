@@ -74,6 +74,8 @@ class InitOpenSpecIgnoreWarningTest {
                 validations.isEmpty() ? List.of() : List.of("openspec"),
                 validations,
                 List.of(),
+                false,
+                null,
                 false));
   }
 }
