@@ -17,3 +17,4 @@ jobs:
     uses: ./.github/workflows/verify.yml
     with:
       harness-compatibility: true
+    secrets: inherit
