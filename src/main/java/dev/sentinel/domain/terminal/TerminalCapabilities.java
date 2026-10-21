@@ -7,4 +7,7 @@ public interface TerminalCapabilities {
 
   /** Returns whether colored output is enabled. */
   boolean colorEnabled();
+
+  /** Returns whether a console terminal is attached, regardless of color or line-redraw support. */
+  boolean consoleAttached();
 }

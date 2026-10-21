@@ -35,4 +35,9 @@ public final class JdkTerminalCapabilities implements TerminalCapabilities {
   public boolean colorEnabled() {
     return consoleTerminal && noColor == null && !"dumb".equalsIgnoreCase(term);
   }
+
+  @Override
+  public boolean consoleAttached() {
+    return consoleTerminal;
+  }
 }

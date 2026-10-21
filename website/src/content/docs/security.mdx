@@ -41,6 +41,16 @@ collecting diagnostics:
 sentinel --verbose check > report.txt 2> sentinel-diagnostics.log
 ```
 
+## Update check
+
+Sentinel makes one network request of its own: after an interactive command, at most once a day, it
+sends an HTTPS `HEAD` request to `https://github.com/RicardoRB/sentinel-ai/releases/latest` and
+reads the release tag from the redirect. The request carries no project, configuration, or
+environment data. `sentinel doctor` makes the same request every time it runs. Sentinel only prints
+a notice; it never downloads or replaces itself. Agent hooks, CI, and JSON or SARIF output never
+trigger the request, and `SENTINEL_NO_UPDATE_CHECK=1` turns it off everywhere, including in
+`doctor`. See [Environment variables](/reference/environment-variables/).
+
 ## Optional OpenSpec installation
 
 OpenSpec is never installed by `check` or `doctor`. `init` may install the reviewed
