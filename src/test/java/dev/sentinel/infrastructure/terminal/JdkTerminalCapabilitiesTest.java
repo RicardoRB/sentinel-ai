@@ -18,4 +18,10 @@ class JdkTerminalCapabilitiesTest {
     assertThat(new JdkTerminalCapabilities(true, null, "xterm").colorEnabled()).isTrue();
     assertThat(new JdkTerminalCapabilities(true, "", "xterm").colorEnabled()).isFalse();
   }
+
+  @Test
+  void consoleAttachmentIgnoresColorAndTermSettings() {
+    assertThat(new JdkTerminalCapabilities(true, "1", "dumb").consoleAttached()).isTrue();
+    assertThat(new JdkTerminalCapabilities(false, null, "xterm").consoleAttached()).isFalse();
+  }
 }

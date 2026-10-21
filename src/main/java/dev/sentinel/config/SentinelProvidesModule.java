@@ -4,6 +4,8 @@ import dagger.Module;
 import dagger.Provides;
 import dev.sentinel.domain.agent.AgentIntegration;
 import dev.sentinel.domain.config.PathExistence;
+import dev.sentinel.domain.update.LatestReleaseLookup;
+import dev.sentinel.domain.update.UpdateCheckCache;
 import dev.sentinel.infrastructure.agent.AmpIntegration;
 import dev.sentinel.infrastructure.agent.ClaudeCodeIntegration;
 import dev.sentinel.infrastructure.agent.ClineIntegration;
@@ -16,6 +18,8 @@ import dev.sentinel.infrastructure.agent.OpenCodeIntegration;
 import dev.sentinel.infrastructure.agent.WindsurfIntegration;
 import dev.sentinel.infrastructure.cli.VersionProvider;
 import dev.sentinel.infrastructure.config.FilePathExistence;
+import dev.sentinel.infrastructure.update.FileUpdateCheckCache;
+import dev.sentinel.infrastructure.update.GithubLatestReleaseLookup;
 import java.util.Set;
 import javax.inject.Named;
 
@@ -47,5 +51,15 @@ final class SentinelProvidesModule {
   @Provides
   static PathExistence pathExistence() {
     return new FilePathExistence();
+  }
+
+  @Provides
+  static LatestReleaseLookup latestReleaseLookup() {
+    return new GithubLatestReleaseLookup();
+  }
+
+  @Provides
+  static UpdateCheckCache updateCheckCache() {
+    return FileUpdateCheckCache.forUser(System::getenv, System.getProperty("user.home"));
   }
 }

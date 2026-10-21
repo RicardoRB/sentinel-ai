@@ -30,6 +30,7 @@ final class ArchitectureBoundarySupport {
           Map.entry("json", Set.of()),
           Map.entry("learning", Set.of("gate")),
           Map.entry("spec", Set.of()),
+          Map.entry("update", Set.of()),
           Map.entry("traceability", Set.of()));
   static final Map<String, Set<String>> APPLICATION_ENTRY_POINTS =
       Map.ofEntries(
@@ -70,6 +71,7 @@ final class ArchitectureBoundarySupport {
                   "dev.sentinel.application.gate.CheckService",
                   "dev.sentinel.application.project.ProjectDetector",
                   "dev.sentinel.application.project.ProjectNotFoundException")),
+          Map.entry("update", Set.of()),
           Map.entry("traceability", Set.of()));
 
   private ArchitectureBoundarySupport() {}

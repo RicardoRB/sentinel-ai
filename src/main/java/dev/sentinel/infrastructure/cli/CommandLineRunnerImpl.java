@@ -2,6 +2,7 @@ package dev.sentinel.infrastructure.cli;
 
 import dev.sentinel.domain.config.SentinelException;
 import dev.sentinel.infrastructure.cli.logging.VerboseExecutionStrategy;
+import dev.sentinel.infrastructure.cli.update.UpdateNoticePrinter;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
@@ -15,16 +16,20 @@ public class CommandLineRunnerImpl {
 
   private final SentinelCommand rootCommand;
   private final DaggerCommandFactory factory;
+  private final UpdateNoticePrinter updateNotice;
 
   /**
-   * Creates the runner; {@code factory} builds subcommands and {@code rootCommand} is the {@code
-   * sentinel} command.
+   * Creates the runner; {@code factory} builds subcommands, {@code rootCommand} is the {@code
+   * sentinel} command, and {@code updateNotice} ends interactive runs with any update notice.
    */
   @Inject
   public CommandLineRunnerImpl(
-      final DaggerCommandFactory factory, final SentinelCommand rootCommand) {
+      final DaggerCommandFactory factory,
+      final SentinelCommand rootCommand,
+      final UpdateNoticePrinter updateNotice) {
     this.factory = factory;
     this.rootCommand = rootCommand;
+    this.updateNotice = updateNotice;
   }
 
   /** Runs {@code args} with UTF-8 standard output and error and returns the exit code. */
@@ -38,6 +43,8 @@ public class CommandLineRunnerImpl {
   /** Runs {@code args}, writing to {@code out} and {@code err}, and returns the exit code. */
   public int run(final PrintWriter out, final PrintWriter err, final String... args) {
     final CommandLine commandLine = createCommandLine(rootCommand, factory, out, err);
+    commandLine.setExecutionStrategy(
+        new VerboseExecutionStrategy(updateNotice.around(new CommandLine.RunLast())));
     final int exitCode = commandLine.execute(args);
     commandLine.getOut().flush();
     commandLine.getErr().flush();
