@@ -23,16 +23,19 @@ public final class VerboseExecutionStrategy implements CommandLine.IExecutionStr
     final boolean verbose = parseResult.hasMatchedOption("--verbose");
     final boolean informational =
         !parseResult.isUsageHelpRequested() && !parseResult.isVersionHelpRequested();
-    try (LoggingScope ignored = LoggingScope.open(commandLine.getErr(), verbose)) {
-      if (informational) {
-        LOGGER.log(Level.INFO, () -> "event=command-start command=" + commandName(parseResult));
-      }
-      final int result = delegate.execute(parseResult);
-      if (informational) {
-        LOGGER.log(Level.INFO, () -> "event=command-complete status=completed exit=" + result);
-      }
-      return result;
-    }
+    return LoggingScope.run(
+        commandLine.getErr(),
+        verbose,
+        () -> {
+          if (informational) {
+            LOGGER.log(Level.INFO, () -> "event=command-start command=" + commandName(parseResult));
+          }
+          final int result = delegate.execute(parseResult);
+          if (informational) {
+            LOGGER.log(Level.INFO, () -> "event=command-complete status=completed exit=" + result);
+          }
+          return result;
+        });
   }
 
   private static String commandName(final CommandLine.ParseResult parseResult) {

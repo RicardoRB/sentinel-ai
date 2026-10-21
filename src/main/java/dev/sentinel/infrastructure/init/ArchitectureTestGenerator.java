@@ -59,14 +59,14 @@ public final class ArchitectureTestGenerator implements ArchitectureTestGenerati
       try (Stream<Path> files = Files.walk(root)) {
         files
             .filter(Files::isRegularFile)
-            .filter(file -> file.getFileName().toString().matches(".*Tests?\\.(java|kt)$"))
+            .filter(file -> String.valueOf(file.getFileName()).matches(".*Tests?\\.(java|kt)$"))
             .forEach(
                 file -> {
                   try {
                     final String source = Files.readString(file);
                     if (source.contains("com.tngtech.archunit")
                         || source.contains("@AnalyzeClasses")) {
-                      final String fileName = file.getFileName().toString();
+                      final String fileName = String.valueOf(file.getFileName());
                       names.add(fileName.substring(0, fileName.lastIndexOf('.')));
                     }
                   } catch (IOException e) {
