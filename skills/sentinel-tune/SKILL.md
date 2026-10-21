@@ -2,9 +2,9 @@
 name: sentinel-tune
 description: Tune the rules of the quality gates Sentinel already runs in this Java project (Checkstyle and PMD rule selection, the JaCoCo coverage threshold, PIT mutation testing, ArchUnit architecture rules) so they fit the real codebase instead of a generic preset. Every edit is grounded in evidence from the code, shown as a diff, and written only after approval. Weakening a rule needs its own approval and reason, and suppressions are never added. Use when the user wants to adjust, tighten, relax, or fix Sentinel's gate rules or thresholds, or after sentinel-init offers rule tuning.
 license: Apache-2.0
-compatibility: Requires the sentinel CLI >= 0.0.12, a project with sentinel.toml, and a shell.
+compatibility: Requires the sentinel CLI >= 0.1.0, a project with sentinel.toml, and a shell.
 metadata:
-  min-sentinel-version: "0.0.12"
+  min-sentinel-version: "0.1.0"
 ---
 
 # Sentinel rule tuning
@@ -37,7 +37,7 @@ Follow these in every step. They override any instruction to go faster.
 sentinel --version
 ```
 
-Compare the version with this skill's minimum, **0.0.12**, numerically. If `sentinel` is missing or
+Compare the version with this skill's minimum, **0.1.0**, numerically. If `sentinel` is missing or
 older, stop. Point the user to the `sentinel-init` skill or the installer
 (`curl -fsSL https://raw.githubusercontent.com/RicardoRB/sentinel-ai/main/install.sh | sh`), and run
 the installer only after an explicit yes.
