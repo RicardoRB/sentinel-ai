@@ -76,8 +76,9 @@ When learning is enabled with `--learn-after <n>`, the additive `learning` objec
 
 ```json
 { "learning": { "threshold": 3, "prompts": [{
-  "key": "checkstyle:FAILED", "gate": "checkstyle", "occurrences": 3,
-  "summary": "string", "instruction": "Add a preventive instruction to AGENTS.md..."
+  "key": "checkstyle:LineLength", "gate": "checkstyle", "occurrences": 3,
+  "summary": "Line is longer than 100 characters (found 120).",
+  "instruction": "Sentinel: the `checkstyle` rule `LineLength` was violated in 3 separate occurrences..."
 }] } }
 ```
 It is omitted when learning is disabled. `schemaVersion` remains `2`.

@@ -3,15 +3,28 @@ title: Learning
 description: Track recurring quality-gate failures.
 ---
 
-Learning is opt-in with `sentinel check --learn-after <n>`. Sentinel stores compact metadata in
-`.sentinel/learning.json`: the gate and status, a summary of at most 200 characters, occurrence
-count, state, timestamps, and whether a prompt has been issued. Full stdout and stderr are never
-stored.
+Learning is opt-in with `sentinel check --learn-after <n>`. It tracks the problems a gate finds, not
+the gate itself: each record is one tool rule, keyed `gate:rule` (for example
+`pmd:UnusedLocalVariable` or `checkstyle:LineLength`). Sentinel stores compact metadata in
+`.sentinel/learning.json`: the gate and rule, one example finding message of at most 200 characters,
+occurrence count, state, timestamps, and whether a prompt has been issued. Full stdout and stderr are
+never stored.
 
-An occurrence starts when a gate begins failing and is counted again only after that gate passes.
-Skipped or unevaluated gates do not change their records. Once a recurring failure is resolved,
-Sentinel asks the agent to add a preventive instruction to `AGENTS.md`; Sentinel never edits that
-file. Prompts are issued at most once per record.
+Only findings from failed gates whose tool reports specific rule IDs are learned: Checkstyle, PMD,
+and gitleaks. Gates without rule-level findings (tests, coverage, SpotBugs, ArchUnit, mutation) and
+catch-all findings such as Spotless formatting or javac errors are not tracked, because the only
+lesson they offer is to run the command again.
+
+A rule is counted once per run however many violations it has. An occurrence starts when the rule
+begins failing and is counted again only after it was fixed: the rule's gate ran and no longer
+reported it, even if the gate still failed on other rules. Skipped or unevaluated gates do not change
+their records. Once a recurring rule is fixed, Sentinel asks the agent to add a coding rule to
+`AGENTS.md` that prevents the problem, quoting the rule and an example message, and not a rule about
+running the gate or a command. Sentinel never edits that file. Prompts are issued at most once per
+record.
+
+The store carries `formatVersion` 2. A version 1 store, which tracked gate statuses, is discarded
+without a warning and replaced on the next learning run.
 
 To reset learning, delete `.sentinel/learning.json` (or remove the individual record). Decide
 whether to commit the file with your project or ignore `.sentinel/` according to your team's

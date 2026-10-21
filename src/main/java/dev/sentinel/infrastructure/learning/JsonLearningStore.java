@@ -26,6 +26,7 @@ import org.apache.fory.json.annotation.JsonType;
 public final class JsonLearningStore implements LearningStore {
   private static final String DIRECTORY = ".sentinel";
   private static final String FILE = "learning.json";
+  private static final int LEGACY_FORMAT_VERSION = 1;
   private final JsonCodec codec;
 
   /** Creates the store; {@code codec} reads and writes the JSON file. */
@@ -78,6 +79,10 @@ public final class JsonLearningStore implements LearningStore {
   }
 
   private static LearningLedger toDomain(final FileDto file) {
+    if (file != null && file.formatVersion == LEGACY_FORMAT_VERSION) {
+      // Version 1 tracked gate statuses, which cannot be mapped to rules, so start over.
+      return LearningLedger.empty();
+    }
     if (file == null || file.formatVersion != LearningLedger.CURRENT_FORMAT_VERSION) {
       throw new LearningStoreException("Unsupported learning format version");
     }
@@ -106,7 +111,7 @@ public final class JsonLearningStore implements LearningStore {
     if (Stream.of(
             value.key,
             value.gate,
-            value.status,
+            value.rule,
             value.summary,
             value.state,
             value.firstSeen,
@@ -118,7 +123,7 @@ public final class JsonLearningStore implements LearningStore {
       return new LearningRecord(
           value.key,
           value.gate,
-          value.status,
+          value.rule,
           value.summary,
           value.occurrences,
           LearningState.valueOf(value.state),
@@ -151,7 +156,7 @@ public final class JsonLearningStore implements LearningStore {
   public static final class RecordDto {
     public String key;
     public String gate;
-    public String status;
+    public String rule;
     public String summary;
     public int occurrences;
     public String state;
@@ -163,7 +168,7 @@ public final class JsonLearningStore implements LearningStore {
       final RecordDto dto = new RecordDto();
       dto.key = value.key();
       dto.gate = value.gate();
-      dto.status = value.status();
+      dto.rule = value.rule();
       dto.summary = value.summary();
       dto.occurrences = value.occurrences();
       dto.state = value.state().name();

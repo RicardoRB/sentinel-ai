@@ -6,6 +6,15 @@ if [ "$1" = "--version" ]; then
 fi
 echo "stub mvnw: $*"
 if [ -f FAIL ]; then
+  case " $* " in
+    *" checkstyle:check "*)
+      mkdir -p target
+      cat > target/checkstyle-result.xml <<'XML'
+<?xml version="1.0" encoding="UTF-8"?>
+<checkstyle version="10.0"><file name="src/main/java/App.java"><error line="3" severity="error" message="Line is longer than 100 characters (found 120)." source="com.puppycrawl.tools.checkstyle.checks.sizes.LineLengthCheck"/></file></checkstyle>
+XML
+      ;;
+  esac
   echo "BUILD FAILURE" >&2
   exit 1
 fi

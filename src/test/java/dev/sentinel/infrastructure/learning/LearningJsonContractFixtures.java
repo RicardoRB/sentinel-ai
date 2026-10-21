@@ -50,11 +50,11 @@ final class LearningJsonContractFixtures {
   static LearningLedger ledger() {
     final Map<String, LearningRecord> records = new LinkedHashMap<>();
     records.put(
-        "tests:FAILED",
+        "pmd:UnusedLocalVariable",
         new LearningRecord(
-            "tests:FAILED",
-            "tests",
-            "FAILED",
+            "pmd:UnusedLocalVariable",
+            "pmd",
+            "UnusedLocalVariable",
             "Unicode ✓ and \"quotes\" — строка",
             2,
             LearningState.RESOLVED,
@@ -62,18 +62,18 @@ final class LearningJsonContractFixtures {
             TIME,
             true));
     records.put(
-        "checkstyle:ERROR",
+        "checkstyle:MagicNumber",
         new LearningRecord(
-            "checkstyle:ERROR",
+            "checkstyle:MagicNumber",
             "checkstyle",
-            "ERROR",
+            "MagicNumber",
             "escapes \n \t \\",
             1,
             LearningState.FAILING,
             TIME.plusSeconds(CHECKSTYLE_FIRST_SEEN_SECONDS),
             TIME.plusSeconds(CHECKSTYLE_LAST_SEEN_SECONDS),
             false));
-    return new LearningLedger(1, records);
+    return new LearningLedger(LearningLedger.CURRENT_FORMAT_VERSION, records);
   }
 
   static String fixture(final String name) throws IOException {

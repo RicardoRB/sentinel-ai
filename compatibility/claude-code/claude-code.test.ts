@@ -21,7 +21,7 @@ let session = 0;
 
 beforeAll(async () => {
   const sentinel = sentinelLauncher(process.env)!;
-  fixture = await createFixture({ harness: "claude-code", guard: true, sentinel });
+  fixture = await createFixture({ harness: "claude-code", guard: true, sentinel, gates: ["format", "checkstyle"] });
   settings = JSON.parse(readFileSync(join(fixture.root, ".claude/settings.json"), "utf8"));
   bin = join(dirname(fixture.root), "sentinel-bin");
   log = join(dirname(fixture.root), "sentinel-log");
@@ -195,7 +195,8 @@ describe("Sentinel responses through the generated hooks", () => {
   });
 
   test("a failure that recurs across three episodes produces learning context on the passing check", async () => {
-    // Learning counts once per failing episode (a failure followed by a pass), after --learn-after 3.
+    // Learning counts a recurring rule finding once per failing episode, after --learn-after 3. While FAIL
+    // exists the stub mvnw writes a Checkstyle LineLength report, so the learned problem is that rule.
     const edit = () =>
       launch(handlers("PostToolUse")[0], payload("PostToolUse", { tool_name: "Edit", tool_input: { file_path: join(fixture.root, "src/A.java") } }), fixture.root);
     rmSync(join(fixture.root, ".sentinel"), { recursive: true, force: true });
@@ -214,6 +215,7 @@ describe("Sentinel responses through the generated hooks", () => {
     const context = JSON.parse(passes[2].result.stdout).hookSpecificOutput;
     expect(context.hookEventName).toBe("PostToolUse");
     expect(String(context.additionalContext)).toContain("AGENTS.md");
+    expect(String(context.additionalContext)).toContain("LineLength");
   });
 
   test("a clean turn end lets Claude stop", async () => {

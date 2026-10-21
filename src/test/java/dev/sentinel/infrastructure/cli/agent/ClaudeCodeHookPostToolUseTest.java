@@ -2,8 +2,15 @@ package dev.sentinel.infrastructure.cli.agent;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import dev.sentinel.domain.learning.LearningLedger;
+import dev.sentinel.domain.learning.LearningRecord;
+import dev.sentinel.domain.learning.LearningState;
 import dev.sentinel.infrastructure.cli.ExitCodes;
+import dev.sentinel.infrastructure.json.ForyJsonCodec;
+import dev.sentinel.infrastructure.learning.JsonLearningStore;
+import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class ClaudeCodeHookPostToolUseTest extends ClaudeCodeHookTestSupport {
@@ -18,14 +25,28 @@ class ClaudeCodeHookPostToolUseTest extends ClaudeCodeHookTestSupport {
 
   @Test
   void learningPromptAndSpecFindingsAreBothReported() {
-    testsPass = false;
-    hook(postToolUse("src/App.java"));
-    err.getBuffer().setLength(0);
-    testsPass = true;
+    final Instant seen = Instant.parse("2026-01-01T00:00:00Z");
+    final LearningRecord failing =
+        new LearningRecord(
+            "tests:FinalParameters",
+            "tests",
+            "FinalParameters",
+            "Parameter x should be final.",
+            1,
+            LearningState.FAILING,
+            seen,
+            seen,
+            false);
+    new JsonLearningStore(new ForyJsonCodec())
+        .save(
+            root,
+            new LearningLedger(
+                LearningLedger.CURRENT_FORMAT_VERSION, Map.of(failing.key(), failing)));
     specsValid = false;
 
     assertThat(hook(postToolUse("openspec/changes/foo/tasks.md"))).isEqualTo(ExitCodes.ERROR);
-    assertThat(err.toString()).contains("openspec change foo: 1 error", "AGENTS.md");
+    assertThat(err.toString())
+        .contains("openspec change foo: 1 error", "AGENTS.md", "FinalParameters");
     assertThat(out.toString()).isEmpty();
   }
 

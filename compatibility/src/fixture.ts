@@ -43,6 +43,8 @@ export interface FixtureOptions {
   guard: boolean;
   sentinel: SentinelLauncher;
   timeoutMs?: number;
+  /** Gates passed to `sentinel init`; defaults to `format`. */
+  gates?: string[];
 }
 
 export class FixtureError extends Error {}
@@ -82,7 +84,7 @@ export async function createFixture(options: FixtureOptions): Promise<Fixture> {
   try {
     const sentinel = (args: string[]) =>
       run([...options.sentinel.argv, ...args, "-C", root], { cwd: root, env, timeoutMs: options.timeoutMs ?? 60_000 });
-    await expectSuccess("sentinel init", sentinel(["init", "--integration", "none", "--gate", "format"]));
+    await expectSuccess("sentinel init", sentinel(["init", "--integration", "none", ...(options.gates ?? ["format"]).flatMap((gate) => ["--gate", gate])]));
     const integrate = ["integrate", options.harness];
     if (options.guard) integrate.push("--guard-approved-specs");
     await expectSuccess(`sentinel integrate ${options.harness}`, sentinel(integrate));

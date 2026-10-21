@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 
 /** Byte-for-byte contract verification of codec, report, and hook JSON. */
 class LearningJsonContractTest {
+  private static final String EXAMPLE = "Avoid unused local variables such as 'x'.";
 
   @Test
   void generatedCodecClassesBackStoreReportAndHookDtos() throws Exception {
@@ -38,7 +39,9 @@ class LearningJsonContractTest {
     final LearningOutcome outcome =
         new LearningOutcome(
             LearningLedger.empty(),
-            List.of(new LearningPrompt("tests:FAILED", "tests", 2, "BUILD FAILURE")),
+            List.of(
+                new LearningPrompt(
+                    "pmd:UnusedLocalVariable", "pmd", "UnusedLocalVariable", 2, EXAMPLE)),
             List.of());
 
     assertThat(
@@ -66,7 +69,8 @@ class LearningJsonContractTest {
     output.hookSpecificOutput = new HookSpecificOutput();
     output.hookSpecificOutput.hookEventName = "PostToolUse";
     output.hookSpecificOutput.additionalContext =
-        new LearningPrompt("tests:FAILED", "tests", 2, "BUILD FAILURE").instruction();
+        new LearningPrompt("pmd:UnusedLocalVariable", "pmd", "UnusedLocalVariable", 2, EXAMPLE)
+            .instruction();
 
     assertThat(new ForyJsonCodec().toJson(output)).isEqualTo(fixture("hook-posttooluse.json"));
   }

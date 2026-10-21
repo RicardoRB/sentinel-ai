@@ -5,13 +5,13 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * The persisted learning records, keyed by gate and status.
+ * The persisted learning records, keyed by gate and rule.
  *
  * @param formatVersion the store format version
  * @param records the records by key
  */
 public record LearningLedger(int formatVersion, Map<String, LearningRecord> records) {
-  public static final int CURRENT_FORMAT_VERSION = 1;
+  public static final int CURRENT_FORMAT_VERSION = 2;
 
   /**
    * Validates the ledger and copies the records.
