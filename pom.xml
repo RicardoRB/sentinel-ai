@@ -216,6 +216,12 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.5.2</version>
+                <configuration>
+                    <!-- Keeps tests offline: the real wiring would otherwise query GitHub for updates. -->
+                    <environmentVariables>
+                        <SENTINEL_NO_UPDATE_CHECK>1</SENTINEL_NO_UPDATE_CHECK>
+                    </environmentVariables>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.jacoco</groupId>
@@ -377,6 +383,9 @@
                   <param>dev.sentinel.application.*</param>
                 </targetClasses>
                 <threads>4</threads>
+                <environmentVariables>
+                  <SENTINEL_NO_UPDATE_CHECK>1</SENTINEL_NO_UPDATE_CHECK>
+                </environmentVariables>
                 <mutationThreshold>60</mutationThreshold>
               </configuration>
             </plugin>

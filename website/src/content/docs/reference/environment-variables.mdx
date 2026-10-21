@@ -1,0 +1,36 @@
+---
+title: Environment variables
+description: Environment variables that change Sentinel's behavior, including the update check.
+---
+
+| Variable | Effect |
+|---|---|
+| `SENTINEL_NO_UPDATE_CHECK` | Any non-empty value turns the update check off, including the `sentinel` finding in `doctor`. |
+| `CI` | Any non-empty value turns off the automatic update check. `doctor` still checks. |
+| `XDG_CACHE_HOME` | Base directory for the update-check cache. Defaults to `~/.cache`. |
+
+## Update check
+
+After an interactive command finishes, Sentinel may print one line to stderr when a newer release
+exists:
+
+```text
+sentinel: v0.4.0 is available (you have v0.3.1). Update: curl -fsSL https://raw.githubusercontent.com/RicardoRB/sentinel-ai/main/install.sh | sh
+```
+
+On Windows the line links the releases page instead. Sentinel never updates itself.
+
+The check runs at most once every 24 hours. Its result is stored in
+`$XDG_CACHE_HOME/sentinel/update-check` (by default `~/.cache/sentinel/update-check`), never in the
+project. The check is skipped when:
+
+- the command is `sentinel hook` (agent integrations),
+- `--format` is `json` or `sarif`,
+- `--help` or `--version` is used,
+- input or output is not an interactive terminal,
+- `CI` or `SENTINEL_NO_UPDATE_CHECK` is set,
+- the running version is a development build.
+
+The lookup gives up after two seconds. When it fails or you are offline, nothing is printed and the
+exit code is unchanged; `--verbose` shows why. Proxies are honored only through the JVM's
+`https.proxyHost` and `https.proxyPort` settings.

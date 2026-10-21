@@ -45,6 +45,11 @@ public class TextReportRenderer implements CheckProgressListener {
           public boolean colorEnabled() {
             return false;
           }
+
+          @Override
+          public boolean consoleAttached() {
+            return false;
+          }
         },
         "dev");
   }
