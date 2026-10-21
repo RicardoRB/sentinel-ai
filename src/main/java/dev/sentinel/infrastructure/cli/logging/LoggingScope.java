@@ -4,13 +4,14 @@ import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.IntSupplier;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
 /** Invocation-scoped configuration for the application JUL hierarchy. */
-public final class LoggingScope implements AutoCloseable {
+public final class LoggingScope {
   public static final String ROOT_NAME = "dev.sentinel";
   private static final ReentrantLock LOCK = new ReentrantLock(true);
 
@@ -23,7 +24,6 @@ public final class LoggingScope implements AutoCloseable {
   private final StderrLogHandler handler;
 
   private LoggingScope(final PrintWriter writer, final boolean verbose) {
-    LOCK.lock();
     root = Logger.getLogger(ROOT_NAME);
     rootLevel = root.getLevel();
     rootHandlers = root.getHandlers();
@@ -59,31 +59,36 @@ public final class LoggingScope implements AutoCloseable {
   }
 
   /**
-   * Sends Sentinel's log records to {@code writer} until the scope closes: warnings and above, or
+   * Runs {@code action} while Sentinel's log records go to {@code writer}: warnings and above, or
    * fine-level details when {@code verbose}.
    */
-  public static LoggingScope open(final PrintWriter writer, final boolean verbose) {
-    return new LoggingScope(writer, verbose);
-  }
-
-  @Override
-  public void close() {
+  public static int run(final PrintWriter writer, final boolean verbose, final IntSupplier action) {
+    LOCK.lock();
     try {
-      root.removeHandler(handler);
-      for (final Handler existing : rootHandlers) {
-        root.addHandler(existing);
+      final LoggingScope scope = new LoggingScope(writer, verbose);
+      try {
+        return action.getAsInt();
+      } finally {
+        scope.restore();
       }
-      root.setLevel(rootLevel);
-      root.setUseParentHandlers(useParentHandlers);
-      descendantLevels.forEach(Logger::setLevel);
-      descendantHandlers.forEach(
-          (logger, handlers) -> {
-            for (final Handler existing : handlers) {
-              logger.addHandler(existing);
-            }
-          });
     } finally {
       LOCK.unlock();
     }
+  }
+
+  private void restore() {
+    root.removeHandler(handler);
+    for (final Handler existing : rootHandlers) {
+      root.addHandler(existing);
+    }
+    root.setLevel(rootLevel);
+    root.setUseParentHandlers(useParentHandlers);
+    descendantLevels.forEach(Logger::setLevel);
+    descendantHandlers.forEach(
+        (logger, handlers) -> {
+          for (final Handler existing : handlers) {
+            logger.addHandler(existing);
+          }
+        });
   }
 }

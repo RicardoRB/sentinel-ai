@@ -126,7 +126,7 @@ public final class PartialCheckPlan {
             path ->
                 new EditedPath(
                     absoluteRoot.relativize(path).toString().replace('\\', '/'),
-                    path.getFileName().toString(),
+                    String.valueOf(path.getFileName()),
                     existence.exists(path)))
         .toList();
   }
