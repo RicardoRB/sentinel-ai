@@ -140,7 +140,7 @@ jobs:
       - name: Run terminal tests in a native test image
         run: >-
           ./mvnw -B -Pnative
-          -Dtest='dev/sentinel/infrastructure/terminal/*Test'
+          -Dtest='dev/sentinel/infrastructure/terminal/*Test,dev/sentinel/infrastructure/terminal/**/*Test'
           -Dsurefire.failIfNoSpecifiedTests=false
           test native:test
 
