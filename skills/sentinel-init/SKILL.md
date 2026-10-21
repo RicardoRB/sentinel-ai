@@ -2,9 +2,9 @@
 name: sentinel-init
 description: Set up or reconfigure Sentinel quality gates in a Java (Maven or Gradle) project together with the user. Inspects the project, explains each choice (preset, gates, architecture style, tools, agent integration, Git hooks) with a recommendation grounded in what it found, previews the exact changes with `sentinel init --dry-run`, and applies them only after approval. Use when the user wants to add Sentinel, initialize or change sentinel.toml, choose quality gates, or asks how to set up Sentinel for this repository.
 license: Apache-2.0
-compatibility: Requires the sentinel CLI >= 0.0.12, a Maven or Gradle Java project, and a shell.
+compatibility: Requires the sentinel CLI >= 0.1.0, a Maven or Gradle Java project, and a shell.
 metadata:
-  min-sentinel-version: "0.0.12"
+  min-sentinel-version: "0.1.0"
 ---
 
 # Sentinel guided setup
@@ -37,8 +37,8 @@ Run:
 sentinel --version
 ```
 
-- It prints `sentinel X.Y.Z`. Compare `X.Y.Z` with this skill's minimum, **0.0.12**, numerically
-  (`0.0.12` is newer than `0.0.9`).
+- It prints `sentinel X.Y.Z`. Compare `X.Y.Z` with this skill's minimum, **0.1.0**, numerically
+  (`0.1.0` is newer than `0.0.9`).
 - If `sentinel` is not found, or the version is older than the minimum, stop and tell the user. Offer
   the official installer, which installs the latest release into `~/.local/bin` and verifies its
   checksum:

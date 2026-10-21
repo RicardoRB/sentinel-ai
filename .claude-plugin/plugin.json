@@ -1,7 +1,7 @@
 {
   "name": "sentinel",
   "description": "Agent skills that set up Sentinel quality gates with you and tune each tool's rules to your codebase.",
-  "version": "0.0.11",
+  "version": "0.1.0",
   "author": {
     "name": "Ricardo Romero Benitez"
   },
