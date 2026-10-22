@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test;
 
 /** Ward installs hooks where Git runs them, falling back to the repository's .git/hooks. */
 class GitHooksDirectoryTest {
-  private static final Path REPOSITORY = Path.of("/work/codeja");
+  private static final Path REPOSITORY = Path.of("/work/acme-shop");
   private static final Project API =
       new Project(
           REPOSITORY.resolve("apps/api"),
@@ -35,7 +35,7 @@ class GitHooksDirectoryTest {
 
   @Test
   void configuredHooksPathIsUsed() {
-    final FakeCommandExecutor git = new FakeCommandExecutor(0, "/work/codeja/.githooks\n", "");
+    final FakeCommandExecutor git = new FakeCommandExecutor(0, "/work/acme-shop/.githooks\n", "");
 
     assertThat(new GitHooksDirectory(git).resolve(API)).isEqualTo(REPOSITORY.resolve(".githooks"));
   }
