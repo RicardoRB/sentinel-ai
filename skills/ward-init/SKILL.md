@@ -2,9 +2,9 @@
 name: ward-init
 description: Set up or reconfigure Ward quality gates in a Java (Maven or Gradle) project together with the user. Inspects the project, explains each choice (preset, gates, architecture style, tools, agent integration, Git hooks) with a recommendation grounded in what it found, previews the exact changes with `ward init --dry-run`, and applies them only after approval. Use when the user wants to add Ward, initialize or change ward.toml, choose quality gates, or asks how to set up Ward for this repository.
 license: Apache-2.0
-compatibility: Requires the ward CLI >= 0.1.0, a Maven or Gradle Java project, and a shell.
+compatibility: Requires the ward CLI >= 0.1.1, a Maven or Gradle Java project, and a shell.
 metadata:
-  min-ward-version: "0.1.0"
+  min-ward-version: "0.1.1"
 ---
 
 # Ward guided setup
@@ -37,8 +37,8 @@ Run:
 ward --version
 ```
 
-- It prints `ward X.Y.Z`. Compare `X.Y.Z` with this skill's minimum, **0.1.0**, numerically
-  (`0.1.0` is newer than `0.0.9`).
+- It prints `ward X.Y.Z`. Compare `X.Y.Z` with this skill's minimum, **0.1.1**, numerically
+  (`0.1.1` is newer than `0.0.9`).
 - If `ward` is not found, or the version is older than the minimum, stop and tell the user. Offer
   the official installer, which installs the latest release into `~/.local/bin` and verifies its
   checksum:
