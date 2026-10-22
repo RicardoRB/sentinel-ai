@@ -23,6 +23,20 @@ const GLOBAL_PATHS = [
   "Documents/Cline",
 ].map((path) => join(homedir(), path));
 
+// A killed orphan stays visible as a zombie until init reaps it, so wait for it to disappear.
+const isGone = async (pid: number, timeoutMs = 2_000): Promise<boolean> => {
+  const deadline = performance.now() + timeoutMs;
+  while (performance.now() < deadline) {
+    try {
+      process.kill(pid, 0);
+    } catch {
+      return true;
+    }
+    await Bun.sleep(20);
+  }
+  return false;
+};
+
 const snapshot = () =>
   GLOBAL_PATHS.map((path) => (existsSync(path) ? `${path}:${statSync(path).mtimeMs}` : `${path}:absent`));
 
@@ -72,7 +86,7 @@ describe("owned processes", () => {
     expect(result.timedOut).toBe(true);
     const background = Number(result.stdout.trim());
     expect(background).toBeGreaterThan(0);
-    expect(() => process.kill(background, 0)).toThrow();
+    expect(await isGone(background)).toBe(true);
     expect(ownedProcessCount()).toBe(0);
   });
 
