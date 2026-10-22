@@ -39,7 +39,7 @@ export default defineConfig({
       editLink: { baseUrl: `https://github.com/${repository}/edit/main/website/src/content/docs/` },
       plugins: [starlightLinksValidator()],
       sidebar: [
-        { label: 'Start here', items: [{ label: 'Overview', link: '/' }, { label: 'Installation', link: '/getting-started/installation/' }, { label: 'Quick start', link: '/getting-started/quick-start/' }] },
+        { label: 'Start here', items: [{ label: 'Overview', link: '/' }, { label: 'Installation', link: '/getting-started/installation/' }, { label: 'How it works', link: '/getting-started/how-it-works/' }, { label: 'Quick start', link: '/getting-started/quick-start/' }] },
         { label: 'Commands', items: [{ label: 'detect', link: '/commands/detect/' }, { label: 'init', link: '/commands/init/' }, { label: 'check', link: '/commands/check/' }, { label: 'spec', link: '/commands/spec/' }, { label: 'integrate', link: '/commands/integrate/' }, { label: 'doctor', link: '/commands/doctor/' }, { label: 'loop', link: '/commands/loop/' }, { label: 'hook', link: '/commands/hook/' }] },
         { label: 'Configuration', items: [{ label: 'sentinel.toml', link: '/configuration/sentinel-toml/' }, { label: 'Quality gates', link: '/configuration/gates/' }, { label: 'Learning', link: '/configuration/learning/' }] },
         { label: 'Guides', items: [{ label: 'CI/CD', link: '/guides/ci-cd/' }] },

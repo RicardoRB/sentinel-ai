@@ -4,7 +4,9 @@
 
 # Sentinel
 
-**One command that decides whether a code change is acceptable, for humans and AI coding agents.**
+**Quality guardrails for AI coding agents.**
+Define your rules once, share them with your team, and every agent follows them, from the first
+edit to production.
 
 [![Release](https://img.shields.io/github/v/release/RicardoRB/sentinel-ai?sort=semver&label=release)](https://github.com/RicardoRB/sentinel-ai/releases)
 [![Build](https://github.com/RicardoRB/sentinel-ai/actions/workflows/release.yml/badge.svg)](https://github.com/RicardoRB/sentinel-ai/actions/workflows/release.yml)
@@ -14,382 +16,100 @@
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 
 [Documentation](https://ricardorb.github.io/sentinel-ai/) ·
-[Quick start](#-quick-start) ·
-[Configuration](#%EF%B8%8F-configuration) ·
-[CI/CD](#-cicd) ·
+[Quick start](#quick-start) ·
+[How it works](#how-it-works) ·
 [Report a bug](https://github.com/RicardoRB/sentinel-ai/issues)
+
+<img src="website/public/sentinel-layers.svg" alt="Four nested shields around your code: Edit, Commit, Push, and CI. Faster checks sit close to the code, stricter ones further out." width="880">
 
 </div>
 
----
+> [!NOTE]
+> **Sentinel is in alpha.** Today it supports **Java projects built with Maven or Gradle**. Support
+> for the most widely used languages is planned. The CLI and configuration may change before `1.0`.
 
-Sentinel is a **quality-gate orchestrator for Java projects**. Declare your checks once in
-`sentinel.toml` (tests, coverage, PMD, Checkstyle, SpotBugs, ArchUnit, security scanners, or any
-command), and Sentinel runs them all, reports one verdict, and exits with a code your CI or AI agent
-can act on.
+## Why Sentinel?
 
-<p align="center">
-  <img src=".github/assets/sentinel-demo.gif" alt="sentinel check fails on a Checkstyle violation, the magic number is fixed, and the quality gate passes" width="800">
-  <br>
-  <sub>A failing Checkstyle gate, a one-line fix, and a passing quality gate. (<a href=".github/assets/sentinel-demo.webm">WebM version</a>)</sub>
-</p>
+AI coding agents write code faster than anyone can review it. To keep quality up, you end up
+repeating the same rules in every prompt: run the tests, keep methods short, don't add
+dependencies, don't break the architecture. That guidance costs tokens and time, and the agent still
+forgets.
 
-## 🎯 Why Sentinel?
+Sentinel moves those rules out of your prompts and into your project:
 
-**The problem.** A healthy Java project runs half a dozen quality tools, each with its own command,
-output format, and failure semantics. People forget to run them, and AI coding agents don't know
-they exist. Agents also generate code faster than anyone can review it, so changes that break
-tests, style, or architecture often reach review before anyone notices.
+- **The rules live in the repository.** `sentinel.toml` lists the checks (tests, coverage,
+  Checkstyle, PMD, SpotBugs, ArchUnit, security scanners, or any command).
+- **Every agent gets the same feedback.** After each edit, Sentinel runs the fast checks and hands the
+  exact failure back to the agent, which fixes it on its own.
+- **Stricter checks run later, automatically.** Commit, push, and CI each add more checks, so
+  nothing the agent missed reaches production.
 
-**Who it's for:**
+You spend less time guiding the agent and fewer tokens on corrections, because the project itself
+tells the agent what "good" means.
 
-- Teams using **AI coding agents** (Claude Code, OpenCode, Codex, Cursor, Copilot CLI, Gemini CLI,
-  and more, or any CLI agent) who want every edit
-  checked automatically.
-- Java/Maven and Java/Kotlin Gradle teams who want **one quality gate** locally and in CI, instead of a pile of scripts.
-- Tech leads who want an opinionated **`standard` or `strict` baseline** without configuring each
-  tool by hand.
+## How it works
 
-**Why not just run PMD, Checkstyle, and Sonar directly?** Sentinel doesn't replace those tools. It
-**orchestrates** them:
+Sentinel checks your code in four layers. Each layer is a **profile** in `sentinel.toml`. Inner
+layers are fast so they can run constantly; outer layers are stricter.
 
-| Running tools individually | With Sentinel |
-|---|---|
-| N commands, N output formats, N exit-code conventions | `sentinel check`: one report, one exit code |
-| Each plugin configured by hand in `pom.xml` | `sentinel init --preset strict` adds plugins and rule files |
-| Agents don't know which checks exist | Hooks run checks after **every** agent edit and return failures to the agent |
-| Output parsed with ad-hoc scripts | Stable JSON schema on stdout, diagnostics on stderr |
-| Same failure, same mistake, again and again | Learning mode asks the agent to write a preventive rule in `AGENTS.md` |
+| Layer | Profile | When it runs | What it's for |
+|---|---|---|---|
+| **1. Edit** | `default` | After every agent edit, on the edited files | Seconds-fast feedback the agent fixes right away |
+| **2. Commit** | `pre-commit` | Git `pre-commit` hook | Re-checks the whole project, in case the agent missed something |
+| **3. Push** | `pre-push` | Git `pre-push` hook | Adds compile, tests, coverage, and slower analysis before code leaves your machine |
+| **4. CI** | `ci` | Your CI pipeline | Every quality and security gate before production |
 
-**Main differentiator:** Sentinel is designed for the **agent feedback loop**. It is a fast native
-binary that agents call after each write and whose machine-readable verdict they can fix against.
+Each layer includes the checks of the layers inside it. `sentinel init` generates this layout for you;
+move a check between layers by editing its `profiles` list. Read the
+[four quality layers guide](https://ricardorb.github.io/sentinel-ai/getting-started/how-it-works/).
 
-## ✨ Features
+## Quick start
 
-| | |
-|---|---|
-| 🔎 **Static analysis** | PMD, SpotBugs, SonarQube, Semgrep |
-| 🎨 **Code style** | Checkstyle, Spotless / google-java-format |
-| 🏛️ **Architecture checks** | ArchUnit (generated Layered, Hexagonal, or Clean test), Maven Enforcer / Gradle checks |
-| 🔐 **Security checks** | Gitleaks, OWASP Dependency-Check, Trivy, Semgrep, OWASP ZAP (DAST) |
-| 🚦 **Quality gates** | Compile, tests, JaCoCo coverage, PIT mutation testing, license, API compatibility, custom commands |
-| ⚙️ **CI/CD support** | Deterministic [exit codes](#exit-codes), JSON reports, cumulative profiles (`default`, `pre-commit`, `pre-push`, `ci`), `--fail-fast` |
-| ⚡ **Native executable** | GraalVM native binaries start instantly with no JVM, which suits per-edit hooks |
-| 🤖 **Integrations** | Native project-local hooks for Claude Code, OpenCode, Codex, Cursor, Copilot, Gemini, Windsurf, Cline, Factory Droid, and Amp |
-| 📄 **Output formats** | Human-readable text (live progress, `NO_COLOR` aware) and JSON (schema v1) |
-
-## 🚀 Quick Start
-
-### Requirements
-
-- A supported **Java/Maven or Java/Kotlin Gradle** project (Maven or Gradle Wrapper recommended).
-- The **native binary** (no JVM needed), or **JDK 25** to run `sentinel.jar`.
-- Any standalone tools you enable, such as `gitleaks`, `semgrep`, or `trivy`, must be on your
-  `PATH`. Sentinel never installs tools.
-
-### 1. Install (≈30 seconds)
+**1. Install** (Linux and macOS; see [installation](https://ricardorb.github.io/sentinel-ai/getting-started/installation/) for Windows):
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/RicardoRB/sentinel-ai/main/install.sh | sh
-sentinel --version
 ```
 
-The script detects your OS and CPU, downloads the matching native binary from GitHub Releases,
-verifies its SHA-256 checksum, and installs it to `~/.local/bin`. For Windows, manual downloads, and
-source builds, see [Distribution](#-distribution).
-
-### 2. Initialize your project
+**2. Set up your project.** The wizard asks for a preset, the checks, your coding agent, and the Git
+hooks:
 
 ```bash
 cd your-project
-sentinel init                       # interactive wizard: preset, gates, agent integration
-sentinel init --preset standard     # non-interactive: low-noise baseline
-sentinel init --preset strict       # non-interactive: stricter thresholds + ArchUnit, Enforcer, PIT
+sentinel init
 ```
 
-`init` writes `sentinel.toml`, adds missing Maven plugins to `pom.xml` or equivalent pinned Gradle
-plugin declarations to `build.gradle`/`build.gradle.kts`, and writes rule files to `config/`. It
-prefers the project wrapper (`./mvnw` or `./gradlew`) and falls back to the installed build tool.
-If any step fails, it rolls back every change. Prefer a guided setup? The
-[agent skills](#agent-skills) let your coding agent do it with you. Example Maven output:
-
-```text
-Created /path/to/your-maven-project/sentinel.toml
-Updated pom.xml with Maven tools:
-- maven-checkstyle-plugin
-- maven-pmd-plugin
-- spotbugs-maven-plugin
-- jacoco-maven-plugin
-- spotless-maven-plugin
-No agent integration installed.
-```
-
-### 3. Run your first analysis
+Or in one line, for Claude Code with the `standard` preset:
 
 ```bash
-sentinel check                 # human-readable report
-sentinel check --format json   # machine-readable report with per-violation findings
-sentinel check --format sarif  # SARIF 2.1.0 for code scanning
+sentinel init --preset standard --integration claude-code --quality-hooks
 ```
 
-> The analysis command is `sentinel check`. There is no separate `analyze` command.
+**3. Run the checks** yourself, or just let your agent work:
 
-Expected output on success:
-
-```text
-Sentinel 0.1.0
-
-✓ compile
-✓ tests
-✓ format
-✓ Checkstyle
-✓ PMD
-✓ SpotBugs
-✓ coverage
-
-Quality Gate: PASSED
-7 passed · 0 failed · 0 skipped
+```bash
+sentinel check                     # layer 1: fast checks
+sentinel check --profile pre-push  # layer 3: stricter checks
 ```
 
-If something isn't working, run `sentinel doctor`:
+<p align="center">
+  <img src=".github/assets/sentinel-demo.webp" alt="An agent's change fails the PMD check, the agent uses the constant instead, and the quick check and the stricter pre-push check pass" width="900">
+  <br>
+  <sub>An agent's change fails PMD, the agent fixes it, and the fast and pre-push checks pass. (<a href=".github/assets/sentinel-demo.webm">WebM version</a>)</sub>
+</p>
 
-```text
-[OK] project       /path/to/your-maven-project
-[OK] maven         Maven Wrapper available.
-[OK] configuration Configuration is present.
-[WARNING] integration   No supported agent integration configured.
-```
+Something not working? Run `sentinel doctor`.
 
-## ⚙️ Configuration
+## Let your agent set it up
 
-**Location:** `sentinel.toml` at the project root. Sentinel also finds it from any subdirectory,
-and `-C <dir>` lets you point at another project.
+You don't need to learn every tool's configuration. Sentinel ships two
+[agent skills](https://ricardorb.github.io/sentinel-ai/integrations/agent-skills/) that set it up
+*with* you. They inspect the project, explain each choice, and change files only after you approve.
 
-**Minimal configuration:**
-
-```toml
-version = 1
-
-[quality-gates.tests]
-command = "./mvnw test"
-```
-
-**A more complete example:**
-
-```toml
-version = 1
-preset = "standard"   # informational
-
-[quality-gates.compile]
-command = "./mvnw compile"
-
-[quality-gates.tests]
-command = ["./mvnw", "test"]
-
-[quality-gates.spotbugs]
-command = "./mvnw spotbugs:check"
-enabled = false       # disable a check without deleting it
-
-[quality-gates.gitleaks]
-command = ["gitleaks", "detect", "--redact", "--report-format", "sarif", "--report-path", "target/gitleaks.sarif"]
-profiles = ["ci"]     # run only with: sentinel check --profile ci
-```
-
-### Presets
-
-| Preset | Gates | Thresholds |
+| Skill | What it does | Try asking |
 |---|---|---|
-| `standard` | compile, tests, format, Checkstyle, PMD, SpotBugs, coverage | 70% line coverage |
-| `strict` | `standard` + ArchUnit, Maven Enforcer, PIT mutation testing | 85% line, 75% branch, 60% mutation |
-| `custom` (wizard) | Nothing preselected; you choose | — |
-
-`--gate <id>` adds gates on top of a preset, for example
-`sentinel init --preset standard --gate gitleaks,archunit`.
-
-### Customizing rules
-
-Sentinel runs your tools; **the rules live in each tool's own configuration**:
-
-- Presets write `config/checkstyle.xml`, `config/pmd-ruleset.xml`, `config/spotbugs-exclude.xml`,
-  and `config/enforcer-rules.xml`. Edit them like any other tool configuration.
-- These files carry a `managed-by: sentinel` marker. Sentinel never overwrites an unmarked file, so
-  remove the marker to take full ownership of a rule file.
-- To change *what runs*, edit the gate's `command`. Any argument array works.
-
-### Enabling and disabling checks
-
-- `enabled = false` turns a gate off.
-- `profiles = ["ci"]` moves a gate out of the default run. Select profiles with
-  `--profile ci`; comma-separated names select their union for hand-authored configurations.
-- `--fail-fast` stops at the first failing gate; the remaining gates are reported as skipped.
-
-Init-generated configurations use cumulative phases: fast gates run in `default`, `pre-commit`,
-`pre-push`, and `ci`; slower local gates run in `pre-push` and `ci`; and every selected gate runs in
-`ci`. The bare `sentinel check` command uses the same fast tier as `pre-commit`.
-
-Quality hooks are opt-in and separate from agent integrations:
-
-```bash
-sentinel init --integration none --gate format,tests --quality-hooks
-sentinel init --remove-quality-hooks
-```
-
-They add managed sections to `.git/hooks/pre-commit` and `.git/hooks/pre-push`, run before existing
-hook logic, preserve user-owned content and permissions, refresh idempotently, and remove only their
-own sections.
-
-📖 Complete reference: [`sentinel.toml`](https://ricardorb.github.io/sentinel-ai/configuration/sentinel-toml/) ·
-[Quality gates](https://ricardorb.github.io/sentinel-ai/configuration/gates/) ·
-[Learning](https://ricardorb.github.io/sentinel-ai/configuration/learning/)
-
-## 🔍 Rules / Analysis
-
-### Supported analysis engines
-
-| Category | Gate ID | Engine |
-|---|---|---|
-| Build & tests | `compile` · `tests` · `coverage` · `mutation` | Maven Compiler / Gradle · JUnit 5 · JaCoCo · PIT |
-| Code quality | `checkstyle` · `pmd` · `spotbugs` · `sonar` · `format` | Checkstyle · PMD · SpotBugs · SonarQube · Spotless |
-| Security | `semgrep` · `gitleaks` · `dependency-check` · `trivy` · `zap` | Semgrep · Gitleaks · OWASP Dependency-Check · Trivy · OWASP ZAP |
-| Architecture | `archunit` · `enforcer` | ArchUnit · Maven Enforcer / Gradle checks |
-| Compliance | `license` · `api-compat` | License Maven / Gradle plugins · japicmp |
-| OpenSpec | `openspec` · `openspec-archived` · `openspec-junit-traceability` | Active/archived validation and JUnit scenario traceability |
-| Custom | `command` | Any command you configure |
-
-`zap`, `trivy`, `sonar`, `dependency-check`, `api-compat`, and `semgrep` need network access, a
-running application, or a baseline. Put them in a `ci` profile.
-
-### Example violation
-
-A failing gate shows the command it ran and the tail of the tool's output, so the agent (or a
-person) can fix it directly:
-
-```text
-✗ Checkstyle
-
-Command:
-./mvnw checkstyle:check
-
-Last 1 lines of stdout:
-[ERROR] src/main/java/com/acme/OrderService.java:[42,9] (coding) MagicNumber: 3600 is a magic number.
-```
-
-In JSON, the same failure looks like this:
-
-```json
-{
-  "schemaVersion": 1,
-  "status": "FAILED",
-  "checks": [
-    { "name": "checkstyle", "status": "FAILED", "command": "./mvnw checkstyle:check",
-      "exitCode": 1, "durationMs": 2140, "summary": "FAILED", "output": "[ERROR] src/main/java/..." }
-  ],
-  "policies": [{ "name": "all-gates-pass", "passed": false, "message": "One or more quality gates failed." }]
-}
-```
-
-### How severity works
-
-Sentinel's verdict is **per gate**. Each gate ends in one of these states: `PASSED`, `FAILED`,
-`SKIPPED`, `UNAVAILABLE` (tool not installed), or `EXECUTION_ERROR`. **Any** gate that doesn't pass
-fails the run. Per-finding severity (for example SpotBugs `threshold`, Checkstyle `severity`, or
-coverage minimums) is set in each tool's configuration, and the presets choose sensible defaults.
-
-### Fixing a violation
-
-Correct the underlying cause while preserving observable behavior and test coverage. Do not use
-suppression annotations, `// NOPMD`, SpotBugs or Checkstyle exclusions, disabled checks, or lower
-thresholds as shortcuts. If a finding appears to be a demonstrated framework limitation or false
-positive, document the evidence and request explicit review before introducing any workaround.
-
-### Exit codes
-
-| Code | Meaning |
-|---|---|
-| `0` | All selected gates passed. |
-| `1` | At least one gate failed, or `detect` found no supported project. |
-| `2` | Sentinel could not run: bad usage, invalid configuration, or no enabled gates. |
-
-## 🤖 CI/CD
-
-### CI provider integrations
-
-Sentinel works in any CI system that can run a verified native binary. The
-[CI/CD guide](https://ricardorb.github.io/sentinel-ai/guides/ci-cd/) contains copyable examples for
-GitHub Actions, GitLab CI, Jenkins, CircleCI, Azure Pipelines, and Bitbucket Pipelines, including
-installation, release pinning, JSON report artifacts, pull-request status checks, and failure behavior.
-
-The common command is:
-
-```sh
-sentinel check --profile ci --format json > sentinel-report.json
-```
-
-Non-zero exits fail the CI step: `1` means a gate failed and `2` means Sentinel could not run. For
-GitHub code scanning, write SARIF with `sentinel check --profile ci --format sarif --output sentinel.sarif`
-and upload it with `github/codeql-action/upload-sarif`. Sentinel does not provide a reusable
-`RicardoRB/sentinel-action@v1`; use the documented installer and provider-native artifact support.
-
-## 🔌 Integrations
-
-### Quality tools
-
-| Tool | Gate | Status |
-|---|---|---|
-| PMD | `pmd` | ✅ Maven plugin added by `init`; preset rulesets |
-| Checkstyle | `checkstyle` | ✅ Maven plugin added by `init`; preset rules |
-| SpotBugs | `spotbugs` | ✅ Maven plugin added by `init`; preset exclude filter |
-| ArchUnit | `archunit` | ✅ Generates `ArchitectureTest.java` (Layered / Hexagonal / Clean) |
-| Other tools | see [engines](#supported-analysis-engines) | ✅ JaCoCo, PIT, Spotless, Enforcer, Sonar, Semgrep, Gitleaks, Trivy, ZAP, … |
-
-### Build tools
-
-| Build tool | Status |
-|---|---|
-| **Maven** | ✅ Supported: detection, plugin setup, Spring Boot detection |
-| **Gradle** | ✅ Supported: Java/Kotlin detection, wrapper-first execution, Groovy/Kotlin DSL plugin setup |
-
-### AI coding agents
-
-```bash
-sentinel integrate claude-code     # PostToolUse hook on Edit/Write
-sentinel integrate opencode        # OpenCode V2 plugins (execute.after + session.idle)
-sentinel integrate codex           # native hooks: Codex, Cursor, Copilot CLI, Gemini CLI, ...
-sentinel integrate cursor
-sentinel integrate copilot
-sentinel integrate gemini
-sentinel integrate windsurf
-sentinel integrate cline
-sentinel integrate factory-droid
-sentinel integrate amp
-sentinel integrate opencode --remove
-```
-
-Integrations are project-local and idempotent, and every generated file is ownership-marked.
-Sentinel never overwrites your files, and `--remove` deletes only its own files. `integrate` and
-`doctor` report each integration's lifecycle capabilities (`PRE_TOOL`, `POST_EDIT`, `TURN_END`,
-`FEEDBACK`, `APPROVED_ARTIFACT_GUARD`); Windsurf and Factory Droid have no pre-tool hook, so they
-are advisory-only. Add `--guard-approved-specs` to block edits to approved OpenSpec artifacts.
-
-The OpenCode integration targets the **OpenCode V2 plugin API only**. Upgrade OpenCode before
-re-running `sentinel integrate opencode`, then reload the project.
-
-See the [Claude Code](https://ricardorb.github.io/sentinel-ai/integrations/claude-code/),
-[OpenCode](https://ricardorb.github.io/sentinel-ai/integrations/opencode/), and
-[native harness](https://ricardorb.github.io/sentinel-ai/integrations/native-harnesses/) guides.
-
-To drive any CLI agent until the gates pass:
-
-```bash
-sentinel loop "Fix the failing tests" --agent-command "claude -p" --max-iterations 3
-```
-
-### Agent skills
-
-Two [Agent Skills](https://agentskills.io) let your coding agent set up and tune Sentinel with you.
-`sentinel-init` inspects the project, asks one question at a time, previews the plan with
-`sentinel init --dry-run`, and applies it after you approve. `sentinel-tune` fits Checkstyle, PMD,
-JaCoCo, and ArchUnit rules to your code, and never weakens a rule without your explicit approval.
+| `sentinel-init` | Chooses the preset, checks, architecture style, agent integration, and Git hooks for this project, then previews the changes with `sentinel init --dry-run` | *"Set up Sentinel quality gates in this project"* |
+| `sentinel-tune` | Fits Checkstyle, PMD, coverage, mutation testing, and ArchUnit rules to your real code. It never weakens a rule without your approval and never adds suppressions | *"Tune the Sentinel rules to this codebase"* |
 
 ```text
 /plugin marketplace add RicardoRB/sentinel-ai    # Claude Code
@@ -400,183 +120,100 @@ JaCoCo, and ArchUnit rules to your code, and never weakens a rule without your e
 npx skills add RicardoRB/sentinel-ai --skill sentinel-init sentinel-tune   # other agents
 ```
 
-See the [agent skills guide](https://ricardorb.github.io/sentinel-ai/integrations/agent-skills/).
+## Share with your team
 
-Quality hooks are documented separately from agent integrations because they are opt-in local Git
-hooks rather than agent adapters. See [quality hooks](https://ricardorb.github.io/sentinel-ai/integrations/quality-hooks/).
+Commit the setup and everyone works with the same rules, whatever agent they use:
 
-## 📚 Documentation
+- `sentinel.toml`: the checks and which layer runs each one.
+- `config/`: the rule files for Checkstyle, PMD, SpotBugs, and the other tools.
+- The agent hooks that `sentinel init` or `sentinel integrate` generated, such as `.claude/` or
+  `.opencode/`.
+- `AGENTS.md` (optional, `sentinel init --agent-rules`): the rules written for agents to read.
+
+Git doesn't share the commit and push hooks through the repository: they live in `.git/hooks/` on
+each machine. A one-step setup for teammates is on the [roadmap](#project-status).
+
+In CI, run the outermost layer. The [CI/CD guide](https://ricardorb.github.io/sentinel-ai/guides/ci-cd/)
+has ready-to-copy examples for GitHub Actions, GitLab CI, Jenkins, and more:
+
+```bash
+sentinel check --profile ci --format json > sentinel-report.json
+```
+
+## What it checks
+
+| Category | Tools |
+|---|---|
+| Build and tests | Compiler, JUnit, JaCoCo coverage, PIT mutation testing |
+| Code quality | Checkstyle, PMD, SpotBugs, SonarQube, Spotless |
+| Architecture | ArchUnit (Layered, Hexagonal, or Clean), Maven Enforcer / Gradle checks |
+| Security | Gitleaks, Semgrep, OWASP Dependency-Check, Trivy, OWASP ZAP |
+| Compliance | License plugins, japicmp API compatibility |
+| Anything else | Any command you add to `sentinel.toml` |
+
+Sentinel runs the tools; the rules live in each tool's own configuration. See
+[quality gates](https://ricardorb.github.io/sentinel-ai/configuration/gates/).
+
+**Coding agents:** Claude Code, OpenCode, Codex, Cursor, GitHub Copilot CLI, Gemini CLI, Windsurf,
+Cline, Factory Droid, and Amp. See [integrations](https://ricardorb.github.io/sentinel-ai/commands/integrate/).
+
+## Documentation
 
 | Topic | Link |
 |---|---|
-| Getting started | [Installation](https://ricardorb.github.io/sentinel-ai/getting-started/installation/) · [Quick start](https://ricardorb.github.io/sentinel-ai/getting-started/quick-start/) |
-| Configuration | [`sentinel.toml`](https://ricardorb.github.io/sentinel-ai/configuration/sentinel-toml/) · [Learning](https://ricardorb.github.io/sentinel-ai/configuration/learning/) |
-| Rules | [Quality gates](https://ricardorb.github.io/sentinel-ai/configuration/gates/) |
+| Getting started | [Installation](https://ricardorb.github.io/sentinel-ai/getting-started/installation/) · [How it works](https://ricardorb.github.io/sentinel-ai/getting-started/how-it-works/) · [Quick start](https://ricardorb.github.io/sentinel-ai/getting-started/quick-start/) |
+| Configuration | [`sentinel.toml`](https://ricardorb.github.io/sentinel-ai/configuration/sentinel-toml/) · [Quality gates](https://ricardorb.github.io/sentinel-ai/configuration/gates/) · [Learning](https://ricardorb.github.io/sentinel-ai/configuration/learning/) |
+| Agents | [Agent skills](https://ricardorb.github.io/sentinel-ai/integrations/agent-skills/) · [Claude Code](https://ricardorb.github.io/sentinel-ai/integrations/claude-code/) · [OpenCode](https://ricardorb.github.io/sentinel-ai/integrations/opencode/) · [Other agents](https://ricardorb.github.io/sentinel-ai/integrations/native-harnesses/) · [Git hooks](https://ricardorb.github.io/sentinel-ai/integrations/quality-hooks/) |
 | CI/CD | [CI/CD guide](https://ricardorb.github.io/sentinel-ai/guides/ci-cd/) · [JSON output](https://ricardorb.github.io/sentinel-ai/reference/json-output/) · [Exit codes](https://ricardorb.github.io/sentinel-ai/reference/exit-codes/) |
-| Architecture | [Architecture](https://ricardorb.github.io/sentinel-ai/architecture/) |
-| Troubleshooting | Run [`sentinel doctor`](https://ricardorb.github.io/sentinel-ai/commands/doctor/); see [Security](https://ricardorb.github.io/sentinel-ai/security/) and [Issues](https://github.com/RicardoRB/sentinel-ai/issues) |
-| CLI reference | [`detect`](https://ricardorb.github.io/sentinel-ai/commands/detect/) · [`init`](https://ricardorb.github.io/sentinel-ai/commands/init/) · [`check`](https://ricardorb.github.io/sentinel-ai/commands/check/) · [`integrate`](https://ricardorb.github.io/sentinel-ai/commands/integrate/) · [`spec`](https://ricardorb.github.io/sentinel-ai/commands/spec/) · [`doctor`](https://ricardorb.github.io/sentinel-ai/commands/doctor/) · [`loop`](https://ricardorb.github.io/sentinel-ai/commands/loop/) · [`hook`](https://ricardorb.github.io/sentinel-ai/commands/hook/) |
+| CLI reference | [`init`](https://ricardorb.github.io/sentinel-ai/commands/init/) · [`check`](https://ricardorb.github.io/sentinel-ai/commands/check/) · [`integrate`](https://ricardorb.github.io/sentinel-ai/commands/integrate/) · [`doctor`](https://ricardorb.github.io/sentinel-ai/commands/doctor/) · [`loop`](https://ricardorb.github.io/sentinel-ai/commands/loop/) · [all commands](https://ricardorb.github.io/sentinel-ai/commands/detect/) |
+| Project | [Architecture](https://ricardorb.github.io/sentinel-ai/architecture/) · [Security](https://ricardorb.github.io/sentinel-ai/security/) |
 
-## 🛠️ Development
+## Project status
 
-```bash
-git clone https://github.com/RicardoRB/sentinel-ai.git
-cd sentinel-ai
-
-./mvnw package                                # build target/sentinel.jar (JDK 25)
-./mvnw -Pnative -DskipTests native:compile    # build target/sentinel (GraalVM 25)
-
-./mvnw -q test                                # run all tests
-./mvnw -Dtest=ClassName#methodName test       # run one test
-
-java -jar target/sentinel.jar check -C src/test/resources/fixtures/maven-project   # run locally
-
-./mvnw spotless:apply                         # format code
-sentinel check --profile pre-push             # required before every PR
-```
-
-CI runs `sentinel check --profile ci`, which runs every gate in [`sentinel.toml`](sentinel.toml).
-
-### Architecture overview
-
-```text
-infrastructure/cli/<feature>  ──►  application/<feature>  ──►  domain/<feature>
-      (Picocli inbound adapters)       (use cases)            (models + ports)
-                                                                     ▲
-infrastructure/<feature>  ───────────────────────────────────────────┘
-      (outbound adapters: process, filesystem, TOML, agents)
-```
-
-Wiring uses compile-time Dagger (`SentinelComponent`) with no reflection, which keeps the
-native-image build working. `ArchitectureBoundaryTest` enforces the layer boundaries.
-
-### Adding a new quality gate or integration
-
-- **A quality gate:** add the ID to the domain vocabulary (`SupportedQualityGates`), implement or
-  reuse a `QualityGate`, register it in `QualityGateFactory`, and update `sentinel.toml` examples and
-  `website/src/content/docs/configuration/gates.mdx` together.
-- **An agent integration:** add the ID to `SupportedAgents`, then implement `AgentIntegration`
-  under `infrastructure/agent`. For hook-based harnesses, implement `NativeHarnessAdapter` (artifact format,
-  payload parsing, and response envelope) and wrap it in `NativeAgentIntegration`. Keep
-  the ownership-marker, conflict, and rollback behavior, bind it in `config/`, and document it in
-  `website/src/content/docs/integrations/`.
-- **CLI changes** must update the matching pages under [`website/`](website/).
-
-See [AGENTS.md](AGENTS.md) for the full conventions.
-
-## 🤝 Community
-
-- **Contributing:** fork the repo, create a branch, make sure `sentinel check --profile pre-push` passes, and open
-  a pull request. Conventions are in [AGENTS.md](AGENTS.md).
-- **Bugs:** [open an issue](https://github.com/RicardoRB/sentinel-ai/issues/new) with your
-  `sentinel --version`, OS, and `sentinel doctor` output.
-- **Feature requests:** [open an issue](https://github.com/RicardoRB/sentinel-ai/issues/new)
-  describing the use case.
-- **Discussions:** use [GitHub Issues](https://github.com/RicardoRB/sentinel-ai/issues) for now.
-
-## 🗺️ Project status
-
-| | |
-|---|---|
-| **Current version** | `0.1.0` |
-| **Stability** | **Alpha.** The CLI, configuration format, and JSON schema may change before `1.0`. |
-| **Java versions** | Runs on JDK 25 (JAR) or without a JVM (native binary). Analyzes any Java version your Maven build supports. |
-| **Operating systems** | Linux x86_64, macOS (Apple Silicon and Intel), Windows x86_64 |
+**Alpha** (`0.1.0`). Runs as a native binary on Linux x86_64, macOS (Apple Silicon and Intel), and
+Windows x86_64, or as a JAR on JDK 25. Only the latest release receives fixes.
 
 **Roadmap:**
 
-- Agent skills bundled with integrations (`sentinel-check`, `sentinel-fix-<gate>`, …)
+- Support for the most widely used languages beyond Java
+- Shared Git hooks (for example through `core.hooksPath`), so teammates get the commit and push
+  layers without a setup step
+- More agent skills (`sentinel-check`, `sentinel-fix-<gate>`, …)
 - Homebrew tap and container image
 
-**Known limitations:**
+**Known limitations:** Sentinel never installs tools; a missing tool is reported as `UNAVAILABLE`.
+Commands run without a shell, but that is **not a sandbox** (see below).
 
-- Results are per gate (pass/fail). Sentinel does not parse individual findings.
-- Sentinel never installs tools. Missing standalone tools are reported as `UNAVAILABLE`.
-- Commands run without a shell, but **this is not a sandbox**. See [Security](#security).
-
-## 📦 Distribution
-
-| Channel | Status |
-|---|---|
-| **Install script** (Linux, macOS) | ✅ `curl -fsSL https://raw.githubusercontent.com/RicardoRB/sentinel-ai/main/install.sh \| sh` |
-| **GitHub Releases** | ✅ [Native archives with `LICENSE` and `NOTICE`, plus SHA-256 checksums](https://github.com/RicardoRB/sentinel-ai/releases) |
-| **Linux** (x86_64) | ✅ `sentinel-linux-x86_64.tar.gz` |
-| **macOS** | ✅ `sentinel-macos-aarch64.tar.gz` (Apple Silicon) · `sentinel-macos-x86_64.tar.gz` (Intel) |
-| **Windows** (x86_64) | ✅ `sentinel-windows-x86_64.zip` |
-| **From source** | ✅ `./mvnw package` (JDK 25) |
-| **Homebrew** | ⏳ Planned |
-| **Docker** | ⏳ Planned |
-
-**Install script options:**
+## Development
 
 ```bash
-# Pin a version and choose the install directory
-curl -fsSL https://raw.githubusercontent.com/RicardoRB/sentinel-ai/main/install.sh \
-  | SENTINEL_VERSION=v0.1.0 SENTINEL_INSTALL_DIR=/usr/local/bin sh
+./mvnw package                                # build target/sentinel.jar (JDK 25)
+./mvnw -Pnative -DskipTests native:compile    # build target/sentinel (GraalVM 25)
+./mvnw -q test                                # run all tests
+sentinel check --profile pre-push             # required before every pull request
 ```
 
-| Variable | Default | Purpose |
-|---|---|---|
-| `SENTINEL_VERSION` | `latest` | Release tag to install |
-| `SENTINEL_INSTALL_DIR` | `~/.local/bin` | Where to put the `sentinel` binary |
-| `SENTINEL_DOC_DIR` | `<install dir parent>/share/doc/sentinel` | Where to put `LICENSE` and `NOTICE` |
-| `SENTINEL_BASE_URL` | GitHub Releases | Download from a mirror |
+Contributions are welcome: fork, branch, make sure `sentinel check --profile pre-push` passes, and
+open a pull request. Conventions are in [AGENTS.md](AGENTS.md). Report bugs and request features in
+[GitHub Issues](https://github.com/RicardoRB/sentinel-ai/issues) with your `sentinel --version` and
+`sentinel doctor` output.
 
-The script supports Linux x86_64 and macOS (Intel and Apple Silicon). It installs from the release
-archive and keeps `LICENSE` and `NOTICE`. Releases before `v0.0.7` predate the archives and can't be
-installed with the script.
+To re-record the demo above, follow the steps at the top of
+[`.github/assets/sentinel-demo.tape`](.github/assets/sentinel-demo.tape).
 
-**Manual download with verification (macOS):**
-
-```bash
-curl -fsSLO https://github.com/RicardoRB/sentinel-ai/releases/latest/download/sentinel-macos-aarch64.tar.gz
-curl -fsSLO https://github.com/RicardoRB/sentinel-ai/releases/latest/download/sentinel-macos-aarch64.tar.gz.sha256
-shasum -a 256 -c sentinel-macos-aarch64.tar.gz.sha256
-mkdir sentinel && tar -xzf sentinel-macos-aarch64.tar.gz -C sentinel   # sentinel, LICENSE, NOTICE
-sudo mv sentinel/sentinel /usr/local/bin/sentinel
-```
-
-**Windows (PowerShell):**
-
-```powershell
-Invoke-WebRequest -OutFile sentinel.zip https://github.com/RicardoRB/sentinel-ai/releases/latest/download/sentinel-windows-x86_64.zip
-Expand-Archive sentinel.zip -DestinationPath sentinel   # sentinel.exe, LICENSE, NOTICE
-.\sentinel\sentinel.exe --version
-```
-
-On Windows, the `init` wizard uses numbered prompts instead of arrow-key menus.
-
-## 📄 Legal
-
-### License
-
-Sentinel is licensed under the [Apache License, Version 2.0](LICENSE). Attribution and
-third-party notices are in [`NOTICE`](NOTICE).
-
-### Third-party software
-
-Sentinel is built on these open-source libraries under the Apache License 2.0:
-[Picocli](https://picocli.info/), [Dagger](https://dagger.dev/),
-[tomlj](https://github.com/tomlj/tomlj), [Apache Fory](https://fory.apache.org/),
-`javax.inject`, `jakarta.inject`, and JSpecify. Apache Fory also brings in
-[Janino](https://github.com/janino-compiler/janino) (BSD 3-Clause). See [`NOTICE`](NOTICE) for the
-required notices. The quality tools Sentinel orchestrates are separate projects under their own
-licenses, and Sentinel does not bundle them.
-
-### Security
+## Security
 
 > [!WARNING]
 > `sentinel.toml` is **executable code**. `sentinel check` and every agent hook run its commands with
 > your user's privileges. Do not run Sentinel on untrusted repositories or pull requests outside a
 > sandbox.
 
-Commands run as argument vectors, never through a shell. `zap` scans only an explicit target that
-you are authorized to scan. Read the full [security model](https://ricardorb.github.io/sentinel-ai/security/).
+Report vulnerabilities privately through
+[GitHub Security Advisories](https://github.com/RicardoRB/sentinel-ai/security/advisories/new), not
+in a public issue. Read the full [security model](https://ricardorb.github.io/sentinel-ai/security/).
 
-**Reporting a vulnerability:** please **do not** open a public issue. Report it privately through
-[GitHub Security Advisories](https://github.com/RicardoRB/sentinel-ai/security/advisories/new).
+## License
 
-### Support policy
-
-While Sentinel is in alpha, only the **latest release** receives fixes. Support is best-effort,
-through GitHub Issues.
+[Apache License 2.0](LICENSE). Third-party notices, including the libraries Sentinel is built on, are
+in [`NOTICE`](NOTICE). The quality tools Sentinel runs are separate projects under their own licenses
+and are not bundled.
