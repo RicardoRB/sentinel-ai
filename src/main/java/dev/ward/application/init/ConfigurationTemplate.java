@@ -15,6 +15,18 @@ final class ConfigurationTemplate {
 
   static String render(
       final List<InitGateOption> gates, final QualityPreset preset, final Project project) {
+    return render(gates, preset, project, null);
+  }
+
+  /**
+   * Renders the configuration; {@code openSpecRoot}, when not {@code null}, is written as the
+   * project-relative directory the OpenSpec gates run from.
+   */
+  static String render(
+      final List<InitGateOption> gates,
+      final QualityPreset preset,
+      final Project project,
+      final String openSpecRoot) {
     final StringBuilder content = new StringBuilder(SECTION_CAPACITY * (gates.size() + 1));
     content.append("version = 1\n");
     if (preset != null) {
@@ -46,9 +58,16 @@ final class ConfigurationTemplate {
             .append(goal)
             .append("\"\n");
       }
+      if (openSpecRoot != null && isOpenSpec(gate.id())) {
+        content.append("root = \"").append(escape(openSpecRoot)).append("\"\n");
+      }
       partial(content, gate.id(), project, preset);
     }
     return content.toString();
+  }
+
+  private static boolean isOpenSpec(final String id) {
+    return "openspec".equals(id) || "openspec-archived".equals(id);
   }
 
   private static void partial(

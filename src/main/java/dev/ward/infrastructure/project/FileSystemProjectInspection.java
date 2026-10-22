@@ -1,6 +1,7 @@
 package dev.ward.infrastructure.project;
 
 import dev.ward.domain.project.BuildTool;
+import dev.ward.domain.project.DiscoveredProject;
 import dev.ward.domain.project.Framework;
 import dev.ward.domain.project.Language;
 import dev.ward.domain.project.Project;
@@ -8,7 +9,6 @@ import dev.ward.domain.project.ProjectInspection;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
@@ -26,6 +26,7 @@ public final class FileSystemProjectInspection implements ProjectInspection {
   // Build files are searched this many directories below the repository root.
   private static final int MAX_SEARCH_DEPTH = 4;
   public static final String POM = "pom.xml";
+  static final String GIT = ".git";
   private static final String SPRING_BOOT_GROUP_ID = "org.springframework.boot";
   private static final String DISTRIBUTION_MANAGEMENT = "distributionManagement";
 
@@ -61,14 +62,14 @@ public final class FileSystemProjectInspection implements ProjectInspection {
     for (Path dir = start.toAbsolutePath().normalize(); dir != null; dir = dir.getParent()) {
       final Optional<Project> project = projectAt(dir);
       if (project.isPresent()) {
-        return project;
+        return Optional.of(ProjectRoots.inRepository(ProjectRoots.aggregatorOf(project.get())));
       }
     }
     return Optional.empty();
   }
 
   @Override
-  public List<Project> discover(final Path start) {
+  public List<DiscoveredProject> discover(final Path start) {
     Path root = start.toAbsolutePath().normalize();
     Path candidate = root;
     Path parent = candidate.getParent();
@@ -79,29 +80,19 @@ public final class FileSystemProjectInspection implements ProjectInspection {
     if (isRepositoryRoot(candidate)) {
       root = candidate;
     }
-    final List<Project> projects;
-    try (Stream<Path> paths = Files.walk(root, MAX_SEARCH_DEPTH)) {
-      projects =
-          paths
-              .filter(Files::isDirectory)
-              .map(FileSystemProjectInspection::projectAt)
-              .flatMap(Optional::stream)
-              .toList();
-    } catch (IOException e) {
-      throw new IllegalStateException("Could not scan project roots: " + e.getMessage(), e);
-    }
-    return projects.stream()
-        .distinct()
-        .sorted(
-            Comparator.comparing(Project::root).thenComparing(project -> project.language().name()))
+    return RepositoryProjectScan.scan(root, MAX_SEARCH_DEPTH).stream()
+        .map(
+            found ->
+                new DiscoveredProject(
+                    ProjectRoots.inRepository(found.project()), found.moduleCount()))
         .toList();
   }
 
   private static boolean isRepositoryRoot(final Path dir) {
-    return Files.exists(dir.resolve(".git")) || Files.exists(dir.resolve(POM));
+    return Files.exists(dir.resolve(GIT)) || Files.exists(dir.resolve(POM));
   }
 
-  private static Optional<Project> projectAt(final Path dir) {
+  static Optional<Project> projectAt(final Path dir) {
     for (final Marker marker : MARKERS) {
       if (Files.isRegularFile(dir.resolve(marker.file()))) {
         return Optional.of(marker.project().apply(dir));
@@ -126,7 +117,8 @@ public final class FileSystemProjectInspection implements ProjectInspection {
         BuildTool.MAVEN,
         pom.map(FileSystemProjectInspection::framework).orElse(Framework.NONE),
         Files.isRegularFile(dir.resolve("mvnw")),
-        pom.map(FileSystemProjectInspection::publishes).orElse(false));
+        pom.map(FileSystemProjectInspection::publishes).orElse(false),
+        dir);
   }
 
   private static Project gradleProject(final Path dir, final Language language) {
@@ -149,7 +141,7 @@ public final class FileSystemProjectInspection implements ProjectInspection {
   }
 
   /** Parses the POM securely; a malformed or hostile POM is still a Maven marker. */
-  private static Optional<Document> parse(final Path pom) {
+  static Optional<Document> parse(final Path pom) {
     try {
       final DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
       factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);

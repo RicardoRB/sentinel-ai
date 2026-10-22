@@ -22,7 +22,7 @@ class PlatformCoverageTest {
     Files.writeString(rust.resolve("Cargo.toml"), "[package]");
     assertThat(
             new ProjectDiscovery(new FileSystemProjectInspection())
-                .discover(root).stream().map(Project::language))
+                .discover(root).stream().map(discovered -> discovered.project().language()))
         .containsExactly(Language.JAVASCRIPT, Language.PYTHON, Language.RUST);
   }
 
@@ -32,7 +32,7 @@ class PlatformCoverageTest {
     Files.writeString(root.resolve("mvnw"), "#!/bin/sh\nexit 0\n");
 
     final Project project =
-        new ProjectDiscovery(new FileSystemProjectInspection()).discover(root).getFirst();
+        new ProjectDiscovery(new FileSystemProjectInspection()).discover(root).getFirst().project();
 
     assertThat(project.mavenWrapperAvailable()).isTrue();
   }

@@ -86,6 +86,14 @@ public class InitService {
     return detector.detect(start).orElseThrow(ProjectNotFoundException::new);
   }
 
+  /**
+   * Returns the projects one run configures from {@code start}: the {@code explicit} directories,
+   * else the containing Maven or Gradle project, else the ones discovered below {@code start}.
+   */
+  public InitTargets targets(final Path start, final List<String> explicit) {
+    return InitTargets.resolve(detector, start, explicit);
+  }
+
   /** Returns whether {@code project} already has a {@code ward.toml}. */
   public boolean configurationExists(final Project project) {
     return files.configuration().exists(project.root().resolve("ward.toml"));
@@ -133,10 +141,10 @@ public class InitService {
       catalog.get().architecture(selection.architecture());
     }
     final InitChanges changes =
-        new InitChanges(project.root(), selection.integrations(), files, installer, catalog.get());
+        new InitChanges(project, selection.integrations(), files, installer, catalog.get());
     boolean completed = false;
     try {
-      changes.apply(project, selection, gates, approval);
+      changes.apply(selection, gates, approval);
       final InitResult result = writeConfiguration(project, gates, selection, changes, overwrite);
       if (!result.created()) {
         changes.rollback();
@@ -175,7 +183,9 @@ public class InitService {
       final InitChanges changes,
       final boolean overwrite) {
     final Path file = project.root().resolve("ward.toml");
-    final String content = ConfigurationTemplate.render(gates, selection.preset(), project);
+    final String content =
+        ConfigurationTemplate.render(
+            gates, selection.preset(), project, catalog.get().openSpecDirectories().root(project));
     final boolean created;
     if (overwrite) {
       files.configuration().replace(file, content);
@@ -184,7 +194,11 @@ public class InitService {
       created = files.configuration().create(file, content);
     }
     return changes.result(
-        file, created, overwrite, gates, catalog.get().openSpecWarnings(project, gates));
+        file,
+        created,
+        overwrite,
+        gates,
+        catalog.get().openSpecDirectories().warnings(project, gates));
   }
 
   // Cleanup is best effort: any failure here must not hide the original setup failure.

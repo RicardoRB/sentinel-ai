@@ -45,16 +45,30 @@ final class InitCommandFixture {
   InitCommandFixture(
       final Path root, final BuildToolConfiguration buildTools, final String... executables)
       throws IOException {
+    this(root, true, buildTools, executables);
+  }
+
+  private InitCommandFixture(
+      final Path root,
+      final boolean rootProject,
+      final BuildToolConfiguration buildTools,
+      final String... executables)
+      throws IOException {
     this.root = root;
     this.buildTools = buildTools;
     this.executables = executables.clone();
-    if (!Files.exists(root.resolve("pom.xml"))) {
+    if (rootProject && !Files.exists(root.resolve("pom.xml"))) {
       Files.writeString(
           root.resolve("pom.xml"),
           "<project><modelVersion>4.0.0</modelVersion><groupId>example</groupId>"
               + "<artifactId>demo</artifactId><version>1.0.0</version></project>");
     }
     Files.createDirectories(root.resolve(".git/hooks"));
+  }
+
+  /** Runs init in a repository whose root is not a project; tests add the projects themselves. */
+  static InitCommandFixture repository(final Path root) throws IOException {
+    return new InitCommandFixture(root, false, new PomToolConfigurator());
   }
 
   /** Runs init with piped input. */

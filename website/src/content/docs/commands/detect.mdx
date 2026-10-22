@@ -8,6 +8,11 @@ reports language, build tool, framework, and project root. Java and Kotlin Gradl
 recognized from `build.gradle` and `build.gradle.kts`; Spring Boot is recognised when the pom
 references `org.springframework.boot`.
 
+Build modules belong to their aggregator. A directory listed in an enclosing `pom.xml`
+`<modules>` (including profile modules), or a Gradle build below an enclosing
+`settings.gradle(.kts)`, resolves to that aggregator, up to the Git top-level. A nested build that
+no aggregator lists is its own project.
+
 ```sh
 ward detect [-C <dir>]
 ```

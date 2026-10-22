@@ -1,6 +1,6 @@
 package dev.ward.application.project;
 
-import dev.ward.domain.project.Project;
+import dev.ward.domain.project.DiscoveredProject;
 import dev.ward.domain.project.ProjectInspection;
 import java.nio.file.Path;
 import java.util.List;
@@ -15,7 +15,7 @@ public final class ProjectDiscovery {
   }
 
   /** Returns every supported project under the repository containing {@code start}. */
-  public List<Project> discover(final Path start) {
+  public List<DiscoveredProject> discover(final Path start) {
     return inspection.discover(start);
   }
 }

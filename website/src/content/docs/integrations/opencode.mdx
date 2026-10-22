@@ -85,6 +85,21 @@ Refreshing `ward integrate opencode` keeps the current guard state. Use
 `--no-guard-approved-specs` to remove only this plugin, or `--remove` to remove the complete
 Ward-owned integration.
 
+## Projects in a subdirectory
+
+OpenCode sessions in a monorepo usually start at the repository root. When `ward init` configures a
+project below it, such as `apps/api`, it installs `.opencode/commands/ward-check-apps-api.md` and
+`.opencode/plugins/ward-edit-write-apps-api.js` (plus `ward-openspec-guard-apps-api.js` with the
+guard) at the repository root. These plugins:
+
+- run `ward` from the project directory, found from the plugin's own location, so the session's
+  directory does not matter;
+- pass edited paths as absolute paths, resolved against the session directory;
+- use plugin ids suffixed with the project (`ward.edit-write.apps-api`), so plugins of several
+  projects can load side by side.
+
+An edit outside the project runs none of its gates.
+
 ## Verification
 
 The deterministic suite in `compatibility/opencode-v2` (`bun run test`) loads the generated plugins against

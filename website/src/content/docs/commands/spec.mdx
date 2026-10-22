@@ -42,7 +42,10 @@ as a direct argument vector:
 
 - Targeted validation runs only when the active `openspec` registration is enabled in the selected profiles.
   Enabling only `openspec-archived` does not turn it on.
-- Paths that leave the project root are ignored, whether through `..` or a symbolic link.
+- Paths that leave the project root are ignored, whether through `..` or a symbolic link. When the
+  `openspec` registration sets `root`, as `ward init` does for a project in a monorepo whose
+  `openspec/` lives at the repository root, paths are contained in that root instead and the
+  executable runs from it; a `root` outside the repository validates nothing.
 - Items that no longer exist are skipped silently, for example after a change was deleted or archived during
   the edit.
 - A missing executable or project-root `openspec/` directory is reported as a finding, and nothing is launched.
@@ -157,6 +160,10 @@ Archiving a change or syncing deltas into openspec/specs/ requires a human. Ask 
 
 When no change is active, the reason explains how to create one with `openspec new change <name>`. The reason is
 capped at 4,000 characters.
+
+The guard never reads `ward.toml`. It protects the project's own `openspec/`; a project below the Git
+top-level that has none protects the top-level's `openspec/` instead, the same directory `ward init`
+points the OpenSpec gates at. Relative paths still start from `--cwd` or the project root.
 
 ### Guard exit codes
 

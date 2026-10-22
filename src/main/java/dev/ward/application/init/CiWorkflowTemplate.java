@@ -16,7 +16,8 @@ final class CiWorkflowTemplate {
   static final String DEVELOPMENT_VERSION = "dev";
   static final String BEGIN = "# ward-owned: github-ci v1 begin";
   static final String END = "# ward-owned: github-ci v1 end";
-  private static final String FILE = ".github/workflows/ward.yml";
+  private static final String WORKFLOWS = ".github/workflows/";
+  private static final String SARIF = "ward.sarif";
   private static final String GITLEAKS_VERSION = "8.30.1";
   private static final String TRIVY_VERSION = "0.76.0";
   private static final String SEMGREP_VERSION = "1.181.0";
@@ -40,7 +41,7 @@ final class CiWorkflowTemplate {
           "Unknown CI provider '" + provider + "'. Supported providers: " + GITHUB);
     }
     final Set<String> ids = gates.stream().map(InitGateOption::id).collect(Collectors.toSet());
-    final StringBuilder body = new StringBuilder(header(ids, project));
+    final StringBuilder body = new StringBuilder(header(ids, project, fileName(project)));
     body.append(tools(ids));
     if (ids.contains("trivy")) {
       body.append(
@@ -52,7 +53,8 @@ final class CiWorkflowTemplate {
               + "          key: trivy-${{ github.run_id }}\n"
               + "          restore-keys: trivy-\n");
     }
-    body.append(ward(wardVersion, ids.contains("dependency-check")));
+    body.append(
+        ward(wardVersion, ids.contains("dependency-check"), sarif(project), category(project)));
     if (ids.contains("trivy")) {
       body.append(
           STEP
@@ -63,21 +65,64 @@ final class CiWorkflowTemplate {
               + "          path: ~/.cache/trivy\n"
               + "          key: trivy-${{ github.run_id }}\n");
     }
-    return new OwnedSection(project.root().resolve(FILE), BEGIN, END, body.toString(), true);
+    return new OwnedSection(
+        project.repositoryRoot().resolve(WORKFLOWS + fileName(project)),
+        BEGIN,
+        END,
+        body.toString(),
+        true);
   }
 
-  private static String header(final Set<String> ids, final Project project) {
-    return "name: Ward\n\n"
+  /** A root project keeps {@code ward.yml}; a nested one gets a file named after its path. */
+  static String fileName(final Project project) {
+    if (!project.nested()) {
+      return "ward.yml";
+    }
+    return "ward-" + project.pathSlug() + ".yml";
+  }
+
+  /** Code scanning keeps one result set per category, so each project needs its own. */
+  private static String category(final Project project) {
+    final String file = fileName(project);
+    return file.substring(0, file.length() - ".yml".length());
+  }
+
+  private static String sarif(final Project project) {
+    return project.nested() ? project.projectPath() + "/" + SARIF : SARIF;
+  }
+
+  private static String header(final Set<String> ids, final Project project, final String file) {
+    final boolean nested = project.nested();
+    final String paths =
+        nested
+            ? "    paths: ["
+                + quoted(project.projectPath() + "/**")
+                + ", "
+                + quoted(WORKFLOWS + file)
+                + "]\n"
+            : "";
+    return "name: "
+        + (nested ? quoted("Ward (" + project.projectPath() + ")") : "Ward")
+        + "\n\n"
         + "on:\n"
         + "  pull_request:\n"
+        + paths
         + "  push:\n"
-        + "    branches: [main]\n\n"
+        + "    branches: [main]\n"
+        + paths
+        + "\n"
         + "permissions:\n"
         + "  contents: read\n\n"
         + "jobs:\n"
         + "  quality:\n"
         + "    name: Ward ci profile\n"
         + "    runs-on: ubuntu-24.04\n"
+        // Shell steps run in the project; uses: steps ignore this, so SARIF paths stay rooted.
+        + (nested
+            ? "    defaults:\n      run:\n        working-directory: "
+                + quoted(project.projectPath())
+                + "\n"
+            : "")
         + "    permissions:\n"
         + "      contents: read\n"
         + "      security-events: write\n"
@@ -140,7 +185,13 @@ final class CiWorkflowTemplate {
             + String.join("", install);
   }
 
-  private static String ward(final String version, final boolean nvdKey) {
+  /** Quotes {@code value} as a single-quoted YAML scalar. */
+  private static String quoted(final String value) {
+    return "'" + value.replace("'", "''") + "'";
+  }
+
+  private static String ward(
+      final String version, final boolean nvdKey, final String sarif, final String category) {
     return STEP
         + "Install Ward\n"
         + "        env:\n"
@@ -161,10 +212,16 @@ final class CiWorkflowTemplate {
         + "          always()\n"
         + "          && github.event_name == 'pull_request'\n"
         + "          && github.event.pull_request.head.repo.full_name == github.repository\n"
-        + "          && hashFiles('ward.sarif') != ''\n"
+        + "          && hashFiles('"
+        + sarif.replace("'", "''")
+        + "') != ''\n"
         + "        uses: github/codeql-action/upload-sarif@v4\n"
         + "        with:\n"
-        + "          sarif_file: ward.sarif\n"
-        + "          category: ward\n";
+        + "          sarif_file: "
+        + sarif
+        + "\n"
+        + "          category: "
+        + category
+        + "\n";
   }
 }

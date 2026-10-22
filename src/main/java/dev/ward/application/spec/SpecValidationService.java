@@ -58,18 +58,26 @@ public class SpecValidationService {
       final Path start, final List<String> profiles, final Collection<String> editedPaths) {
     final long started = System.nanoTime();
     final Project project = detect(start);
-    final Optional<String> executable = activeExecutable(project, profiles);
-    if (executable.isEmpty()) {
+    final Optional<GateConfiguration> active = activeGate(project, profiles);
+    if (active.isEmpty()) {
       LOGGER.log(Level.INFO, "event=spec-validate-skipped mode=targeted reason=not-enabled");
       return SpecValidationReport.EMPTY;
     }
+    final Optional<Path> openSpecRoot = OpenSpecRoots.configured(project, active.get().root());
+    if (openSpecRoot.isEmpty()) {
+      LOGGER.log(Level.INFO, "event=spec-validate-skipped mode=targeted reason=root-outside");
+      return SpecValidationReport.EMPTY;
+    }
+    final Path root = openSpecRoot.get();
     final List<Path> contained =
         editedPaths.stream()
-            .map(path -> paths.containedRelative(project.root(), path))
+            .map(path -> OpenSpecRoots.againstProject(project, root, path))
+            .flatMap(Optional::stream)
+            .map(path -> paths.containedRelative(root, path))
             .flatMap(Optional::stream)
             .toList();
     final List<SpecItem> items =
-        OpenSpecLayout.route(contained).stream().filter(item -> exists(project, item)).toList();
+        OpenSpecLayout.route(contained).stream().filter(item -> exists(root, item)).toList();
     LOGGER.log(
         Level.INFO,
         () ->
@@ -85,7 +93,8 @@ public class SpecValidationService {
       return SpecValidationReport.EMPTY;
     }
     final SpecValidationReport report =
-        new SpecValidationReport(validator.validate(project.root(), executable.get(), items));
+        new SpecValidationReport(
+            validator.validate(root, active.get().command().getFirst(), items));
     log("targeted", report, started);
     return report;
   }
@@ -107,7 +116,8 @@ public class SpecValidationService {
     return detector.detect(start).orElseThrow(ProjectNotFoundException::new);
   }
 
-  private Optional<String> activeExecutable(final Project project, final List<String> profiles) {
+  private Optional<GateConfiguration> activeGate(
+      final Project project, final List<String> profiles) {
     if (!paths.isRegularFile(project.root(), CONFIGURATION)) {
       return Optional.empty();
     }
@@ -117,16 +127,14 @@ public class SpecValidationService {
             .forProfiles(profiles)
             .enabledGates()
             .get(OpenSpecQualityGate.ACTIVE);
-    return active == null || active.command().isEmpty()
-        ? Optional.empty()
-        : Optional.of(active.command().getFirst());
+    return active == null || active.command().isEmpty() ? Optional.empty() : Optional.of(active);
   }
 
-  private boolean exists(final Project project, final SpecItem item) {
+  private boolean exists(final Path root, final SpecItem item) {
     final Path location = OpenSpecLayout.location(item);
     return item.kind() == SpecItem.Kind.CHANGE
-        ? paths.isDirectory(project.root(), location)
-        : paths.isRegularFile(project.root(), location);
+        ? paths.isDirectory(root, location)
+        : paths.isRegularFile(root, location);
   }
 
   private static long count(final List<SpecItem> items, final SpecItem.Kind kind) {

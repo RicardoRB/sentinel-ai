@@ -46,7 +46,7 @@ class CoverageProjectDiscoveryTest {
     Files.writeString(root.resolve("csharp/app.csproj"), "<Project/>");
 
     assertThat(new ProjectDiscovery(new FileSystemProjectInspection()).discover(root))
-        .extracting(Project::language)
+        .extracting(discovered -> discovered.project().language())
         .containsExactlyInAnyOrder(
             Language.JAVA,
             Language.JAVA,
@@ -71,6 +71,7 @@ class CoverageProjectDiscoveryTest {
             new ProjectDiscovery(new FileSystemProjectInspection())
                 .discover(root)
                 .getFirst()
+                .project()
                 .buildTool())
         .isEqualTo(BuildTool.PNPM);
     Files.delete(root.resolve("pnpm-lock.yaml"));
@@ -79,6 +80,7 @@ class CoverageProjectDiscoveryTest {
             new ProjectDiscovery(new FileSystemProjectInspection())
                 .discover(root)
                 .getFirst()
+                .project()
                 .buildTool())
         .isEqualTo(BuildTool.YARN);
   }

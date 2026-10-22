@@ -14,8 +14,14 @@ ward detect -C <dir>
 
 - Exit `0`: note the reported language, build tool (`MAVEN` or `GRADLE`), framework, and project root.
   Use that root for every later step.
-- Exit `1`: no Maven or Gradle project was found. Tell the user Ward cannot be initialized here and
-  stop.
+- Exit `1`, or a project that is not Maven or Gradle (for example the `package.json` at a monorepo
+  root): look for Maven and Gradle projects below the directory. List `pom.xml`,
+  `build.gradle(.kts)` and `settings.gradle(.kts)` files without descending into `node_modules`,
+  `target`, `build`, `dist`, `out`, or hidden directories, and treat a directory listed in a parent
+  `pom.xml` `<modules>` or below a `settings.gradle(.kts)` as a module of that parent, not a
+  project. If none remain, tell the user Ward cannot be initialized here and stop. Otherwise list
+  them and ask which to configure; each answer becomes one `--project <dir>` option, and
+  `ward detect -C <dir>/<project>` gives that project's details.
 - Exit `2`: Ward could not run. Show the error and stop.
 
 ## 2. Build readiness

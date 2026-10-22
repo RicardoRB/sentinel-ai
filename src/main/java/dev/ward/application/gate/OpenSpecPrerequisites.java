@@ -16,6 +16,18 @@ public final class OpenSpecPrerequisites {
   /** Returns the first unmet prerequisite, inspecting without executing anything. */
   public static Optional<Problem> check(
       final EnvironmentInspection environment, final Path projectRoot, final String executable) {
+    return check(environment, projectRoot, executable, "project-root");
+  }
+
+  /**
+   * Returns the first unmet prerequisite for OpenSpec in {@code projectRoot}, naming that directory
+   * with {@code where}, such as {@code project-root} or the configured root.
+   */
+  public static Optional<Problem> check(
+      final EnvironmentInspection environment,
+      final Path projectRoot,
+      final String executable,
+      final String where) {
     final ExecutableObservation observation =
         environment.inspectExecutable(projectRoot, executable);
     final boolean directory = environment.hasOpenSpecDirectory(projectRoot);
@@ -28,14 +40,17 @@ public final class OpenSpecPrerequisites {
                   + "' is unavailable. Install OpenSpec or configure an executable path."
                   + (directory
                       ? ""
-                      : " The project-root openspec/ directory is also missing or not a"
-                          + " directory.")));
+                      : " The "
+                          + where
+                          + " openspec/ directory is also missing or not a directory.")));
     }
     if (!directory) {
       return Optional.of(
           new Problem(
               false,
-              "Project-root openspec/ directory is missing or is not a directory. Initialize the"
+              Character.toUpperCase(where.charAt(0))
+                  + where.substring(1)
+                  + " openspec/ directory is missing or is not a directory. Initialize the"
                   + " project manually."));
     }
     return Optional.empty();

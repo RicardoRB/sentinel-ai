@@ -2,6 +2,7 @@ package dev.ward.infrastructure.init;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import dev.ward.ProjectFixtures;
 import dev.ward.domain.agent.PlannedFileChange;
 import dev.ward.domain.agent.PlannedFileChange.Action;
 import dev.ward.domain.init.QualityPreset;
@@ -44,7 +45,7 @@ class ArchitectureAndHookPlanTest {
 
   @Test
   void missingHooksAreCreatedWithoutTouchingGit(@TempDir final Path root) {
-    assertThat(hooks.plan(root))
+    assertThat(hooks.plan(ProjectFixtures.maven(root)))
         .extracting(PlannedFileChange::action)
         .containsExactly(Action.CREATE, Action.CREATE);
     assertThat(root.resolve(".git")).doesNotExist();
@@ -57,12 +58,12 @@ class ArchitectureAndHookPlanTest {
     Files.writeString(preCommit, "#!/bin/sh\necho user\n");
     final String original = Files.readString(preCommit);
 
-    final List<PlannedFileChange> before = hooks.plan(root);
+    final List<PlannedFileChange> before = hooks.plan(ProjectFixtures.maven(root));
 
     assertThat(before).extracting(PlannedFileChange::action).first().isEqualTo(Action.MODIFY);
     assertThat(Files.readString(preCommit)).isEqualTo(original);
-    hooks.apply(root);
-    assertThat(hooks.plan(root))
+    hooks.apply(ProjectFixtures.maven(root));
+    assertThat(hooks.plan(ProjectFixtures.maven(root)))
         .extracting(PlannedFileChange::action)
         .containsExactly(Action.UNCHANGED, Action.UNCHANGED);
   }
@@ -73,7 +74,7 @@ class ArchitectureAndHookPlanTest {
     Files.createDirectories(prePush.getParent());
     Files.writeString(prePush, QualityHookInstaller.START_MARKER + "\n");
 
-    assertThat(hooks.plan(root))
+    assertThat(hooks.plan(ProjectFixtures.maven(root)))
         .extracting(PlannedFileChange::action)
         .containsExactly(Action.CREATE, Action.CONFLICT);
     assertThat(Files.readString(prePush)).isEqualTo(QualityHookInstaller.START_MARKER + "\n");

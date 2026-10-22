@@ -18,6 +18,22 @@ public interface AgentIntegration extends AgentAdapter {
    */
   List<PlannedFileChange> plan(Path projectRoot, GuardMode guard);
 
+  /**
+   * Describes, without writing, what {@code request} would change under {@code root}. Integrations
+   * that do not install nested projects at the repository root ignore the project path.
+   */
+  default List<PlannedFileChange> plan(final Path root, final IntegrationRequest request) {
+    return plan(root, request.guard());
+  }
+
+  /**
+   * Returns whether a nested Ward project is installed at the repository root, where agent sessions
+   * start, rather than in the project directory; the default is false.
+   */
+  default boolean installsAtRepositoryRoot() {
+    return false;
+  }
+
   /** Returns what the installed integration enforces; the default is nothing. */
   default Set<IntegrationCapability> capabilities() {
     return Set.of();

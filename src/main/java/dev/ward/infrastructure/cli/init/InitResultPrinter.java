@@ -63,11 +63,20 @@ final class InitResultPrinter {
     }
     out.println("Ward will make these changes:");
     out.println();
-    for (final PlannedFileChange file : files) {
-      final String path = root.relativize(file.file()).toString();
-      out.printf("  %-10s %s%s%n", verb(file.action()), path, note(file.action()));
-      file.details().forEach(detail -> out.println("               " + detail));
-    }
+    files.forEach(file -> printFile(file, root));
+    printInstallations(plan, root);
+    out.println();
+  }
+
+  /** Prints one planned file, with its path relative to {@code root}. */
+  void printFile(final PlannedFileChange file, final Path root) {
+    final String path = root.relativize(file.file()).toString();
+    out.printf("  %-10s %s%s%n", verb(file.action()), path, note(file.action()));
+    file.details().forEach(detail -> out.println("               " + detail));
+  }
+
+  /** Prints the tool installations a plan would run, with paths relative to {@code root}. */
+  void printInstallations(final InitPlan plan, final Path root) {
     plan.installation()
         .ifPresent(
             installation ->
@@ -84,7 +93,6 @@ final class InitResultPrinter {
         out.printf("  %-10s %s: %s%n", "guidance", installation.tool(), installation.guidance());
       }
     }
-    out.println();
   }
 
   private static String verb(final PlannedFileChange.Action action) {

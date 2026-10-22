@@ -10,8 +10,6 @@ import dev.ward.domain.config.WardConfigurationReader;
 import dev.ward.domain.config.WardException;
 import dev.ward.domain.doctor.EnvironmentFacts;
 import dev.ward.domain.doctor.EnvironmentInspection;
-import dev.ward.domain.doctor.ExecutableObservation;
-import dev.ward.domain.doctor.OpenSpecIgnoreWarning;
 import dev.ward.domain.project.BuildTool;
 import dev.ward.domain.project.Project;
 import dev.ward.domain.traceability.TraceabilityPrerequisites;
@@ -19,7 +17,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import javax.inject.Inject;
@@ -258,42 +255,7 @@ public final class DoctorService {
     }
     configuration.gates().entrySet().stream()
         .filter(entry -> isOpenSpec(entry.getKey()) && entry.getValue().enabled())
-        .forEach(entry -> addOpenSpecFinding(root, entry, findings));
-  }
-
-  private void addOpenSpecFinding(
-      final Path root,
-      final Map.Entry<String, GateConfiguration> entry,
-      final List<Finding> findings) {
-    final String executable =
-        entry.getValue().command().isEmpty() ? "" : entry.getValue().command().getFirst();
-    final ExecutableObservation observation = environment.inspectExecutable(root, executable);
-    final boolean directory = environment.hasOpenSpecDirectory(root);
-    if (observation.usable() && directory) {
-      findings.add(
-          new Finding(
-              entry.getKey(),
-              Status.OK,
-              "OpenSpec executable and project directory are available."));
-      if (environment.isOpenSpecDirectoryIgnored(root)) {
-        findings.add(new Finding(entry.getKey(), Status.WARNING, OpenSpecIgnoreWarning.MESSAGE));
-      }
-      return;
-    }
-    final String executableMessage =
-        observation.usable() ? "executable available" : "executable unavailable";
-    final String directoryMessage =
-        directory
-            ? "project-root openspec/ directory available"
-            : "project-root openspec/ directory missing";
-    findings.add(
-        new Finding(
-            entry.getKey(),
-            Status.ERROR,
-            executableMessage
-                + "; "
-                + directoryMessage
-                + ". Configure prerequisites before checking."));
+        .forEach(entry -> findings.addAll(OpenSpecDoctorFindings.of(environment, root, entry)));
   }
 
   private static boolean isOpenSpec(final String id) {

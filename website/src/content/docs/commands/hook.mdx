@@ -45,6 +45,13 @@ With an event payload:
 
 See [Claude Code](/integrations/claude-code/) and [learning](/configuration/learning/).
 
+## Nested projects
+
+When `-C` names a project below the repository root, an edit event whose paths all lie outside the
+project runs no gate and succeeds, and a Claude Code `Stop` event runs the full check only when a
+file under the project differs from `HEAD` in the working tree or the index. Projects at the
+repository root behave as before.
+
 ## Approved-artifact guard
 
 `ward integrate claude-code --guard-approved-specs` creates `.claude/hooks/ward-openspec-guard`, which runs

@@ -9,6 +9,7 @@ import dev.ward.domain.config.WardConfigurationReader;
 import dev.ward.domain.config.WardException;
 import dev.ward.domain.gate.CheckReport;
 import dev.ward.domain.gate.QualityGate;
+import dev.ward.domain.gate.SkippedQualityGate;
 import dev.ward.domain.project.Project;
 import java.nio.file.Path;
 import java.util.List;
@@ -21,6 +22,7 @@ import javax.inject.Inject;
 /** Runs the quality gates configured in {@code ward.toml} for a project. */
 public class CheckService {
   private static final Logger LOGGER = Logger.getLogger(CheckService.class.getName());
+  static final String OUTSIDE_PROJECT = "The edited files are outside this project";
 
   private final ProjectDetector detector;
   private final WardConfigurationReader configurationReader;
@@ -90,6 +92,14 @@ public class CheckService {
         select(project, options.profiles(), options.excludedGates());
     if (selected.isEmpty()) {
       return new CheckReport(project, List.of());
+    }
+    if (PartialGates.outsideNestedProject(project, paths)) {
+      LOGGER.log(Level.INFO, "event=partial-plan scope=outside-project");
+      final List<QualityGate> skipped =
+          selected.get().gates().keySet().stream()
+              .<QualityGate>map(name -> new SkippedQualityGate(name, OUTSIDE_PROJECT))
+              .toList();
+      return runner.run(project, skipped, options.listener(), options.failFast());
     }
     final PartialCheckPlan plan =
         PartialCheckPlan.create(project.root(), selected.get().gates(), paths, pathExistence);

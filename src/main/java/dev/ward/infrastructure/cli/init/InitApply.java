@@ -1,6 +1,8 @@
 package dev.ward.infrastructure.cli.init;
 
 import dev.ward.application.init.InitService;
+import dev.ward.application.init.InitTargets;
+import dev.ward.application.init.MultiProjectPlan;
 import dev.ward.domain.agent.PlannedFileChange;
 import dev.ward.domain.config.WardException;
 import dev.ward.domain.init.CompatibilityFinding;
@@ -9,6 +11,10 @@ import dev.ward.domain.init.InitSelection;
 import dev.ward.domain.project.Project;
 import dev.ward.infrastructure.cli.ExitCodes;
 import java.io.PrintWriter;
+import java.io.UncheckedIOException;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -49,6 +55,62 @@ final class InitApply {
     return ExitCodes.OK;
   }
 
+  /**
+   * Plans every target, shows one grouped plan, asks once, then applies the targets in order. A
+   * failure names the projects already configured, which keep their changes.
+   */
+  int runAll(final List<Target> targets, final Mode mode, final Path base) {
+    final List<InitPlan> plans =
+        targets.stream()
+            .map(target -> init.plan(target.project().root(), target.selection(), mode.approved()))
+            .toList();
+    final MultiProjectPlan plan =
+        MultiProjectPlan.of(targets.stream().map(Target::project).toList(), plans);
+    final MultiProjectPlanPrinter planPrinter = new MultiProjectPlanPrinter(out);
+    if (mode.dryRun() || plan.hasConflict() || mode.review()) {
+      planPrinter.print(plan, base);
+    }
+    if (mode.dryRun()) {
+      return ExitCodes.OK;
+    }
+    if (plan.hasConflict()) {
+      throw new WardException(
+          "Cannot initialize: the selected changes conflict with user-owned content. No files"
+              + " were changed.");
+    }
+    if (mode.review() && !confirmations.review()) {
+      out.println("No changes made.");
+      return ExitCodes.OK;
+    }
+    applyAll(targets, mode, base);
+    return ExitCodes.OK;
+  }
+
+  private void applyAll(final List<Target> targets, final Mode mode, final Path base) {
+    final Predicate<CompatibilityFinding> approval =
+        finding -> mode.approved() || confirmations.compatibilityUpdate(finding);
+    final List<String> configured = new ArrayList<>();
+    for (final Target target : targets) {
+      final String name = InitTargets.display(base, target.project().root());
+      try {
+        printer.print(
+            init.initialize(
+                target.project().root(), target.selection(), target.overwrite(), approval));
+      } catch (WardException | UncheckedIOException | IllegalStateException failure) {
+        throw new WardException(
+            "Could not initialize "
+                + name
+                + ": "
+                + failure.getMessage()
+                + (configured.isEmpty()
+                    ? ""
+                    : " Already configured: " + String.join(", ", configured) + "."),
+            failure);
+      }
+      configured.add(name);
+    }
+  }
+
   private static String conflictMessage(final InitPlan plan, final Project project) {
     final String conflicts =
         plan.files().stream()
@@ -71,4 +133,7 @@ final class InitApply {
    * and whether an existing configuration may be replaced.
    */
   record Mode(boolean dryRun, boolean review, boolean approved, boolean overwrite) {}
+
+  /** One project of a multi-project run, with the answers it applies and whether it replaces. */
+  record Target(Project project, InitSelection selection, boolean overwrite) {}
 }

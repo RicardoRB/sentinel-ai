@@ -1,5 +1,7 @@
 package dev.ward.infrastructure.agent;
 
+import dev.ward.domain.agent.IntegrationResult;
+import dev.ward.domain.agent.PlannedFileChange;
 import dev.ward.domain.json.JsonCodec;
 import dev.ward.domain.json.JsonCodecException;
 import java.io.IOException;
@@ -8,6 +10,8 @@ import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
 /** Parses and safely merges Ward hook registrations in a shared Claude Code settings file. */
 final class ClaudeSettingsDocument {
@@ -22,10 +26,9 @@ final class ClaudeSettingsDocument {
 
   String merge(
       final Path settings,
-      final boolean guarded,
       final String ownershipMarker,
-      final String regularSettings,
-      final String guardedSettings)
+      final String desiredSettings,
+      final Set<String> owned)
       throws IOException {
     final Map<String, Object> root = readRoot(settings);
     validateOwnership(root, ownershipMarker);
@@ -35,14 +38,18 @@ final class ClaudeSettingsDocument {
           "Claude Code settings contain a Ward hook path without Ward ownership; resolve the conflict explicitly.");
     }
     root.put(OWNERSHIP_KEY, ownershipMarker);
-    final Map<String, Object> desired =
-        object(codec.fromJson(guarded ? guardedSettings : regularSettings, Object.class));
-    ClaudeHookSettings.merge(hooks, object(desired.get(HOOKS_KEY)));
+    final Map<String, Object> desired = object(codec.fromJson(desiredSettings, Object.class));
+    ClaudeHookSettings.merge(hooks, object(desired.get(HOOKS_KEY)), owned);
     root.put(HOOKS_KEY, hooks);
     return codec.toPrettyJson(root) + System.lineSeparator();
   }
 
-  SettingsUpdate remove(final Path settings, final String ownershipMarker) throws IOException {
+  /**
+   * Removes the hooks running {@code owned} commands. The ownership key goes only with the last
+   * Ward registration, since other Ward projects may share the file.
+   */
+  SettingsUpdate remove(final Path settings, final String ownershipMarker, final Set<String> owned)
+      throws IOException {
     if (!Files.exists(settings)) {
       return null;
     }
@@ -51,20 +58,20 @@ final class ClaudeSettingsDocument {
     validateOwnership(root, ownershipMarker);
     final Object configuredHooks = root.get(HOOKS_KEY);
     final Map<String, Object> hooks = readHooks(root);
-    final boolean hasRegistrations = hasWardRegistration(hooks);
-    if (hasRegistrations && ownership == null) {
+    final boolean ownRegistrations = hasWardRegistration(hooks, owned);
+    if (hasWardRegistration(hooks) && ownership == null) {
       throw new SettingsConflictException(
           "Claude Code settings contain a Ward hook path without Ward ownership; resolve the conflict explicitly.");
     }
-    ClaudeHookSettings.remove(hooks);
+    ClaudeHookSettings.remove(hooks, owned);
     if (configuredHooks != null) {
       root.put(HOOKS_KEY, hooks);
     }
-    final boolean owned = ownershipMarker.equals(ownership);
-    if (owned) {
+    final boolean released = ownershipMarker.equals(ownership) && !hasWardRegistration(hooks);
+    if (released) {
       root.remove(OWNERSHIP_KEY);
     }
-    if (!hasRegistrations && !owned) {
+    if (!ownRegistrations && !released) {
       return new SettingsUpdate(Files.readString(settings), false);
     }
     return new SettingsUpdate(codec.toPrettyJson(root) + System.lineSeparator(), true);
@@ -119,16 +126,47 @@ final class ClaudeSettingsDocument {
   }
 
   private static boolean hasWardRegistration(final Map<String, Object> hooks) {
-    for (final Object event : hooks.values()) {
-      if (event instanceof List<?> entries) {
-        for (final Object entry : entries) {
-          if (WardClaudeHooks.hasRegistration(object(entry))) {
-            return true;
-          }
-        }
-      }
+    return hooks.values().stream()
+        .filter(List.class::isInstance)
+        .flatMap(event -> ((List<?>) event).stream())
+        .anyMatch(entry -> WardClaudeHooks.hasRegistration(object(entry)));
+  }
+
+  private static boolean hasWardRegistration(
+      final Map<String, Object> hooks, final Set<String> owned) {
+    return hooks.values().stream()
+        .filter(List.class::isInstance)
+        .flatMap(event -> ((List<?>) event).stream())
+        .anyMatch(entry -> WardClaudeHooks.hasRegistration(object(entry), owned));
+  }
+
+  /**
+   * Writes {@code content} unless the file already holds it, reporting {@code message} on change.
+   */
+  static IntegrationResult write(final Path settings, final String content, final String message)
+      throws IOException {
+    if (Files.exists(settings) && Objects.equals(Files.readString(settings), content)) {
+      return new IntegrationResult(
+          IntegrationResult.Status.ALREADY_PRESENT,
+          List.of(),
+          "Ward integration is already present.");
     }
-    return false;
+    Files.createDirectories(
+        Objects.requireNonNull(settings.getParent(), "settings must have a parent"));
+    Files.writeString(settings, content);
+    return new IntegrationResult(
+        IntegrationResult.Status.CHANGED, List.of(settings.toString()), message);
+  }
+
+  /** Returns how writing {@code content} would change {@code settings}. */
+  static PlannedFileChange.Action action(final Path settings, final String content)
+      throws IOException {
+    if (!Files.exists(settings)) {
+      return PlannedFileChange.Action.CREATE;
+    }
+    return Objects.equals(Files.readString(settings), content)
+        ? PlannedFileChange.Action.UNCHANGED
+        : PlannedFileChange.Action.MODIFY;
   }
 
   record SettingsUpdate(String content, boolean changed) {}

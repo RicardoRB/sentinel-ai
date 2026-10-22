@@ -4,23 +4,23 @@ import dev.ward.domain.agent.IntegrationResult;
 import dev.ward.domain.agent.PlannedFileChange;
 import dev.ward.domain.init.QualityHookChange;
 import dev.ward.domain.init.QualityHookGeneration;
-import java.nio.file.Path;
+import dev.ward.domain.project.Project;
 import java.util.List;
 
 /** No-op quality-hook adapter retained for lightweight application tests and callers. */
 final class NoQualityHookGeneration implements QualityHookGeneration {
   @Override
-  public QualityHookChange apply(final Path projectRoot) {
+  public QualityHookChange apply(final Project project) {
     throw new IllegalStateException("Quality hooks are unavailable in this runtime.");
   }
 
   @Override
-  public IntegrationResult remove(final Path projectRoot) {
+  public IntegrationResult remove(final Project project) {
     throw new IllegalStateException("Quality hooks are unavailable in this runtime.");
   }
 
   @Override
-  public List<PlannedFileChange> plan(final Path projectRoot) {
+  public List<PlannedFileChange> plan(final Project project) {
     throw new IllegalStateException("Quality hooks are unavailable in this runtime.");
   }
 
