@@ -2,7 +2,7 @@ import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 import starlightLinksValidator from 'starlight-links-validator';
 
-const repository = process.env.GITHUB_REPOSITORY ?? 'sentinel-ai/sentinel-ai';
+const repository = process.env.GITHUB_REPOSITORY ?? 'ward-ai/ward-ai';
 const [owner, repo] = repository.split('/');
 const site = (process.env.SITE_URL || `https://${owner}.github.io`).replace(/\/+$/, '');
 const rawBasePath = process.env.BASE_PATH || (repo === `${owner}.github.io` ? '/' : `/${repo}/`);
@@ -32,7 +32,7 @@ export default defineConfig({
   markdown: { remarkPlugins: [prefixMarkdownLinks] },
   integrations: [
     starlight({
-      title: 'Sentinel',
+      title: 'Ward',
       description: 'Quality gates for AI coding agents.',
       favicon: '/favicon.svg',
       social: [{ icon: 'github', label: 'GitHub', href: `https://github.com/${repository}` }],
@@ -41,7 +41,7 @@ export default defineConfig({
       sidebar: [
         { label: 'Start here', items: [{ label: 'Overview', link: '/' }, { label: 'Installation', link: '/getting-started/installation/' }, { label: 'How it works', link: '/getting-started/how-it-works/' }, { label: 'Quick start', link: '/getting-started/quick-start/' }] },
         { label: 'Commands', items: [{ label: 'detect', link: '/commands/detect/' }, { label: 'init', link: '/commands/init/' }, { label: 'check', link: '/commands/check/' }, { label: 'spec', link: '/commands/spec/' }, { label: 'integrate', link: '/commands/integrate/' }, { label: 'doctor', link: '/commands/doctor/' }, { label: 'loop', link: '/commands/loop/' }, { label: 'hook', link: '/commands/hook/' }] },
-        { label: 'Configuration', items: [{ label: 'sentinel.toml', link: '/configuration/sentinel-toml/' }, { label: 'Quality gates', link: '/configuration/gates/' }, { label: 'Learning', link: '/configuration/learning/' }] },
+        { label: 'Configuration', items: [{ label: 'ward.toml', link: '/configuration/ward-toml/' }, { label: 'Quality gates', link: '/configuration/gates/' }, { label: 'Learning', link: '/configuration/learning/' }] },
         { label: 'Guides', items: [{ label: 'CI/CD', link: '/guides/ci-cd/' }] },
         { label: 'Reference', items: [{ label: 'JSON output', link: '/reference/json-output/' }, { label: 'Exit codes', link: '/reference/exit-codes/' }, { label: 'Environment variables', link: '/reference/environment-variables/' }] },
         { label: 'Integrations', items: [{ label: 'Claude Code', link: '/integrations/claude-code/' }, { label: 'OpenCode', link: '/integrations/opencode/' }, { label: 'Native harnesses', link: '/integrations/native-harnesses/' }, { label: 'Quality hooks', link: '/integrations/quality-hooks/' }, { label: 'Agent skills', link: '/integrations/agent-skills/' }] },

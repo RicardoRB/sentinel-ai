@@ -25,7 +25,7 @@ function prepare(fixture: Fixture): void {
 }
 
 async function turn(context: LiveContext, prompt: string) {
-  const model = process.env.SENTINEL_COMPAT_OPENCODE_MODEL as string;
+  const model = process.env.WARD_COMPAT_OPENCODE_MODEL as string;
   return context.run(
     [context.runtime.executable, "run", "--standalone", "--format", "json", "--auto", "--model", model, "--print-logs", "--log-level", "info", prompt],
     TURN_TIMEOUT_MS,
@@ -39,7 +39,7 @@ export const opencodeDriver: LiveDriver = {
   harness: "opencode",
   missingPrerequisites(env) {
     const missing: string[] = [];
-    if (!env.SENTINEL_COMPAT_OPENCODE_MODEL) missing.push("SENTINEL_COMPAT_OPENCODE_MODEL (provider/model)");
+    if (!env.WARD_COMPAT_OPENCODE_MODEL) missing.push("WARD_COMPAT_OPENCODE_MODEL (provider/model)");
     if (!["ANTHROPIC_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY", "GEMINI_API_KEY"].some((name) => env[name])) {
       missing.push("a model provider API key from the credential allowlist");
     }
@@ -54,7 +54,7 @@ export const opencodeDriver: LiveDriver = {
       requiresCredentials: false,
       async execute(context): Promise<Assertion[]> {
         const result = await context.run(
-          [context.runtime.executable, "run", "--standalone", "--format", "json", "--model", "sentinel-compat/unroutable", "--print-logs", "--log-level", "info", "activation probe"],
+          [context.runtime.executable, "run", "--standalone", "--format", "json", "--model", "ward-compat/unroutable", "--print-logs", "--log-level", "info", "activation probe"],
           120_000,
         );
         const lines = result.stderr.split("\n");
@@ -62,10 +62,10 @@ export const opencodeDriver: LiveDriver = {
         const failed = (file: string) => lines.some((l) => l.includes('message="failed to load plugin"') && l.includes(`/.opencode/plugins/${file}`));
         return [
           { name: "runtime exited within the deadline", passed: !result.timedOut },
-          { name: "runtime discovered sentinel-edit-write.js", passed: loading("sentinel-edit-write.js") },
-          { name: "runtime discovered sentinel-openspec-guard.js", passed: loading("sentinel-openspec-guard.js") },
-          { name: "sentinel-edit-write.js loaded without error", passed: loading("sentinel-edit-write.js") && !failed("sentinel-edit-write.js") },
-          { name: "sentinel-openspec-guard.js loaded without error", passed: loading("sentinel-openspec-guard.js") && !failed("sentinel-openspec-guard.js") },
+          { name: "runtime discovered ward-edit-write.js", passed: loading("ward-edit-write.js") },
+          { name: "runtime discovered ward-openspec-guard.js", passed: loading("ward-openspec-guard.js") },
+          { name: "ward-edit-write.js loaded without error", passed: loading("ward-edit-write.js") && !failed("ward-edit-write.js") },
+          { name: "ward-openspec-guard.js loaded without error", passed: loading("ward-openspec-guard.js") && !failed("ward-openspec-guard.js") },
         ];
       },
     },
@@ -78,9 +78,9 @@ export const opencodeDriver: LiveDriver = {
         const checks = context.invocations().filter((i) => sameArgv(i.argv, CHECK));
         return [
           { name: "runtime turn completed", passed: result.exitCode === 0 && !result.timedOut, detail: `exit ${result.exitCode}` },
-          { name: "native edit event invoked sentinel check", passed: checks.length >= 1, detail: `${checks.length} check invocation(s)` },
+          { name: "native edit event invoked ward check", passed: checks.length >= 1, detail: `${checks.length} check invocation(s)` },
           { name: "check ran in the session location", passed: checks.every((i) => i.cwd.endsWith("/project")) },
-          { name: "agent-visible tool result carries the failure", passed: result.stdout.includes("Sentinel quality check failed") },
+          { name: "agent-visible tool result carries the failure", passed: result.stdout.includes("Ward quality check failed") },
         ];
       },
     },
@@ -93,7 +93,7 @@ export const opencodeDriver: LiveDriver = {
         const guards = context.invocations().filter((i) => i.argv[0] === "spec" && i.argv[1] === "guard");
         return [
           { name: "runtime turn completed", passed: !result.timedOut, detail: `exit ${result.exitCode}` },
-          { name: "native pre-tool event invoked sentinel spec guard", passed: guards.length >= 1 },
+          { name: "native pre-tool event invoked ward spec guard", passed: guards.length >= 1 },
           { name: "protected file is unchanged", passed: sha256(path) === before },
         ];
       },

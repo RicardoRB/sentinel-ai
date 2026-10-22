@@ -1,79 +1,79 @@
 ---
 title: Agent skills
-description: Set up Sentinel and tune its rules together with your coding agent.
+description: Set up Ward and tune its rules together with your coding agent.
 ---
 
-Sentinel ships two agent skills. A skill is a `SKILL.md` file that teaches a coding agent a
-workflow. With these skills, your agent sets up Sentinel *with* you: it looks at the project first,
+Ward ships two agent skills. A skill is a `SKILL.md` file that teaches a coding agent a
+workflow. With these skills, your agent sets up Ward *with* you: it looks at the project first,
 explains each choice for this codebase, and changes files only after you approve.
 
 | Skill | What it does |
 |---|---|
-| `sentinel-init` | Inspects the project, asks about the preset, gates, architecture style, tools, agent integration, and Git hooks one question at a time, with a recommendation based on what it found. It then previews the exact changes with `sentinel init --dry-run` and applies the same options after you approve the plan. |
-| `sentinel-tune` | Fits the rules of the gates you already run to the code: Checkstyle and PMD rule selection, the JaCoCo coverage threshold, PIT mutation testing, and ArchUnit architecture rules. For a large backlog of findings it plans the fixes rule by rule instead of hiding them. Every edit is grounded in findings from `sentinel check`, shown as a diff, and written only after you approve it. |
+| `ward-init` | Inspects the project, asks about the preset, gates, architecture style, tools, agent integration, and Git hooks one question at a time, with a recommendation based on what it found. It then previews the exact changes with `ward init --dry-run` and applies the same options after you approve the plan. |
+| `ward-tune` | Fits the rules of the gates you already run to the code: Checkstyle and PMD rule selection, the JaCoCo coverage threshold, PIT mutation testing, and ArchUnit architecture rules. For a large backlog of findings it plans the fixes rule by rule instead of hiding them. Every edit is grounded in findings from `ward check`, shown as a diff, and written only after you approve it. |
 
 The skills follow the open [Agent Skills](https://agentskills.io) format, so the same files work in
 Claude Code, OpenCode, Codex, Cursor, and other agents that support skills. They are distributed
-separately from the `sentinel` binary, so you can install them before Sentinel is set up in a
-project. `sentinel-init` checks for the CLI and offers the [installer](/getting-started/installation/)
+separately from the `ward` binary, so you can install them before Ward is set up in a
+project. `ward-init` checks for the CLI and offers the [installer](/getting-started/installation/)
 when it is missing.
 
 ## Install
 
 ### Claude Code
 
-Add the repository as a plugin marketplace, then install the `sentinel` plugin:
+Add the repository as a plugin marketplace, then install the `ward` plugin:
 
 ```text
-/plugin marketplace add RicardoRB/sentinel-ai
-/plugin install sentinel@sentinel-ai
+/plugin marketplace add RicardoRB/ward-ai
+/plugin install ward@ward-ai
 ```
 
-Then ask Claude to set up Sentinel, for example "Set up Sentinel quality gates in this project". You
-can also invoke the skill by name: `/sentinel:sentinel-init`.
+Then ask Claude to set up Ward, for example "Set up Ward quality gates in this project". You
+can also invoke the skill by name: `/ward:ward-init`.
 
 ### Other agents
 
 Install the skills with the cross-agent installer. It asks which agents to install them for:
 
 ```sh
-npx skills add RicardoRB/sentinel-ai --skill sentinel-init sentinel-tune
+npx skills add RicardoRB/ward-ai --skill ward-init ward-tune
 ```
 
 ## Requirements
 
-Each skill declares the minimum `sentinel` version it supports. It runs `sentinel --version` before
+Each skill declares the minimum `ward` version it supports. It runs `ward --version` before
 doing anything else, and stops with an upgrade offer when the CLI is older.
 
-| Skill | Minimum `sentinel` version |
+| Skill | Minimum `ward` version |
 |---|---|
-| `sentinel-init` | 0.1.0 |
-| `sentinel-tune` | 0.1.0 |
+| `ward-init` | 0.1.0 |
+| `ward-tune` | 0.1.0 |
 
-Both skills need a Maven or Gradle Java project and a shell. `sentinel-tune` also needs an existing
-`sentinel.toml`.
+Both skills need a Maven or Gradle Java project and a shell. `ward-tune` also needs an existing
+`ward.toml`.
 
 ## Guardrails
 
 Both skills follow the same rules, whatever the agent is asked:
 
-- **`sentinel.toml` is treated as executable code.** Reading it is safe. Before running
-  `sentinel check` on a `sentinel.toml` that existed before the session, the agent asks you to
+- **`ward.toml` is treated as executable code.** Reading it is safe. Before running
+  `ward check` on a `ward.toml` that existed before the session, the agent asks you to
   confirm the repository is trusted. See [Security](/security/).
 - **Gates are never weakened to make a check pass.** The agent does not drop gates, lower
   thresholds, or add suppressions (`@SuppressWarnings`, `// NOPMD`, suppression files, `@ArchIgnore`).
-- **Nothing is installed without a specific yes.** That covers the Sentinel installer and each gate
+- **Nothing is installed without a specific yes.** That covers the Ward installer and each gate
   tool, such as `brew install semgrep`. Approving a plan is not consent to install.
-- **Every answer comes from you.** `sentinel-init` passes each answer as an explicit
+- **Every answer comes from you.** `ward-init` passes each answer as an explicit
   [`init`](/commands/init/) option. It never uses `--yes` and never pipes answers into the wizard.
   `--overwrite`, `--install-tool`, and `--accept-compatibility-updates` are asked about separately.
 
-## How `sentinel-init` applies changes
+## How `ward-init` applies changes
 
-The agent's shell is not a terminal, so `sentinel init` skips its own `Proceed? [Y/n]` review. The
+The agent's shell is not a terminal, so `ward init` skips its own `Proceed? [Y/n]` review. The
 skill does that review instead:
 
-1. It builds one command from your answers and checks each option against `sentinel init --help`.
+1. It builds one command from your answers and checks each option against `ward init --help`.
 2. It runs the command with `--dry-run` and shows you the plan exactly as printed.
 3. After you approve, it runs the identical command without `--dry-run`, and compares what changed
    with the plan.
@@ -81,7 +81,7 @@ skill does that review instead:
 If the plan lists a `conflict`, or an installation you did not consent to, the skill does not apply
 it.
 
-## How `sentinel-tune` handles rule changes
+## How `ward-tune` handles rule changes
 
 Each proposal is classified before you see it:
 
@@ -94,10 +94,10 @@ Each proposal is classified before you see it:
 
 ### Rule file ownership
 
-Rule files that a preset writes start with `<!-- managed-by: sentinel preset=<id> -->`. A later
-`sentinel init` refreshes those files, which would undo any tuning. Before the first edit to a
-managed file, `sentinel-tune` asks whether the file should become yours. If you agree, it removes
-the marker in the same edit. From then on, `sentinel init` keeps the file and lists it as `keep` in
+Rule files that a preset writes start with `<!-- managed-by: ward preset=<id> -->`. A later
+`ward init` refreshes those files, which would undo any tuning. Before the first edit to a
+managed file, `ward-tune` asks whether the file should become yours. If you agree, it removes
+the marker in the same edit. From then on, `ward init` keeps the file and lists it as `keep` in
 its plan. If you decline, the file is not edited.
 
 JaCoCo settings in your build file and existing ArchUnit test classes carry no marker. Init leaves
@@ -105,8 +105,8 @@ them unchanged.
 
 ## Uninstall
 
-- Claude Code: `/plugin uninstall sentinel@sentinel-ai`.
-- Other agents: delete the `sentinel-init` and `sentinel-tune` directories from the agent's skills
+- Claude Code: `/plugin uninstall ward@ward-ai`.
+- Other agents: delete the `ward-init` and `ward-tune` directories from the agent's skills
   directory.
 
-Uninstalling the skills does not change anything Sentinel configured in your projects.
+Uninstalling the skills does not change anything Ward configured in your projects.

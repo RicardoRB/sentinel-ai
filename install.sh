@@ -1,25 +1,25 @@
 #!/bin/sh
-# Sentinel installer: downloads a native release archive, verifies its SHA-256
-# checksum, and installs it as `sentinel` together with its LICENSE and NOTICE.
+# Ward installer: downloads a native release archive, verifies its SHA-256
+# checksum, and installs it as `ward` together with its LICENSE and NOTICE.
 #
-#   curl -fsSL https://raw.githubusercontent.com/RicardoRB/sentinel-ai/main/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/RicardoRB/ward-ai/main/install.sh | sh
 #
 # Environment variables:
-#   SENTINEL_VERSION      Release tag to install, e.g. v0.0.1 (default: latest)
-#   SENTINEL_INSTALL_DIR  Target directory (default: $HOME/.local/bin)
-#   SENTINEL_DOC_DIR      LICENSE and NOTICE directory
-#                         (default: <install dir parent>/share/doc/sentinel)
-#   SENTINEL_BASE_URL     Override the download base URL (mirrors, testing)
+#   WARD_VERSION      Release tag to install, e.g. v0.0.1 (default: latest)
+#   WARD_INSTALL_DIR  Target directory (default: $HOME/.local/bin)
+#   WARD_DOC_DIR      LICENSE and NOTICE directory
+#                         (default: <install dir parent>/share/doc/ward)
+#   WARD_BASE_URL     Override the download base URL (mirrors, testing)
 set -eu
 
-REPO="RicardoRB/sentinel-ai"
-VERSION="${SENTINEL_VERSION:-latest}"
-INSTALL_DIR="${SENTINEL_INSTALL_DIR:-$HOME/.local/bin}"
-DOC_DIR="${SENTINEL_DOC_DIR:-$(dirname "$INSTALL_DIR")/share/doc/sentinel}"
+REPO="RicardoRB/ward-ai"
+VERSION="${WARD_VERSION:-latest}"
+INSTALL_DIR="${WARD_INSTALL_DIR:-$HOME/.local/bin}"
+DOC_DIR="${WARD_DOC_DIR:-$(dirname "$INSTALL_DIR")/share/doc/ward}"
 
-info() { printf 'sentinel-install: %s\n' "$*"; }
+info() { printf 'ward-install: %s\n' "$*"; }
 fail() {
-  printf 'sentinel-install: error: %s\n' "$*" >&2
+  printf 'ward-install: error: %s\n' "$*" >&2
   exit 1
 }
 
@@ -30,7 +30,7 @@ detect_platform() {
     Linux) os=linux ;;
     Darwin) os=macos ;;
     MINGW* | MSYS* | CYGWIN*)
-      fail "Windows is not supported by this script; download sentinel-windows-x86_64.exe from https://github.com/$REPO/releases" ;;
+      fail "Windows is not supported by this script; download ward-windows-x86_64.exe from https://github.com/$REPO/releases" ;;
     *) fail "unsupported operating system: $os" ;;
   esac
   case "$arch" in
@@ -41,7 +41,7 @@ detect_platform() {
   if [ "$os" = linux ] && [ "$arch" = aarch64 ]; then
     fail "no Linux aarch64 binary is published yet; build from source: https://github.com/$REPO#development"
   fi
-  printf 'sentinel-%s-%s' "$os" "$arch"
+  printf 'ward-%s-%s' "$os" "$arch"
 }
 
 download() {
@@ -75,8 +75,8 @@ sha256() {
 main() {
   asset=$(detect_platform)
 
-  if [ -n "${SENTINEL_BASE_URL:-}" ]; then
-    base_url="$SENTINEL_BASE_URL"
+  if [ -n "${WARD_BASE_URL:-}" ]; then
+    base_url="$WARD_BASE_URL"
   elif [ "$VERSION" = latest ]; then
     base_url="https://github.com/$REPO/releases/latest/download"
   else
@@ -96,21 +96,21 @@ main() {
 
   mkdir "$tmp/extract"
   tar -xzf "$tmp/$archive" -C "$tmp/extract" || fail "cannot extract $archive"
-  for file in sentinel LICENSE NOTICE; do
+  for file in ward LICENSE NOTICE; do
     [ -f "$tmp/extract/$file" ] || fail "$archive does not contain $file"
   done
 
-  mkdir -p "$INSTALL_DIR" || fail "cannot create $INSTALL_DIR; set SENTINEL_INSTALL_DIR"
-  [ -w "$INSTALL_DIR" ] || fail "$INSTALL_DIR is not writable; set SENTINEL_INSTALL_DIR or re-run with sudo"
-  chmod +x "$tmp/extract/sentinel"
-  mv "$tmp/extract/sentinel" "$INSTALL_DIR/sentinel"
+  mkdir -p "$INSTALL_DIR" || fail "cannot create $INSTALL_DIR; set WARD_INSTALL_DIR"
+  [ -w "$INSTALL_DIR" ] || fail "$INSTALL_DIR is not writable; set WARD_INSTALL_DIR or re-run with sudo"
+  chmod +x "$tmp/extract/ward"
+  mv "$tmp/extract/ward" "$INSTALL_DIR/ward"
 
   if mkdir -p "$DOC_DIR" 2>/dev/null && cp "$tmp/extract/LICENSE" "$tmp/extract/NOTICE" "$DOC_DIR/"; then
     info "installed LICENSE and NOTICE to $DOC_DIR"
   else
-    info "could not write LICENSE and NOTICE to $DOC_DIR; set SENTINEL_DOC_DIR"
+    info "could not write LICENSE and NOTICE to $DOC_DIR; set WARD_DOC_DIR"
   fi
-  info "installed $("$INSTALL_DIR/sentinel" --version 2>/dev/null || echo sentinel) to $INSTALL_DIR/sentinel"
+  info "installed $("$INSTALL_DIR/ward" --version 2>/dev/null || echo ward) to $INSTALL_DIR/ward"
 
   case ":$PATH:" in
     *":$INSTALL_DIR:"*) ;;
@@ -120,8 +120,8 @@ main() {
       ;;
   esac
 
-  info "next: install the agent skills, then run /sentinel-init in your coding agent:"
-  printf '\n    npx skills add %s --skill sentinel-init sentinel-tune\n\n' "$REPO"
+  info "next: install the agent skills, then run /ward-init in your coding agent:"
+  printf '\n    npx skills add %s --skill ward-init ward-tune\n\n' "$REPO"
 }
 
 main "$@"

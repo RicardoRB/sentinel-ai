@@ -1,60 +1,60 @@
 ---
 title: Security
-description: Understand the trust boundary when running Sentinel.
+description: Understand the trust boundary when running Ward.
 ---
 
-`sentinel.toml` is executable trusted code. `sentinel check` runs its configured command with your
+`ward.toml` is executable trusted code. `ward check` runs its configured command with your
 user's privileges in the project root. A malicious repository or pull request can therefore run
 arbitrary programs. Only check repositories you trust, and treat configuration changes like build
 scripts or CI pipelines. Do not run checks on untrusted pull requests outside a sandbox.
 
-Sentinel invokes commands as an argument vector, never through a shell: shell chaining, expansion,
+Ward invokes commands as an argument vector, never through a shell: shell chaining, expansion,
 globbing, and redirection do not occur. This is **not a sandbox**—a wrapper such as `./mvnw` can
 itself execute arbitrary build code. Child processes receive no stdin. Agent hooks and plugins also
 execute repository-local configuration, so install integrations only in trusted projects.
 
-Dynamic scans (`zap`) run only against the target you put in `sentinel.toml`; Sentinel never infers
+Dynamic scans (`zap`) run only against the target you put in `ward.toml`; Ward never infers
 or starts one, and you must be authorized to scan it. Secret scanners should run with redaction
 (`gitleaks --redact` is the `init` default) so matched values do not appear in reports or logs.
-Sentinel's gitleaks findings carry only the rule and location, never the matched value or snippet.
+Ward's gitleaks findings carry only the rule and location, never the matched value or snippet.
 
 ## Approved-artifact guard limits
 
 The optional approved-artifact guard protects `openspec/specs/**` and
-`openspec/changes/archive/**` from tool calls that Sentinel can inspect. It is a guardrail, not a
+`openspec/changes/archive/**` from tool calls that Ward can inspect. It is a guardrail, not a
 security boundary. Shell inspection is deliberately heuristic: scripts, variable expansion,
 command substitution, `xargs`, indirect program writes, and hard links are not reliably prevented.
 Working-tree-wide Git operations that do not name a protected path are also outside its scope.
 
-The guard fails open on infrastructure errors such as a missing Sentinel executable or an
+The guard fails open on infrastructure errors such as a missing Ward executable or an
 undetectable project, so it must not be treated as enforcement. Use filesystem permissions, branch
 protection, code review, and sandboxing when approved artifacts require real protection. Archiving
 and syncing remain human actions even when the guard is installed.
 ## Diagnostic logging
 
-Normal runs remain quiet. With `--verbose`, Sentinel writes invocation-scoped diagnostics to the
+Normal runs remain quiet. With `--verbose`, Ward writes invocation-scoped diagnostics to the
 provided stderr stream only. Logs exclude credentials, prompts, configuration and environment
 contents, raw process arguments, and captured process output. Redirect stderr separately when
 collecting diagnostics:
 
 ```console
-sentinel --verbose check > report.txt 2> sentinel-diagnostics.log
+ward --verbose check > report.txt 2> ward-diagnostics.log
 ```
 
 ## Update check
 
-Sentinel makes one network request of its own: after an interactive command, at most once a day, it
-sends an HTTPS `HEAD` request to `https://github.com/RicardoRB/sentinel-ai/releases/latest` and
+Ward makes one network request of its own: after an interactive command, at most once a day, it
+sends an HTTPS `HEAD` request to `https://github.com/RicardoRB/ward-ai/releases/latest` and
 reads the release tag from the redirect. The request carries no project, configuration, or
-environment data. `sentinel doctor` makes the same request every time it runs. Sentinel only prints
+environment data. `ward doctor` makes the same request every time it runs. Ward only prints
 a notice; it never downloads or replaces itself. Agent hooks, CI, and JSON or SARIF output never
-trigger the request, and `SENTINEL_NO_UPDATE_CHECK=1` turns it off everywhere, including in
+trigger the request, and `WARD_NO_UPDATE_CHECK=1` turns it off everywhere, including in
 `doctor`. See [Environment variables](/reference/environment-variables/).
 
 ## Optional OpenSpec installation
 
 OpenSpec is never installed by `check` or `doctor`. `init` may install the reviewed
 `@fission-ai/openspec@1.14.1` distribution only after explicit consent, into the project-local
-`.sentinel/tools/openspec` directory. The operation requires Node.js `>=20.19.0`, npm, network
+`.ward/tools/openspec` directory. The operation requires Node.js `>=20.19.0`, npm, network
 access, and may execute package lifecycle scripts. It does not modify the project root manifest,
 does not use global installation or `npx`, and refuses an existing unmanaged destination.

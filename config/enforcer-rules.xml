@@ -1,4 +1,4 @@
-<!-- managed-by: sentinel preset=strict -->
+<!-- managed-by: ward preset=strict -->
 <enforcer>
 <rules>
   <dependencyConvergence/>

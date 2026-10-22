@@ -6,7 +6,7 @@ const live = (overrides: Partial<ScenarioObservation> = {}): ScenarioObservation
   scenario: "edit-check-feedback",
   level: "automated-live",
   claimed: "pass",
-  assertions: [{ name: "native edit invoked sentinel", passed: true }],
+  assertions: [{ name: "native edit invoked ward", passed: true }],
   durationMs: 10,
   runtimeVersion: "0.163.0",
   sourceRevision: "abc123",

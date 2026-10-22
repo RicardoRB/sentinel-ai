@@ -1,41 +1,41 @@
 == definition
-cursor .cursor/hooks.json .cursor/hooks/sentinel.sh preToolUse,afterFileEdit,stop [APPROVED_ARTIFACT_GUARD, FEEDBACK, POST_EDIT, PRE_TOOL, TURN_END]
+cursor .cursor/hooks.json .cursor/hooks/ward.sh preToolUse,afterFileEdit,stop [APPROVED_ARTIFACT_GUARD, FEEDBACK, POST_EDIT, PRE_TOOL, TURN_END]
 == config
 {
-  "sentinelOwnership": "sentinel-owned: cursor-native-hooks v1",
+  "wardOwnership": "ward-owned: cursor-native-hooks v1",
   "hooks": {
-    "preToolUse": [{"matcher":".*","hooks":[{"type":"command","command":".cursor/hooks/sentinel.sh"}]}],
-    "afterFileEdit": [{"type":"command","command":".cursor/hooks/sentinel.sh"}],
-    "stop": [{"type":"command","command":".cursor/hooks/sentinel.sh"}]
+    "preToolUse": [{"matcher":".*","hooks":[{"type":"command","command":".cursor/hooks/ward.sh"}]}],
+    "afterFileEdit": [{"type":"command","command":".cursor/hooks/ward.sh"}],
+    "stop": [{"type":"command","command":".cursor/hooks/ward.sh"}]
   }
 }
 
 == hook KEEP
 #!/bin/sh
-# sentinel-owned: cursor-native-hooks v1
+# ward-owned: cursor-native-hooks v1
 # Native event adapter for cursor.
 if [ "keep" = "enable" ]; then
-  exec sentinel hook native --agent cursor --guard-approved-specs --event-stdin
+  exec ward hook native --agent cursor --guard-approved-specs --event-stdin
 fi
-exec sentinel hook native --agent cursor --event-stdin
+exec ward hook native --agent cursor --event-stdin
 
 == hook ENABLE
 #!/bin/sh
-# sentinel-owned: cursor-native-hooks v1
+# ward-owned: cursor-native-hooks v1
 # Native event adapter for cursor.
 if [ "enable" = "enable" ]; then
-  exec sentinel hook native --agent cursor --guard-approved-specs --event-stdin
+  exec ward hook native --agent cursor --guard-approved-specs --event-stdin
 fi
-exec sentinel hook native --agent cursor --event-stdin
+exec ward hook native --agent cursor --event-stdin
 
 == hook DISABLE
 #!/bin/sh
-# sentinel-owned: cursor-native-hooks v1
+# ward-owned: cursor-native-hooks v1
 # Native event adapter for cursor.
 if [ "disable" = "enable" ]; then
-  exec sentinel hook native --agent cursor --guard-approved-specs --event-stdin
+  exec ward hook native --agent cursor --guard-approved-specs --event-stdin
 fi
-exec sentinel hook native --agent cursor --event-stdin
+exec ward hook native --agent cursor --event-stdin
 
 == deny
 {"permission":"deny","user_message":"Blocked \"quoted\" \\ path","agent_message":"Blocked \"quoted\" \\ path"}

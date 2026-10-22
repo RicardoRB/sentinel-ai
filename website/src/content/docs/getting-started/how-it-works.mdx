@@ -1,30 +1,30 @@
 ---
 title: How it works
-description: Sentinel checks code in four layers, from every agent edit to CI.
+description: Ward checks code in four layers, from every agent edit to CI.
 ---
 
-![Four nested shields around your code: Edit, Commit, Push, and CI. Faster checks sit close to the code, stricter ones further out.](/sentinel-layers.svg)
+![Four nested shields around your code: Edit, Commit, Push, and CI. Faster checks sit close to the code, stricter ones further out.](/ward-layers.svg)
 
 AI coding agents write code faster than anyone can review it. Without guardrails, you repeat the
-same rules in every prompt, and the agent still forgets some of them. Sentinel keeps those rules in
+same rules in every prompt, and the agent still forgets some of them. Ward keeps those rules in
 the repository and checks them at four moments, so the agent gets precise feedback early and nothing
 it missed reaches production.
 
 ## The four layers
 
-Each layer is a profile in [`sentinel.toml`](/configuration/sentinel-toml/). Inner layers are fast so
+Each layer is a profile in [`ward.toml`](/configuration/ward-toml/). Inner layers are fast so
 they can run constantly; outer layers are stricter and slower.
 
 | Layer | Profile | When it runs | Set up with |
 |---|---|---|---|
-| **1. Edit** | `default` | After every agent edit or write | `sentinel init --integration <agent>` or [`sentinel integrate`](/commands/integrate/) |
-| **2. Commit** | `pre-commit` | Before each `git commit` | `sentinel init --quality-hooks` |
-| **3. Push** | `pre-push` | Before each `git push` | `sentinel init --quality-hooks` |
-| **4. CI** | `ci` | In your CI pipeline | `sentinel init --ci github` or the [CI/CD guide](/guides/ci-cd/) |
+| **1. Edit** | `default` | After every agent edit or write | `ward init --integration <agent>` or [`ward integrate`](/commands/integrate/) |
+| **2. Commit** | `pre-commit` | Before each `git commit` | `ward init --quality-hooks` |
+| **3. Push** | `pre-push` | Before each `git push` | `ward init --quality-hooks` |
+| **4. CI** | `ci` | In your CI pipeline | `ward init --ci github` or the [CI/CD guide](/guides/ci-cd/) |
 
 ### 1. Edit
 
-After the agent edits or writes a file, its hook runs `sentinel check` on the edited files and returns
+After the agent edits or writes a file, its hook runs `ward check` on the edited files and returns
 the result to the agent. A failure includes the file, line, and rule, so the agent can fix it in the
 same turn without you explaining the rule. Only fast checks belong here, such as formatting,
 Checkstyle, and PMD. See [Claude Code](/integrations/claude-code/), [OpenCode](/integrations/opencode/),
@@ -49,8 +49,8 @@ the last check before production.
 
 ## Layers are cumulative
 
-`sentinel init` puts each gate in the first layer it fits and in every layer after it, so the outer
-layers always include the inner ones. The bare `sentinel check` runs the same checks as `pre-commit`.
+`ward init` puts each gate in the first layer it fits and in every layer after it, so the outer
+layers always include the inner ones. The bare `ward check` runs the same checks as `pre-commit`.
 To move a gate, edit its `profiles` list:
 
 ```toml
@@ -71,12 +71,12 @@ profiles = ["pre-push", "ci"]   # not on every edit or commit
 ## Set it up with your agent
 
 The [agent skills](/integrations/agent-skills/) let your coding agent set up the layers with you:
-`sentinel-init` chooses the preset, gates, agent integration, and Git hooks for the project, and
-`sentinel-tune` fits the rules to your real code.
+`ward-init` chooses the preset, gates, agent integration, and Git hooks for the project, and
+`ward-tune` fits the rules to your real code.
 
 ## Share it with your team
 
-Commit `sentinel.toml`, the rule files under `config/`, the generated agent hooks (such as `.claude/`
+Commit `ward.toml`, the rule files under `config/`, the generated agent hooks (such as `.claude/`
 or `.opencode/`), and, if you generate it, `AGENTS.md`. Every teammate and every agent then works with
 the same rules. The commit and push hooks live in `.git/hooks/`, which Git doesn't share; a one-step
 setup for teammates is planned.

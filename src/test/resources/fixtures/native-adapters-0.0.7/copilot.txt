@@ -1,41 +1,41 @@
 == definition
-copilot .github/hooks/sentinel.json .github/hooks/sentinel.sh preToolUse,postToolUse,sessionEnd [APPROVED_ARTIFACT_GUARD, FEEDBACK, POST_EDIT, PRE_TOOL, TURN_END]
+copilot .github/hooks/ward.json .github/hooks/ward.sh preToolUse,postToolUse,sessionEnd [APPROVED_ARTIFACT_GUARD, FEEDBACK, POST_EDIT, PRE_TOOL, TURN_END]
 == config
 {
-  "sentinelOwnership": "sentinel-owned: copilot-native-hooks v1",
+  "wardOwnership": "ward-owned: copilot-native-hooks v1",
   "hooks": {
-    "preToolUse": [{"matcher":".*","hooks":[{"type":"command","command":".github/hooks/sentinel.sh"}]}],
-    "postToolUse": [{"type":"command","command":".github/hooks/sentinel.sh"}],
-    "sessionEnd": [{"type":"command","command":".github/hooks/sentinel.sh"}]
+    "preToolUse": [{"matcher":".*","hooks":[{"type":"command","command":".github/hooks/ward.sh"}]}],
+    "postToolUse": [{"type":"command","command":".github/hooks/ward.sh"}],
+    "sessionEnd": [{"type":"command","command":".github/hooks/ward.sh"}]
   }
 }
 
 == hook KEEP
 #!/bin/sh
-# sentinel-owned: copilot-native-hooks v1
+# ward-owned: copilot-native-hooks v1
 # Native event adapter for copilot.
 if [ "keep" = "enable" ]; then
-  exec sentinel hook native --agent copilot --guard-approved-specs --event-stdin
+  exec ward hook native --agent copilot --guard-approved-specs --event-stdin
 fi
-exec sentinel hook native --agent copilot --event-stdin
+exec ward hook native --agent copilot --event-stdin
 
 == hook ENABLE
 #!/bin/sh
-# sentinel-owned: copilot-native-hooks v1
+# ward-owned: copilot-native-hooks v1
 # Native event adapter for copilot.
 if [ "enable" = "enable" ]; then
-  exec sentinel hook native --agent copilot --guard-approved-specs --event-stdin
+  exec ward hook native --agent copilot --guard-approved-specs --event-stdin
 fi
-exec sentinel hook native --agent copilot --event-stdin
+exec ward hook native --agent copilot --event-stdin
 
 == hook DISABLE
 #!/bin/sh
-# sentinel-owned: copilot-native-hooks v1
+# ward-owned: copilot-native-hooks v1
 # Native event adapter for copilot.
 if [ "disable" = "enable" ]; then
-  exec sentinel hook native --agent copilot --guard-approved-specs --event-stdin
+  exec ward hook native --agent copilot --guard-approved-specs --event-stdin
 fi
-exec sentinel hook native --agent copilot --event-stdin
+exec ward hook native --agent copilot --event-stdin
 
 == deny
 {"decision":"deny","reason":"Blocked \"quoted\" \\ path"}

@@ -46,8 +46,8 @@ export const ampDriver: LiveDriver = {
         const checks = context.invocations().filter((i) => same(i.argv, CHECK));
         return [
           { name: "runtime turn completed", passed: result.exitCode === 0 && !result.timedOut, detail: `exit ${result.exitCode}` },
-          { name: "native tool.result invoked sentinel", passed: checks.length >= 1, detail: `${checks.length} check invocation(s)` },
-          { name: "agent reported the Sentinel failure it received", passed: result.stdout.includes("Sentinel") },
+          { name: "native tool.result invoked ward", passed: checks.length >= 1, detail: `${checks.length} check invocation(s)` },
+          { name: "agent reported the Ward failure it received", passed: result.stdout.includes("Ward") },
         ];
       },
     },

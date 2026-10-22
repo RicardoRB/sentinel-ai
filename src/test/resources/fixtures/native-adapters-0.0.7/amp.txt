@@ -1,7 +1,7 @@
 == definition
-amp .amp/plugins/sentinel.ts .amp/plugins/sentinel.sh tool.call,tool.result,agent.end [APPROVED_ARTIFACT_GUARD, FEEDBACK, POST_EDIT, PRE_TOOL, TURN_END]
+amp .amp/plugins/ward.ts .amp/plugins/ward.sh tool.call,tool.result,agent.end [APPROVED_ARTIFACT_GUARD, FEEDBACK, POST_EDIT, PRE_TOOL, TURN_END]
 == config
-// sentinel-owned: amp-native-hooks v1
+// ward-owned: amp-native-hooks v1
 export default function (amp) {
   amp.on('tool.call', async () => ({ action: 'allow' }));
   amp.on('tool.result', async () => undefined);
@@ -10,30 +10,30 @@ export default function (amp) {
 
 == hook KEEP
 #!/bin/sh
-# sentinel-owned: amp-native-hooks v1
+# ward-owned: amp-native-hooks v1
 # Native event adapter for amp.
 if [ "keep" = "enable" ]; then
-  exec sentinel hook native --agent amp --guard-approved-specs --event-stdin
+  exec ward hook native --agent amp --guard-approved-specs --event-stdin
 fi
-exec sentinel hook native --agent amp --event-stdin
+exec ward hook native --agent amp --event-stdin
 
 == hook ENABLE
 #!/bin/sh
-# sentinel-owned: amp-native-hooks v1
+# ward-owned: amp-native-hooks v1
 # Native event adapter for amp.
 if [ "enable" = "enable" ]; then
-  exec sentinel hook native --agent amp --guard-approved-specs --event-stdin
+  exec ward hook native --agent amp --guard-approved-specs --event-stdin
 fi
-exec sentinel hook native --agent amp --event-stdin
+exec ward hook native --agent amp --event-stdin
 
 == hook DISABLE
 #!/bin/sh
-# sentinel-owned: amp-native-hooks v1
+# ward-owned: amp-native-hooks v1
 # Native event adapter for amp.
 if [ "disable" = "enable" ]; then
-  exec sentinel hook native --agent amp --guard-approved-specs --event-stdin
+  exec ward hook native --agent amp --guard-approved-specs --event-stdin
 fi
-exec sentinel hook native --agent amp --event-stdin
+exec ward hook native --agent amp --event-stdin
 
 == deny
 {"action":"reject-and-continue","message":"Blocked \"quoted\" \\ path"}

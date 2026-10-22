@@ -1,0 +1,131 @@
+package dev.ward.infrastructure.cli;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermissions;
+import java.util.stream.Stream;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
+import org.junit.jupiter.api.io.TempDir;
+import picocli.CommandLine.Command;
+
+@DisabledOnOs(OS.WINDOWS)
+class WardCliContract1Test extends WardCliIntegrationSupport {
+  @Test
+  void factoryResolvesEveryWardSubcommand() throws Exception {
+    final Class<?>[] subcommands = WardCommand.class.getAnnotation(Command.class).subcommands();
+    assertThat(subcommands).isNotEmpty();
+    for (final Class<?> subcommand : subcommands) {
+      assertThat(factory.create(subcommand)).isInstanceOf(subcommand);
+    }
+  }
+
+  @Test
+  void detectsFixtureProject() {
+    assertThat(run("detect", "-C", project.toString())).isZero();
+    assertThat(out.toString())
+        .contains("Project detected", "Java", "Maven", "Spring Boot", project.toString());
+  }
+
+  @Test
+  void detectOnUnsupportedDirectoryExitsNonZero(@TempDir final Path empty) {
+    assertThat(run("detect", "-C", empty.toString())).isEqualTo(ExitCodes.FAILED);
+    assertThat(out.toString().trim()).isEqualTo("No supported project detected.");
+  }
+
+  @Test
+  void initThenCheckPasses() {
+    assertThat(run(INIT, INTEGRATION_OPTION, NONE, GATE_OPTION, "format", "-C", project.toString()))
+        .isZero();
+    assertThat(project.resolve(WARD_TOML)).exists();
+
+    out.getBuffer().setLength(0);
+    assertThat(run(CHECK, "-C", project.toString())).isEqualTo(ExitCodes.OK);
+    assertThat(out.toString())
+        .contains(
+            "Ward " + VersionProvider.current(), "✓ format", "PASSED", "Quality Gate: PASSED");
+  }
+
+  @Test
+  void detectsAndChecksGradleWrapperProject() throws IOException {
+    Files.delete(project.resolve("pom.xml"));
+    Files.writeString(project.resolve("build.gradle.kts"), "plugins { java }\n");
+    Files.writeString(project.resolve("gradlew"), "#!/bin/sh\nexit 0\n");
+    Files.setPosixFilePermissions(
+        project.resolve("gradlew"), PosixFilePermissions.fromString("rwxr-xr-x"));
+
+    assertThat(run("detect", "-C", project.toString())).isZero();
+    assertThat(out.toString()).contains("Kotlin", "Gradle", project.toString());
+    out.getBuffer().setLength(0);
+
+    assertThat(run(INIT, INTEGRATION_OPTION, NONE, GATE_OPTION, TESTS, "-C", project.toString()))
+        .isZero();
+    assertThat(Files.readString(project.resolve(WARD_TOML))).contains("./gradlew test");
+    out.getBuffer().setLength(0);
+    assertThat(run(CHECK, "--profile", "pre-push", "-C", project.toString()))
+        .isEqualTo(ExitCodes.OK);
+    assertThat(out.toString()).contains("PASSED");
+  }
+
+  @Test
+  void presetStandardWritesConfigurationAndRuleFiles() throws IOException {
+    assertThat(
+            run(INIT, "--preset", "standard", INTEGRATION_OPTION, NONE, "-C", project.toString()))
+        .isZero();
+    assertThat(Files.readString(project.resolve(WARD_TOML)))
+        .contains("preset = \"standard\"", "quality-gates.pmd");
+    assertThat(project.resolve("config/pmd-ruleset.xml")).exists();
+  }
+
+  @Test
+  void unknownPresetChangesNothing() throws IOException {
+    assertThat(
+            run(INIT, "--preset", "paranoid", INTEGRATION_OPTION, NONE, "-C", project.toString()))
+        .isEqualTo(ExitCodes.ERROR);
+    assertThat(project.resolve(WARD_TOML)).doesNotExist();
+    assertThat(project.resolve("config")).doesNotExist();
+  }
+
+  @Test
+  void strictPresetGeneratesArchitectureAndEnforcerFiles() throws IOException {
+    assertThat(
+            run(
+                INIT,
+                "--preset",
+                "strict",
+                INTEGRATION_OPTION,
+                NONE,
+                "--architecture",
+                "layered",
+                "-C",
+                project.toString()))
+        .isZero();
+    assertThat(project.resolve("config/enforcer-rules.xml")).exists();
+    assertThat(Files.readString(project.resolve(WARD_TOML))).contains("quality-gates.mutation");
+    try (Stream<Path> files = Files.walk(project.resolve("src/test/java"))) {
+      assertThat(files)
+          .anyMatch(path -> "ArchitectureTest.java".equals(path.getFileName().toString()));
+    }
+  }
+
+  @Test
+  void presetCanAddExplicitGate() throws IOException {
+    assertThat(
+            run(
+                INIT,
+                "--preset",
+                "standard",
+                GATE_OPTION,
+                "gitleaks",
+                INTEGRATION_OPTION,
+                NONE,
+                "-C",
+                project.toString()))
+        .isZero();
+    assertThat(Files.readString(project.resolve(WARD_TOML))).contains("quality-gates.gitleaks");
+  }
+}

@@ -1,70 +1,70 @@
 ---
 title: Installation
-description: Install the Sentinel native binary or build it from source.
+description: Install the Ward native binary or build it from source.
 ---
 
-Sentinel supports Java/Maven and Java/Kotlin Gradle projects. The native binary needs no JVM; the executable jar
+Ward supports Java/Maven and Java/Kotlin Gradle projects. The native binary needs no JVM; the executable jar
 requires JDK 25.
 
 ## Install script (Linux and macOS)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/RicardoRB/sentinel-ai/main/install.sh | sh
-sentinel --version
+curl -fsSL https://raw.githubusercontent.com/RicardoRB/ward-ai/main/install.sh | sh
+ward --version
 ```
 
 The script detects your OS and CPU, downloads the matching release archive from GitHub Releases,
-verifies its SHA-256 checksum, and installs it as `sentinel` in `~/.local/bin`. The archive's
-`LICENSE` and `NOTICE` go to `~/.local/share/doc/sentinel`. Releases before `v0.0.7` predate the
+verifies its SHA-256 checksum, and installs it as `ward` in `~/.local/bin`. The archive's
+`LICENSE` and `NOTICE` go to `~/.local/share/doc/ward`. Releases before `v0.0.7` predate the
 archives and can't be installed with the script. If that directory is not on your
 `PATH`, the script prints the line to add to your shell profile. It supports Linux x86_64 and macOS
 (Apple Silicon and Intel).
 
-When it finishes, the script prints the command that installs the Sentinel
+When it finishes, the script prints the command that installs the Ward
 [agent skills](/integrations/agent-skills/). It only prints the command and does not run it:
 
 ```bash
-npx skills add RicardoRB/sentinel-ai --skill sentinel-init sentinel-tune
+npx skills add RicardoRB/ward-ai --skill ward-init ward-tune
 ```
 
-Then run `/sentinel-init` in your coding agent to set up Sentinel together with it.
+Then run `/ward-init` in your coding agent to set up Ward together with it.
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `SENTINEL_VERSION` | `latest` | Release tag to install, for example `v0.1.0`. |
-| `SENTINEL_INSTALL_DIR` | `~/.local/bin` | Directory for the `sentinel` binary. |
-| `SENTINEL_DOC_DIR` | `<install dir parent>/share/doc/sentinel` | Directory for `LICENSE` and `NOTICE`. |
-| `SENTINEL_BASE_URL` | GitHub Releases | Download base URL, for mirrors. |
+| `WARD_VERSION` | `latest` | Release tag to install, for example `v0.1.0`. |
+| `WARD_INSTALL_DIR` | `~/.local/bin` | Directory for the `ward` binary. |
+| `WARD_DOC_DIR` | `<install dir parent>/share/doc/ward` | Directory for `LICENSE` and `NOTICE`. |
+| `WARD_BASE_URL` | GitHub Releases | Download base URL, for mirrors. |
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/RicardoRB/sentinel-ai/main/install.sh \
-  | SENTINEL_VERSION=v0.1.0 SENTINEL_INSTALL_DIR=/usr/local/bin sh
+curl -fsSL https://raw.githubusercontent.com/RicardoRB/ward-ai/main/install.sh \
+  | WARD_VERSION=v0.1.0 WARD_INSTALL_DIR=/usr/local/bin sh
 ```
 
 ## Manual download
 
-Each [GitHub release](https://github.com/RicardoRB/sentinel-ai/releases) publishes a native archive
+Each [GitHub release](https://github.com/RicardoRB/ward-ai/releases) publishes a native archive
 per platform with a `.sha256` checksum file. Each archive contains the binary, `LICENSE`, and
 `NOTICE`:
 
 | Platform | Asset |
 |---|---|
-| Linux x86_64 | `sentinel-linux-x86_64.tar.gz` |
-| macOS Apple Silicon | `sentinel-macos-aarch64.tar.gz` |
-| macOS Intel | `sentinel-macos-x86_64.tar.gz` |
-| Windows x86_64 | `sentinel-windows-x86_64.zip` |
+| Linux x86_64 | `ward-linux-x86_64.tar.gz` |
+| macOS Apple Silicon | `ward-macos-aarch64.tar.gz` |
+| macOS Intel | `ward-macos-x86_64.tar.gz` |
+| Windows x86_64 | `ward-windows-x86_64.zip` |
 
 `LICENSE` and `NOTICE` are also attached to each release.
 
 ```bash
-curl -fsSLO https://github.com/RicardoRB/sentinel-ai/releases/latest/download/sentinel-macos-aarch64.tar.gz
-curl -fsSLO https://github.com/RicardoRB/sentinel-ai/releases/latest/download/sentinel-macos-aarch64.tar.gz.sha256
-shasum -a 256 -c sentinel-macos-aarch64.tar.gz.sha256
-mkdir sentinel && tar -xzf sentinel-macos-aarch64.tar.gz -C sentinel
-mv sentinel/sentinel ~/.local/bin/sentinel
+curl -fsSLO https://github.com/RicardoRB/ward-ai/releases/latest/download/ward-macos-aarch64.tar.gz
+curl -fsSLO https://github.com/RicardoRB/ward-ai/releases/latest/download/ward-macos-aarch64.tar.gz.sha256
+shasum -a 256 -c ward-macos-aarch64.tar.gz.sha256
+mkdir ward && tar -xzf ward-macos-aarch64.tar.gz -C ward
+mv ward/ward ~/.local/bin/ward
 ```
 
-On Windows, download `sentinel-windows-x86_64.zip`, extract it, and place `sentinel.exe` in a
+On Windows, download `ward-windows-x86_64.zip`, extract it, and place `ward.exe` in a
 directory on your `PATH`.
 
 ## Build from source
@@ -72,13 +72,13 @@ directory on your `PATH`.
 Requires JDK 25. Maven is provided by the repository wrapper.
 
 ```bash
-git clone https://github.com/RicardoRB/sentinel-ai.git
-cd sentinel-ai
+git clone https://github.com/RicardoRB/ward-ai.git
+cd ward-ai
 ./mvnw package
-java -jar target/sentinel.jar --version
+java -jar target/ward.jar --version
 ```
 
-To build the native binary `target/sentinel`, use GraalVM 25:
+To build the native binary `target/ward`, use GraalVM 25:
 
 ```bash
 ./mvnw -Pnative -DskipTests native:compile
@@ -87,5 +87,5 @@ To build the native binary `target/sentinel`, use GraalVM 25:
 Picocli's annotation processor generates the native reflection metadata during compilation. New CLI
 commands and options are included from their annotations; no manual command metadata entry is needed.
 
-Agent integrations invoke `sentinel` by name, so the binary (or a wrapper script that runs the jar)
+Agent integrations invoke `ward` by name, so the binary (or a wrapper script that runs the jar)
 must be on `PATH`. See [quick start](/getting-started/quick-start/) to run your first check.

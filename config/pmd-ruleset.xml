@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ruleset name="Sentinel PMD rules"
+<ruleset name="Ward PMD rules"
          xmlns="http://pmd.sourceforge.net/ruleset/2.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0 https://pmd.github.io/schema/ruleset_2_0_0.xsd">
 
     <description>
-        PMD rules for Sentinel production and test sources.
+        PMD rules for Ward production and test sources.
         Focuses on correctness, maintainability, security,
         performance, and robust software design.
     </description>
@@ -66,7 +66,7 @@
     <rule ref="category/java/multithreading.xml">
         <!-- Flags maps with no concurrent access. -->
         <exclude name="UseConcurrentHashMap" />
-        <!-- A J2EE container rule; Sentinel is a CLI. -->
+        <!-- A J2EE container rule; Ward is a CLI. -->
         <exclude name="DoNotUseThreads" />
     </rule>
 

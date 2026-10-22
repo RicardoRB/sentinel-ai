@@ -1,5 +1,5 @@
 /**
- * Minimal Amp plugin host for executing Sentinel's generated .amp/plugins/sentinel.ts against the
+ * Minimal Amp plugin host for executing Ward's generated .amp/plugins/ward.ts against the
  * pinned @ampcode/plugin 0.0.0-20261016001627-gab25fd2 contract (index.d.ts):
  *
  * - `amp.on(event, handler)` registers handlers; handlers receive `(event, ctx)`.

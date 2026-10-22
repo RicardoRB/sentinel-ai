@@ -3,7 +3,7 @@ import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "n
 import { dirname, join } from "node:path";
 import { aggregate, record, type Assertion, type MatrixReport, type ScenarioRecord } from "./evidence";
 import { recordedInvocations, type Invocation } from "./execute";
-import { createFixture, sentinelLauncher, type Fixture, type SentinelLauncher } from "./fixture";
+import { createFixture, wardLauncher, type Fixture, type WardLauncher } from "./fixture";
 import { findHarness, loadManifest, REPO_ROOT, type Harness, type Manifest } from "./manifest";
 import { preflight, type PreflightResult } from "./preflight";
 import { run, SYSTEM_PATH } from "./process";
@@ -24,9 +24,9 @@ export interface LiveContext {
   harness: Harness;
   runtime: PreflightResult & { status: "ready"; executable: string };
   fixture: Fixture;
-  /** Fixture environment plus the recording Sentinel wrapper and allowlisted credentials. */
+  /** Fixture environment plus the recording Ward wrapper and allowlisted credentials. */
   env: Record<string, string>;
-  /** Invocations of the real Sentinel CLI, recorded by the wrapper before it execs Sentinel. */
+  /** Invocations of the real Ward CLI, recorded by the wrapper before it execs Ward. */
   invocations(): Invocation[];
   run(argv: string[], timeoutMs: number): ReturnType<typeof run>;
 }
@@ -46,21 +46,21 @@ export interface LiveDriver {
   harness: string;
   /** Names of required prerequisites that are missing, given the caller's environment. */
   missingPrerequisites(env: Record<string, string | undefined>): string[];
-  /** Fixture preparation beyond `sentinel integrate`, such as protected specs. */
+  /** Fixture preparation beyond `ward integrate`, such as protected specs. */
   prepare?(fixture: Fixture): void;
   scenarios: LiveScenario[];
 }
 
-/** Writes a `sentinel` wrapper that records each invocation and then execs the real launcher. */
-export function writeRecordingWrapper(dir: string, log: string, launcher: SentinelLauncher): void {
+/** Writes a `ward` wrapper that records each invocation and then execs the real launcher. */
+export function writeRecordingWrapper(dir: string, log: string, launcher: WardLauncher): void {
   mkdirSync(dir, { recursive: true });
   mkdirSync(log, { recursive: true });
   const quoted = launcher.argv.map((part) => `'${part.replaceAll("'", "'\\''")}'`).join(" ");
-  const path = join(dir, "sentinel");
+  const path = join(dir, "ward");
   writeFileSync(
     path,
     `#!/bin/sh
-# Records that a native harness event reached Sentinel, then runs the real Sentinel CLI.
+# Records that a native harness event reached Ward, then runs the real Ward CLI.
 i=0
 while ! mkdir '${log}'/"$i" 2>/dev/null; do i=$((i + 1)); [ "$i" -gt 100000 ] && break; done
 for arg in "$@"; do printf '%s\\0' "$arg"; done > '${log}'/"$i"/argv
@@ -133,8 +133,8 @@ async function runHarness(harness: Harness, options: LiveOptions, revision: stri
     return blockedAll(driver.scenarios.map((s) => s.id), runtime.prerequisite ?? "runtime");
   }
   const missing = driver.missingPrerequisites(options.env);
-  const launcher = sentinelLauncher(options.env);
-  if (!launcher) return blockedAll(driver.scenarios.map((s) => s.id), "built Sentinel launcher (./mvnw package)");
+  const launcher = wardLauncher(options.env);
+  if (!launcher) return blockedAll(driver.scenarios.map((s) => s.id), "built Ward launcher (./mvnw package)");
 
   const records: ScenarioRecord[] = [];
   for (const scenario of driver.scenarios) {
@@ -152,11 +152,11 @@ async function runHarness(harness: Harness, options: LiveOptions, revision: stri
       continue;
     }
     const started = performance.now();
-    const fixture = await createFixture({ harness: harness.id, guard: true, sentinel: launcher });
+    const fixture = await createFixture({ harness: harness.id, guard: true, ward: launcher });
     try {
       driver.prepare?.(fixture);
-      const wrapperDir = join(dirname(fixture.root), "sentinel-bin");
-      const log = join(dirname(fixture.root), "sentinel-log");
+      const wrapperDir = join(dirname(fixture.root), "ward-bin");
+      const log = join(dirname(fixture.root), "ward-log");
       writeRecordingWrapper(wrapperDir, log, launcher);
       const credentials = Object.fromEntries(
         CREDENTIAL_ALLOWLIST.filter((name) => options.env[name]).map((name) => [name, options.env[name] as string]),

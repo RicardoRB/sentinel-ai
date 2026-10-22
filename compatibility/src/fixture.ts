@@ -7,22 +7,22 @@ import { run, SYSTEM_PATH, type RunResult } from "./process";
 /** The trusted offline Maven fixture whose stub mvnw is the only command gates execute. */
 export const TRUSTED_FIXTURE = join(REPO_ROOT, "src/test/resources/fixtures/maven-project");
 
-export interface SentinelLauncher {
+export interface WardLauncher {
   argv: string[];
 }
 
 /**
- * Resolves the built Sentinel launcher: an explicit SENTINEL_COMPAT_SENTINEL executable, the
- * native image, or the packaged JAR. Fixtures always use real Sentinel output, never templates.
+ * Resolves the built Ward launcher: an explicit WARD_COMPAT_WARD executable, the
+ * native image, or the packaged JAR. Fixtures always use real Ward output, never templates.
  */
-export function sentinelLauncher(env: Record<string, string | undefined>): SentinelLauncher | undefined {
-  const explicit = env.SENTINEL_COMPAT_SENTINEL;
+export function wardLauncher(env: Record<string, string | undefined>): WardLauncher | undefined {
+  const explicit = env.WARD_COMPAT_WARD;
   if (explicit) return executable(explicit) ? { argv: [explicit] } : undefined;
   // Use the most recently built launcher so a stale native image never stands in for a newer JAR.
   const candidates: { argv: string[]; built: number }[] = [];
-  const native = join(REPO_ROOT, "target", "sentinel");
+  const native = join(REPO_ROOT, "target", "ward");
   if (executable(native)) candidates.push({ argv: [native], built: statSync(native).mtimeMs });
-  const jar = join(REPO_ROOT, "target", "sentinel.jar");
+  const jar = join(REPO_ROOT, "target", "ward.jar");
   const java = env.JAVA_HOME ? join(env.JAVA_HOME, "bin", "java") : "/usr/bin/java";
   if (executable(java) && existsSync(jar)) candidates.push({ argv: [java, "-jar", jar], built: statSync(jar).mtimeMs });
   candidates.sort((a, b) => b.built - a.built);
@@ -34,16 +34,16 @@ export interface Fixture {
   root: string;
   /** Isolated environment: HOME, XDG and harness configuration roots live inside the fixture. */
   env: Record<string, string>;
-  sentinel: SentinelLauncher;
+  ward: WardLauncher;
   cleanup(): void;
 }
 
 export interface FixtureOptions {
   harness: string;
   guard: boolean;
-  sentinel: SentinelLauncher;
+  ward: WardLauncher;
   timeoutMs?: number;
-  /** Gates passed to `sentinel init`; defaults to `format`. */
+  /** Gates passed to `ward init`; defaults to `format`. */
   gates?: string[];
 }
 
@@ -51,11 +51,11 @@ export class FixtureError extends Error {}
 
 /**
  * Creates a disposable project from the trusted fixture and integrates `harness` with the real
- * Sentinel CLI. Every configuration root a harness or Sentinel could write is redirected into
+ * Ward CLI. Every configuration root a harness or Ward could write is redirected into
  * the fixture, so user and global files are never touched.
  */
 export async function createFixture(options: FixtureOptions): Promise<Fixture> {
-  const base = mkdtempSync(join(tmpdir(), `sentinel-compat-${options.harness}-`));
+  const base = mkdtempSync(join(tmpdir(), `ward-compat-${options.harness}-`));
   const root = join(base, "project");
   const home = join(base, "home");
   cpSync(TRUSTED_FIXTURE, root, { recursive: true });
@@ -78,16 +78,16 @@ export async function createFixture(options: FixtureOptions): Promise<Fixture> {
   const fixture: Fixture = {
     root,
     env,
-    sentinel: options.sentinel,
+    ward: options.ward,
     cleanup: () => rmSync(base, { recursive: true, force: true }),
   };
   try {
-    const sentinel = (args: string[]) =>
-      run([...options.sentinel.argv, ...args, "-C", root], { cwd: root, env, timeoutMs: options.timeoutMs ?? 60_000 });
-    await expectSuccess("sentinel init", sentinel(["init", "--integration", "none", ...(options.gates ?? ["format"]).flatMap((gate) => ["--gate", gate])]));
+    const ward = (args: string[]) =>
+      run([...options.ward.argv, ...args, "-C", root], { cwd: root, env, timeoutMs: options.timeoutMs ?? 60_000 });
+    await expectSuccess("ward init", ward(["init", "--integration", "none", ...(options.gates ?? ["format"]).flatMap((gate) => ["--gate", gate])]));
     const integrate = ["integrate", options.harness];
     if (options.guard) integrate.push("--guard-approved-specs");
-    await expectSuccess(`sentinel integrate ${options.harness}`, sentinel(integrate));
+    await expectSuccess(`ward integrate ${options.harness}`, ward(integrate));
     return fixture;
   } catch (error) {
     fixture.cleanup();

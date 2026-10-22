@@ -85,12 +85,12 @@ export interface StubBehavior {
 }
 
 const STUB = `#!/bin/sh
-# Recording stand-in for the Sentinel CLI used by generated-artifact execution tests.
+# Recording stand-in for the Ward CLI used by generated-artifact execution tests.
 # Configuration comes from the environment or, for hosts that spawn with their startup
 # environment, from a state directory next to the stub.
 state="$(dirname "$0")/.state"
-log="\${SENTINEL_STUB_LOG:-$state/log}"
-responses="\${SENTINEL_STUB_RESPONSES:-$state/responses}"
+log="\${WARD_STUB_LOG:-$state/log}"
+responses="\${WARD_STUB_RESPONSES:-$state/responses}"
 mkdir -p "$log" || exit 97
 # mkdir is atomic, so concurrent invocations claim distinct, ordered sequence numbers.
 i=0
@@ -104,7 +104,7 @@ pwd -P > "$dir/cwd"
 cat > "$dir/stdin"
 # Written last, so readers never observe a partially recorded invocation.
 : > "$dir/complete"
-# Optional per-subcommand responses: $SENTINEL_STUB_RESPONSES/<command>[-<subcommand>]/{exit,stdout,stderr,delay}; hook calls are keyed hook-guard or hook-check.
+# Optional per-subcommand responses: $WARD_STUB_RESPONSES/<command>[-<subcommand>]/{exit,stdout,stderr,delay}; hook calls are keyed hook-guard or hook-check.
 key="$1"; [ "$1" = spec ] && key="spec-$2"
 if [ "$1" = hook ]; then
   case " $* " in *" --guard-approved-specs "*) key="hook-guard" ;; *) key="hook-check" ;; esac
@@ -116,9 +116,9 @@ if [ -d "$response" ]; then
   [ -f "$response/stderr" ] && cat "$response/stderr" >&2
   exit "$(cat "$response/exit" 2>/dev/null || echo 0)"
 fi
-[ -n "$SENTINEL_STUB_STDOUT" ] && printf '%s' "$SENTINEL_STUB_STDOUT"
-[ -n "$SENTINEL_STUB_STDERR" ] && printf '%s' "$SENTINEL_STUB_STDERR" >&2
-exit "\${SENTINEL_STUB_EXIT:-0}"
+[ -n "$WARD_STUB_STDOUT" ] && printf '%s' "$WARD_STUB_STDOUT"
+[ -n "$WARD_STUB_STDERR" ] && printf '%s' "$WARD_STUB_STDERR" >&2
+exit "\${WARD_STUB_EXIT:-0}"
 `;
 
 export interface ExecutionHarness {
@@ -137,7 +137,7 @@ export interface ExecutionHarness {
 /** Writes the recording stub into `dir` and returns its path. */
 export function writeStub(dir: string): string {
   mkdirSync(dir, { recursive: true });
-  const path = join(dir, "sentinel");
+  const path = join(dir, "ward");
   writeFileSync(path, STUB);
   chmodSync(path, 0o755);
   return path;
@@ -153,8 +153,8 @@ export function executionHarness(fixture: Fixture): ExecutionHarness {
   const stubBin = join(base, "stub-bin");
   const log = join(base, "stub-log");
   mkdirSync(stubBin, { recursive: true });
-  writeFileSync(join(stubBin, "sentinel"), STUB);
-  chmodSync(join(stubBin, "sentinel"), 0o755);
+  writeFileSync(join(stubBin, "ward"), STUB);
+  chmodSync(join(stubBin, "ward"), 0o755);
   let sequence = 0;
   return {
     stubBin,
@@ -171,10 +171,10 @@ export function executionHarness(fixture: Fixture): ExecutionHarness {
           ...fixture.env,
           ...options.env,
           PATH: `${stubBin}:${SYSTEM_PATH}`,
-          SENTINEL_STUB_LOG: runLog,
-          SENTINEL_STUB_EXIT: String(stub.exitCode ?? 0),
-          SENTINEL_STUB_STDOUT: stub.stdout ?? "",
-          SENTINEL_STUB_STDERR: stub.stderr ?? "",
+          WARD_STUB_LOG: runLog,
+          WARD_STUB_EXIT: String(stub.exitCode ?? 0),
+          WARD_STUB_STDOUT: stub.stdout ?? "",
+          WARD_STUB_STDERR: stub.stderr ?? "",
         },
       });
       return { result, invocations: readInvocations(runLog) };
@@ -203,11 +203,11 @@ export class Assertions {
     return passed;
   }
 
-  /** The generated artifact reached Sentinel exactly once with these arguments. */
-  invokedSentinel(invocations: Invocation[], argv: string[]): boolean {
+  /** The generated artifact reached Ward exactly once with these arguments. */
+  invokedWard(invocations: Invocation[], argv: string[]): boolean {
     const passed = invocations.length === 1 && JSON.stringify(invocations[0].argv) === JSON.stringify(argv);
     return this.check(
-      `invokes sentinel ${argv.join(" ")}`,
+      `invokes ward ${argv.join(" ")}`,
       passed,
       `observed ${invocations.length} invocation(s)${invocations.length ? `: ${invocations.map((i) => i.argv.join(" ")).join(" | ")}` : ""}`,
     );
@@ -219,10 +219,10 @@ export class Assertions {
 }
 
 /**
- * Negative control: rewrites a generated wrapper so it no longer reaches Sentinel. Assertions that
+ * Negative control: rewrites a generated wrapper so it no longer reaches Ward. Assertions that
  * still pass against a disconnected artifact are not evidence of wiring.
  */
 export function disconnectWrapper(path: string): void {
   const original = readFileSync(path, "utf8");
-  writeFileSync(path, original.replace(/exec sentinel [^;\n]*/g, "exit 0"));
+  writeFileSync(path, original.replace(/exec ward [^;\n]*/g, "exit 0"));
 }

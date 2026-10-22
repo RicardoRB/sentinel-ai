@@ -1,7 +1,7 @@
 {
-  "sentinelOwnership": "sentinel-owned: factory-droid-native-hooks v1",
+  "wardOwnership": "ward-owned: factory-droid-native-hooks v1",
   "hooks": {
-    "postToolUse": [{"type":"command","command":".factory/plugins/sentinel.sh"}],
-    "sessionEnd": [{"type":"command","command":".factory/plugins/sentinel.sh"}]
+    "postToolUse": [{"type":"command","command":".factory/plugins/ward.sh"}],
+    "sessionEnd": [{"type":"command","command":".factory/plugins/ward.sh"}]
   }
 }

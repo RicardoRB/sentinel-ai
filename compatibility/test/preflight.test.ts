@@ -8,7 +8,7 @@ import { install, parseVersion, preflight } from "../src/preflight";
 const manifest = loadManifest();
 const codex = findHarness(manifest, "codex");
 const windsurf = findHarness(manifest, "windsurf");
-const base = mkdtempSync(join(tmpdir(), "sentinel-preflight-"));
+const base = mkdtempSync(join(tmpdir(), "ward-preflight-"));
 const home = join(base, "home");
 mkdirSync(home);
 afterAll(() => rmSync(base, { recursive: true, force: true }));
@@ -27,22 +27,22 @@ describe("runtime preflight", () => {
     const result = await preflight(codex, options());
     expect(result.status).toBe("blocked");
     expect(result.prerequisite).toBe(
-      "codex 0.163.0 (set SENTINEL_COMPAT_CODEX_BIN to an absolute executable path or run preflight with --install)",
+      "codex 0.163.0 (set WARD_COMPAT_CODEX_BIN to an absolute executable path or run preflight with --install)",
     );
   });
 
   test("an editor runtime without an isolated installer names only the executable override", async () => {
     const result = await preflight(windsurf, options());
-    expect(result.prerequisite).toBe("windsurf 1.126.0 (set SENTINEL_COMPAT_WINDSURF_BIN to an absolute executable path)");
+    expect(result.prerequisite).toBe("windsurf 1.126.0 (set WARD_COMPAT_WINDSURF_BIN to an absolute executable path)");
   });
 
   test("PATH and relative overrides never satisfy preflight", async () => {
-    expect((await preflight(codex, options({ SENTINEL_COMPAT_CODEX_BIN: "codex", PATH: "/usr/bin" }))).status).toBe("blocked");
+    expect((await preflight(codex, options({ WARD_COMPAT_CODEX_BIN: "codex", PATH: "/usr/bin" }))).status).toBe("blocked");
   });
 
   test("a version mismatch is explicit non-success", async () => {
     const old = script("codex-old", 'echo "codex-cli 0.162.0"');
-    const result = await preflight(codex, options({ SENTINEL_COMPAT_CODEX_BIN: old }));
+    const result = await preflight(codex, options({ WARD_COMPAT_CODEX_BIN: old }));
     expect(result).toMatchObject({
       status: "blocked",
       foundVersion: "0.162.0",
@@ -52,21 +52,21 @@ describe("runtime preflight", () => {
 
   test("unrecognized version output is a mismatch, not a pass", async () => {
     const odd = script("codex-odd", 'echo "something else"');
-    expect((await preflight(codex, options({ SENTINEL_COMPAT_CODEX_BIN: odd }))).prerequisite).toBe(
+    expect((await preflight(codex, options({ WARD_COMPAT_CODEX_BIN: odd }))).prerequisite).toBe(
       "version mismatch: expected 0.163.0, found unrecognized output",
     );
   });
 
   test("a failing version command is blocked", async () => {
     const broken = script("codex-broken", "exit 3");
-    expect((await preflight(codex, options({ SENTINEL_COMPAT_CODEX_BIN: broken }))).prerequisite).toBe(
+    expect((await preflight(codex, options({ WARD_COMPAT_CODEX_BIN: broken }))).prerequisite).toBe(
       "codex version command did not succeed",
     );
   });
 
   test("the exact pinned version is ready and runs with the isolated HOME", async () => {
     const pinned = script("codex-pinned", `[ "$HOME" = "${home}" ] || exit 9\necho "codex-cli 0.163.0"`);
-    expect(await preflight(codex, options({ SENTINEL_COMPAT_CODEX_BIN: pinned }))).toMatchObject({
+    expect(await preflight(codex, options({ WARD_COMPAT_CODEX_BIN: pinned }))).toMatchObject({
       status: "ready",
       foundVersion: "0.163.0",
     });
@@ -122,7 +122,7 @@ describe("pinned isolated install", () => {
     expect(await install(windsurf, { toolsDir: join(base, "t4"), npm: "/usr/bin/true", home })).toEqual({
       harness: "windsurf",
       installed: false,
-      prerequisite: "Windsurf has no isolated installer; set SENTINEL_COMPAT_WINDSURF_BIN",
+      prerequisite: "Windsurf has no isolated installer; set WARD_COMPAT_WINDSURF_BIN",
     });
     expect(existsSync(join(base, "t4"))).toBe(false);
   });

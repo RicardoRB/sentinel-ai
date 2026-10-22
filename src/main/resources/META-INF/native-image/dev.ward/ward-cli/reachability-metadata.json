@@ -1,0 +1,20 @@
+{
+  "resources": [
+    { "glob": "dev/ward/infrastructure/cli/version.properties" },
+    { "bundle": "com.sun.org.apache.xerces.internal.impl.msg.XMLMessages" }
+  ],
+  "foreign": {
+    "downcalls": [
+      { "returnType": "int", "parameterTypes": ["int"] },
+      { "returnType": "int", "parameterTypes": ["int", "void*"] },
+      { "returnType": "int", "parameterTypes": ["int", "int", "void*"] },
+      { "returnType": "long", "parameterTypes": ["int", "void*", "long"] }
+    ]
+  },
+  "reflection": [
+    { "type": { "proxy": ["dev.ward.infrastructure.terminal.PosixRawTerminal$Isatty"] } },
+    { "type": { "proxy": ["dev.ward.infrastructure.terminal.PosixRawTerminal$Tcgetattr"] } },
+    { "type": { "proxy": ["dev.ward.infrastructure.terminal.PosixRawTerminal$Tcsetattr"] } },
+    { "type": { "proxy": ["dev.ward.infrastructure.terminal.PosixRawTerminal$NativeRead"] } }
+  ]
+}

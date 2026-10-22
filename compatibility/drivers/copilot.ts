@@ -5,10 +5,10 @@ import type { LiveContext, LiveDriver } from "../src/live";
 import { hookScenarios, prepareSmokeFixture } from "./hook-scenarios";
 
 // Live Copilot CLI driver. `copilot -p` runs one non-interactive turn in the fixture; Copilot itself
-// discovers .github/hooks/sentinel.json and dispatches the hooks. COPILOT_HOME is isolated by the
+// discovers .github/hooks/ward.json and dispatches the hooks. COPILOT_HOME is isolated by the
 // fixture, so no user hooks, settings or plugins are loaded. Repository hooks load only from a
 // trusted folder, so the fixture is listed in the isolated config's trusted_folders; that key is
-// unconfirmed until a live run, and a run that never reaches Sentinel fails its invocation assertion.
+// unconfirmed until a live run, and a run that never reaches Ward fails its invocation assertion.
 // Source: https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-hooks-reference.
 
 const TURN_TIMEOUT_MS = 240_000;

@@ -1,13 +1,13 @@
 == definition
-amp .amp/plugins/sentinel.ts .amp/plugins/sentinel.sh tool.call,tool.result,agent.end [APPROVED_ARTIFACT_GUARD, FEEDBACK, POST_EDIT, PRE_TOOL, TURN_END]
+amp .amp/plugins/ward.ts .amp/plugins/ward.sh tool.call,tool.result,agent.end [APPROVED_ARTIFACT_GUARD, FEEDBACK, POST_EDIT, PRE_TOOL, TURN_END]
 == config
-// sentinel-owned: amp-native-hooks v1
+// ward-owned: amp-native-hooks v1
 import { spawn } from "node:child_process";
 import type { PluginAPI } from "@ampcode/plugin";
 
-// Calls .amp/plugins/sentinel.sh: "pre" runs the approved-artifact guard when it is enabled,
+// Calls .amp/plugins/ward.sh: "pre" runs the approved-artifact guard when it is enabled,
 // "post" runs the quality check. Edits and shell commands are identified with Amp's helpers.
-const HOOK = ".amp/plugins/sentinel.sh";
+const HOOK = ".amp/plugins/ward.sh";
 const MAX = 8192;
 
 export default function (amp: PluginAPI) {
@@ -35,14 +35,14 @@ export default function (amp: PluginAPI) {
     for (const payload of payloads) {
       const result = await hook("pre", payload);
       if (result.error || result.code !== 0) {
-        // Sentinel could not decide; the call proceeds, as documented.
-        ctx.logger.log(`[sentinel guard] could not decide; allowing: ${(result.error ?? result.stderr).slice(0, 500)}`);
+        // Ward could not decide; the call proceeds, as documented.
+        ctx.logger.log(`[ward guard] could not decide; allowing: ${(result.error ?? result.stderr).slice(0, 500)}`);
         continue;
       }
       let decision: { action?: string; message?: unknown } | null = null;
       try { decision = result.stdout.trim() ? JSON.parse(result.stdout) : null; } catch { decision = null; }
       if (decision?.action === "reject-and-continue") {
-        return { action: "reject-and-continue", message: String(decision.message ?? "Refused by Sentinel.").slice(0, MAX) };
+        return { action: "reject-and-continue", message: String(decision.message ?? "Refused by Ward.").slice(0, MAX) };
       }
     }
     return { action: "allow" };
@@ -58,10 +58,10 @@ export default function (amp: PluginAPI) {
     for (const path of targets) {
       const result = await hook("post", { event: "tool.result", tool_name: event.tool, cwd: root, file_path: path });
       if (result.error) {
-        ctx.logger.log(`[sentinel] could not run: ${result.error.slice(0, 500)}`);
+        ctx.logger.log(`[ward] could not run: ${result.error.slice(0, 500)}`);
         return;
       }
-      if (result.code !== 0) feedback.push((result.stderr || result.stdout).trim() || "Sentinel validation failed.");
+      if (result.code !== 0) feedback.push((result.stderr || result.stdout).trim() || "Ward validation failed.");
     }
     if (feedback.length === 0) return;
     const original = typeof event.output === "string" ? event.output : JSON.stringify(event.output ?? "");
@@ -72,56 +72,56 @@ export default function (amp: PluginAPI) {
     if (event.status !== "done") return;
     const result = await hook("post", { event: "agent.end", cwd: root });
     if (result.error) {
-      ctx.logger.log(`[sentinel] could not run: ${result.error.slice(0, 500)}`);
+      ctx.logger.log(`[ward] could not run: ${result.error.slice(0, 500)}`);
       return;
     }
     const text = (result.code === 0 ? result.stdout : result.stderr || result.stdout).trim();
     if (!text) return;
     // One corrective continuation per user message keeps an unfixable finding from looping.
-    return { action: "continue", userMessage: `[sentinel]\n${text.slice(0, MAX)}`, maxContinuations: 1 };
+    return { action: "continue", userMessage: `[ward]\n${text.slice(0, MAX)}`, maxContinuations: 1 };
   });
 }
 
 == hook KEEP
 #!/bin/sh
-# sentinel-owned: amp-native-hooks v1
-# Native event adapter for amp. Usage: sentinel.sh pre|post, with the event JSON on stdin.
-# Hooks may run in a subdirectory, so Sentinel always checks the project this file is in.
+# ward-owned: amp-native-hooks v1
+# Native event adapter for amp. Usage: ward.sh pre|post, with the event JSON on stdin.
+# Hooks may run in a subdirectory, so Ward always checks the project this file is in.
 cd "$(dirname "$0")/../.." || exit 2
 case "$1" in
   pre)
     [ "keep" = "enable" ] || exit 0
-    exec sentinel hook native --agent amp --guard-approved-specs --event-stdin ;;
-  post) exec sentinel hook native --agent amp --event-stdin ;;
-  *) echo "Sentinel hook wrapper: expected pre or post." >&2; exit 2 ;;
+    exec ward hook native --agent amp --guard-approved-specs --event-stdin ;;
+  post) exec ward hook native --agent amp --event-stdin ;;
+  *) echo "Ward hook wrapper: expected pre or post." >&2; exit 2 ;;
 esac
 
 == hook ENABLE
 #!/bin/sh
-# sentinel-owned: amp-native-hooks v1
-# Native event adapter for amp. Usage: sentinel.sh pre|post, with the event JSON on stdin.
-# Hooks may run in a subdirectory, so Sentinel always checks the project this file is in.
+# ward-owned: amp-native-hooks v1
+# Native event adapter for amp. Usage: ward.sh pre|post, with the event JSON on stdin.
+# Hooks may run in a subdirectory, so Ward always checks the project this file is in.
 cd "$(dirname "$0")/../.." || exit 2
 case "$1" in
   pre)
     [ "enable" = "enable" ] || exit 0
-    exec sentinel hook native --agent amp --guard-approved-specs --event-stdin ;;
-  post) exec sentinel hook native --agent amp --event-stdin ;;
-  *) echo "Sentinel hook wrapper: expected pre or post." >&2; exit 2 ;;
+    exec ward hook native --agent amp --guard-approved-specs --event-stdin ;;
+  post) exec ward hook native --agent amp --event-stdin ;;
+  *) echo "Ward hook wrapper: expected pre or post." >&2; exit 2 ;;
 esac
 
 == hook DISABLE
 #!/bin/sh
-# sentinel-owned: amp-native-hooks v1
-# Native event adapter for amp. Usage: sentinel.sh pre|post, with the event JSON on stdin.
-# Hooks may run in a subdirectory, so Sentinel always checks the project this file is in.
+# ward-owned: amp-native-hooks v1
+# Native event adapter for amp. Usage: ward.sh pre|post, with the event JSON on stdin.
+# Hooks may run in a subdirectory, so Ward always checks the project this file is in.
 cd "$(dirname "$0")/../.." || exit 2
 case "$1" in
   pre)
     [ "disable" = "enable" ] || exit 0
-    exec sentinel hook native --agent amp --guard-approved-specs --event-stdin ;;
-  post) exec sentinel hook native --agent amp --event-stdin ;;
-  *) echo "Sentinel hook wrapper: expected pre or post." >&2; exit 2 ;;
+    exec ward hook native --agent amp --guard-approved-specs --event-stdin ;;
+  post) exec ward hook native --agent amp --event-stdin ;;
+  *) echo "Ward hook wrapper: expected pre or post." >&2; exit 2 ;;
 esac
 
 == deny

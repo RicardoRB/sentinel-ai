@@ -2,12 +2,12 @@ import { afterAll, describe, expect, test } from "bun:test";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
-import { createFixture, FixtureError, sentinelLauncher } from "../src/fixture";
+import { createFixture, FixtureError, wardLauncher } from "../src/fixture";
 import { cleanupOwnedProcesses, ownedProcessCount, run, SYSTEM_PATH } from "../src/process";
 
 afterAll(cleanupOwnedProcesses);
 
-const launcher = sentinelLauncher(process.env);
+const launcher = wardLauncher(process.env);
 
 // Global harness configuration that a fixture must never create or modify.
 const GLOBAL_PATHS = [
@@ -27,18 +27,18 @@ const snapshot = () =>
   GLOBAL_PATHS.map((path) => (existsSync(path) ? `${path}:${statSync(path).mtimeMs}` : `${path}:absent`));
 
 describe("disposable fixtures", () => {
-  test("a built Sentinel launcher is required, not skipped", () => {
+  test("a built Ward launcher is required, not skipped", () => {
     // Build with ./mvnw package (or the native profile) before running compatibility tests.
     expect(launcher).toBeDefined();
   });
 
-  test("integrates with real Sentinel output inside an isolated home", async () => {
+  test("integrates with real Ward output inside an isolated home", async () => {
     const before = snapshot();
-    const fixture = await createFixture({ harness: "codex", guard: true, sentinel: launcher! });
+    const fixture = await createFixture({ harness: "codex", guard: true, ward: launcher! });
     try {
       const base = dirname(fixture.root);
-      expect(readFileSync(join(fixture.root, ".codex/hooks.json"), "utf8")).toContain("sentinel-owned: codex-native-hooks v1");
-      expect(readFileSync(join(fixture.root, ".codex/hooks/sentinel.sh"), "utf8")).toContain("--guard-approved-specs");
+      expect(readFileSync(join(fixture.root, ".codex/hooks.json"), "utf8")).toContain("ward-owned: codex-native-hooks v1");
+      expect(readFileSync(join(fixture.root, ".codex/hooks/ward.sh"), "utf8")).toContain("--guard-approved-specs");
       for (const key of ["HOME", "XDG_CONFIG_HOME", "XDG_CACHE_HOME", "XDG_DATA_HOME", "CODEX_HOME", "CLAUDE_CONFIG_DIR", "COPILOT_HOME", "TMPDIR"]) {
         expect(fixture.env[key].startsWith(base)).toBe(true);
       }
@@ -53,12 +53,12 @@ describe("disposable fixtures", () => {
   test("a failed integration cleans up and reports no captured output", async () => {
     let error: unknown;
     try {
-      await createFixture({ harness: "not-a-harness", guard: false, sentinel: launcher! });
+      await createFixture({ harness: "not-a-harness", guard: false, ward: launcher! });
     } catch (caught) {
       error = caught;
     }
     expect(error).toBeInstanceOf(FixtureError);
-    expect((error as Error).message).toMatch(/^sentinel integrate not-a-harness did not succeed \(exit \d+\)$/);
+    expect((error as Error).message).toMatch(/^ward integrate not-a-harness did not succeed \(exit \d+\)$/);
   });
 });
 

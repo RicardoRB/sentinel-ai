@@ -1,5 +1,5 @@
 /**
- * Minimal host for executing Sentinel's generated OpenCode V2 plugins against the pinned
+ * Minimal host for executing Ward's generated OpenCode V2 plugins against the pinned
  * @opencode/plugin 2.0.30 contract. Semantics mirror opencode v2.0.30:
  *
  * - packages/plugin/src/promise/adapter.ts: an `execute.before` rejection becomes a Tool.Error that

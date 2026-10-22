@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "sentinel-opencode-v2-compatibility",
+      "name": "ward-opencode-v2-compatibility",
       "devDependencies": {
         "@opencode/plugin": "2.0.30",
       },

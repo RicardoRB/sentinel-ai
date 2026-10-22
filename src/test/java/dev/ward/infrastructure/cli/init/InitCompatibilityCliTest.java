@@ -1,0 +1,100 @@
+package dev.ward.infrastructure.cli.init;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import dev.ward.application.init.InitProjectFiles;
+import dev.ward.application.init.InitService;
+import dev.ward.application.init.InitSetupCatalog;
+import dev.ward.application.project.ProjectDetector;
+import dev.ward.domain.FakeEnvironmentInspection;
+import dev.ward.domain.init.CompatibilityProjectSnapshot;
+import dev.ward.domain.init.ToolchainSnapshot;
+import dev.ward.domain.project.Framework;
+import dev.ward.infrastructure.init.ArchitectureTestGenerator;
+import dev.ward.infrastructure.init.FileConfigurationStorage;
+import dev.ward.infrastructure.init.PomToolConfigurator;
+import dev.ward.infrastructure.init.PresetRuleFileWriter;
+import dev.ward.infrastructure.project.FileSystemProjectInspection;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import picocli.CommandLine;
+
+class InitCompatibilityCliTest {
+  private static final int JAVA_17 = 17;
+
+  @Test
+  void refusalLeavesExistingPluginUnchanged(@TempDir final Path root) throws Exception {
+    writePom(root);
+    final StringWriter output = new StringWriter();
+    final CommandLine command = command("n\n", output);
+
+    final int exit =
+        command.execute(
+            "--directory", root.toString(), "--integration", "none", "--gate", "format");
+
+    assertThat(exit).isZero();
+    assertThat(Files.readString(root.resolve("pom.xml"))).contains("<version>1.0.0</version>");
+    assertThat(output.toString()).contains("Compatibility update proposed");
+  }
+
+  @Test
+  void yesAppliesValidatedCompatibilityUpdateWithoutPrompt(@TempDir final Path root)
+      throws Exception {
+    writePom(root);
+    final StringWriter output = new StringWriter();
+    final CommandLine command = command("", output);
+
+    final int exit =
+        command.execute(
+            "--directory", root.toString(), "--integration", "none", "--gate", "format", "--yes");
+
+    assertThat(exit).isZero();
+    assertThat(Files.readString(root.resolve("pom.xml"))).contains("<version>3.10.3</version>");
+    assertThat(output.toString()).doesNotContain("Compatibility update proposed");
+  }
+
+  private static CommandLine command(final String input, final StringWriter output) {
+    final ProjectDetector detector = new ProjectDetector(new FileSystemProjectInspection());
+    final PomToolConfigurator configurator =
+        new PomToolConfigurator(
+            project ->
+                new CompatibilityProjectSnapshot(
+                    project,
+                    new ToolchainSnapshot(
+                        JAVA_17, Optional.of("3.9.0"), Optional.empty(), Framework.NONE),
+                    Map.of("spotless-maven-plugin", "1.0.0")));
+    final InitService service =
+        new InitService(
+            detector,
+            Set.of(),
+            new InitSetupCatalog(new FakeEnvironmentInspection()),
+            new InitProjectFiles(
+                configurator,
+                new PresetRuleFileWriter(),
+                new ArchitectureTestGenerator(),
+                new FileConfigurationStorage()));
+    final InitCommand init =
+        new InitCommand(service, new ByteArrayInputStream(input.getBytes(StandardCharsets.UTF_8)));
+    final CommandLine command = new CommandLine(init);
+    command.setOut(new PrintWriter(output, true));
+    command.setErr(new PrintWriter(output, true));
+    return command;
+  }
+
+  private static void writePom(final Path root) throws IOException {
+    Files.writeString(
+        root.resolve("pom.xml"),
+        "<project><build><plugins><plugin><artifactId>spotless-maven-plugin</artifactId>"
+            + "<version>1.0.0</version></plugin></plugins></build></project>");
+  }
+}

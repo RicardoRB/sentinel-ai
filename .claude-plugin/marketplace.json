@@ -1,16 +1,16 @@
 {
-  "name": "sentinel-ai",
+  "name": "ward-ai",
   "owner": {
     "name": "Ricardo Romero Benitez"
   },
   "metadata": {
-    "description": "Sentinel agent skills for guided setup and rule tuning."
+    "description": "Ward agent skills for guided setup and rule tuning."
   },
   "plugins": [
     {
-      "name": "sentinel",
+      "name": "ward",
       "source": "./",
-      "description": "Guided Sentinel setup (sentinel-init) and codebase-grounded rule tuning (sentinel-tune)."
+      "description": "Guided Ward setup (ward-init) and codebase-grounded rule tuning (ward-tune)."
     }
   ]
 }

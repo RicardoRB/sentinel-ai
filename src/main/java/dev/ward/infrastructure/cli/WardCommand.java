@@ -1,0 +1,67 @@
+package dev.ward.infrastructure.cli;
+
+import dev.ward.infrastructure.cli.agent.HookCommand;
+import dev.ward.infrastructure.cli.agent.IntegrateCommand;
+import dev.ward.infrastructure.cli.doctor.DoctorCommand;
+import dev.ward.infrastructure.cli.gate.CheckCommand;
+import dev.ward.infrastructure.cli.init.InitCommand;
+import dev.ward.infrastructure.cli.loop.LoopCommand;
+import dev.ward.infrastructure.cli.project.DetectCommand;
+import dev.ward.infrastructure.cli.spec.SpecCommand;
+import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
+import java.util.concurrent.Callable;
+import javax.inject.Inject;
+import picocli.CommandLine.Command;
+import picocli.CommandLine.Model.CommandSpec;
+import picocli.CommandLine.Option;
+import picocli.CommandLine.ScopeType;
+import picocli.CommandLine.Spec;
+
+/** The {@code ward} root command; it only groups the subcommands. */
+@Command(
+    name = "ward",
+    description = "Ward is a quality gate orchestrator for AI coding agents.",
+    mixinStandardHelpOptions = true,
+    versionProvider = VersionProvider.class,
+    subcommands = {
+      DetectCommand.class,
+      InitCommand.class,
+      CheckCommand.class,
+      IntegrateCommand.class,
+      HookCommand.class,
+      SpecCommand.class,
+      DoctorCommand.class,
+      LoopCommand.class
+    },
+    footer = {"", "Exit codes: 0 = ok, 1 = failed, 2 = error"})
+public class WardCommand implements Callable<Integer> {
+
+  @Spec private CommandSpec spec;
+
+  @Option(
+      names = "--verbose",
+      scope = ScopeType.INHERIT,
+      description = "Enable diagnostic logs on stderr.")
+  private boolean verbose;
+
+  /** Creates the root command. */
+  @Inject
+  public WardCommand() {}
+
+  // Without a Picocli spec there is no command-line writer to print usage to.
+  @Override
+  public Integer call() {
+    if (spec == null) {
+      error().println("Usage: ward [COMMAND]");
+      error().println("Use 'ward --help' for available commands.");
+    } else {
+      spec.commandLine().usage(spec.commandLine().getErr());
+    }
+    return ExitCodes.ERROR;
+  }
+
+  private PrintWriter error() {
+    return new PrintWriter(System.err, true, StandardCharsets.UTF_8);
+  }
+}

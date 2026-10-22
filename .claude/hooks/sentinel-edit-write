@@ -1,6 +1,0 @@
-#!/bin/sh
-# sentinel-owned: edit-write-guard v1
-# Claude Code passes the hook event JSON on stdin. Sentinel reads it to validate edited
-# spec files after edits and all configured spec checks when the turn ends. Hooks run in
-# the session's current directory, so Sentinel is pointed at the project explicitly.
-exec sentinel hook claude-code --learn-after 3 --exclude-spec --event-stdin -C "${CLAUDE_PROJECT_DIR:-.}"

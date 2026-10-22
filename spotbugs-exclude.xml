@@ -8,9 +8,9 @@
     <Match>
         <Class name="~.*_ForyJsonCodec(\$.*)?"/>
     </Match>
-    <!-- Dagger component and factories generated from SentinelComponent. -->
+    <!-- Dagger component and factories generated from WardComponent. -->
     <Match>
-        <Class name="~dev\.sentinel\.config\.DaggerSentinelComponent(\$.*)?"/>
+        <Class name="~dev\.ward\.config\.DaggerWardComponent(\$.*)?"/>
     </Match>
     <Match>
         <Class name="~.*_Factory"/>

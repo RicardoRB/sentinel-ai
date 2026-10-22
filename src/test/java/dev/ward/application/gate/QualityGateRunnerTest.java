@@ -1,0 +1,168 @@
+package dev.ward.application.gate;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import dev.ward.domain.FakeCommandExecutor;
+import dev.ward.domain.gate.CheckReport;
+import dev.ward.domain.gate.GateResult;
+import dev.ward.domain.gate.GateStatus;
+import dev.ward.domain.gate.QualityGate;
+import dev.ward.domain.project.BuildTool;
+import dev.ward.domain.project.Framework;
+import dev.ward.domain.project.Language;
+import dev.ward.domain.project.Project;
+import java.nio.file.Path;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import org.junit.jupiter.api.Test;
+
+class QualityGateRunnerTest {
+  private static final Duration GATE_DURATION = Duration.ofMillis(10);
+
+  private final Project project =
+      new Project(Path.of("/p"), Language.JAVA, BuildTool.MAVEN, Framework.NONE);
+  private final QualityGateRunner runner = new QualityGateRunner();
+
+  private static QualityGate gate(final String name, final GateStatus status) {
+    return new QualityGate() {
+      @Override
+      public String name() {
+        return name;
+      }
+
+      @Override
+      public GateResult execute(Project project) {
+        return GateResult.builder(name, status)
+            .command(List.of("x"))
+            .exitCode(status == GateStatus.PASSED ? 0 : 1)
+            .duration(GATE_DURATION)
+            .stdout("")
+            .stderr("")
+            .build();
+      }
+    };
+  }
+
+  @Test
+  void allPassedAggregatesToPassed() {
+    final CheckReport report =
+        runner.run(project, List.of(gate("a", GateStatus.PASSED), gate("b", GateStatus.PASSED)));
+
+    assertThat(report.status()).isEqualTo(GateStatus.PASSED);
+    assertThat(report.passed()).isTrue();
+  }
+
+  @Test
+  void oneFailureAggregatesToFailedAndOtherGatesStillRun() {
+    final CheckReport report =
+        runner.run(project, List.of(gate("a", GateStatus.FAILED), gate("b", GateStatus.PASSED)));
+
+    assertThat(report.status()).isEqualTo(GateStatus.FAILED);
+    assertThat(report.results()).extracting(GateResult::name).containsExactly("a", "b");
+  }
+
+  @Test
+  void reportsStartAndFinishInGateOrderDespiteFailure() {
+    final List<String> events = new ArrayList<>();
+    final FakeCommandExecutor executor = new FakeCommandExecutor(1, "", "failure");
+    runner.run(
+        project,
+        List.of(
+            new CommandQualityGate("a", executor, List.of("first")),
+            new CommandQualityGate("b", executor, List.of("second"))),
+        new CheckProgressListener() {
+          @Override
+          public void gateStarted(final String name) {
+            events.add("start:" + name);
+          }
+
+          @Override
+          public void gateFinished(final GateResult result) {
+            events.add("finish:" + result.name());
+          }
+        });
+    assertThat(events).containsExactly("start:a", "finish:a", "start:b", "finish:b");
+    assertThat(executor.commands).containsExactly(List.of("first"), List.of("second"));
+  }
+
+  @Test
+  void failFastStopsAndReportsRemainingGatesAsSkipped() {
+    final List<String> executed = new ArrayList<>();
+    final List<String> events = new ArrayList<>();
+    final QualityGate failure = recordingGate("b", GateStatus.UNAVAILABLE, executed);
+    final CheckReport report =
+        runner.run(
+            project,
+            List.of(
+                recordingGate("a", GateStatus.PASSED, executed),
+                failure,
+                recordingGate("c", GateStatus.PASSED, executed)),
+            new CheckProgressListener() {
+              @Override
+              public void gateFinished(final GateResult result) {
+                events.add(result.name() + ":" + result.status());
+              }
+            },
+            true);
+
+    assertThat(executed).containsExactly("a", "b");
+    assertThat(report.results())
+        .extracting(GateResult::status)
+        .containsExactly(GateStatus.PASSED, GateStatus.UNAVAILABLE, GateStatus.SKIPPED);
+    assertThat(report.results().get(2).summary()).isEqualTo("not run (fail-fast)");
+    assertThat(report.results().get(2).command()).isEmpty();
+    assertThat(events).containsExactly("a:PASSED", "b:UNAVAILABLE", "c:SKIPPED");
+  }
+
+  @Test
+  void failFastRunsEveryGateWhenAllPass() {
+    final List<String> executed = new ArrayList<>();
+    runner.run(
+        project,
+        List.of(
+            recordingGate("a", GateStatus.PASSED, executed),
+            recordingGate("b", GateStatus.PASSED, executed)),
+        true);
+    assertThat(executed).containsExactly("a", "b");
+  }
+
+  @Test
+  void failFastStopsOnExecutionError() {
+    final List<String> executed = new ArrayList<>();
+    final CheckReport report =
+        runner.run(
+            project,
+            List.of(
+                recordingGate("a", GateStatus.EXECUTION_ERROR, executed),
+                recordingGate("b", GateStatus.PASSED, executed)),
+            true);
+
+    assertThat(executed).containsExactly("a");
+    assertThat(report.results())
+        .extracting(GateResult::status)
+        .containsExactly(GateStatus.EXECUTION_ERROR, GateStatus.SKIPPED);
+  }
+
+  private static QualityGate recordingGate(
+      final String name, final GateStatus status, final List<String> executed) {
+    return new QualityGate() {
+      @Override
+      public String name() {
+        return name;
+      }
+
+      @Override
+      public GateResult execute(Project ignored) {
+        executed.add(name);
+        return GateResult.builder(name, status)
+            .command(List.of("x"))
+            .exitCode(0)
+            .duration(Duration.ZERO)
+            .stdout("")
+            .stderr("")
+            .build();
+      }
+    };
+  }
+}

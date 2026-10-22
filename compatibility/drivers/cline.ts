@@ -17,8 +17,8 @@ const PROVIDER_KEYS: Record<string, string> = {
 };
 
 const turn = (context: LiveContext, prompt: string) => {
-  const provider = process.env.SENTINEL_COMPAT_CLINE_PROVIDER as string;
-  const model = process.env.SENTINEL_COMPAT_CLINE_MODEL as string;
+  const provider = process.env.WARD_COMPAT_CLINE_PROVIDER as string;
+  const model = process.env.WARD_COMPAT_CLINE_MODEL as string;
   return context.run(
     [context.runtime.executable, "--yolo", "-P", provider, "-m", model, "-k", context.env[PROVIDER_KEYS[provider]], prompt],
     TURN_TIMEOUT_MS,
@@ -28,10 +28,10 @@ const turn = (context: LiveContext, prompt: string) => {
 export const clineDriver: LiveDriver = {
   harness: "cline",
   missingPrerequisites: (env) => {
-    const provider = env.SENTINEL_COMPAT_CLINE_PROVIDER ?? "";
+    const provider = env.WARD_COMPAT_CLINE_PROVIDER ?? "";
     const missing: string[] = [];
-    if (!PROVIDER_KEYS[provider]) missing.push(`SENTINEL_COMPAT_CLINE_PROVIDER (one of ${Object.keys(PROVIDER_KEYS).join(", ")})`);
-    if (!env.SENTINEL_COMPAT_CLINE_MODEL) missing.push("SENTINEL_COMPAT_CLINE_MODEL");
+    if (!PROVIDER_KEYS[provider]) missing.push(`WARD_COMPAT_CLINE_PROVIDER (one of ${Object.keys(PROVIDER_KEYS).join(", ")})`);
+    if (!env.WARD_COMPAT_CLINE_MODEL) missing.push("WARD_COMPAT_CLINE_MODEL");
     if (PROVIDER_KEYS[provider] && !env[PROVIDER_KEYS[provider]]) missing.push(PROVIDER_KEYS[provider]);
     return missing;
   },

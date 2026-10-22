@@ -1,8 +1,8 @@
 {
-  "sentinelOwnership": "sentinel-owned: codex-native-hooks v1",
+  "wardOwnership": "ward-owned: codex-native-hooks v1",
   "hooks": {
-    "PreToolUse": [{"matcher":".*","hooks":[{"type":"command","command":".codex/hooks/sentinel.sh"}]}],
-    "PostToolUse": [{"type":"command","command":".codex/hooks/sentinel.sh"}]
+    "PreToolUse": [{"matcher":".*","hooks":[{"type":"command","command":".codex/hooks/ward.sh"}]}],
+    "PostToolUse": [{"type":"command","command":".codex/hooks/ward.sh"}]
   }
 }
 

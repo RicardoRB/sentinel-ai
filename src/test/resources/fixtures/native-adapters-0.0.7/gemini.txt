@@ -1,42 +1,42 @@
 == definition
-gemini .gemini/settings.json .gemini/hooks/sentinel.sh BeforeTool,AfterTool,AfterAgent,SessionEnd [APPROVED_ARTIFACT_GUARD, FEEDBACK, POST_EDIT, PRE_TOOL, TURN_END]
+gemini .gemini/settings.json .gemini/hooks/ward.sh BeforeTool,AfterTool,AfterAgent,SessionEnd [APPROVED_ARTIFACT_GUARD, FEEDBACK, POST_EDIT, PRE_TOOL, TURN_END]
 == config
 {
-  "sentinelOwnership": "sentinel-owned: gemini-native-hooks v1",
+  "wardOwnership": "ward-owned: gemini-native-hooks v1",
   "hooks": {
-    "BeforeTool": [{"matcher":".*","hooks":[{"type":"command","command":".gemini/hooks/sentinel.sh"}]}],
-    "AfterTool": [{"type":"command","command":".gemini/hooks/sentinel.sh"}],
-    "AfterAgent": [{"type":"command","command":".gemini/hooks/sentinel.sh"}],
-    "SessionEnd": [{"type":"command","command":".gemini/hooks/sentinel.sh"}]
+    "BeforeTool": [{"matcher":".*","hooks":[{"type":"command","command":".gemini/hooks/ward.sh"}]}],
+    "AfterTool": [{"type":"command","command":".gemini/hooks/ward.sh"}],
+    "AfterAgent": [{"type":"command","command":".gemini/hooks/ward.sh"}],
+    "SessionEnd": [{"type":"command","command":".gemini/hooks/ward.sh"}]
   }
 }
 
 == hook KEEP
 #!/bin/sh
-# sentinel-owned: gemini-native-hooks v1
+# ward-owned: gemini-native-hooks v1
 # Native event adapter for gemini.
 if [ "keep" = "enable" ]; then
-  exec sentinel hook native --agent gemini --guard-approved-specs --event-stdin
+  exec ward hook native --agent gemini --guard-approved-specs --event-stdin
 fi
-exec sentinel hook native --agent gemini --event-stdin
+exec ward hook native --agent gemini --event-stdin
 
 == hook ENABLE
 #!/bin/sh
-# sentinel-owned: gemini-native-hooks v1
+# ward-owned: gemini-native-hooks v1
 # Native event adapter for gemini.
 if [ "enable" = "enable" ]; then
-  exec sentinel hook native --agent gemini --guard-approved-specs --event-stdin
+  exec ward hook native --agent gemini --guard-approved-specs --event-stdin
 fi
-exec sentinel hook native --agent gemini --event-stdin
+exec ward hook native --agent gemini --event-stdin
 
 == hook DISABLE
 #!/bin/sh
-# sentinel-owned: gemini-native-hooks v1
+# ward-owned: gemini-native-hooks v1
 # Native event adapter for gemini.
 if [ "disable" = "enable" ]; then
-  exec sentinel hook native --agent gemini --guard-approved-specs --event-stdin
+  exec ward hook native --agent gemini --guard-approved-specs --event-stdin
 fi
-exec sentinel hook native --agent gemini --event-stdin
+exec ward hook native --agent gemini --event-stdin
 
 == deny
 {"decision":"deny","reason":"Blocked \"quoted\" \\ path"}

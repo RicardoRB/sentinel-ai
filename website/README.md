@@ -1,4 +1,4 @@
-# Sentinel documentation site
+# Ward documentation site
 
 Run `npm ci`, `npm run dev`, or `npm run build` from this directory. Use Node.js 22.19.0 as pinned
 in `.nvmrc`.

@@ -45,7 +45,7 @@ export const MANIFEST_PATH = join(REPO_ROOT, "compatibility", "manifest.json");
 
 const SUPPORTED_AGENTS = join(
   REPO_ROOT,
-  "src/main/java/dev/sentinel/domain/agent/SupportedAgents.java",
+  "src/main/java/dev/ward/domain/agent/SupportedAgents.java",
 );
 
 // Exact release identities: semantic versions (optionally with a pre-release or build suffix) or
@@ -56,7 +56,7 @@ export function loadManifest(path = MANIFEST_PATH): Manifest {
   return JSON.parse(readFileSync(path, "utf8")) as Manifest;
 }
 
-/** Reads the registered harness IDs from Sentinel's canonical adapter registry. */
+/** Reads the registered harness IDs from Ward's canonical adapter registry. */
 export function registeredHarnessIds(source = readFileSync(SUPPORTED_AGENTS, "utf8")): string[] {
   return [...source.matchAll(/new Definition\("([^"]+)"/g)].map((match) => match[1]);
 }
@@ -94,8 +94,8 @@ function validateHarness(harness: Harness): string[] {
   const at = (message: string) => errors.push(`${harness.id}: ${message}`);
   const runtime = harness.runtime;
   if (!runtime?.executable) at("runtime executable is required");
-  if (!/^SENTINEL_COMPAT_[A-Z_]+_BIN$/.test(runtime?.executableEnv ?? "")) {
-    at("runtime executableEnv must be SENTINEL_COMPAT_<ID>_BIN");
+  if (!/^WARD_COMPAT_[A-Z_]+_BIN$/.test(runtime?.executableEnv ?? "")) {
+    at("runtime executableEnv must be WARD_COMPAT_<ID>_BIN");
   }
   if (!isExactVersion(runtime?.version)) at(`runtime version ${runtime?.version} is not an exact release`);
   if (!Array.isArray(runtime?.versionCommand) || runtime.versionCommand.length === 0) {

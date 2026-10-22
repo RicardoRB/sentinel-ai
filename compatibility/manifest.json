@@ -7,7 +7,7 @@
       "label": "OpenCode",
       "runtime": {
         "executable": "opencode",
-        "executableEnv": "SENTINEL_COMPAT_OPENCODE_BIN",
+        "executableEnv": "WARD_COMPAT_OPENCODE_BIN",
         "version": "2.0.30",
         "versionCommand": ["--version"],
         "versionPattern": "^opencode v(\\S+)$",
@@ -37,7 +37,7 @@
       "label": "Claude Code",
       "runtime": {
         "executable": "claude",
-        "executableEnv": "SENTINEL_COMPAT_CLAUDE_CODE_BIN",
+        "executableEnv": "WARD_COMPAT_CLAUDE_CODE_BIN",
         "version": "2.1.292",
         "versionCommand": ["--version"],
         "versionPattern": "^(\\S+) \\(Claude Code\\)$",
@@ -61,7 +61,7 @@
       "label": "OpenAI Codex CLI",
       "runtime": {
         "executable": "codex",
-        "executableEnv": "SENTINEL_COMPAT_CODEX_BIN",
+        "executableEnv": "WARD_COMPAT_CODEX_BIN",
         "version": "0.163.0",
         "versionCommand": ["--version"],
         "versionPattern": "^codex-cli (\\S+)$",
@@ -85,7 +85,7 @@
       "label": "Cursor",
       "runtime": {
         "executable": "cursor-agent",
-        "executableEnv": "SENTINEL_COMPAT_CURSOR_BIN",
+        "executableEnv": "WARD_COMPAT_CURSOR_BIN",
         "version": "2026.10.14-941492e",
         "versionCommand": ["--version"],
         "versionPattern": "^(\\S+)$",
@@ -112,7 +112,7 @@
       "label": "GitHub Copilot CLI",
       "runtime": {
         "executable": "copilot",
-        "executableEnv": "SENTINEL_COMPAT_COPILOT_BIN",
+        "executableEnv": "WARD_COMPAT_COPILOT_BIN",
         "version": "1.0.98",
         "versionCommand": ["--version"],
         "versionPattern": "^(\\S+)",
@@ -136,7 +136,7 @@
       "label": "Gemini CLI",
       "runtime": {
         "executable": "gemini",
-        "executableEnv": "SENTINEL_COMPAT_GEMINI_BIN",
+        "executableEnv": "WARD_COMPAT_GEMINI_BIN",
         "version": "0.64.0",
         "versionCommand": ["--version"],
         "versionPattern": "^(\\S+)$",
@@ -160,7 +160,7 @@
       "label": "Windsurf",
       "runtime": {
         "executable": "windsurf",
-        "executableEnv": "SENTINEL_COMPAT_WINDSURF_BIN",
+        "executableEnv": "WARD_COMPAT_WINDSURF_BIN",
         "version": "1.126.0",
         "versionCommand": ["--version"],
         "versionPattern": "^(\\S+)",
@@ -189,7 +189,7 @@
       "label": "Cline",
       "runtime": {
         "executable": "cline",
-        "executableEnv": "SENTINEL_COMPAT_CLINE_BIN",
+        "executableEnv": "WARD_COMPAT_CLINE_BIN",
         "version": "3.0.72",
         "versionCommand": ["--version"],
         "versionPattern": "(\\d+\\.\\d+\\.\\d+)",
@@ -221,7 +221,7 @@
       "label": "Factory Droid",
       "runtime": {
         "executable": "droid",
-        "executableEnv": "SENTINEL_COMPAT_FACTORY_DROID_BIN",
+        "executableEnv": "WARD_COMPAT_FACTORY_DROID_BIN",
         "version": "0.243.0",
         "versionCommand": ["--version"],
         "versionPattern": "(\\d+\\.\\d+\\.\\d+)",
@@ -245,7 +245,7 @@
       "label": "Amp",
       "runtime": {
         "executable": "amp",
-        "executableEnv": "SENTINEL_COMPAT_AMP_BIN",
+        "executableEnv": "WARD_COMPAT_AMP_BIN",
         "version": "0.0.1792123242-g03edc7",
         "versionCommand": ["--version"],
         "versionPattern": "^(\\S+)",
