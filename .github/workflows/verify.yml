@@ -73,28 +73,30 @@ jobs:
           key: trivy-${{ github.run_id }}
           restore-keys: trivy-
 
-      - name: Install Ward
-        env:
-          WARD_INSTALL_DIR: ${{ runner.temp }}/ward/bin
-        run: |
-          ./install.sh
-          echo "$WARD_INSTALL_DIR" >> "$GITHUB_PATH"
-
-      # --output keeps the text report on stdout for the job log.
-      - name: Run quality gates
-        run: ward check --profile ci --format sarif --output target/ward.sarif
-
-      # Fork tokens cannot write security events; no file means Ward could not run at all.
-      - name: Upload SARIF to code scanning
-        if: >-
-          always()
-          && github.event_name == 'pull_request'
-          && github.event.pull_request.head.repo.full_name == github.repository
-          && hashFiles('target/ward.sarif') != ''
-        uses: github/codeql-action/upload-sarif@v4
-        with:
-          sarif_file: target/ward.sarif
-          category: ward
+      # Temporarily disabled: no release publishes ward-* assets yet (latest still ships sentinel-*).
+      # Re-enable once the first Ward release is out.
+      # - name: Install Ward
+      #   env:
+      #     WARD_INSTALL_DIR: ${{ runner.temp }}/ward/bin
+      #   run: |
+      #     ./install.sh
+      #     echo "$WARD_INSTALL_DIR" >> "$GITHUB_PATH"
+      #
+      # # --output keeps the text report on stdout for the job log.
+      # - name: Run quality gates
+      #   run: ward check --profile ci --format sarif --output target/ward.sarif
+      #
+      # # Fork tokens cannot write security events; no file means Ward could not run at all.
+      # - name: Upload SARIF to code scanning
+      #   if: >-
+      #     always()
+      #     && github.event_name == 'pull_request'
+      #     && github.event.pull_request.head.repo.full_name == github.repository
+      #     && hashFiles('target/ward.sarif') != ''
+      #   uses: github/codeql-action/upload-sarif@v4
+      #   with:
+      #     sarif_file: target/ward.sarif
+      #     category: ward
 
       - name: Save trivy cache
         if: always()
