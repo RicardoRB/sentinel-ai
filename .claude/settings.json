@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/sentinel-edit-write",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/ward-edit-write",
             "args": []
           }
         ]
@@ -17,12 +17,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/sentinel-edit-write",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/ward-edit-write",
             "args": []
           }
         ]
       }
     ]
   },
-  "sentinelOwnership": "sentinel-owned: claude-code-edit-write v1"
+  "wardOwnership": "ward-owned: claude-code-edit-write v1"
 }

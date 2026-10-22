@@ -1,13 +1,13 @@
 ---
 title: Exit codes
-description: Sentinel process exit status meanings.
+description: Ward process exit status meanings.
 ---
 
 | Code | Meaning |
 |---|---|
 | `0` | Command succeeded; all selected quality gates passed. |
 | `1` | A quality gate failed, `detect` found no supported project, or `loop` ended without passing. |
-| `2` | Sentinel could not run: bad usage, missing/invalid configuration, no project, no enabled gates, an integration conflict, or a `doctor` error. |
+| `2` | Ward could not run: bad usage, missing/invalid configuration, no project, no enabled gates, an integration conflict, or a `doctor` error. |
 
 | Command | `0` | `1` | `2` |
 |---|---|---|---|
@@ -27,4 +27,4 @@ JSON mode keeps stdout machine-readable; diagnostics are written to stderr.
 `UNAVAILABLE` means an enabled gate could not start its configured executable; it is still a
 reported gate failure and therefore exits `1`. `EXECUTION_ERROR` means a process started but was
 interrupted or its output could not be captured; it also exits `1`. Exit `2` is reserved for
-configuration or Sentinel setup errors that prevent a normal report.
+configuration or Ward setup errors that prevent a normal report.

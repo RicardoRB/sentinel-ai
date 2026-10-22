@@ -4,10 +4,10 @@ description: Diagnose project and integration prerequisites.
 ---
 
 ```sh
-sentinel doctor [-C <dir>]
+ward doctor [-C <dir>]
 ```
 
-`sentinel doctor` inspects the selected directory (or its nearest supported parent project) and prints
+`ward doctor` inspects the selected directory (or its nearest supported parent project) and prints
 one line per check:
 
 ```text
@@ -16,27 +16,27 @@ one line per check:
 [OK] configuration Configuration is present.
 [OK] integration   Configured integrations: codex=installed [[APPROVED_ARTIFACT_GUARD, FEEDBACK, POST_EDIT, PRE_TOOL]].
 [OK] native        Native executable present.
-[OK] sentinel      v0.1.0 is the latest release.
+[OK] ward          v0.1.0 is the latest release.
 ```
 
 | Check | Status | Meaning |
 |---|---|---|
-| `project` | `OK` / `ERROR` | A supported project was detected. When none is found, only the `sentinel` check runs after it. |
+| `project` | `OK` / `ERROR` | A supported project was detected. When none is found, only the `ward` check runs after it. |
 | `maven` / `gradle` | `OK` / `ERROR` | The detected build tool's wrapper exists in the project root, or its executable (`mvn` / `gradle`) is on `PATH`. |
-| `configuration` | `OK` / `ERROR` | `sentinel.toml` exists in the project root; otherwise run `sentinel init`. |
-| `integration` | `OK` / `WARNING` | Lists configured project-local agent integrations as `id=status [capabilities]`. Integrations without pre-tool support are marked `advisory-only`. `installed` means the integration's files are present and Sentinel-owned; it does not show that the harness has loaded them. `WARNING` means none is configured (`No supported agent integration configured.`) or one is incomplete or outdated; re-run `sentinel integrate <agent>` to repair it. |
-| `native` | `OK` / `WARNING` | `target/sentinel` exists in the current directory. This is a development check for the Sentinel repository. |
+| `configuration` | `OK` / `ERROR` | `ward.toml` exists in the project root; otherwise run `ward init`. |
+| `integration` | `OK` / `WARNING` | Lists configured project-local agent integrations as `id=status [capabilities]`. Integrations without pre-tool support are marked `advisory-only`. `installed` means the integration's files are present and Ward-owned; it does not show that the harness has loaded them. `WARNING` means none is configured (`No supported agent integration configured.`) or one is incomplete or outdated; re-run `ward integrate <agent>` to repair it. |
+| `native` | `OK` / `WARNING` | `target/ward` exists in the current directory. This is a development check for the Ward repository. |
 | `openspec` / `openspec-archived` | `OK` / `WARNING` / `ERROR` | For each enabled registration, the configured executable and project-root `openspec/` directory are available. `WARNING` means Git ignores `openspec/`, so CI checkouts will not contain the specs and the gate fails there. |
 | `openspec-junit-traceability` | `OK` / `ERROR` | When enabled, `openspec/specs/` and `src/test/java/` must exist; doctor does not create them. |
 | `dependency-check-nvd-api-key` | `WARNING` | When dependency-check is enabled, `NVD_API_KEY` should be set; without it scans may be very slow or rate-limited. The value is never displayed. |
-| `sentinel` | `OK` / `WARNING` | Compares the running version with the latest GitHub release, looking it up now rather than using the [update check](/reference/environment-variables/) cache. `WARNING` means a newer release exists (the line shows how to install it) or the latest release could not be determined, for example offline. `OK` also covers development builds and `SENTINEL_NO_UPDATE_CHECK`, which skip the lookup. |
+| `ward` | `OK` / `WARNING` | Compares the running version with the latest GitHub release, looking it up now rather than using the [update check](/reference/environment-variables/) cache. `WARNING` means a newer release exists (the line shows how to install it) or the latest release could not be determined, for example offline. `OK` also covers development builds and `WARD_NO_UPDATE_CHECK`, which skip the lookup. |
 | `dependency-check-oss-index` | `WARNING` | When dependency-check is enabled and the build leaves the OSS Index analyzer on (explicitly or by the plugin default), `OSS_INDEX_PASSWORD` should be set; without it scans fail with `401 Unauthorized`. Turn the analyzer off or set the variable. Values are never displayed. |
 
 Warnings do not affect the result. Exit `0` means no check reported `ERROR`; exit `2` means at least
 one did.
 ## Verbose diagnostics
 
-`sentinel --verbose doctor` explains the inspection phase and safe availability counts on stderr.
+`ward --verbose doctor` explains the inspection phase and safe availability counts on stderr.
 Environment contents and filesystem paths are not included in diagnostics.
 
 OpenSpec diagnosis is conditional and read-only: doctor inspects only enabled registrations in

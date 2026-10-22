@@ -69,16 +69,16 @@ jobs:
         include:
           - os: ubuntu-24.04
             platform: linux-x86_64
-            binary: target/sentinel
+            binary: target/ward
           - os: macos-15-intel
             platform: macos-x86_64
-            binary: target/sentinel
+            binary: target/ward
           - os: macos-14
             platform: macos-aarch64
-            binary: target/sentinel
+            binary: target/ward
           - os: windows-latest
             platform: windows-x86_64
-            binary: target/sentinel.exe
+            binary: target/ward.exe
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v5
@@ -98,18 +98,18 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          archive="sentinel-${{ matrix.platform }}.tar.gz"
+          archive="ward-${{ matrix.platform }}.tar.gz"
           mkdir package
           cp "${{ matrix.binary }}" LICENSE NOTICE package/
-          chmod +x package/sentinel
-          COPYFILE_DISABLE=1 tar -C package -czf "$archive" sentinel LICENSE NOTICE
+          chmod +x package/ward
+          COPYFILE_DISABLE=1 tar -C package -czf "$archive" ward LICENSE NOTICE
           shasum -a 256 "$archive" > "$archive.sha256"
 
       - name: Prepare Windows release asset
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $archive = "sentinel-${{ matrix.platform }}.zip"
+          $archive = "ward-${{ matrix.platform }}.zip"
           New-Item -ItemType Directory package | Out-Null
           Copy-Item "${{ matrix.binary }}", LICENSE, NOTICE package
           Compress-Archive -Path "package/*" -DestinationPath $archive
@@ -119,11 +119,11 @@ jobs:
       - name: Upload platform assets
         uses: actions/upload-artifact@v4
         with:
-          name: sentinel-${{ matrix.platform }}
+          name: ward-${{ matrix.platform }}
           path: |
-            sentinel-${{ matrix.platform }}.tar.gz
-            sentinel-${{ matrix.platform }}.zip
-            sentinel-${{ matrix.platform }}.*.sha256
+            ward-${{ matrix.platform }}.tar.gz
+            ward-${{ matrix.platform }}.zip
+            ward-${{ matrix.platform }}.*.sha256
           if-no-files-found: error
 
   publish:
@@ -140,7 +140,7 @@ jobs:
       - name: Download platform assets
         uses: actions/download-artifact@v4
         with:
-          pattern: sentinel-*
+          pattern: ward-*
           path: release-assets
           merge-multiple: true
 

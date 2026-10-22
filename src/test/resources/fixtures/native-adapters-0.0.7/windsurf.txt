@@ -1,32 +1,32 @@
 == definition
-windsurf .windsurf/hooks.json .windsurf/hooks/sentinel.sh post_write_code,post_run_command,post_cascade_response [FEEDBACK, POST_EDIT]
+windsurf .windsurf/hooks.json .windsurf/hooks/ward.sh post_write_code,post_run_command,post_cascade_response [FEEDBACK, POST_EDIT]
 == config
 {
-  "sentinelOwnership": "sentinel-owned: windsurf-native-hooks v1",
+  "wardOwnership": "ward-owned: windsurf-native-hooks v1",
   "hooks": {
-    "post_write_code": [{"type":"command","command":".windsurf/hooks/sentinel.sh"}],
-    "post_run_command": [{"type":"command","command":".windsurf/hooks/sentinel.sh"}],
-    "post_cascade_response": [{"type":"command","command":".windsurf/hooks/sentinel.sh"}]
+    "post_write_code": [{"type":"command","command":".windsurf/hooks/ward.sh"}],
+    "post_run_command": [{"type":"command","command":".windsurf/hooks/ward.sh"}],
+    "post_cascade_response": [{"type":"command","command":".windsurf/hooks/ward.sh"}]
   }
 }
 
 == hook KEEP
 #!/bin/sh
-# sentinel-owned: windsurf-native-hooks v1
+# ward-owned: windsurf-native-hooks v1
 # Native event adapter for windsurf (guard mode: keep).
-exec sentinel hook native --agent windsurf --event-stdin
+exec ward hook native --agent windsurf --event-stdin
 
 == hook ENABLE
 #!/bin/sh
-# sentinel-owned: windsurf-native-hooks v1
+# ward-owned: windsurf-native-hooks v1
 # Native event adapter for windsurf (guard mode: enable).
-exec sentinel hook native --agent windsurf --event-stdin
+exec ward hook native --agent windsurf --event-stdin
 
 == hook DISABLE
 #!/bin/sh
-# sentinel-owned: windsurf-native-hooks v1
+# ward-owned: windsurf-native-hooks v1
 # Native event adapter for windsurf (guard mode: disable).
-exec sentinel hook native --agent windsurf --event-stdin
+exec ward hook native --agent windsurf --event-stdin
 
 == deny
 {"decision":"deny","reason":"Blocked \"quoted\" \\ path"}

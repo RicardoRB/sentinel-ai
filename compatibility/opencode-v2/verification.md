@@ -15,7 +15,7 @@
 - `bun run test`: 31 tests passing, stable over six consecutive runs.
 - Live (`bun run smoke`, OpenCode 2.0.30, no credentials): `plugin-activation` passed. The runtime
   logged `loading plugin` for both files and no load failure. The same probe with plugins generated
-  by Sentinel 0.0.7 logged `failed to load plugin ... Export named 'define' not found` for both.
+  by Ward 0.0.7 logged `failed to load plugin ... Export named 'define' not found` for both.
   Model-backed scenarios were blocked on missing credentials, and the idle-limit and reload
   scenarios have no driver. Report: `../evidence/2026-10-16-opencode-live.json`.
 

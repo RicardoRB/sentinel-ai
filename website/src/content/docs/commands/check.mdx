@@ -4,12 +4,12 @@ description: Run configured quality gates.
 ---
 
 ```sh
-sentinel check [-C <dir>] [--format text|json|sarif] [--severity error|warning|info] [--output <path>] [--profile <name>[,...]] [--path <path>] [--fail-fast] [--exclude-spec] [--learn-after <n>]
+ward check [-C <dir>] [--format text|json|sarif] [--severity error|warning|info] [--output <path>] [--profile <name>[,...]] [--path <path>] [--fail-fast] [--exclude-spec] [--learn-after <n>]
 ```
 
 For Maven and Gradle projects, built-in test commands prefer the project wrapper
 (`./mvnw` or `./gradlew`) and fall back to `mvn` or `gradle` when no wrapper is
-available. Commands configured explicitly in `sentinel.toml` are preserved.
+available. Commands configured explicitly in `ward.toml` are preserved.
 
 Checks run in configuration declaration order. `default` is selected when no profile is provided;
 repeat `--profile` or provide comma-separated names to select the union. At least one enabled gate
@@ -22,7 +22,7 @@ selected gates run as usual.
 
 Repeat `--path <path>` to run a partial check for edited files, as the agent integrations do after
 each edit. Paths are resolved against the working directory, and `--profile` still selects the gates
-(`default` otherwise). Each gate with a [`partial` table](/configuration/sentinel-toml/#partial-checks)
+(`default` otherwise). Each gate with a [`partial` table](/configuration/ward-toml/#partial-checks)
 is skipped when no edited path is relevant to it, narrowed to the edited files when it declares
 `args`, and run in full when one of its `config` files was edited. Gates without the table run in
 full. Skipped gates are listed as `– Checkstyle — Not affected by the edited files` and do not
@@ -37,7 +37,7 @@ everything at the end of the turn. If excluding the spec gates leaves nothing en
 with an empty report instead of failing with "No quality gates are enabled". Without the option, enabled
 spec gates run like any other gate.
 
-Text output starts with the Sentinel version, then reports each gate as it completes, followed by a
+Text output starts with the Ward version, then reports each gate as it completes, followed by a
 summary. On an interactive terminal, the running gate line is replaced in place by its final status.
 When output is redirected, `NO_COLOR` is set, or `TERM=dumb`, each gate is printed once on completion
 without ANSI cursor-control sequences. Failed gates include their command and visible findings; the
@@ -47,7 +47,7 @@ complete captured output. The threshold changes presentation only; gate status, 
 learning, counts, and exit code are unchanged.
 
 ```text
-Sentinel 1.2.3
+Ward 1.2.3
 
 ✓ Checkstyle
 ✗ SpotBugs
@@ -61,11 +61,11 @@ Failed `checkstyle`, `pmd`, `gitleaks`, `compile`, and `format` gates include st
 (rule, file, line, column, message) so agents can fix them without reading raw logs; see
 [structured findings](/configuration/gates/#structured-findings).
 
-Use `--format sarif` for code-scanning tools, CI annotations, and IDEs. Sentinel writes one
+Use `--format sarif` for code-scanning tools, CI annotations, and IDEs. Ward writes one
 [SARIF 2.1.0](https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html) log with one run per
 executed gate, as compact JSON without indentation: each visible finding becomes a located result, and a failed gate without visible findings becomes one
 result without a location whose rule id is the gate id. At most 50 results are listed per gate; the
-run's `properties.findingsTotal` and `findingsHidden` hold the full and hidden counts. When Sentinel cannot run at all, SARIF mode
+run's `properties.findingsTotal` and `findingsHidden` hold the full and hidden counts. When Ward cannot run at all, SARIF mode
 writes nothing to stdout and reports the error on stderr.
 
 Use `--output <path>` with `--format json` or `--format sarif` to write the report to a file instead
@@ -74,16 +74,16 @@ path is resolved against the current working directory. `--output` with `--forma
 error, and a file that cannot be written exits with `2`:
 
 ```sh
-sentinel check --profile ci --format sarif --output build/sentinel.sarif
+ward check --profile ci --format sarif --output build/ward.sarif
 ```
 
 The format values are exactly `text`, `json`, and `sarif`; an unknown value is a usage error. `--learn-after`
 must be at least `1`, and invalid values are reported as usage errors without emitting a partial
 report.
 Learning is opt-in: `--learn-after <n>` records recurring Checkstyle, PMD, and gitleaks rule findings
-in `.sentinel/learning.json`. A rule is counted once per failing episode; when a recurring rule is
+in `.ward/learning.json`. A rule is counted once per failing episode; when a recurring rule is
 later fixed, the text report adds a `Learning` section asking the agent to add a preventive coding rule
-to `AGENTS.md`. See [learning](/configuration/learning/). Sentinel never
+to `AGENTS.md`. See [learning](/configuration/learning/). Ward never
 edits that file, and learning prompts do not change the gate exit code.
 OpenSpec registrations use their configured vectors exactly. They require both the configured
 executable and a project-root `openspec/` directory; missing prerequisites are reported as gate
@@ -91,14 +91,14 @@ failures and never trigger installation or scaffolding. An installed CLI that re
 flag also fails without automatic flag removal or downgrade. See [JSON output](/reference/json-output/)
 and [exit codes](/reference/exit-codes/). `-C <dir>` runs
 against a project directory other than the current one. Exit `0` means all gates passed, `1` means
-at least one gate failed, and `2` means Sentinel could not run (for example, invalid configuration).
+at least one gate failed, and `2` means Ward could not run (for example, invalid configuration).
 ## Verbose diagnostics
 
 Use `--verbose` before or after `check` to send compact execution diagnostics to stderr:
 
 ```console
-sentinel --verbose check
-sentinel check --format json --verbose > report.json 2> diagnostics.log
+ward --verbose check
+ward check --format json --verbose > report.json 2> diagnostics.log
 ```
 
 Diagnostics describe discovery, profile selection, gate lifecycle, fail-fast skips, and safe

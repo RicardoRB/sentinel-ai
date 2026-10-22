@@ -1,8 +1,8 @@
 {
-  "sentinelOwnership": "sentinel-owned: windsurf-native-hooks v1",
+  "wardOwnership": "ward-owned: windsurf-native-hooks v1",
   "hooks": {
-    "post_write_code": [{"type":"command","command":".windsurf/hooks/sentinel.sh"}],
-    "post_run_command": [{"type":"command","command":".windsurf/hooks/sentinel.sh"}],
-    "post_cascade_response": [{"type":"command","command":".windsurf/hooks/sentinel.sh"}]
+    "post_write_code": [{"type":"command","command":".windsurf/hooks/ward.sh"}],
+    "post_run_command": [{"type":"command","command":".windsurf/hooks/ward.sh"}],
+    "post_cascade_response": [{"type":"command","command":".windsurf/hooks/ward.sh"}]
   }
 }

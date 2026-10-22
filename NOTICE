@@ -1,4 +1,4 @@
-Sentinel
+Ward
 Copyright 2026 Ricardo Romero Benitez
 
 This product is licensed under the Apache License, Version 2.0 (see LICENSE).
@@ -7,7 +7,7 @@ This product is licensed under the Apache License, Version 2.0 (see LICENSE).
 Third-party software
 ================================================================
 
-Sentinel's distributed JAR and native binaries include the following
+Ward's distributed JAR and native binaries include the following
 third-party software. Each component remains under its own license.
 
 Apache License, Version 2.0 (see LICENSE):

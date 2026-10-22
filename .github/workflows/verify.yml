@@ -27,7 +27,7 @@ env:
 
 jobs:
   quality:
-    name: Sentinel ci profile
+    name: Ward ci profile
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -73,28 +73,28 @@ jobs:
           key: trivy-${{ github.run_id }}
           restore-keys: trivy-
 
-      - name: Install Sentinel
+      - name: Install Ward
         env:
-          SENTINEL_INSTALL_DIR: ${{ runner.temp }}/sentinel/bin
+          WARD_INSTALL_DIR: ${{ runner.temp }}/ward/bin
         run: |
           ./install.sh
-          echo "$SENTINEL_INSTALL_DIR" >> "$GITHUB_PATH"
+          echo "$WARD_INSTALL_DIR" >> "$GITHUB_PATH"
 
       # --output keeps the text report on stdout for the job log.
       - name: Run quality gates
-        run: sentinel check --profile ci --format sarif --output target/sentinel.sarif
+        run: ward check --profile ci --format sarif --output target/ward.sarif
 
-      # Fork tokens cannot write security events; no file means Sentinel could not run at all.
+      # Fork tokens cannot write security events; no file means Ward could not run at all.
       - name: Upload SARIF to code scanning
         if: >-
           always()
           && github.event_name == 'pull_request'
           && github.event.pull_request.head.repo.full_name == github.repository
-          && hashFiles('target/sentinel.sarif') != ''
+          && hashFiles('target/ward.sarif') != ''
         uses: github/codeql-action/upload-sarif@v4
         with:
-          sarif_file: target/sentinel.sarif
-          category: sentinel
+          sarif_file: target/ward.sarif
+          category: ward
 
       - name: Save trivy cache
         if: always()
@@ -115,7 +115,7 @@ jobs:
           path: |
             target/site/jacoco/
             target/pit-reports/
-            target/sentinel.sarif
+            target/ward.sarif
           if-no-files-found: ignore
 
   native:
@@ -140,7 +140,7 @@ jobs:
       - name: Run terminal tests in a native test image
         run: >-
           ./mvnw -B -Pnative
-          -Dtest='dev/sentinel/infrastructure/terminal/*Test,dev/sentinel/infrastructure/terminal/**/*Test'
+          -Dtest='dev/ward/infrastructure/terminal/*Test,dev/ward/infrastructure/terminal/**/*Test'
           -Dsurefire.failIfNoSpecifiedTests=false
           test native:test
 
@@ -151,7 +151,7 @@ jobs:
         run: >-
           ./mvnw -B
           -Dtest=NativeInitTerminalSmokeTest
-          -Dsentinel.native.binary=target/sentinel
+          -Dward.native.binary=target/ward
           test
 
       - name: Set up Bun
@@ -163,4 +163,4 @@ jobs:
       - name: Verify agent integrations against the native executable
         if: inputs.harness-compatibility
         shell: bash
-        run: compatibility/run-deterministic.sh target/sentinel
+        run: compatibility/run-deterministic.sh target/ward

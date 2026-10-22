@@ -4,26 +4,26 @@ description: Install or remove agent integrations.
 ---
 
 ```sh
-sentinel integrate <agent> [-C <dir>] [--remove | --[no-]guard-approved-specs]
+ward integrate <agent> [-C <dir>] [--remove | --[no-]guard-approved-specs]
 ```
 
 Supported agent IDs are `opencode`, `claude-code`, `codex`, `cursor`, `copilot`, `gemini`,
 `windsurf`, `cline`, `factory-droid`, and `amp`.
 
-Without an agent argument Sentinel prompts for a choice. Installation is project-local and
+Without an agent argument Ward prompts for a choice. Installation is project-local and
 idempotent. Generated files are ownership-marked: user-owned conflicting files are not overwritten,
-and removal deletes only Sentinel-owned files. Re-running the command refreshes changed
-Sentinel-owned files. Claude Code uses `sentinel hook claude-code`, OpenCode uses V2 plugins, and the
-other harnesses use `sentinel hook native --agent <agent>`; `sentinel` must be on `PATH`.
-OpenCode's Sentinel-owned command is also removed.
+and removal deletes only Ward-owned files. Re-running the command refreshes changed
+Ward-owned files. Claude Code uses `ward hook claude-code`, OpenCode uses V2 plugins, and the
+other harnesses use `ward hook native --agent <agent>`; `ward` must be on `PATH`.
+OpenCode's Ward-owned command is also removed.
 
 On success the command prints the status, the integration's lifecycle capabilities, and each changed file:
 
 ```text
-CHANGED: Created Sentinel codex native hook integration.
+CHANGED: Created Ward codex native hook integration.
 Capabilities: [APPROVED_ARTIFACT_GUARD, FEEDBACK, POST_EDIT, PRE_TOOL]
 .codex/hooks.json
-.codex/hooks/sentinel.sh
+.codex/hooks/ward.sh
 ```
 
 Statuses are `CHANGED`, `ALREADY_PRESENT`, `REMOVED`, `NOT_FOUND`, and `CONFLICT`. Capabilities are `PRE_TOOL`, `POST_EDIT`, `TURN_END`, `FEEDBACK`, and `APPROVED_ARTIFACT_GUARD`.
@@ -36,13 +36,13 @@ harness has loaded them.
 
 Claude Code and OpenCode run the quality check with `--exclude-spec` after each edit and validate edited spec files
 with [`spec validate`](/commands/spec/). When the agent finishes a turn, they run the configured spec checks
-and hand any findings to the agent once per turn. Re-run `sentinel integrate <agent>` after upgrading Sentinel
-to refresh Sentinel-owned files; they are reported as changed. For OpenCode, this refresh is V2-only and
+and hand any findings to the agent once per turn. Re-run `ward integrate <agent>` after upgrading Ward
+to refresh Ward-owned files; they are reported as changed. For OpenCode, this refresh is V2-only and
 breaking: upgrade OpenCode before refreshing, then reload the project/plugin instance and verify active
 plugin IDs. File presence is not proof that a plugin is active.
 Review the [native harness integrations](/integrations/native-harnesses/), [Claude Code](/integrations/claude-code/),
 and [OpenCode](/integrations/opencode/) details.
-Exit `0` means success. A conflict or invalid usage returns `2` (Sentinel could not complete the operation).
+Exit `0` means success. A conflict or invalid usage returns `2` (Ward could not complete the operation).
 
 ## Approved-artifact guard (opt-in)
 
@@ -54,14 +54,14 @@ into approved specs are left to a human.
 
 | Command | Guard afterwards |
 |---|---|
-| `sentinel integrate <agent> --guard-approved-specs` | Installed (or refreshed) |
-| `sentinel integrate <agent>` | Unchanged: kept if installed, absent if not |
-| `sentinel integrate <agent> --no-guard-approved-specs` | Removed; the rest of the integration stays installed |
-| `sentinel integrate <agent> --remove` | Removed together with the rest of the integration |
+| `ward integrate <agent> --guard-approved-specs` | Installed (or refreshed) |
+| `ward integrate <agent>` | Unchanged: kept if installed, absent if not |
+| `ward integrate <agent> --no-guard-approved-specs` | Removed; the rest of the integration stays installed |
+| `ward integrate <agent> --remove` | Removed together with the rest of the integration |
 
 `--remove` cannot be combined with either guard option; that is a usage error (exit `2`).
 
-The guard lives in its own Sentinel-owned file, so whether it is installed is visible in the project and survives
+The guard lives in its own Ward-owned file, so whether it is installed is visible in the project and survives
 refreshes. A user-owned file at the guard's path is reported as a conflict when you pass `--guard-approved-specs`,
 and is otherwise left alone. Without the option nothing runs before tool calls, and the guard never changes the
 quality check or spec validation hooks. See the [Claude Code](/integrations/claude-code/#approved-artifact-guard)
@@ -72,6 +72,6 @@ prevented. See [security](/security/).
 
 ## Verbose diagnostics
 
-Use `sentinel --verbose integrate ...` or place `--verbose` after the command. Logs go only to
+Use `ward --verbose integrate ...` or place `--verbose` after the command. Logs go only to
 stderr and describe integration decisions and outcomes; generated files and their contents are
 not logged.

@@ -1,31 +1,31 @@
 ---
-title: Sentinel
+title: Ward
 description: Quality gates for AI coding agents.
 template: splash
 hero:
   tagline: Define your rules once, share them with your team, and every AI coding agent follows them, from the first edit to production.
   actions:
     - text: Get started
-      link: /sentinel-ai/getting-started/installation/
+      link: /ward-ai/getting-started/installation/
       icon: right-arrow
     - text: Command reference
-      link: /sentinel-ai/commands/check/
+      link: /ward-ai/commands/check/
       variant: minimal
 ---
 
-![Four nested shields around your code: Edit, Commit, Push, and CI.](/sentinel-layers.svg)
+![Four nested shields around your code: Edit, Commit, Push, and CI.](/ward-layers.svg)
 
-Sentinel checks code in [four layers](/getting-started/how-it-works/): after every agent edit, before
-each commit, before each push, and in CI. The rules live in `sentinel.toml`, so every teammate and
+Ward checks code in [four layers](/getting-started/how-it-works/): after every agent edit, before
+each commit, before each push, and in CI. The rules live in `ward.toml`, so every teammate and
 every agent follows the same ones.
 
-Sentinel is in alpha. It supports Java projects built with Maven or Gradle today, and support for
+Ward is in alpha. It supports Java projects built with Maven or Gradle today, and support for
 the most widely used languages is planned. It also provides project-local integrations for Claude Code, OpenCode, and
 [native harnesses](/integrations/native-harnesses/) (Codex, Cursor, GitHub Copilot CLI, Gemini CLI,
 Windsurf, Cline, Factory Droid, and Amp).
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/RicardoRB/sentinel-ai/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/RicardoRB/ward-ai/main/install.sh | sh
 ```
 
 ## What you can do
@@ -34,7 +34,7 @@ curl -fsSL https://raw.githubusercontent.com/RicardoRB/sentinel-ai/main/install.
 - Run configured quality gates as text or machine-readable JSON, locally or in [CI](/guides/ci-cd/), using cumulative local and complete CI profiles.
 - Install agent hooks that run checks after edits and writes.
 - Opt into managed Git quality hooks for fast pre-commit and cumulative pre-push checks.
-- Drive an external coding agent with [`sentinel loop`](/commands/loop/) until the gates pass.
-- Diagnose setup problems with [`sentinel doctor`](/commands/doctor/).
+- Drive an external coding agent with [`ward loop`](/commands/loop/) until the gates pass.
+- Diagnose setup problems with [`ward doctor`](/commands/doctor/).
 
-Start with [installation](/getting-started/installation/) or jump to [configuration](/configuration/sentinel-toml/).
+Start with [installation](/getting-started/installation/) or jump to [configuration](/configuration/ward-toml/).

@@ -1,9 +1,9 @@
 {
-  "sentinelOwnership": "sentinel-owned: gemini-native-hooks v1",
+  "wardOwnership": "ward-owned: gemini-native-hooks v1",
   "hooks": {
-    "BeforeTool": [{"matcher":".*","hooks":[{"type":"command","command":".gemini/hooks/sentinel.sh"}]}],
-    "AfterTool": [{"type":"command","command":".gemini/hooks/sentinel.sh"}],
-    "AfterAgent": [{"type":"command","command":".gemini/hooks/sentinel.sh"}],
-    "SessionEnd": [{"type":"command","command":".gemini/hooks/sentinel.sh"}]
+    "BeforeTool": [{"matcher":".*","hooks":[{"type":"command","command":".gemini/hooks/ward.sh"}]}],
+    "AfterTool": [{"type":"command","command":".gemini/hooks/ward.sh"}],
+    "AfterAgent": [{"type":"command","command":".gemini/hooks/ward.sh"}],
+    "SessionEnd": [{"type":"command","command":".gemini/hooks/ward.sh"}]
   }
 }

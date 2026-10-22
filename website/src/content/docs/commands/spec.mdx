@@ -4,27 +4,27 @@ description: Validate specification artifacts and guard approved OpenSpec artifa
 ---
 
 ```sh
-sentinel spec validate [-C <dir>] [--profile <name>[,<name>...]] [--] [<path>...]
-sentinel spec guard [-C <dir>] [--cwd <dir>] [--patch-stdin | --shell-stdin | --skill <name>] [--] [<path>...]
-sentinel spec enforce [-C <dir>] --base <revision> [--profile <name>[,<name>...]] [--bootstrap-baseline <declaration>]
+ward spec validate [-C <dir>] [--profile <name>[,<name>...]] [--] [<path>...]
+ward spec guard [-C <dir>] [--cwd <dir>] [--patch-stdin | --shell-stdin | --skill <name>] [--] [<path>...]
+ward spec enforce [-C <dir>] --base <revision> [--profile <name>[,<name>...]] [--bootstrap-baseline <declaration>]
 ```
 
-`sentinel spec validate` checks a project's specification artifacts and prints findings that a person or a
+`ward spec validate` checks a project's specification artifacts and prints findings that a person or a
 coding agent can act on. Any agent integration can call it with the files it just edited. The generated
 [Claude Code](/integrations/claude-code/) and [OpenCode](/integrations/opencode/) integrations do this for you.
 
 Today it supports [OpenSpec](/configuration/gates/). It is a no-op unless an OpenSpec validation is enabled in
-`sentinel.toml`, so projects without OpenSpec see no change.
+`ward.toml`, so projects without OpenSpec see no change.
 
 ## Targeted validation: with paths
 
 Pass the files that changed. Paths may be absolute or relative to the project root.
 
 ```sh
-sentinel spec validate openspec/changes/add-auth/proposal.md openspec/specs/identity/user-auth/spec.md
+ward spec validate openspec/changes/add-auth/proposal.md openspec/specs/identity/user-auth/spec.md
 ```
 
-Sentinel maps each path to the active item it belongs to and validates every distinct item once:
+Ward maps each path to the active item it belongs to and validates every distinct item once:
 
 | Path | Validated item |
 |---|---|
@@ -33,7 +33,7 @@ Sentinel maps each path to the active item it belongs to and validates every dis
 | `openspec/changes/archive/**` | Nothing; archived changes are not active |
 | Anything else | Nothing |
 
-For each item Sentinel runs the executable configured in the `openspec` registration, from the project root,
+For each item Ward runs the executable configured in the `openspec` registration, from the project root,
 as a direct argument vector:
 
 ```sh
@@ -50,13 +50,13 @@ as a direct argument vector:
 ## Full validation: without paths
 
 ```sh
-sentinel spec validate --profile ci
+ward spec validate --profile ci
 ```
 
-Without paths, Sentinel runs the enabled `openspec` and `openspec-archived` registrations for the selected
+Without paths, Ward runs the enabled `openspec` and `openspec-archived` registrations for the selected
 profiles (default: `default`). It uses the configured commands, prerequisites, and statuses, exactly as
 [`check`](/commands/check/) would. Code-quality gates do not run. If neither registration is enabled, or the
-project has no `sentinel.toml`, there is nothing to do and the command exits `0`.
+project has no `ward.toml`, there is nothing to do and the command exits `0`.
 
 ## Output
 
@@ -82,14 +82,14 @@ Output is bounded so it fits agent hook context limits:
 |---|---|
 | `0` | Nothing to report: everything validated, or there was nothing to validate. stdout is empty. |
 | `1` | Findings were printed, or an enabled validation was unsuccessful (including `UNAVAILABLE`). |
-| `2` | Sentinel could not run: no project, invalid configuration, or an unknown profile. The message goes to stderr. |
+| `2` | Ward could not run: no project, invalid configuration, or an unknown profile. The message goes to stderr. |
 
 With `--verbose`, diagnostics on stderr report item counts, kinds, statuses, and durations. They never include
 findings, artifact contents, or command lines.
 
 ## Guarding approved artifacts: `spec guard`
 
-`sentinel spec guard` decides, before an agent tool call runs, whether that call would modify approved OpenSpec
+`ward spec guard` decides, before an agent tool call runs, whether that call would modify approved OpenSpec
 artifacts. The opt-in [Claude Code](/integrations/claude-code/) and [OpenCode](/integrations/opencode/) guards call
 it for you; any other agent integration can call it too.
 
@@ -107,16 +107,16 @@ Pass exactly one kind of input:
 
 ```sh
 # Files the agent would write, absolute or relative to --cwd (default: the project root)
-sentinel spec guard -- openspec/changes/add-auth/design.md
+ward spec guard -- openspec/changes/add-auth/design.md
 
 # A patch, in the *** Begin Patch format used by OpenCode and Codex or as a unified/git diff
-sentinel spec guard --patch-stdin < change.patch
+ward spec guard --patch-stdin < change.patch
 
 # A shell command, resolved against the directory it runs in
-printf '%s' 'rm -rf openspec/specs/auth' | sentinel spec guard --shell-stdin --cwd .
+printf '%s' 'rm -rf openspec/specs/auth' | ward spec guard --shell-stdin --cwd .
 
 # A skill or command invocation
-sentinel spec guard --skill opsx:archive
+ward spec guard --skill opsx:archive
 ```
 
 What the guard checks:
@@ -129,14 +129,14 @@ What the guard checks:
 - **Shell commands (heuristic).** Recognized `openspec archive` invocations are refused, including `npx`, `pnpm exec`,
   path-qualified, and chained forms. Output redirections into protected paths are refused. Any other command that
   names a protected path is refused unless it is a known read-only or validation command, such as `cat`, `grep`,
-  `ls`, `git diff`, `openspec validate|show|list|status`, or `sentinel spec validate`. Simple patterns such as
+  `ls`, `git diff`, `openspec validate|show|list|status`, or `ward spec validate`. Simple patterns such as
   `rm -rf openspec/*` are matched against the protected directories.
 - **Skills.** OpenSpec archive and sync skills such as `opsx:archive`, `opsx:sync`, `openspec-archive-change`, and
   `openspec-sync-specs` are refused. Other skills are allowed.
 - **Input it cannot interpret** is refused. This covers a patch with no recognizable file header, a shell command
   with an unterminated quote, and input larger than 16 MiB.
 
-The guard reads no `sentinel.toml` gate and launches no process. In a project without an `openspec/` directory,
+The guard reads no `ward.toml` gate and launches no process. In a project without an `openspec/` directory,
 everything is allowed.
 
 :::caution[Shell filtering is a heuristic, not a security boundary]
@@ -149,7 +149,7 @@ permissions, branch protection, or code review where you need enforcement. See [
 A refusal tells the agent where to work instead:
 
 ```text
-Sentinel blocked this tool call: approved OpenSpec artifacts are read-only for agents.
+Ward blocked this tool call: approved OpenSpec artifacts are read-only for agents.
 - openspec/specs/identity/user-auth/spec.md is an approved spec. Record the change as a delta in an active change: openspec/changes/<change>/specs/identity/user-auth/spec.md
 Active changes: add-auth, fix-login
 Archiving a change or syncing deltas into openspec/specs/ requires a human. Ask the user to run `openspec archive <change>` (or the sync workflow) themselves.
@@ -164,7 +164,7 @@ capped at 4,000 characters.
 |---|---|
 | `0` | Allowed. stdout is empty. |
 | `1` | Refused. The reason is printed on stdout. |
-| `2` | Sentinel could not decide, for example outside a detectable project or with conflicting options. The message goes to stderr. |
+| `2` | Ward could not decide, for example outside a detectable project or with conflicting options. The message goes to stderr. |
 
 With `--verbose`, diagnostics on stderr report the input kind, target count, refusal reasons, and the decision. They
 never include paths, patch text, or command text.
@@ -174,10 +174,10 @@ never include paths, patch text, or command text.
 Use the blocking command from a repository checkout:
 
 ```sh
-sentinel spec enforce --base origin/main
+ward spec enforce --base origin/main
 ```
 
-Sentinel resolves the checked-out `HEAD`, computes `git merge-base` with the explicit base, and compares the
+Ward resolves the checked-out `HEAD`, computes `git merge-base` with the explicit base, and compares the
 merge-base OpenSpec snapshot with the candidate. The checkout must contain the base revision and enough history
 for that merge base; shallow or missing history fails with exit code `2` and should be repaired with
 `actions/checkout` `fetch-depth: 0` (or an equivalent fetch).
@@ -190,7 +190,7 @@ checks pass.
 For the first baseline only, a reviewer may explicitly select bootstrap:
 
 ```sh
-sentinel spec enforce --base origin/main --bootstrap-baseline "approved initial baseline"
+ward spec enforce --base origin/main --bootstrap-baseline "approved initial baseline"
 ```
 
 Missing history never implicitly enables bootstrap. Git history and archive provenance are evidence of deterministic

@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { realpathSync } from "node:fs";
 import { join } from "node:path";
 import { Assertions, disconnectWrapper, executionHarness, InvalidRegistration, registrations } from "../src/execute";
-import { createFixture, sentinelLauncher, type Fixture } from "../src/fixture";
+import { createFixture, wardLauncher, type Fixture } from "../src/fixture";
 import { cleanupOwnedProcesses } from "../src/process";
 
 describe("documented registration shapes", () => {
@@ -50,19 +50,19 @@ describe("documented registration shapes", () => {
 describe("generated artifact execution", () => {
   let fixture: Fixture;
   beforeAll(async () => {
-    fixture = await createFixture({ harness: "codex", guard: false, sentinel: sentinelLauncher(process.env)! });
+    fixture = await createFixture({ harness: "codex", guard: false, ward: wardLauncher(process.env)! });
   });
   afterAll(() => {
     fixture?.cleanup();
     cleanupOwnedProcesses();
   });
 
-  test("records argv, stdin and cwd that reach Sentinel from the generated wrapper", async () => {
+  test("records argv, stdin and cwd that reach Ward from the generated wrapper", async () => {
     const harness = executionHarness(fixture);
     const payload = JSON.stringify({ hook_event_name: "PostToolUse", tool_name: "apply_patch", cwd: fixture.root });
-    const { result, invocations } = await harness.execute(".codex/hooks/sentinel.sh post", { cwd: fixture.root, stdin: payload });
+    const { result, invocations } = await harness.execute(".codex/hooks/ward.sh post", { cwd: fixture.root, stdin: payload });
     const assertions = new Assertions();
-    assertions.invokedSentinel(invocations, ["hook", "native", "--agent", "codex", "--event-stdin"]);
+    assertions.invokedWard(invocations, ["hook", "native", "--agent", "codex", "--event-stdin"]);
     assertions.check("payload passed through stdin", invocations[0]?.stdin === payload);
     assertions.check("runs in the session cwd", invocations[0]?.cwd === realpathSync(fixture.root));
     assertions.check("exit status preserved", result.exitCode === 0);
@@ -72,7 +72,7 @@ describe("generated artifact execution", () => {
 
   test("stub exit status, stdout and stderr propagate through the wrapper", async () => {
     const harness = executionHarness(fixture);
-    const { result } = await harness.execute(".codex/hooks/sentinel.sh post", {
+    const { result } = await harness.execute(".codex/hooks/ward.sh post", {
       cwd: fixture.root,
       stdin: "{}",
       stub: { exitCode: 1, stdout: "out", stderr: "err" },
@@ -82,13 +82,13 @@ describe("generated artifact execution", () => {
 
   test("negative control: a disconnected wrapper fails the invocation assertion", async () => {
     const harness = executionHarness(fixture);
-    const disconnected = await createFixture({ harness: "codex", guard: false, sentinel: fixture.sentinel });
+    const disconnected = await createFixture({ harness: "codex", guard: false, ward: fixture.ward });
     try {
-      disconnectWrapper(join(disconnected.root, ".codex/hooks/sentinel.sh"));
-      const { result, invocations } = await harness.execute(".codex/hooks/sentinel.sh post", { cwd: disconnected.root, stdin: "{}" });
+      disconnectWrapper(join(disconnected.root, ".codex/hooks/ward.sh"));
+      const { result, invocations } = await harness.execute(".codex/hooks/ward.sh post", { cwd: disconnected.root, stdin: "{}" });
       const assertions = new Assertions();
       expect(result.exitCode).toBe(0);
-      expect(assertions.invokedSentinel(invocations, ["hook", "native", "--agent", "codex", "--event-stdin"])).toBe(false);
+      expect(assertions.invokedWard(invocations, ["hook", "native", "--agent", "codex", "--event-stdin"])).toBe(false);
       expect(assertions.passed).toBe(false);
     } finally {
       disconnected.cleanup();

@@ -3,7 +3,7 @@ title: JSON output
 description: The check command's machine-readable result format.
 ---
 
-`sentinel check --format json` emits schema version `2`. It writes **only JSON to stdout**;
+`ward check --format json` emits schema version `2`. It writes **only JSON to stdout**;
 diagnostics go to stderr. The document is compact (a single line, no indentation) to keep it
 small for agents and tools; it is shown indented below for readability. Consumers should inspect `schemaVersion` and may ignore fields added in
 later compatible versions; existing fields keep their meaning within a schema version.
@@ -78,12 +78,12 @@ When learning is enabled with `--learn-after <n>`, the additive `learning` objec
 { "learning": { "threshold": 3, "prompts": [{
   "key": "checkstyle:LineLength", "gate": "checkstyle", "occurrences": 3,
   "summary": "Line is longer than 100 characters (found 120).",
-  "instruction": "Sentinel: the `checkstyle` rule `LineLength` was violated in 3 separate occurrences..."
+  "instruction": "Ward: the `checkstyle` rule `LineLength` was violated in 3 separate occurrences..."
 }] } }
 ```
 It is omitted when learning is disabled. `schemaVersion` remains `2`.
 
-When Sentinel cannot run at all (exit `2`), it emits a short error report without `schemaVersion`:
+When Ward cannot run at all (exit `2`), it emits a short error report without `schemaVersion`:
 
 ```json
 { "status": "ERROR", "error": "Unknown profiles [nope]. Available profiles: [default]" }

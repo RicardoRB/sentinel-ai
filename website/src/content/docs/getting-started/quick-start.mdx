@@ -1,28 +1,28 @@
 ---
 title: Quick start
-description: Configure and run your first Sentinel check.
+description: Configure and run your first Ward check.
 ---
 
 From a supported Maven or Gradle project, detect the project, create a configuration, and run the gates:
 
 ```bash
-sentinel detect
-sentinel init
-sentinel check
+ward detect
+ward init
+ward check
 ```
 
 `init` starts an interactive wizard. To have your coding agent guide the setup and tune the rules to
-your code, install the [agent skills](/integrations/agent-skills/) and ask it to set up Sentinel.
+your code, install the [agent skills](/integrations/agent-skills/) and ask it to set up Ward.
 
 For non-interactive setup, choose a preset or explicit gates:
 
-Gradle projects use `build.gradle` or `build.gradle.kts`; Sentinel prefers `./gradlew` and falls back
+Gradle projects use `build.gradle` or `build.gradle.kts`; Ward prefers `./gradlew` and falls back
 to `gradle` when no wrapper is available.
 
 ```bash
-sentinel init --preset standard --integration none
-sentinel init --preset strict --integration claude-code
-sentinel init --integration none --gate tests
+ward init --preset standard --integration none
+ward init --preset strict --integration claude-code
+ward init --integration none --gate tests
 ```
 
 A passing run ends with a summary such as:
@@ -32,7 +32,7 @@ Quality Gate: PASSED
 7 passed · 0 failed · 0 skipped
 ```
 
-Use `sentinel check --format json` for automation. The JSON contract guarantees that stdout contains
+Use `ward check --format json` for automation. The JSON contract guarantees that stdout contains
 only JSON; diagnostics go to stderr. If something does not work, run
-[`sentinel doctor`](/commands/doctor/). See [commands](/commands/check/),
+[`ward doctor`](/commands/doctor/). See [commands](/commands/check/),
 [exit codes](/reference/exit-codes/), and [CI/CD](/guides/ci-cd/).

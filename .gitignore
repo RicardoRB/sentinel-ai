@@ -12,4 +12,4 @@ graphify-out/
 .opencode/skills/
 .agents/
 skills-lock.json
-.sentinel/
+.ward/

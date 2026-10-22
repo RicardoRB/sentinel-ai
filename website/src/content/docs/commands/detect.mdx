@@ -3,14 +3,14 @@ title: detect
 description: Detect a supported project.
 ---
 
-`sentinel detect` detects a supported project in the selected directory or nearest parent. It
+`ward detect` detects a supported project in the selected directory or nearest parent. It
 reports language, build tool, framework, and project root. Java and Kotlin Gradle projects are
 recognized from `build.gradle` and `build.gradle.kts`; Spring Boot is recognised when the pom
 references `org.springframework.boot`.
 
 ```sh
-sentinel detect [-C <dir>]
+ward detect [-C <dir>]
 ```
 
-`-C <dir>` / `--directory <dir>` runs as if Sentinel were started in that directory. Exit `0` means
-detection succeeded; `1` means no supported project was detected; `2` means Sentinel could not run.
+`-C <dir>` / `--directory <dir>` runs as if Ward were started in that directory. Exit `0` means
+detection succeeded; `1` means no supported project was detected; `2` means Ward could not run.

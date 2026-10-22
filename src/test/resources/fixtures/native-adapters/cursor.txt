@@ -1,56 +1,56 @@
 == definition
-cursor .cursor/hooks.json .cursor/hooks/sentinel.sh preToolUse,postToolUse,stop [APPROVED_ARTIFACT_GUARD, FEEDBACK, POST_EDIT, PRE_TOOL, TURN_END]
+cursor .cursor/hooks.json .cursor/hooks/ward.sh preToolUse,postToolUse,stop [APPROVED_ARTIFACT_GUARD, FEEDBACK, POST_EDIT, PRE_TOOL, TURN_END]
 == config
 {
   "version": 1,
-  "sentinelOwnership": "sentinel-owned: cursor-native-hooks v1",
+  "wardOwnership": "ward-owned: cursor-native-hooks v1",
   "hooks": {
-    "preToolUse": [{"command": ".cursor/hooks/sentinel.sh pre", "matcher": "^(Shell|Write|Delete)$"}],
-    "postToolUse": [{"command": ".cursor/hooks/sentinel.sh post", "matcher": "^(Write|Delete)$", "timeout": 600}],
-    "stop": [{"command": ".cursor/hooks/sentinel.sh post", "timeout": 600}]
+    "preToolUse": [{"command": ".cursor/hooks/ward.sh pre", "matcher": "^(Shell|Write|Delete)$"}],
+    "postToolUse": [{"command": ".cursor/hooks/ward.sh post", "matcher": "^(Write|Delete)$", "timeout": 600}],
+    "stop": [{"command": ".cursor/hooks/ward.sh post", "timeout": 600}]
   }
 }
 
 == hook KEEP
 #!/bin/sh
-# sentinel-owned: cursor-native-hooks v1
-# Native event adapter for cursor. Usage: sentinel.sh pre|post, with the event JSON on stdin.
-# Hooks may run in a subdirectory, so Sentinel always checks the project this file is in.
+# ward-owned: cursor-native-hooks v1
+# Native event adapter for cursor. Usage: ward.sh pre|post, with the event JSON on stdin.
+# Hooks may run in a subdirectory, so Ward always checks the project this file is in.
 cd "$(dirname "$0")/../.." || exit 2
 case "$1" in
   pre)
     [ "keep" = "enable" ] || exit 0
-    exec sentinel hook native --agent cursor --guard-approved-specs --event-stdin ;;
-  post) exec sentinel hook native --agent cursor --event-stdin ;;
-  *) echo "Sentinel hook wrapper: expected pre or post." >&2; exit 2 ;;
+    exec ward hook native --agent cursor --guard-approved-specs --event-stdin ;;
+  post) exec ward hook native --agent cursor --event-stdin ;;
+  *) echo "Ward hook wrapper: expected pre or post." >&2; exit 2 ;;
 esac
 
 == hook ENABLE
 #!/bin/sh
-# sentinel-owned: cursor-native-hooks v1
-# Native event adapter for cursor. Usage: sentinel.sh pre|post, with the event JSON on stdin.
-# Hooks may run in a subdirectory, so Sentinel always checks the project this file is in.
+# ward-owned: cursor-native-hooks v1
+# Native event adapter for cursor. Usage: ward.sh pre|post, with the event JSON on stdin.
+# Hooks may run in a subdirectory, so Ward always checks the project this file is in.
 cd "$(dirname "$0")/../.." || exit 2
 case "$1" in
   pre)
     [ "enable" = "enable" ] || exit 0
-    exec sentinel hook native --agent cursor --guard-approved-specs --event-stdin ;;
-  post) exec sentinel hook native --agent cursor --event-stdin ;;
-  *) echo "Sentinel hook wrapper: expected pre or post." >&2; exit 2 ;;
+    exec ward hook native --agent cursor --guard-approved-specs --event-stdin ;;
+  post) exec ward hook native --agent cursor --event-stdin ;;
+  *) echo "Ward hook wrapper: expected pre or post." >&2; exit 2 ;;
 esac
 
 == hook DISABLE
 #!/bin/sh
-# sentinel-owned: cursor-native-hooks v1
-# Native event adapter for cursor. Usage: sentinel.sh pre|post, with the event JSON on stdin.
-# Hooks may run in a subdirectory, so Sentinel always checks the project this file is in.
+# ward-owned: cursor-native-hooks v1
+# Native event adapter for cursor. Usage: ward.sh pre|post, with the event JSON on stdin.
+# Hooks may run in a subdirectory, so Ward always checks the project this file is in.
 cd "$(dirname "$0")/../.." || exit 2
 case "$1" in
   pre)
     [ "disable" = "enable" ] || exit 0
-    exec sentinel hook native --agent cursor --guard-approved-specs --event-stdin ;;
-  post) exec sentinel hook native --agent cursor --event-stdin ;;
-  *) echo "Sentinel hook wrapper: expected pre or post." >&2; exit 2 ;;
+    exec ward hook native --agent cursor --guard-approved-specs --event-stdin ;;
+  post) exec ward hook native --agent cursor --event-stdin ;;
+  *) echo "Ward hook wrapper: expected pre or post." >&2; exit 2 ;;
 esac
 
 == deny

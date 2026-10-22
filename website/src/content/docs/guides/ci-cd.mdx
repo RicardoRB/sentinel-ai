@@ -1,26 +1,26 @@
 ---
 title: CI/CD
-description: Run Sentinel quality gates in continuous integration.
+description: Run Ward quality gates in continuous integration.
 ---
 
-Sentinel is a single native binary with deterministic [exit codes](/reference/exit-codes/), so any CI
+Ward is a single native binary with deterministic [exit codes](/reference/exit-codes/), so any CI
 system can use it as a quality gate. The common integration flow is:
 
 1. Check out the repository.
 2. Install the runtime and standalone tools required by your project and configured gates.
-3. Install Sentinel with the verified installer.
+3. Install Ward with the verified installer.
 4. Run the selected profiles and preserve the command's exit status.
 5. Upload the JSON report as a diagnostic artifact.
 
-The native Sentinel binary does not require Java, but Java, Maven, Gradle, or other tools may be needed
-by individual gates. Sentinel does not install those tools. A missing executable is reported as
+The native Ward binary does not require Java, but Java, Maven, Gradle, or other tools may be needed
+by individual gates. Ward does not install those tools. A missing executable is reported as
 `UNAVAILABLE` and makes the check unsuccessful.
 
 ## GitHub Actions
 
-`sentinel init --ci github` writes a Sentinel-owned `.github/workflows/sentinel.yml` that installs
+`ward init --ci github` writes a Ward-owned `.github/workflows/ward.yml` that installs
 the tools your selected gates need, runs the `ci` profile, and uploads SARIF to code scanning. See
-[`sentinel init`](/commands/init/). To write the workflow yourself, start from this one:
+[`ward init`](/commands/init/). To write the workflow yourself, start from this one:
 
 ```yaml
 name: Quality gate
@@ -30,7 +30,7 @@ on:
   push:
 
 jobs:
-  sentinel:
+  ward:
     runs-on: ubuntu-24.04
     steps:
       # Full history, so gitleaks scans every commit.
@@ -39,18 +39,18 @@ jobs:
           fetch-depth: 0
 
       # Use the runtime required by your project. This is not required by
-      # the Sentinel native binary itself.
+      # the Ward native binary itself.
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '21'
           cache: maven
 
-      - name: Install Sentinel
+      - name: Install Ward
         env:
-          SENTINEL_VERSION: v0.1.0
+          WARD_VERSION: v0.1.0
         run: |
-          curl -fsSL https://raw.githubusercontent.com/RicardoRB/sentinel-ai/main/install.sh | sh
+          curl -fsSL https://raw.githubusercontent.com/RicardoRB/ward-ai/main/install.sh | sh
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       # Restore and save separately: actions/cache saves only when the job succeeds.
@@ -62,7 +62,7 @@ jobs:
           restore-keys: trivy-
 
       - name: Run quality gates
-        run: sentinel check --profile ci --format json > sentinel-report.json
+        run: ward check --profile ci --format json > ward-report.json
 
       - name: Save Trivy cache
         if: always()
@@ -71,15 +71,15 @@ jobs:
           path: ~/.cache/trivy
           key: trivy-${{ github.run_id }}
 
-      - name: Upload Sentinel report
+      - name: Upload Ward report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: sentinel-report
-          path: sentinel-report.json
+          name: ward-report
+          path: ward-report.json
 ```
 
-GitHub's required status checks can block merges until the `sentinel` job passes. Use the runtime setup
+GitHub's required status checks can block merges until the `ward` job passes. Use the runtime setup
 and cache action appropriate for your project; the example uses Maven only as an illustration.
 
 ### Code scanning annotations with SARIF
@@ -92,16 +92,16 @@ it. `--output` keeps the readable text report in the job log:
       contents: read
       security-events: write
     steps:
-      # ... checkout, runtime, and Sentinel installation as above ...
+      # ... checkout, runtime, and Ward installation as above ...
       - name: Run quality gates
-        run: sentinel check --profile ci --format sarif --output sentinel.sarif
+        run: ward check --profile ci --format sarif --output ward.sarif
 
       - name: Upload SARIF
         if: always()
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: sentinel.sarif
-          category: sentinel
+          sarif_file: ward.sarif
+          category: ward
 ```
 
 Findings carry file locations for `checkstyle`, `pmd`, `gitleaks`, `compile`, and `format`; other
@@ -109,14 +109,14 @@ failed gates appear as one alert without a location.
 
 ## GitLab CI
 
-GitLab checks out the repository before the job script. Use a merge-request pipeline rule when Sentinel
+GitLab checks out the repository before the job script. Use a merge-request pipeline rule when Ward
 should run for pull requests as well as branch pushes:
 
 ```yaml
 stages:
   - quality
 
-sentinel:
+ward:
   image: ubuntu:24.04
   stage: quality
   rules:
@@ -126,15 +126,15 @@ sentinel:
     - apt-get update -qq
     - apt-get install -y -qq curl
     # Install the JDK, build tool, and standalone gate tools required by the project here.
-    - export SENTINEL_VERSION="v0.1.0"
-    - curl -fsSL https://raw.githubusercontent.com/RicardoRB/sentinel-ai/main/install.sh | sh
+    - export WARD_VERSION="v0.1.0"
+    - curl -fsSL https://raw.githubusercontent.com/RicardoRB/ward-ai/main/install.sh | sh
     - export PATH="$HOME/.local/bin:$PATH"
   script:
-    - sentinel check --profile default,ci --format json > sentinel-report.json
+    - ward check --profile default,ci --format json > ward-report.json
   artifacts:
     when: always
     paths:
-      - sentinel-report.json
+      - ward-report.json
 ```
 
 Configure the job as a required merge-request status in the project's approval or branch protection
@@ -157,14 +157,14 @@ pipeline {
       }
     }
 
-    stage('Sentinel') {
+    stage('Ward') {
       steps {
         sh '''
           set -eu
-          export SENTINEL_VERSION="v0.1.0"
-          curl -fsSL https://raw.githubusercontent.com/RicardoRB/sentinel-ai/main/install.sh | sh
+          export WARD_VERSION="v0.1.0"
+          curl -fsSL https://raw.githubusercontent.com/RicardoRB/ward-ai/main/install.sh | sh
           export PATH="$HOME/.local/bin:$PATH"
-          sentinel check --profile default,ci --format json > sentinel-report.json
+          ward check --profile default,ci --format json > ward-report.json
         '''
       }
     }
@@ -172,7 +172,7 @@ pipeline {
 
   post {
     always {
-      archiveArtifacts artifacts: 'sentinel-report.json', allowEmptyArchive: true
+      archiveArtifacts artifacts: 'ward-report.json', allowEmptyArchive: true
     }
   }
 }
@@ -180,7 +180,7 @@ pipeline {
 
 Provision the JDK, build tool, and standalone gate executables on the agent or in its container image.
 Use Jenkins credentials and environment bindings for private registry or analysis-service credentials;
-do not put secrets in `sentinel.toml` or the pipeline source.
+do not put secrets in `ward.toml` or the pipeline source.
 
 ## CircleCI
 
@@ -188,33 +188,33 @@ do not put secrets in `sentinel.toml` or the pipeline source.
 version: 2.1
 
 jobs:
-  sentinel:
+  ward:
     machine:
       image: ubuntu-2404:current
     steps:
       - checkout
       - run:
-          name: Install Sentinel
+          name: Install Ward
           command: |
             set -eu
-            export SENTINEL_VERSION="v0.1.0"
-            curl -fsSL https://raw.githubusercontent.com/RicardoRB/sentinel-ai/main/install.sh | sh
+            export WARD_VERSION="v0.1.0"
+            curl -fsSL https://raw.githubusercontent.com/RicardoRB/ward-ai/main/install.sh | sh
             echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$BASH_ENV"
       - run:
           name: Run quality gates
-          command: sentinel check --profile default,ci --format json > sentinel-report.json
+          command: ward check --profile default,ci --format json > ward-report.json
       - store_artifacts:
-          path: sentinel-report.json
-          destination: sentinel-report.json
+          path: ward-report.json
+          destination: ward-report.json
 
 workflows:
   quality:
     jobs:
-      - sentinel
+      - ward
 ```
 
 CircleCI stores the report as a build artifact. Add a language-specific executor or setup step before
-the Sentinel command when the configured gates need a JDK, build tool, or additional executable.
+the Ward command when the configured gates need a JDK, build tool, or additional executable.
 
 ## Azure Pipelines
 
@@ -234,17 +234,17 @@ steps:
   # Add the runtime and standalone tools required by the project before this step.
   - bash: |
       set -eu
-      export SENTINEL_VERSION="v0.1.0"
-      curl -fsSL https://raw.githubusercontent.com/RicardoRB/sentinel-ai/main/install.sh | sh
+      export WARD_VERSION="v0.1.0"
+      curl -fsSL https://raw.githubusercontent.com/RicardoRB/ward-ai/main/install.sh | sh
       export PATH="$HOME/.local/bin:$PATH"
-      sentinel check --profile default,ci --format json > sentinel-report.json
-    displayName: Run Sentinel quality gates
+      ward check --profile default,ci --format json > ward-report.json
+    displayName: Run Ward quality gates
 
   - task: PublishPipelineArtifact@1
     condition: always()
     inputs:
-      targetPath: sentinel-report.json
-      artifact: sentinel-report
+      targetPath: ward-report.json
+      artifact: ward-report
       publishLocation: pipeline
 ```
 
@@ -260,17 +260,17 @@ pipelines:
   pull-requests:
     '**':
       - step:
-          name: Sentinel quality gate
+          name: Ward quality gate
           script:
             - apt-get update -qq
             - apt-get install -y -qq curl
             # Install the runtime and standalone gate tools required by the project here.
-            - export SENTINEL_VERSION="v0.1.0"
-            - curl -fsSL https://raw.githubusercontent.com/RicardoRB/sentinel-ai/main/install.sh | sh
+            - export WARD_VERSION="v0.1.0"
+            - curl -fsSL https://raw.githubusercontent.com/RicardoRB/ward-ai/main/install.sh | sh
             - export PATH="$HOME/.local/bin:$PATH"
-            - sentinel check --profile default,ci --format json > sentinel-report.json
+            - ward check --profile default,ci --format json > ward-report.json
           artifacts:
-            - sentinel-report.json
+            - ward-report.json
 ```
 
 Bitbucket checks out the repository before running the step and retains declared artifacts for the
@@ -279,26 +279,26 @@ build. Add a `branches` pipeline for pushes when quality gates should run outsid
 ## Shared CI behavior
 
 - **Profiles:** init-generated configurations put every selected gate in `ci`; use
-  `sentinel check --profile ci` for the complete CI tier. The fast `default` profile is intended for
+  `ward check --profile ci` for the complete CI tier. The fast `default` profile is intended for
   local checks, while `pre-push` is the cumulative local tier. Existing hand-authored configurations
   may still select multiple profiles, such as `default,ci`, when needed.
 - **Gate evaluation:** all selected gates run and the job gets one verdict. Add `--fail-fast` to stop
   at the first failure.
-- **Exit codes:** `0` means all selected gates passed, `1` means a gate failed, and `2` means Sentinel
+- **Exit codes:** `0` means all selected gates passed, `1` means a gate failed, and `2` means Ward
   could not run, for example because of invalid configuration. Non-zero exits fail the CI step.
 - **Reports:** `--format json` writes only the [JSON report](/reference/json-output/) to stdout, so it
-  can be redirected to `sentinel-report.json`. Diagnostics go to stderr and remain visible in logs.
+  can be redirected to `ward-report.json`. Diagnostics go to stderr and remain visible in logs.
   Add `--output <path>` to write the report to a file and keep the text report in the job log.
-- **Version pinning:** set `SENTINEL_VERSION` to a release tag such as `v0.1.0` for reproducible builds.
+- **Version pinning:** set `WARD_VERSION` to a release tag such as `v0.1.0` for reproducible builds.
   Leaving it unset installs the latest release.
-- **Working directories:** run Sentinel from the repository root, or configure the provider's working
-  directory so `sentinel.toml` and the project files resolve correctly.
+- **Working directories:** run Ward from the repository root, or configure the provider's working
+  directory so `ward.toml` and the project files resolve correctly.
 - **Caches:** cache project dependencies using the provider's normal cache mechanism; do not cache the
-  Sentinel binary as a substitute for checksum verification.
+  Ward binary as a substitute for checksum verification.
 - **Secrets:** pass credentials through the provider's secret store or environment variables. Never
-  commit them to `sentinel.toml` or a pipeline file.
+  commit them to `ward.toml` or a pipeline file.
 - **Artifacts:** retain the JSON report after failures where the provider supports an always/post-failure
-  condition. It is diagnostic output; the Sentinel process exit code remains the job verdict.
+  condition. It is diagnostic output; the Ward process exit code remains the job verdict.
 - **SARIF:** `--format sarif` writes a SARIF 2.1.0 log for code-scanning tools on any provider that
   accepts SARIF, such as GitHub code scanning.
 
@@ -307,7 +307,7 @@ your choice.
 
 ## Common first-run failures
 
-The first `sentinel check --profile ci` in a new pipeline often fails for setup reasons rather than
+The first `ward check --profile ci` in a new pipeline often fails for setup reasons rather than
 code findings:
 
 | Symptom | Cause | Fix |
@@ -316,9 +316,9 @@ code findings:
 | Every run downloads the Trivy or Dependency-Check database again | The cache is saved only when the job succeeds, and a gate failed | Restore and save the cache in separate steps and run the save step on failure (`if: always()`) |
 | `trivy` fails with `429 Too Many Requests` from `repo.maven.apache.org` | Trivy downloads POMs itself and Maven Central rate-limits shared runners | Run Trivy offline after the build-tool gates; see [Trivy offline scans](#trivy-offline-scans) |
 | `dependency-check` runs for over an hour, or fails with `401 Unauthorized` from OSS Index | No `NVD_API_KEY`, or OSS Index is enabled without credentials | Set `NVD_API_KEY` and keep OSS Index off unless you have credentials ([details](/configuration/gates/)), or rely on `trivy`, which needs no key |
-| A gate reports `UNAVAILABLE` | Its tool is not installed on the runner | Install the tool in an earlier step; Sentinel never installs tools |
+| A gate reports `UNAVAILABLE` | Its tool is not installed on the runner | Install the tool in an earlier step; Ward never installs tools |
 
-Install Sentinel with the verified installer rather than building it from source in CI: the native
+Install Ward with the verified installer rather than building it from source in CI: the native
 binary needs no JDK and starts faster.
 
 ## Trivy offline scans
@@ -344,7 +344,7 @@ or a failing run never stores it:
           key: trivy-${{ github.run_id }}
           restore-keys: trivy-
 
-      # ... install tools and Sentinel, then run the gates ...
+      # ... install tools and Ward, then run the gates ...
 
       - name: Save Trivy cache
         if: always()
@@ -356,8 +356,8 @@ or a failing run never stores it:
 
 ## Security
 
-Do not run Sentinel on untrusted pull requests, such as those from forks, without isolation:
-`sentinel.toml` is executable trusted code. Use a locked-down runner and do not expose write-capable
+Do not run Ward on untrusted pull requests, such as those from forks, without isolation:
+`ward.toml` is executable trusted code. Use a locked-down runner and do not expose write-capable
 secrets to untrusted jobs. See [security](/security/).
 
 ## OpenSpec provenance enforcement
@@ -366,15 +366,15 @@ The optional pull-request integration must use a full checkout, fetch the pull-r
 the tested `@fission-ai/openspec@1.14.1`, and run:
 
 ```sh
-sentinel spec enforce --base "origin/$BASE_REF"
+ward spec enforce --base "origin/$BASE_REF"
 ```
 
 Configure that job as a required status check in repository settings. Add a `CODEOWNERS` entry using
-your own placeholders, for example `openspec/** @REPLACE_WITH_TEAM`; Sentinel does not create or approve
+your own placeholders, for example `openspec/** @REPLACE_WITH_TEAM`; Ward does not create or approve
 owners. Enable required code-owner review separately. Git provenance and archive association establish
 deterministic provenance only; neither proves a human approved the change.
 
-The optional local pre-commit integration writes only Sentinel-owned files. It preserves a user-owned
+The optional local pre-commit integration writes only Ward-owned files. It preserves a user-owned
 `.git/hooks/pre-commit` and reports a conflict with manual chaining guidance rather than overwriting it.
-Refresh and removal affect only files carrying Sentinel ownership markers. `/opsx:verify` is not part of
+Refresh and removal affect only files carrying Ward ownership markers. `/opsx:verify` is not part of
 the blocking hook or CI command.

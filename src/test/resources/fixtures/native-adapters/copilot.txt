@@ -1,55 +1,55 @@
 == definition
-copilot .github/hooks/sentinel.json .github/hooks/sentinel.sh PreToolUse,PostToolUse,Stop [APPROVED_ARTIFACT_GUARD, FEEDBACK, POST_EDIT, PRE_TOOL, TURN_END]
+copilot .github/hooks/ward.json .github/hooks/ward.sh PreToolUse,PostToolUse,Stop [APPROVED_ARTIFACT_GUARD, FEEDBACK, POST_EDIT, PRE_TOOL, TURN_END]
 == config
 {
   "version": 1,
   "hooks": {
-    "PreToolUse": [{"type": "command", "matcher": "bash|edit|create", "bash": "\"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.github/hooks/sentinel.sh\" pre", "env": {"SENTINEL_OWNERSHIP": "sentinel-owned: copilot-native-hooks v1"}}],
-    "PostToolUse": [{"type": "command", "matcher": "edit|create", "bash": "\"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.github/hooks/sentinel.sh\" post", "timeoutSec": 600, "env": {"SENTINEL_OWNERSHIP": "sentinel-owned: copilot-native-hooks v1"}}],
-    "Stop": [{"type": "command", "bash": "\"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.github/hooks/sentinel.sh\" post", "timeoutSec": 600, "env": {"SENTINEL_OWNERSHIP": "sentinel-owned: copilot-native-hooks v1"}}]
+    "PreToolUse": [{"type": "command", "matcher": "bash|edit|create", "bash": "\"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.github/hooks/ward.sh\" pre", "env": {"WARD_OWNERSHIP": "ward-owned: copilot-native-hooks v1"}}],
+    "PostToolUse": [{"type": "command", "matcher": "edit|create", "bash": "\"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.github/hooks/ward.sh\" post", "timeoutSec": 600, "env": {"WARD_OWNERSHIP": "ward-owned: copilot-native-hooks v1"}}],
+    "Stop": [{"type": "command", "bash": "\"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.github/hooks/ward.sh\" post", "timeoutSec": 600, "env": {"WARD_OWNERSHIP": "ward-owned: copilot-native-hooks v1"}}]
   }
 }
 
 == hook KEEP
 #!/bin/sh
-# sentinel-owned: copilot-native-hooks v1
-# Native event adapter for copilot. Usage: sentinel.sh pre|post, with the event JSON on stdin.
-# Hooks may run in a subdirectory, so Sentinel always checks the project this file is in.
+# ward-owned: copilot-native-hooks v1
+# Native event adapter for copilot. Usage: ward.sh pre|post, with the event JSON on stdin.
+# Hooks may run in a subdirectory, so Ward always checks the project this file is in.
 cd "$(dirname "$0")/../.." || exit 2
 case "$1" in
   pre)
     [ "keep" = "enable" ] || exit 0
-    exec sentinel hook native --agent copilot --guard-approved-specs --event-stdin ;;
-  post) exec sentinel hook native --agent copilot --event-stdin ;;
-  *) echo "Sentinel hook wrapper: expected pre or post." >&2; exit 2 ;;
+    exec ward hook native --agent copilot --guard-approved-specs --event-stdin ;;
+  post) exec ward hook native --agent copilot --event-stdin ;;
+  *) echo "Ward hook wrapper: expected pre or post." >&2; exit 2 ;;
 esac
 
 == hook ENABLE
 #!/bin/sh
-# sentinel-owned: copilot-native-hooks v1
-# Native event adapter for copilot. Usage: sentinel.sh pre|post, with the event JSON on stdin.
-# Hooks may run in a subdirectory, so Sentinel always checks the project this file is in.
+# ward-owned: copilot-native-hooks v1
+# Native event adapter for copilot. Usage: ward.sh pre|post, with the event JSON on stdin.
+# Hooks may run in a subdirectory, so Ward always checks the project this file is in.
 cd "$(dirname "$0")/../.." || exit 2
 case "$1" in
   pre)
     [ "enable" = "enable" ] || exit 0
-    exec sentinel hook native --agent copilot --guard-approved-specs --event-stdin ;;
-  post) exec sentinel hook native --agent copilot --event-stdin ;;
-  *) echo "Sentinel hook wrapper: expected pre or post." >&2; exit 2 ;;
+    exec ward hook native --agent copilot --guard-approved-specs --event-stdin ;;
+  post) exec ward hook native --agent copilot --event-stdin ;;
+  *) echo "Ward hook wrapper: expected pre or post." >&2; exit 2 ;;
 esac
 
 == hook DISABLE
 #!/bin/sh
-# sentinel-owned: copilot-native-hooks v1
-# Native event adapter for copilot. Usage: sentinel.sh pre|post, with the event JSON on stdin.
-# Hooks may run in a subdirectory, so Sentinel always checks the project this file is in.
+# ward-owned: copilot-native-hooks v1
+# Native event adapter for copilot. Usage: ward.sh pre|post, with the event JSON on stdin.
+# Hooks may run in a subdirectory, so Ward always checks the project this file is in.
 cd "$(dirname "$0")/../.." || exit 2
 case "$1" in
   pre)
     [ "disable" = "enable" ] || exit 0
-    exec sentinel hook native --agent copilot --guard-approved-specs --event-stdin ;;
-  post) exec sentinel hook native --agent copilot --event-stdin ;;
-  *) echo "Sentinel hook wrapper: expected pre or post." >&2; exit 2 ;;
+    exec ward hook native --agent copilot --guard-approved-specs --event-stdin ;;
+  post) exec ward hook native --agent copilot --event-stdin ;;
+  *) echo "Ward hook wrapper: expected pre or post." >&2; exit 2 ;;
 esac
 
 == deny

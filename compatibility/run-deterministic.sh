@@ -1,14 +1,14 @@
 #!/bin/sh
-# Runs every deterministic harness compatibility suite against one Sentinel build.
-# Usage: compatibility/run-deterministic.sh [path/to/sentinel]
-# Without an argument the newest of target/sentinel and target/sentinel.jar is used.
+# Runs every deterministic harness compatibility suite against one Ward build.
+# Usage: compatibility/run-deterministic.sh [path/to/ward]
+# Without an argument the newest of target/ward and target/ward.jar is used.
 # No harness runtime, network model access or credentials are needed; a failing suite fails this script.
 set -eu
 
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 if [ "$#" -gt 0 ]; then
-  SENTINEL_COMPAT_SENTINEL=$(CDPATH= cd -- "$(dirname -- "$1")" && pwd)/$(basename -- "$1")
-  export SENTINEL_COMPAT_SENTINEL
+  WARD_COMPAT_WARD=$(CDPATH= cd -- "$(dirname -- "$1")" && pwd)/$(basename -- "$1")
+  export WARD_COMPAT_WARD
 fi
 
 cd "$ROOT"

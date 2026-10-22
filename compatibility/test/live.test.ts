@@ -8,7 +8,7 @@ import { runLive } from "../src/live";
 import { loadManifest, REPO_ROOT } from "../src/manifest";
 import { cleanupOwnedProcesses } from "../src/process";
 
-const base = mkdtempSync(join(tmpdir(), "sentinel-live-"));
+const base = mkdtempSync(join(tmpdir(), "ward-live-"));
 const home = join(base, "home");
 mkdirSync(home);
 afterAll(() => {
@@ -42,11 +42,11 @@ describe("live verification prerequisites", () => {
 
   test("Cline is blocked on its provider settings, and its turn-end scenario is unsupported", async () => {
     const runtime = fakeRuntime("cline-pinned", "3.0.72");
-    const report = await runLive(["cline"], options({ SENTINEL_COMPAT_CLINE_BIN: runtime }));
+    const report = await runLive(["cline"], options({ WARD_COMPAT_CLINE_BIN: runtime }));
     const reasons = report.harnesses[0].scenarios.map((s) => [s.scenario, s.outcome]);
     expect(reasons).toContainEqual(["turn-end-feedback-limit", "unsupported"]);
     expect(report.harnesses[0].scenarios.filter((s) => s.outcome === "blocked")[0].reason).toStartWith(
-      "missing prerequisite: SENTINEL_COMPAT_CLINE_PROVIDER",
+      "missing prerequisite: WARD_COMPAT_CLINE_PROVIDER",
     );
     expect(report.exitCode).toBe(1);
   });
@@ -56,26 +56,26 @@ describe("live verification prerequisites", () => {
     expect(report.harnesses[0].outcome).toBe("blocked");
     for (const scenario of report.harnesses[0].scenarios) {
       expect(scenario.reason).toBe(
-        "missing prerequisite: opencode 2.0.30 (set SENTINEL_COMPAT_OPENCODE_BIN to an absolute executable path)",
+        "missing prerequisite: opencode 2.0.30 (set WARD_COMPAT_OPENCODE_BIN to an absolute executable path)",
       );
     }
   });
 
   test("a runtime version mismatch is blocked", async () => {
     const runtime = fakeRuntime("opencode-old", "opencode v2.0.29");
-    const report = await runLive(["opencode"], options({ SENTINEL_COMPAT_OPENCODE_BIN: runtime }));
+    const report = await runLive(["opencode"], options({ WARD_COMPAT_OPENCODE_BIN: runtime }));
     expect(report.harnesses[0].scenarios[0].reason).toBe("missing prerequisite: version mismatch: expected 2.0.30, found 2.0.29");
   });
 
   test("missing model credentials block model-backed scenarios, and a fake runtime cannot pass activation", async () => {
     const runtime = fakeRuntime("opencode-ok", "opencode v2.0.30");
-    const report = await runLive(["opencode"], options({ SENTINEL_COMPAT_OPENCODE_BIN: runtime }));
+    const report = await runLive(["opencode"], options({ WARD_COMPAT_OPENCODE_BIN: runtime }));
     expect(report.exitCode).toBe(1);
     const [activation, ...rest] = report.harnesses[0].scenarios;
     expect(activation).toMatchObject({ scenario: "plugin-activation", outcome: "fail" });
     for (const scenario of rest.filter((s) => s.reason.startsWith("missing prerequisite"))) {
       expect(scenario.reason).toBe(
-        "missing prerequisite: SENTINEL_COMPAT_OPENCODE_MODEL (provider/model), a model provider API key from the credential allowlist",
+        "missing prerequisite: WARD_COMPAT_OPENCODE_MODEL (provider/model), a model provider API key from the credential allowlist",
       );
     }
     expect(rest.map((s) => s.outcome)).toEqual(["blocked", "blocked", "blocked", "blocked", "blocked"]);
@@ -84,10 +84,10 @@ describe("live verification prerequisites", () => {
   test("Amp is blocked on its pinned binary and then on AMP_API_KEY", async () => {
     const missing = await runLive(["amp"], options({}));
     expect(missing.harnesses[0].scenarios[0].reason).toBe(
-      "missing prerequisite: amp 0.0.1792123242-g03edc7 (set SENTINEL_COMPAT_AMP_BIN to an absolute executable path)",
+      "missing prerequisite: amp 0.0.1792123242-g03edc7 (set WARD_COMPAT_AMP_BIN to an absolute executable path)",
     );
     const runtime = fakeRuntime("amp-pinned", "0.0.1792123242-g03edc7");
-    const report = await runLive(["amp"], options({ SENTINEL_COMPAT_AMP_BIN: runtime }));
+    const report = await runLive(["amp"], options({ WARD_COMPAT_AMP_BIN: runtime }));
     expect(report.harnesses[0].scenarios.map((s) => s.reason)).toEqual([
       "missing prerequisite: AMP_API_KEY",
       "missing prerequisite: AMP_API_KEY",
@@ -99,7 +99,7 @@ describe("live verification prerequisites", () => {
 
   test("Claude Code is blocked on ANTHROPIC_API_KEY once its pinned runtime is present", async () => {
     const runtime = fakeRuntime("claude-pinned", "2.1.292 (Claude Code)");
-    const report = await runLive(["claude-code"], options({ SENTINEL_COMPAT_CLAUDE_CODE_BIN: runtime }));
+    const report = await runLive(["claude-code"], options({ WARD_COMPAT_CLAUDE_CODE_BIN: runtime }));
     expect(new Set(report.harnesses[0].scenarios.map((s) => s.reason))).toEqual(new Set(["missing prerequisite: ANTHROPIC_API_KEY"]));
     expect(report.harnesses[0].scenarios.length).toBe(4);
     expect(report.exitCode).toBe(1);
@@ -109,7 +109,7 @@ describe("live verification prerequisites", () => {
     const missing = await runLive(["copilot"], options({}));
     expect(missing.harnesses[0].scenarios[0].reason).toStartWith("missing prerequisite: copilot 1.0.98");
     const runtime = fakeRuntime("copilot-pinned", "1.0.98");
-    const report = await runLive(["copilot"], options({ SENTINEL_COMPAT_COPILOT_BIN: runtime }));
+    const report = await runLive(["copilot"], options({ WARD_COMPAT_COPILOT_BIN: runtime }));
     expect(new Set(report.harnesses[0].scenarios.map((s) => s.reason))).toEqual(new Set(["missing prerequisite: GH_TOKEN"]));
     expect(report.harnesses[0].scenarios.length).toBe(4);
     expect(report.exitCode).toBe(1);
@@ -117,7 +117,7 @@ describe("live verification prerequisites", () => {
 
   test("Gemini CLI is blocked on GEMINI_API_KEY once its pinned runtime is present", async () => {
     const runtime = fakeRuntime("gemini-pinned", "0.64.0");
-    const report = await runLive(["gemini"], options({ SENTINEL_COMPAT_GEMINI_BIN: runtime }));
+    const report = await runLive(["gemini"], options({ WARD_COMPAT_GEMINI_BIN: runtime }));
     expect(new Set(report.harnesses[0].scenarios.map((s) => s.reason))).toEqual(new Set(["missing prerequisite: GEMINI_API_KEY"]));
     expect(report.harnesses[0].scenarios.length).toBe(4);
     expect(report.exitCode).toBe(1);
@@ -125,7 +125,7 @@ describe("live verification prerequisites", () => {
 
   test("Factory Droid is blocked on FACTORY_API_KEY once its pinned runtime is present", async () => {
     const runtime = fakeRuntime("droid-pinned", "0.243.0");
-    const report = await runLive(["factory-droid"], options({ SENTINEL_COMPAT_FACTORY_DROID_BIN: runtime }));
+    const report = await runLive(["factory-droid"], options({ WARD_COMPAT_FACTORY_DROID_BIN: runtime }));
     expect(new Set(report.harnesses[0].scenarios.map((s) => s.reason))).toEqual(new Set(["missing prerequisite: FACTORY_API_KEY"]));
     expect(report.harnesses[0].scenarios.length).toBe(4);
     expect(report.exitCode).toBe(1);
@@ -133,7 +133,7 @@ describe("live verification prerequisites", () => {
 
   test("Cursor is blocked on CURSOR_API_KEY once its pinned runtime is present", async () => {
     const runtime = fakeRuntime("cursor-pinned", "2026.10.14-941492e");
-    const report = await runLive(["cursor"], options({ SENTINEL_COMPAT_CURSOR_BIN: runtime }));
+    const report = await runLive(["cursor"], options({ WARD_COMPAT_CURSOR_BIN: runtime }));
     expect(new Set(report.harnesses[0].scenarios.map((s) => s.reason))).toEqual(new Set(["missing prerequisite: CURSOR_API_KEY"]));
     expect(report.harnesses[0].scenarios.length).toBe(4);
     expect(report.exitCode).toBe(1);
@@ -154,18 +154,18 @@ describe("live verification prerequisites", () => {
 describe("live scenario execution", () => {
   const runtime = fakeRuntime("opencode-pinned", "opencode v2.0.30");
 
-  test("scenarios run in a fresh fixture with the real Sentinel behind a recording wrapper", async () => {
+  test("scenarios run in a fresh fixture with the real Ward behind a recording wrapper", async () => {
     const driver: LiveDriver = {
       harness: "opencode",
       missingPrerequisites: () => [],
       scenarios: [
         {
-          id: "wrapper-reaches-real-sentinel",
+          id: "wrapper-reaches-real-ward",
           async execute(context) {
-            const result = await context.run(["sentinel", "--version"], 60_000);
+            const result = await context.run(["ward", "--version"], 60_000);
             const recorded = context.invocations();
             return [
-              { name: "real sentinel answered", passed: result.exitCode === 0 && result.stdout.startsWith("sentinel ") },
+              { name: "real ward answered", passed: result.exitCode === 0 && result.stdout.startsWith("ward ") },
               { name: "invocation recorded", passed: recorded.length === 1 && recorded[0].argv[0] === "--version" },
               { name: "credentials outside the allowlist are not passed", passed: context.env.UNRELATED_SECRET === undefined },
             ];
@@ -175,7 +175,7 @@ describe("live scenario execution", () => {
     };
     const report = await runLive(
       ["opencode"],
-      options({ SENTINEL_COMPAT_OPENCODE_BIN: runtime, UNRELATED_SECRET: "x" }, { opencode: driver }),
+      options({ WARD_COMPAT_OPENCODE_BIN: runtime, UNRELATED_SECRET: "x" }, { opencode: driver }),
     );
     expect(report.harnesses[0].scenarios[0]).toMatchObject({ outcome: "pass", runtimeVersion: "2.0.30", sourceRevision: "rev-under-test" });
     expect(report.exitCode).toBe(0);
@@ -191,7 +191,7 @@ describe("live scenario execution", () => {
         { id: "absent", unsupported: "documented absent capability" },
       ],
     };
-    const report = await runLive(["opencode", "gemini"], options({ SENTINEL_COMPAT_OPENCODE_BIN: runtime }, { opencode: driver }));
+    const report = await runLive(["opencode", "gemini"], options({ WARD_COMPAT_OPENCODE_BIN: runtime }, { opencode: driver }));
     expect(report.harnesses.map((h) => [h.harness, h.outcome])).toEqual([
       ["opencode", "fail"],
       ["gemini", "blocked"],
@@ -208,12 +208,12 @@ describe("live scenario execution", () => {
       claude,
       `#!/bin/sh
 if [ "$1" = "--version" ]; then echo "2.1.292 (Claude Code)"; exit 0; fi
-if grep -q '/.claude/hooks/sentinel' .claude/settings.json 2>/dev/null; then s=settings; else s=none; fi
+if grep -q '/.claude/hooks/ward' .claude/settings.json 2>/dev/null; then s=settings; else s=none; fi
 printf '%s %s %s\\n' "$1" "$s" "\${CLAUDE_CONFIG_DIR:+isolated}" >> '${launches}'
 `,
     );
     chmodSync(claude, 0o755);
-    const report = await runLive(["claude-code"], options({ SENTINEL_COMPAT_CLAUDE_CODE_BIN: claude, ANTHROPIC_API_KEY: "test-key" }));
+    const report = await runLive(["claude-code"], options({ WARD_COMPAT_CLAUDE_CODE_BIN: claude, ANTHROPIC_API_KEY: "test-key" }));
     expect(readFileSync(launches, "utf8").trim().split("\n")).toEqual(Array(4).fill("-p settings isolated"));
     expect(report.harnesses[0].scenarios.map((s) => s.outcome)).toEqual(["fail", "fail", "fail", "fail"]);
     expect(report.exitCode).toBe(1);

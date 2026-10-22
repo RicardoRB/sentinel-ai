@@ -24,7 +24,7 @@ function prepare(fixture: Fixture): void {
   // A trusted stand-in OpenSpec validation that reports a finding while SPEC_FAIL exists.
   writeFileSync(join(fixture.root, "openspec-stub.sh"), '#!/bin/sh\nif [ -f SPEC_FAIL ]; then echo "smoke-change: missing scenario"; exit 1; fi\n');
   chmodSync(join(fixture.root, "openspec-stub.sh"), 0o755);
-  const toml = join(fixture.root, "sentinel.toml");
+  const toml = join(fixture.root, "ward.toml");
   writeFileSync(toml, `${readFileSync(toml, "utf8")}\n[quality-gates.openspec]\nenabled = true\ncommand = ["./openspec-stub.sh"]\n`);
 }
 
@@ -49,8 +49,8 @@ export const claudeCodeDriver: LiveDriver = {
         const result = await turn(context, "Create src/Smoke.java containing `class Smoke {}`. Then quote any hook feedback you received.");
         return [
           { name: "runtime turn completed", passed: result.exitCode === 0 && !result.timedOut, detail: `exit ${result.exitCode}` },
-          { name: "native PostToolUse hook invoked sentinel", passed: invoked(context, "--exclude-spec").length >= 1 },
-          { name: "agent received the Sentinel failure", passed: result.stdout.includes("format") },
+          { name: "native PostToolUse hook invoked ward", passed: invoked(context, "--exclude-spec").length >= 1 },
+          { name: "agent received the Ward failure", passed: result.stdout.includes("format") },
         ];
       },
     },
@@ -85,7 +85,7 @@ export const claudeCodeDriver: LiveDriver = {
         const stops = invoked(context, "--exclude-spec");
         return [
           { name: "runtime turn completed", passed: !result.timedOut, detail: `exit ${result.exitCode}` },
-          { name: "Stop hook invoked sentinel more than once (blocked, then continued)", passed: stops.length >= 2, detail: `${stops.length} invocation(s)` },
+          { name: "Stop hook invoked ward more than once (blocked, then continued)", passed: stops.length >= 2, detail: `${stops.length} invocation(s)` },
           { name: "the turn still ended within the deadline", passed: !result.timedOut },
         ];
       },

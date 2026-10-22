@@ -4,8 +4,8 @@ import type { Assertion } from "../src/evidence";
 import type { Fixture } from "../src/fixture";
 import { sha256, type LiveContext, type LiveScenario } from "../src/live";
 
-// Live scenarios shared by harnesses that run Sentinel through a generated `sentinel.sh pre|post`
-// wrapper: one headless turn per scenario, judged by recorded Sentinel invocations and file contents.
+// Live scenarios shared by harnesses that run Ward through a generated `ward.sh pre|post`
+// wrapper: one headless turn per scenario, judged by recorded Ward invocations and file contents.
 
 export const PROTECTED = "openspec/specs/smoke/spec.md";
 export const ACTIVE = "openspec/changes/smoke-change/tasks.md";
@@ -21,7 +21,7 @@ export function prepareSmokeFixture(fixture: Fixture): void {
   }
   writeFileSync(join(fixture.root, "openspec-stub.sh"), '#!/bin/sh\nif [ -f SPEC_FAIL ]; then echo "smoke-change: missing scenario"; exit 1; fi\n');
   chmodSync(join(fixture.root, "openspec-stub.sh"), 0o755);
-  const toml = join(fixture.root, "sentinel.toml");
+  const toml = join(fixture.root, "ward.toml");
   writeFileSync(toml, `${readFileSync(toml, "utf8")}\n[quality-gates.openspec]\nenabled = true\ncommand = ["./openspec-stub.sh"]\n`);
 }
 
@@ -41,8 +41,8 @@ export function hookScenarios(turn: Turn): LiveScenario[] {
         const result = await turn(context, "Create src/Smoke.java containing `class Smoke {}`. Then quote any hook feedback you received.");
         return [
           { name: "runtime turn completed", passed: result.exitCode === 0 && !result.timedOut, detail: `exit ${result.exitCode}` },
-          { name: "native post-edit hook invoked sentinel", passed: checks(context).length >= 1 },
-          { name: "agent received the Sentinel failure", passed: result.stdout.includes("format") },
+          { name: "native post-edit hook invoked ward", passed: checks(context).length >= 1 },
+          { name: "agent received the Ward failure", passed: result.stdout.includes("format") },
         ];
       },
     },
@@ -77,7 +77,7 @@ export function hookScenarios(turn: Turn): LiveScenario[] {
         const ends = checks(context);
         return [
           { name: "runtime turn completed", passed: !result.timedOut, detail: `exit ${result.exitCode}` },
-          { name: "turn-end hook invoked sentinel more than once (blocked, then continued)", passed: ends.length >= 2, detail: `${ends.length} invocation(s)` },
+          { name: "turn-end hook invoked ward more than once (blocked, then continued)", passed: ends.length >= 2, detail: `${ends.length} invocation(s)` },
           { name: "the turn still ended within the deadline", passed: !result.timedOut },
         ];
       },

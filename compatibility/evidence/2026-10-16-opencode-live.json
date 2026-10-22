@@ -22,19 +22,19 @@
               "passed": true
             },
             {
-              "name": "runtime discovered sentinel-edit-write.js",
+              "name": "runtime discovered ward-edit-write.js",
               "passed": true
             },
             {
-              "name": "runtime discovered sentinel-openspec-guard.js",
+              "name": "runtime discovered ward-openspec-guard.js",
               "passed": true
             },
             {
-              "name": "sentinel-edit-write.js loaded without error",
+              "name": "ward-edit-write.js loaded without error",
               "passed": true
             },
             {
-              "name": "sentinel-openspec-guard.js loaded without error",
+              "name": "ward-openspec-guard.js loaded without error",
               "passed": true
             }
           ],
@@ -48,7 +48,7 @@
           "scenario": "edit-check-feedback",
           "level": "automated-live",
           "outcome": "blocked",
-          "reason": "missing prerequisite: SENTINEL_COMPAT_OPENCODE_MODEL (provider/model), a model provider API key from the credential allowlist",
+          "reason": "missing prerequisite: WARD_COMPAT_OPENCODE_MODEL (provider/model), a model provider API key from the credential allowlist",
           "executedAssertions": 0,
           "assertions": [],
           "durationMs": 0,
@@ -61,7 +61,7 @@
           "scenario": "guard-refuses-protected-edit",
           "level": "automated-live",
           "outcome": "blocked",
-          "reason": "missing prerequisite: SENTINEL_COMPAT_OPENCODE_MODEL (provider/model), a model provider API key from the credential allowlist",
+          "reason": "missing prerequisite: WARD_COMPAT_OPENCODE_MODEL (provider/model), a model provider API key from the credential allowlist",
           "executedAssertions": 0,
           "assertions": [],
           "durationMs": 0,
@@ -74,7 +74,7 @@
           "scenario": "guard-allows-active-change-edit",
           "level": "automated-live",
           "outcome": "blocked",
-          "reason": "missing prerequisite: SENTINEL_COMPAT_OPENCODE_MODEL (provider/model), a model provider API key from the credential allowlist",
+          "reason": "missing prerequisite: WARD_COMPAT_OPENCODE_MODEL (provider/model), a model provider API key from the credential allowlist",
           "executedAssertions": 0,
           "assertions": [],
           "durationMs": 0,

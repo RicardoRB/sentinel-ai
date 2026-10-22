@@ -5,7 +5,7 @@ description: Supported quality gate identifiers and configuration.
 
 Every gate uses `[quality-gates.<id>]` with `command` (string or argument array), optional
 `enabled` (default `true`) and optional `profiles` (default profile when omitted). The command
-defines the actual tool invocation. Sentinel does not install gate tools during `check`.
+defines the actual tool invocation. Ward does not install gate tools during `check`.
 
 | Category | ID | Tool | Typical purpose |
 |---|---|---|---|
@@ -28,7 +28,7 @@ defines the actual tool invocation. Sentinel does not install gate tools during 
 | Dependencies & Compliance | `license` | License Maven Plugin / Gradle license plugin | License compliance. |
 | | `api-compat` | japicmp | Binary/API compatibility between versions. |
 | Custom | `command` | — | Run an arbitrary configured project check. |
-| Traceability | `openspec-junit-traceability` | Sentinel source analysis | Require one explicitly annotated JUnit mapping per live OpenSpec scenario. |
+| Traceability | `openspec-junit-traceability` | Ward source analysis | Require one explicitly annotated JUnit mapping per live OpenSpec scenario. |
 
 The traceability gate is the one built-in gate that does not need a `command`:
 
@@ -50,7 +50,7 @@ void signsIn() {}
 Only mapping existence is checked; test execution and assertions are not. Empty
 live specs fail with `no scenarios found`, and active-change specs are excluded.
 
-`sentinel init` offers every gate but selects none by default unless a preset is chosen. `zap`, `trivy`, `sonar`,
+`ward init` offers every gate but selects none by default unless a preset is chosen. `zap`, `trivy`, `sonar`,
 `dependency-check`, `api-compat`, and `semgrep` need network access, a running application, or a
 comparison baseline, so enable them deliberately (for example in a CI-only profile with
 `profiles = ["ci"]`).
@@ -86,13 +86,13 @@ If you do not want to manage NVD or OSS Index credentials, the `trivy` gate also
 Gradle dependencies for known vulnerabilities and needs no API key.
 
 Standalone tools (`semgrep`, `gitleaks`, `trivy`, `zap-baseline.py`) must already be on the path; a
-missing tool is reported as unavailable with an install link and other gates still run. `sentinel init`
-can offer consented installation for supported tools, but `check` never installs them. When a command contains `--report-path <path>` inside the project, Sentinel
+missing tool is reported as unavailable with an install link and other gates still run. `ward init`
+can offer consented installation for supported tools, but `check` never installs them. When a command contains `--report-path <path>` inside the project, Ward
 creates the parent directory before running it; the command itself is never changed.
 
 ## Structured findings
 
-When `checkstyle`, `pmd`, `gitleaks`, `compile`, or `format` fails, Sentinel turns the tool's output
+When `checkstyle`, `pmd`, `gitleaks`, `compile`, or `format` fails, Ward turns the tool's output
 into findings with rule, severity, file, line, column, message, and a rule documentation link when
 known. They appear in [JSON](/reference/json-output/) and SARIF output.
 
@@ -110,20 +110,20 @@ no findings. Gitleaks findings never contain the matched secret. Other gates hav
 
 ## Partial checks
 
-`sentinel init` writes a [`[quality-gates.<id>.partial]` table](/configuration/sentinel-toml/#partial-checks)
+`ward init` writes a [`[quality-gates.<id>.partial]` table](/configuration/ward-toml/#partial-checks)
 for `checkstyle`, `pmd`, `format`, and `semgrep`. After an agent edit, a gate is skipped when no edited
 file is in its `inputs`, runs in full when one of its `config` files was edited, and is narrowed to the
 edited files when the tool supports it:
 
 | Gate | Maven | Gradle |
 |---|---|---|
-| `checkstyle` | `-Dcheckstyle.includes=**/<file name>` | `-PsentinelPaths=<paths>`, with a preset |
-| `pmd` | full, with PMD's analysis cache | `-PsentinelPaths=<paths>`, with a preset |
+| `checkstyle` | `-Dcheckstyle.includes=**/<file name>` | `-PwardPaths=<paths>`, with a preset |
+| `pmd` | full, with PMD's analysis cache | `-PwardPaths=<paths>`, with a preset |
 | `format` | `-DspotlessFiles=.*/<path>`, a regular expression matched against the absolute path | full |
 | `semgrep` | each path as its own argument | each path as its own argument |
 
 The Gradle Checkstyle and PMD blocks init writes with a preset filter their sources to
-`sentinelPaths` only when the property is set, so `checkstyleMain` and `pmdMain` still check the whole
+`wardPaths` only when the property is set, so `checkstyleMain` and `pmdMain` still check the whole
 `main` source set otherwise. Without a preset there is no filter, and those gates run in full. Gradle's
 single-file Spotless mode applies formatting instead of checking it, so Gradle `format` runs in full.
 The forms above were verified against the real tools: a path format a tool does not understand
@@ -144,7 +144,7 @@ coverage. `strict` adds ArchUnit, Enforcer, and PIT mutation testing; it require
 branch, and 60% mutation coverage. Strict mutation testing can substantially increase check runtime.
 Preset initialization may write `config/pmd-ruleset.xml`, `config/checkstyle.xml`,
 `config/spotbugs-exclude.xml` (standard), and `config/enforcer-rules.xml`. These files carry a
-`managed-by: sentinel` marker; unmarked user files are never overwritten.
+`managed-by: ward` marker; unmarked user files are never overwritten.
 
 ## ZAP target
 
@@ -152,12 +152,12 @@ Preset initialization may write `config/pmd-ruleset.xml`, `config/checkstyle.xml
 it with an authorized target before running `check`, for example
 `command = ["zap-baseline.py", "-t", "http://localhost:8080"]`. An enabled `zap` gate without
 `-t <url>`, or still containing the `<TARGET_URL>` placeholder written by `init`, is a configuration
-error (exit `2`). Sentinel never infers, starts, or scans a target on its own. You are responsible
+error (exit `2`). Ward never infers, starts, or scans a target on its own. You are responsible
 for being authorized to scan the target.
 
 The legacy identifiers `architecture` (use `archunit`) and `compliance` (use `enforcer`; license
-checks now use `license`) remain readable for compatibility. Existing configurations need no change. Registry identifiers are validated by Sentinel; the configured command is the
-gate-specific option and must be supplied. See [configuration syntax](/configuration/sentinel-toml/).
+checks now use `license`) remain readable for compatibility. Existing configurations need no change. Registry identifiers are validated by Ward; the configured command is the
+gate-specific option and must be supplied. See [configuration syntax](/configuration/ward-toml/).
 
 ## OpenSpec tool validations
 

@@ -1,19 +1,19 @@
 ---
 title: Architecture
-description: Sentinel's layered Java architecture and extension points.
+description: Ward's layered Java architecture and extension points.
 ---
 
-Sentinel follows a dependency direction of infrastructure adapters → application use cases → domain
+Ward follows a dependency direction of infrastructure adapters → application use cases → domain
 contracts and models:
 
 ```text
-dev.sentinel
+dev.ward
 ├── domain/<feature>/          Models, policies, outbound port contracts
 ├── application/<feature>/     Use cases and orchestration
 ├── infrastructure/<feature>/  Outbound adapters
 ├── infrastructure/cli/       Picocli inbound adapters and terminal I/O
-├── config/SentinelComponent    Explicit Dagger composition root
-└── SentinelApplication         Executable entry point
+├── config/WardComponent    Explicit Dagger composition root
+└── WardApplication         Executable entry point
 ```
 
 CLI adapters must not perform filesystem/process work or depend on concrete outbound adapters.

@@ -1,31 +1,31 @@
 == definition
-factory-droid .factory/plugins/sentinel.json .factory/plugins/sentinel.sh PostToolUse,Stop,SessionEnd [FEEDBACK, POST_EDIT]
+factory-droid .factory/plugins/ward.json .factory/plugins/ward.sh PostToolUse,Stop,SessionEnd [FEEDBACK, POST_EDIT]
 == config
 {
-  "sentinelOwnership": "sentinel-owned: factory-droid-native-hooks v1",
+  "wardOwnership": "ward-owned: factory-droid-native-hooks v1",
   "hooks": {
-    "postToolUse": [{"type":"command","command":".factory/plugins/sentinel.sh"}],
-    "sessionEnd": [{"type":"command","command":".factory/plugins/sentinel.sh"}]
+    "postToolUse": [{"type":"command","command":".factory/plugins/ward.sh"}],
+    "sessionEnd": [{"type":"command","command":".factory/plugins/ward.sh"}]
   }
 }
 
 == hook KEEP
 #!/bin/sh
-# sentinel-owned: factory-droid-native-hooks v1
+# ward-owned: factory-droid-native-hooks v1
 # Native event adapter for factory-droid (guard mode: keep).
-exec sentinel hook native --agent factory-droid --event-stdin
+exec ward hook native --agent factory-droid --event-stdin
 
 == hook ENABLE
 #!/bin/sh
-# sentinel-owned: factory-droid-native-hooks v1
+# ward-owned: factory-droid-native-hooks v1
 # Native event adapter for factory-droid (guard mode: enable).
-exec sentinel hook native --agent factory-droid --event-stdin
+exec ward hook native --agent factory-droid --event-stdin
 
 == hook DISABLE
 #!/bin/sh
-# sentinel-owned: factory-droid-native-hooks v1
+# ward-owned: factory-droid-native-hooks v1
 # Native event adapter for factory-droid (guard mode: disable).
-exec sentinel hook native --agent factory-droid --event-stdin
+exec ward hook native --agent factory-droid --event-stdin
 
 == deny
 {"decision":"deny","reason":"Blocked \"quoted\" \\ path"}

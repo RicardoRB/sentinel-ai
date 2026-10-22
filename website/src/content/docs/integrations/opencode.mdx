@@ -1,15 +1,15 @@
 ---
 title: OpenCode
-description: Install Sentinel's OpenCode edit and idle plugin.
+description: Install Ward's OpenCode edit and idle plugin.
 ---
 
-Install with `sentinel integrate opencode`. Sentinel keeps the
-`.opencode/commands/sentinel-check.md` command and creates
-`.opencode/plugins/sentinel-edit-write.js`. Make sure `sentinel` is on `PATH`. New artifacts target
+Install with `ward integrate opencode`. Ward keeps the
+`.opencode/commands/ward-check.md` command and creates
+`.opencode/plugins/ward-edit-write.js`. Make sure `ward` is on `PATH`. New artifacts target
 the OpenCode V2 plugin API (`Plugin.define` from `@opencode/plugin`, verified against 2.0.30) and handle two
 moments:
 
-| Hook | When | What Sentinel does |
+| Hook | When | What Ward does |
 |---|---|---|
 | `ctx.tool.hook("execute.after")` | After a completed `edit`, `write`, `multiedit`, `apply_patch`, or `patch` tool call | Runs a partial quality check, then validates the edited spec files |
 | `ctx.event.subscribe()` (`session.idle`) | When the agent finishes its turn | Runs every configured spec check |
@@ -17,7 +17,7 @@ moments:
 ## After each edit
 
 The plugin resolves the session's current location (`location.directory` from `ctx.session.get`) and runs
-`sentinel check --format json --exclude-spec --learn-after 3` there for the edited paths. It collects them
+`ward check --format json --exclude-spec --learn-after 3` there for the edited paths. It collects them
 from:
 
 - `args.filePath` for `edit`, `write`, and `multiedit`;
@@ -29,10 +29,10 @@ not affect are skipped, and supported tools analyze only the edited files. A too
 runs every gate in full. The idle hook validates specs only, so files changed by shell commands are not
 quality-checked until the git hooks or CI run.
 
-Paths under `openspec/` are passed to [`sentinel spec validate`](/commands/spec/). A single patch that touches
+Paths under `openspec/` are passed to [`ward spec validate`](/commands/spec/). A single patch that touches
 several changes validates each of them once.
 
-If the quality check fails or spec validation reports findings, the plugin appends Sentinel's output to the
+If the quality check fails or spec validation reports findings, the plugin appends Ward's output to the
 tool result the agent reads, so the agent sees it immediately. Learning prompts are appended the same way,
 whether the check passed or failed. The tool call itself still completes: OpenCode V2 does not let a
 post-tool hook fail a call, and a hook that throws would break the call instead of reporting the problem.
@@ -41,16 +41,16 @@ the plugin skips validation with a bounded stderr diagnostic rather than guessin
 
 ## When the session becomes idle
 
-The plugin runs `sentinel spec validate` without paths, which runs the enabled `openspec` and
+The plugin runs `ward spec validate` without paths, which runs the enabled `openspec` and
 `openspec-archived` validations.
 
 - **No problems:** nothing happens.
 - **First idle with findings in a turn:** the plugin queues a prompt to the session with the findings,
-  prefixed with `[sentinel spec validation]`, so the agent can fix them.
+  prefixed with `[ward spec validation]`, so the agent can fix them.
 - **Agent goes idle again and findings remain:** the plugin emits a bounded stderr warning instead of prompting
   again. A new message from you allows one more hand-off. The plugin's own prompt doesn't count as a new user
   turn, so a problem the agent cannot fix can't loop.
-- **Sentinel itself fails:** the bounded stderr diagnostic is never sent to the agent.
+- **Ward itself fails:** the bounded stderr diagnostic is never sent to the agent.
 - **Overlapping idle events:** if another idle event arrives while a validation is still running for the same
   session, it is ignored.
 
@@ -59,11 +59,11 @@ Projects without an enabled OpenSpec validation see no change: spec validation d
 ## Approved-artifact guard
 
 The approved-artifact guard is opt-in. Install it with
-`sentinel integrate opencode --guard-approved-specs`. Sentinel creates the separate,
-Sentinel-owned `.opencode/plugins/sentinel-openspec-guard.js` plugin. It uses the V2
+`ward integrate opencode --guard-approved-specs`. Ward creates the separate,
+Ward-owned `.opencode/plugins/ward-openspec-guard.js` plugin. It uses the V2
 `ctx.tool.hook("execute.before")` registration and covers these tools:
 
-| Tool | Values passed to `sentinel spec guard` |
+| Tool | Values passed to `ward spec guard` |
 |---|---|
 | `edit`, `write` | `args.filePath` (or `args.path`) |
 | `apply_patch`, `patch` | `args.patchText` (or `args.patch`) on stdin |
@@ -71,19 +71,19 @@ Sentinel-owned `.opencode/plugins/sentinel-openspec-guard.js` plugin. It uses th
 | `skill` | `args.name` (or `args.skill`) |
 
 Calls that would modify `openspec/specs/**` or `openspec/changes/archive/**`, archive OpenSpec
-changes, or invoke an archive/sync skill throw the refusal returned by Sentinel and are stopped.
+changes, or invoke an archive/sync skill throw the refusal returned by Ward and are stopped.
 Active changes remain editable. The guard is independent of the post-tool quality and validation
 plugin, and it never replaces OpenCode's own permissions.
 
-If Sentinel cannot decide (for example, it is missing from `PATH`, cannot start, returns exit
+If Ward cannot decide (for example, it is missing from `PATH`, cannot start, returns exit
 code `2`, or the session location can't be resolved), the plugin emits a bounded stderr warning and lets the
 tool call proceed. A relative `workdir` is resolved against the session location. Uninspectable input is
 a refusal (exit `1`). Shell filtering is a best-effort heuristic, not a security boundary; scripts,
 variable expansion, and other indirect writes are not prevented.
 
-Refreshing `sentinel integrate opencode` keeps the current guard state. Use
+Refreshing `ward integrate opencode` keeps the current guard state. Use
 `--no-guard-approved-specs` to remove only this plugin, or `--remove` to remove the complete
-Sentinel-owned integration.
+Ward-owned integration.
 
 ## Verification
 
@@ -94,16 +94,16 @@ a disposable fixture. Its activation check needs no model: on 2026-10-16, OpenCo
 both plugins without error. The edit-feedback and guard scenarios need a model and a provider key and have
 not been run yet; idle-limit and reload behavior have no live driver. Missing prerequisites are reported as
 blocked, not as a pass, and installed files alone do not prove runtime activation.
-Plugins generated by Sentinel 0.0.7 and earlier fail to load in OpenCode V2 (they import a `define` export
-that the package does not provide); refresh them with `sentinel integrate opencode`. This is a breaking V2-only migration: upgrade
+Plugins generated by Ward 0.0.7 and earlier fail to load in OpenCode V2 (they import a `define` export
+that the package does not provide); refresh them with `ward integrate opencode`. This is a breaking V2-only migration: upgrade
 OpenCode before refreshing, reload the project/plugin instance, and verify active IDs
-`sentinel.edit-write` and `sentinel.openspec-guard`.
+`ward.edit-write` and `ward.openspec-guard`.
 
 ## Ownership and removal
 
 Generated files contain ownership markers. User-owned targets are never overwritten and a
 conflict does not enable a partial integration. Remove with
-`sentinel integrate opencode --remove`; only Sentinel-owned generated files are deleted. Hooks
-execute trusted repository configuration with your privileges. Re-run `sentinel integrate opencode` to refresh an
-outdated Sentinel-owned plugin. Earlier plugins did not recognize `apply_patch`, so patch edits went unchecked
+`ward integrate opencode --remove`; only Ward-owned generated files are deleted. Hooks
+execute trusted repository configuration with your privileges. Re-run `ward integrate opencode` to refresh an
+outdated Ward-owned plugin. Earlier plugins did not recognize `apply_patch`, so patch edits went unchecked
 until refreshed.

@@ -1,26 +1,26 @@
 ---
 title: Claude Code
-description: Install Sentinel's Claude Code edit and turn-end hooks.
+description: Install Ward's Claude Code edit and turn-end hooks.
 ---
 
-Install with `sentinel integrate claude-code`. Sentinel creates or updates `.claude/settings.json` and the
-executable `.claude/hooks/sentinel-edit-write`, and registers the same hook for two Claude Code events:
+Install with `ward integrate claude-code`. Ward creates or updates `.claude/settings.json` and the
+executable `.claude/hooks/ward-edit-write`, and registers the same hook for two Claude Code events:
 
-| Event | When | What Sentinel does |
+| Event | When | What Ward does |
 |---|---|---|
 | `PostToolUse` (`Edit`, `Write`, `MultiEdit`) | After each file edit | Runs a partial quality check, then validates the edited spec file |
 | `Stop` | When Claude finishes its turn | Runs the full default quality check plus every configured spec check |
 
-The generated hook runs `sentinel hook claude-code --learn-after 3 --exclude-spec --event-stdin` for the
-project directory. Make sure `sentinel` is on `PATH`. Claude Code runs hooks in the session's current
+The generated hook runs `ward hook claude-code --learn-after 3 --exclude-spec --event-stdin` for the
+project directory. Make sure `ward` is on `PATH`. Claude Code runs hooks in the session's current
 directory, so the registrations point at `${CLAUDE_PROJECT_DIR}/.claude/hooks/...` and the hook passes
-`-C "$CLAUDE_PROJECT_DIR"` to Sentinel. Checks still run for the project after the agent changes into a
-subdirectory. Claude Code passes each hook event as JSON on stdin, and Sentinel reads only the event
+`-C "$CLAUDE_PROJECT_DIR"` to Ward. Checks still run for the project after the agent changes into a
+subdirectory. Claude Code passes each hook event as JSON on stdin, and Ward reads only the event
 name, the edited `file_path`, and `stop_hook_active`.
 
 ## After each edit
 
-Sentinel runs a [partial check](/commands/check/) of the `default` profile for the edited file, skipping spec
+Ward runs a [partial check](/commands/check/) of the `default` profile for the edited file, skipping spec
 gates (`--exclude-spec`). Gates with a `partial` table are skipped when the file is not relevant to them and
 narrowed to it when they can be; other gates run in full. It then runs
 [targeted spec validation](/commands/spec/) for the edited file. An edit outside `openspec/changes/<change>/`
@@ -33,18 +33,18 @@ or `openspec/specs/` validates nothing extra.
 
 ## When the turn ends
 
-On `Stop`, Sentinel runs the full `default` profile, without spec gates, and the enabled `openspec` and
+On `Stop`, Ward runs the full `default` profile, without spec gates, and the enabled `openspec` and
 `openspec-archived` validations. Files changed by shell commands send no edit event, so this full check is
 where they are caught.
 
 - **No problems:** the turn ends normally with no output.
-- **First stop with findings:** Sentinel blocks the stop with `{"decision": "block", "reason": ...}`, so Claude
+- **First stop with findings:** Ward blocks the stop with `{"decision": "block", "reason": ...}`, so Claude
   receives the findings and keeps working on them.
-- **Claude stops again and findings remain:** Claude Code marks this with `stop_hook_active`. Sentinel then
+- **Claude stops again and findings remain:** Claude Code marks this with `stop_hook_active`. Ward then
   lets the turn end and shows the findings to you as a `systemMessage` instead of sending them to the agent
   again. Findings are handed to the agent at most once per turn, so a problem the agent cannot fix, such as a
   missing `openspec` executable, cannot trap it in a loop.
-- **Sentinel itself fails,** for example on an invalid `sentinel.toml`: the error is shown to you and the stop
+- **Ward itself fails,** for example on an invalid `ward.toml`: the error is shown to you and the stop
   is never blocked.
 
 Projects without an enabled OpenSpec validation see no change: per-edit spec validation and the `Stop` hook do
@@ -52,10 +52,10 @@ nothing.
 
 ## Approved-artifact guard
 
-The guard is opt-in. Install it with `sentinel integrate claude-code --guard-approved-specs`. Sentinel then
-creates the executable `.claude/hooks/sentinel-openspec-guard` and registers it in `.claude/settings.json` as a
+The guard is opt-in. Install it with `ward integrate claude-code --guard-approved-specs`. Ward then
+creates the executable `.claude/hooks/ward-openspec-guard` and registers it in `.claude/settings.json` as a
 `PreToolUse` hook for `^(Edit|Write|MultiEdit|NotebookEdit|Bash|Skill)$`. Before each of those tool calls, it runs
-`sentinel hook claude-code --guard-approved-specs --event-stdin`.
+`ward hook claude-code --guard-approved-specs --event-stdin`.
 
 | The agent tries to | Result |
 |---|---|
@@ -73,8 +73,8 @@ the active changes. Claude receives the reason and can redirect its work.
 `/opsx:sync` on its own. Run the command yourself when the change is approved, for example by typing
 `! openspec archive <change>` in Claude Code, which runs it directly in your shell.
 
-**Failures do not block your work.** If `sentinel` is not on `PATH` or Sentinel cannot decide, the hook reports the
-problem on stderr with a non-blocking exit code and the tool call goes ahead. A payload Sentinel cannot read is
+**Failures do not block your work.** If `ward` is not on `PATH` or Ward cannot decide, the hook reports the
+problem on stderr with a non-blocking exit code and the tool call goes ahead. A payload Ward cannot read is
 denied, because the guard cannot see what the call would change.
 
 **Know the limits.** Bash filtering is a heuristic, not a security boundary. Scripts, variables, and other indirect
@@ -82,23 +82,23 @@ writes are not prevented. See [`spec guard`](/commands/spec/#guarding-approved-a
 [security](/security/).
 
 The guard is independent of the edit and turn-end hooks. It runs whether or not OpenSpec validation is enabled in
-`sentinel.toml`, and installing or removing it does not change them. Re-running `sentinel integrate claude-code`
+`ward.toml`, and installing or removing it does not change them. Re-running `ward integrate claude-code`
 keeps the guard as it is. `--no-guard-approved-specs` removes only the guard, and `--remove` removes everything.
 
 ## Ownership and removal
 
-Generated files contain Sentinel ownership markers. Existing user-owned targets are never
+Generated files contain Ward ownership markers. Existing user-owned targets are never
 overwritten; a conflict prevents partial integration. If `.claude/settings.json` already contains valid JSON,
-Sentinel merges its hook registrations into that file and preserves unrelated settings and hooks. It does not
+Ward merges its hook registrations into that file and preserves unrelated settings and hooks. It does not
 replace the settings file. Malformed JSON, a non-object settings root, or an incompatible `hooks` structure
-causes a conflict; Sentinel leaves the settings and other integration targets unchanged.
+causes a conflict; Ward leaves the settings and other integration targets unchanged.
 
-Remove using `sentinel integrate claude-code --remove`. Sentinel removes only its hook registrations and
+Remove using `ward integrate claude-code --remove`. Ward removes only its hook registrations and
 ownership marker, deletes its owned hook scripts, and preserves unrelated settings and hooks. The
 `.claude/settings.json` file remains, even if no settings remain in it. The hook executes repository
 configuration with your user privileges. Enable it only in repositories you trust.
-Re-run `sentinel integrate claude-code` to refresh an outdated Sentinel-owned hook. Integrations installed by
-Sentinel 0.0.7 and earlier registered relative hook paths, which Claude Code can't find once the session's
+Re-run `ward integrate claude-code` to refresh an outdated Ward-owned hook. Integrations installed by
+Ward 0.0.7 and earlier registered relative hook paths, which Claude Code can't find once the session's
 directory changes; the hook then fails as a non-blocking error and no check runs. Refreshing replaces those
 registrations in place.
 
@@ -106,12 +106,12 @@ registrations in place.
 
 The deterministic suite in `compatibility/claude-code` (`bun run test`) runs the generated settings and hook
 scripts the way Claude Code launches them, from a subdirectory and with `CLAUDE_PROJECT_DIR` set, against the
-real Sentinel. It covers edit checks and their exit-2 feedback, learning context, the guard's deny decision,
+real Ward. It covers edit checks and their exit-2 feedback, learning context, the guard's deny decision,
 uninspectable input, the one-time stop block, and settings merge and removal. It proves the generated files
 match Claude Code's hook contract, not that a running Claude Code loads them.
 
 The opt-in live run, `bun run src/cli.ts live claude-code` from `compatibility/`, runs headless `claude -p`
 turns against Claude Code 2.1.292 in a disposable fixture with an isolated `CLAUDE_CONFIG_DIR`, so no user or
-global settings are loaded. It needs `SENTINEL_COMPAT_CLAUDE_CODE_BIN` (an absolute path to that release) and
+global settings are loaded. It needs `WARD_COMPAT_CLAUDE_CODE_BIN` (an absolute path to that release) and
 `ANTHROPIC_API_KEY`; without them every scenario is reported as blocked and the command exits non-zero. No
 live run has been recorded yet.

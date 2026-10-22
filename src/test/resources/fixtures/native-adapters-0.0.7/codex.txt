@@ -1,40 +1,40 @@
 == definition
-codex .codex/hooks.json .codex/hooks/sentinel.sh PreToolUse,PostToolUse [APPROVED_ARTIFACT_GUARD, FEEDBACK, POST_EDIT, PRE_TOOL, TURN_END]
+codex .codex/hooks.json .codex/hooks/ward.sh PreToolUse,PostToolUse [APPROVED_ARTIFACT_GUARD, FEEDBACK, POST_EDIT, PRE_TOOL, TURN_END]
 == config
 {
-  "sentinelOwnership": "sentinel-owned: codex-native-hooks v1",
+  "wardOwnership": "ward-owned: codex-native-hooks v1",
   "hooks": {
-    "PreToolUse": [{"matcher":".*","hooks":[{"type":"command","command":".codex/hooks/sentinel.sh"}]}],
-    "PostToolUse": [{"type":"command","command":".codex/hooks/sentinel.sh"}]
+    "PreToolUse": [{"matcher":".*","hooks":[{"type":"command","command":".codex/hooks/ward.sh"}]}],
+    "PostToolUse": [{"type":"command","command":".codex/hooks/ward.sh"}]
   }
 }
 
 == hook KEEP
 #!/bin/sh
-# sentinel-owned: codex-native-hooks v1
+# ward-owned: codex-native-hooks v1
 # Native event adapter for codex.
 if [ "keep" = "enable" ]; then
-  exec sentinel hook native --agent codex --guard-approved-specs --event-stdin
+  exec ward hook native --agent codex --guard-approved-specs --event-stdin
 fi
-exec sentinel hook native --agent codex --event-stdin
+exec ward hook native --agent codex --event-stdin
 
 == hook ENABLE
 #!/bin/sh
-# sentinel-owned: codex-native-hooks v1
+# ward-owned: codex-native-hooks v1
 # Native event adapter for codex.
 if [ "enable" = "enable" ]; then
-  exec sentinel hook native --agent codex --guard-approved-specs --event-stdin
+  exec ward hook native --agent codex --guard-approved-specs --event-stdin
 fi
-exec sentinel hook native --agent codex --event-stdin
+exec ward hook native --agent codex --event-stdin
 
 == hook DISABLE
 #!/bin/sh
-# sentinel-owned: codex-native-hooks v1
+# ward-owned: codex-native-hooks v1
 # Native event adapter for codex.
 if [ "disable" = "enable" ]; then
-  exec sentinel hook native --agent codex --guard-approved-specs --event-stdin
+  exec ward hook native --agent codex --guard-approved-specs --event-stdin
 fi
-exec sentinel hook native --agent codex --event-stdin
+exec ward hook native --agent codex --event-stdin
 
 == deny
 {"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"Blocked \"quoted\" \\ path"}}
