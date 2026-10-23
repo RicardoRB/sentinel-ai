@@ -26,7 +26,6 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
   public static final String HOOK_MARKER = "ward-owned: edit-write-guard v1";
   public static final String GUARD_MARKER = "ward-owned: openspec-guard v1";
   private static final String SETTINGS_FILE = ".claude/settings.json";
-  private static final String HOOK_FILE = ClaudeCodeFiles.HOOK_FILE;
   private static final String UPDATED = "Updated Ward Claude Code integration.";
   private final ClaudeSettingsDocument settingsDocument;
 
@@ -132,10 +131,10 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
   }
 
   @Override
-  public boolean installed(final Path projectRoot) {
-    final Path root = projectRoot.toAbsolutePath().normalize();
+  public boolean installed(final Path installRoot, final String projectPath) {
+    final Path root = installRoot.toAbsolutePath().normalize();
     return Files.isRegularFile(root.resolve(SETTINGS_FILE))
-        && Files.isRegularFile(root.resolve(HOOK_FILE));
+        && Files.isRegularFile(root.resolve(new ClaudeCodeFiles(projectPath).hookFile()));
   }
 
   @Override

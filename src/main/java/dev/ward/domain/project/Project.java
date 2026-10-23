@@ -76,6 +76,19 @@ public record Project(
     return path.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "-").replaceAll("^-+|-+$", "");
   }
 
+  /**
+   * Returns where a tool that {@code atRepositoryRoot} installs its files for this project: the
+   * repository root for a nested project, else the project root.
+   */
+  public Path installRoot(final boolean atRepositoryRoot) {
+    return atRepositoryRoot && nested() ? repositoryRoot : root;
+  }
+
+  /** Returns the project path a tool installed at {@link #installRoot} needs, or empty. */
+  public String installPath(final boolean atRepositoryRoot) {
+    return atRepositoryRoot && nested() ? projectPath() : "";
+  }
+
   /** Returns whether the project sits below the repository root rather than at it. */
   public boolean nested() {
     return !projectPath().isEmpty();

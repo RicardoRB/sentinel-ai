@@ -124,7 +124,7 @@ public final class DoctorService {
             Status.ERROR,
             "Configuration is present.",
             "Run 'ward init'."));
-    diagnoseIntegrations(root, openCode, findings);
+    diagnoseIntegrations(project.get(), openCode, findings);
     findings.add(
         check(
             "native",
@@ -157,10 +157,11 @@ public final class DoctorService {
   }
 
   private void diagnoseIntegrations(
-      final Path root, final boolean legacyOpenCode, final List<Finding> findings) {
+      final Project project, final boolean legacyOpenCode, final List<Finding> findings) {
     final List<AgentIntegration> configured =
         integrations.stream()
-            .filter(adapter -> adapter.health(root).status() != IntegrationHealth.Status.MISSING)
+            .filter(
+                adapter -> health(project, adapter).status() != IntegrationHealth.Status.MISSING)
             .toList();
     if (configured.isEmpty()) {
       findings.add(
@@ -178,7 +179,7 @@ public final class DoctorService {
                 adapter ->
                     adapter.id()
                         + "="
-                        + adapter.health(root).status().name().toLowerCase(Locale.ROOT)
+                        + health(project, adapter).status().name().toLowerCase(Locale.ROOT)
                         + " ["
                         + adapter.capabilities().stream()
                             .map(IntegrationCapability::name)
@@ -194,7 +195,7 @@ public final class DoctorService {
     final boolean healthy =
         configured.stream()
             .allMatch(
-                adapter -> adapter.health(root).status() == IntegrationHealth.Status.INSTALLED);
+                adapter -> health(project, adapter).status() == IntegrationHealth.Status.INSTALLED);
     findings.add(
         new Finding(
             "integration",
@@ -202,6 +203,12 @@ public final class DoctorService {
             "Configured integrations: "
                 + summary
                 + (healthy ? "." : "; re-run integrate to repair.")));
+  }
+
+  /** Nested projects find integrations that install at the repository root there. */
+  private static IntegrationHealth health(final Project project, final AgentIntegration adapter) {
+    final boolean shared = adapter.installsAtRepositoryRoot();
+    return adapter.health(project.installRoot(shared), project.installPath(shared));
   }
 
   private void diagnoseTraceability(final Path root, final List<Finding> findings) {

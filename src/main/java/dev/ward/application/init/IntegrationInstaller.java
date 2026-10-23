@@ -120,17 +120,13 @@ final class IntegrationInstaller {
   /**
    * Agent sessions start at the repository root, so nested projects install there when they can.
    */
-  private static boolean atRepositoryRoot(final Project project, final AgentIntegration adapter) {
-    return project.nested() && adapter.installsAtRepositoryRoot();
-  }
-
   private static Path root(final Project project, final AgentIntegration adapter) {
-    return atRepositoryRoot(project, adapter) ? project.repositoryRoot() : project.root();
+    return project.installRoot(adapter.installsAtRepositoryRoot());
   }
 
   private static IntegrationRequest request(
       final Project project, final AgentIntegration adapter, final IntegrationRequest request) {
-    return atRepositoryRoot(project, adapter) ? request.forProject(project.projectPath()) : request;
+    return request.forProject(project.installPath(adapter.installsAtRepositoryRoot()));
   }
 
   private AgentIntegration integration(final String id) {

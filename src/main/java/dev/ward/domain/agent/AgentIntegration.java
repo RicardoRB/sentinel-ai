@@ -40,15 +40,38 @@ public interface AgentIntegration extends AgentAdapter {
   }
 
   /**
-   * Returns whether the integration is installed under {@code projectRoot}; the default is false.
+   * Returns whether the integration is installed under {@code projectRoot}; the default asks {@link
+   * #installed(Path, String)} for a project at that root.
    */
   default boolean installed(final Path projectRoot) {
+    return installed(projectRoot, "");
+  }
+
+  /**
+   * Returns whether the integration of the Ward project at {@code projectPath} below {@code root}
+   * is installed under {@code root}; the default is false.
+   */
+  default boolean installed(final Path root, final String projectPath) {
     return false;
   }
 
   /** Reports whether the integration is installed, for {@code ward doctor}. */
   default IntegrationHealth health(final Path projectRoot) {
     return installed(projectRoot)
+        ? new IntegrationHealth(IntegrationHealth.Status.INSTALLED, "Integration is installed.")
+        : new IntegrationHealth(IntegrationHealth.Status.MISSING, "Integration is not configured.");
+  }
+
+  /**
+   * Reports, for {@code ward doctor}, whether the integration of the Ward project at {@code
+   * projectPath} below {@code root} is installed. A project at the root keeps {@link
+   * #health(Path)}.
+   */
+  default IntegrationHealth health(final Path root, final String projectPath) {
+    if (projectPath.isEmpty()) {
+      return health(root);
+    }
+    return installed(root, projectPath)
         ? new IntegrationHealth(IntegrationHealth.Status.INSTALLED, "Integration is installed.")
         : new IntegrationHealth(IntegrationHealth.Status.MISSING, "Integration is not configured.");
   }

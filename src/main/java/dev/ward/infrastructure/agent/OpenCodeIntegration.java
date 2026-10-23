@@ -20,7 +20,6 @@ public final class OpenCodeIntegration implements AgentIntegration {
   public static final String MARKER = "<!-- ward-owned: opencode-quality-check v1 -->";
   public static final String PLUGIN_MARKER = "ward-owned: opencode-edit-write v1";
   public static final String GUARD_MARKER = "ward-owned: opencode-openspec-guard v1";
-  private static final OpenCodeFiles ROOT_FILES = new OpenCodeFiles("");
 
   private static final String COMMAND =
       MARKER + "\n\nRun `ward check --format json --learn-after 3` and return the result.\n";
@@ -255,10 +254,11 @@ public final class OpenCodeIntegration implements AgentIntegration {
   }
 
   @Override
-  public boolean installed(final Path projectRoot) {
-    final Path root = projectRoot.toAbsolutePath().normalize();
-    return Files.isRegularFile(root.resolve(ROOT_FILES.commandFile()))
-        && Files.isRegularFile(root.resolve(ROOT_FILES.pluginFile()));
+  public boolean installed(final Path installRoot, final String projectPath) {
+    final Path root = installRoot.toAbsolutePath().normalize();
+    final OpenCodeFiles files = new OpenCodeFiles(projectPath);
+    return Files.isRegularFile(root.resolve(files.commandFile()))
+        && Files.isRegularFile(root.resolve(files.pluginFile()));
   }
 
   @Override
