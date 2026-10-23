@@ -1,5 +1,6 @@
 package dev.ward.application.gate;
 
+import dev.ward.domain.gate.SupportedQualityGates;
 import dev.ward.domain.project.Language;
 import java.util.List;
 import java.util.Map;
@@ -30,7 +31,10 @@ public final class LanguageGateRegistry {
                   TRIVY,
                   "enforcer",
                   "license",
-                  "api-compat"),
+                  "api-compat",
+                  SupportedQualityGates.OPENAPI_LINT,
+                  SupportedQualityGates.OPENAPI_DIFF,
+                  SupportedQualityGates.OPENAPI_COMPAT),
           Language.KOTLIN, List.of("compile", TESTS, GITLEAKS, SEMGREP, TRIVY),
           Language.TYPESCRIPT, List.of("command", TESTS, GITLEAKS, SEMGREP, TRIVY),
           Language.JAVASCRIPT, List.of("command", TESTS, GITLEAKS, SEMGREP, TRIVY),

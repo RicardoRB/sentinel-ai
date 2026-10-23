@@ -14,13 +14,25 @@ import java.util.Set;
  * @param partial how a per-edit check narrows it, or {@code null} when it always runs in full
  * @param root the project-relative directory it runs from, or {@code null} for the project root;
  *     only OpenSpec gates read it
+ * @param openApi the OpenAPI options of an {@code openapi-*} gate, or {@code null} for others
  */
 public record GateConfiguration(
     boolean enabled,
     List<String> command,
     Set<String> profiles,
     PartialGateConfiguration partial,
-    String root) {
+    String root,
+    OpenApiGateOptions openApi) {
+
+  /** Creates a gate without OpenAPI options. */
+  public GateConfiguration(
+      final boolean enabled,
+      final List<String> command,
+      final Set<String> profiles,
+      final PartialGateConfiguration partial,
+      final String root) {
+    this(enabled, command, profiles, partial, root, null);
+  }
 
   /** Creates a gate that runs from the project root. */
   public GateConfiguration(

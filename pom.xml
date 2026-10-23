@@ -221,6 +221,8 @@
                     <environmentVariables>
                         <WARD_NO_UPDATE_CHECK>1</WARD_NO_UPDATE_CHECK>
                     </environmentVariables>
+                    <!-- Git hooks export these; tests that run git in a temp repo would read this repo instead. -->
+                    <excludedEnvironmentVariables>GIT_DIR,GIT_INDEX_FILE,GIT_WORK_TREE,GIT_PREFIX</excludedEnvironmentVariables>
                 </configuration>
             </plugin>
             <plugin>

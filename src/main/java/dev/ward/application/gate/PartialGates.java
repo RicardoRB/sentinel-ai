@@ -93,7 +93,8 @@ final class PartialGates {
         Stream.concat(gate.command().stream(), plan.args().stream()).toList(),
         gate.profiles(),
         gate.partial(),
-        gate.root());
+        gate.root(),
+        gate.openApi());
   }
 
   private static GateScope scope(final PartialCheckPlan.GatePlan plan) {

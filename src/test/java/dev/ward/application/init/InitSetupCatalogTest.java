@@ -191,6 +191,8 @@ class InitSetupCatalogTest {
         .containsExactlyInAnyOrderElementsOf(
             QualityGateFactory.SUPPORTED_GATES.stream()
                 .filter(id -> !OPENSPEC.equals(id) && !OPENSPEC_ARCHIVED.equals(id))
+                // OpenAPI gates are offered only when the project commits a spec.
+                .filter(id -> !id.startsWith("openapi-"))
                 .toList());
     assertThat(catalog.gate(project, "coverage").command())
         .containsExactly("gradle", "jacocoTestCoverageVerification");

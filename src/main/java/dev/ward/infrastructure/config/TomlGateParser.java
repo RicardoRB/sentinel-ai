@@ -32,9 +32,16 @@ final class TomlGateParser {
       if (enabled) {
         throw new WardException("'" + where + ".command' is required for an enabled gate");
       }
-      return new GateConfiguration(false, List.of(), profiles, partial, root);
+      return new GateConfiguration(
+          false, List.of(), profiles, partial, root, TomlOpenApiParser.parse(where, gate, false));
     }
-    return new GateConfiguration(enabled, command(where, gate), profiles, partial, root);
+    return new GateConfiguration(
+        enabled,
+        command(where, gate),
+        profiles,
+        partial,
+        root,
+        TomlOpenApiParser.parse(where, gate, enabled));
   }
 
   private static boolean enabled(final String where, final TomlTable gate) {

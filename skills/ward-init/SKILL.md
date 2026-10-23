@@ -109,6 +109,12 @@ order:
      `trivy` unless the user needs Dependency-Check's reports.
    - `zap` needs a running application and a `<TARGET_URL>` that the user is authorized to scan.
      `check` fails until it is replaced.
+   - `openapi-lint`, `openapi-diff`, and `openapi-compat` are offered only when Git tracks an
+     `openapi.yml`, `openapi.yaml`, or `openapi.json` in `src/main/resources` or the project root.
+     They need `vacuum` and `oasdiff`. They allow no exceptions: `openapi-lint` runs every built-in
+     vacuum rule, and the gates fail on `vacuum.conf.yaml`, `.oasdiff.*` files, or `x-lint-ignore`
+     in the spec. Say so before recommending them on a spec that has never been linted.
+     `openapi-compat` compares with `origin/main`, so CI needs the base branch history.
    - `archunit` when the layering checks in the inspection found violations: the gate fails on its
      first run.
 

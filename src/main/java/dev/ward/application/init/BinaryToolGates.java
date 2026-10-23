@@ -1,17 +1,73 @@
 package dev.ward.application.init;
 
+import dev.ward.domain.config.OpenApiGateOptions;
 import dev.ward.domain.doctor.EnvironmentInspection;
 import dev.ward.domain.gate.SupportedQualityGates;
 import dev.ward.domain.gate.ToolReports;
 import dev.ward.domain.init.InitGateOption;
 import dev.ward.domain.project.Project;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /** Gate choices that run a standalone executable, available only when it is on the path. */
 record BinaryToolGates(EnvironmentInspection environment, Project project) {
+  private static final String SPEC = "spec";
 
   /** The executable-backed gates, in wizard order. */
   List<InitGateOption> gates() {
+    final List<InitGateOption> gates = new ArrayList<>(securityGates());
+    environment.openApiSpec(project.root()).ifPresent(spec -> gates.addAll(openApiGates(spec)));
+    return List.copyOf(gates);
+  }
+
+  /** The contract gates, offered only for a Git-tracked OpenAPI spec they can check. */
+  private List<InitGateOption> openApiGates(final String spec) {
+    final List<String> diff = List.of("oasdiff", "breaking", "--fail-on", "ERR");
+    return List.of(
+        withSettings(
+            option(
+                SupportedQualityGates.OPENAPI_LINT,
+                "Lints the committed OpenAPI spec with every built-in vacuum rule.",
+                List.of("vacuum", "lint", "-z", "-n", "warn"),
+                "Install vacuum."),
+            Map.of(SPEC, spec)),
+        withSettings(
+            option(
+                SupportedQualityGates.OPENAPI_DIFF,
+                "Reports breaking changes in uncommitted OpenAPI spec edits with oasdiff.",
+                diff,
+                "Install oasdiff."),
+            Map.of(SPEC, spec)),
+        withSettings(
+            option(
+                SupportedQualityGates.OPENAPI_COMPAT,
+                "Reports breaking OpenAPI changes on the branch against origin/main with oasdiff.",
+                diff,
+                "Install oasdiff, and fetch origin/main before checking."),
+            orderedSettings(spec)));
+  }
+
+  private static Map<String, String> orderedSettings(final String spec) {
+    final Map<String, String> settings = new LinkedHashMap<>();
+    settings.put(SPEC, spec);
+    settings.put("base", OpenApiGateOptions.DEFAULT_BASE);
+    return settings;
+  }
+
+  private static InitGateOption withSettings(
+      final InitGateOption option, final Map<String, String> settings) {
+    return new InitGateOption(
+        option.id(),
+        option.description(),
+        option.command(),
+        option.available(),
+        option.availabilityMessage(),
+        settings);
+  }
+
+  private List<InitGateOption> securityGates() {
     return List.of(
         option(
             "semgrep",

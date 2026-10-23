@@ -9,11 +9,13 @@ import dev.ward.domain.process.CommandResult;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -36,7 +38,17 @@ public final class SystemEnvironmentInspection implements EnvironmentInspection 
           "trivy",
           "gitleaks",
           "semgrep",
-          "zap-baseline.py");
+          "zap-baseline.py",
+          "vacuum",
+          "oasdiff");
+  private static final List<String> OPENAPI_SPECS =
+      List.of(
+          "src/main/resources/openapi.yml",
+          "src/main/resources/openapi.yaml",
+          "src/main/resources/openapi.json",
+          "openapi.yml",
+          "openapi.yaml",
+          "openapi.json");
 
   private final CommandExecutor executor;
 
@@ -75,6 +87,7 @@ public final class SystemEnvironmentInspection implements EnvironmentInspection 
     final Map<String, String> observed = new HashMap<>(values);
     observed.put("NVD_API_KEY", Boolean.toString(isSet("NVD_API_KEY")));
     observed.put("OSS_INDEX_PASSWORD", Boolean.toString(isSet("OSS_INDEX_PASSWORD")));
+    observed.put("OASDIFF_CONFIG", Boolean.toString(isSet("OASDIFF_CONFIG")));
     LOGGER.log(
         Level.INFO,
         () -> "event=environment-inspection status=complete available=" + available.size());
@@ -114,6 +127,19 @@ public final class SystemEnvironmentInspection implements EnvironmentInspection 
     final CommandResult result =
         executor.execute(List.of("git", "check-ignore", "-q", "openspec"), projectRoot);
     return result.executionError() == null && result.exitCode() == 0;
+  }
+
+  /** Asks Git which candidates are tracked, so an untracked draft spec is never offered. */
+  @Override
+  public Optional<String> openApiSpec(final Path projectRoot) {
+    final List<String> command = new ArrayList<>(List.of("git", "ls-files", "-z", "--"));
+    command.addAll(OPENAPI_SPECS);
+    final CommandResult result = executor.execute(command, projectRoot);
+    if (result.executionError() != null || result.exitCode() != 0) {
+      return Optional.empty();
+    }
+    final List<String> tracked = Arrays.asList(result.stdout().split("\\u0000"));
+    return OPENAPI_SPECS.stream().filter(tracked::contains).findFirst();
   }
 
   @Override

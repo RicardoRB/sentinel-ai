@@ -1,6 +1,7 @@
 package dev.ward.domain.doctor;
 
 import java.nio.file.Path;
+import java.util.Optional;
 
 /** Outbound contract for observing host and project environment facts. */
 @FunctionalInterface
@@ -26,6 +27,15 @@ public interface EnvironmentInspection {
   /** Returns whether Git ignores the project-root {@code openspec/} directory. */
   default boolean isOpenSpecDirectoryIgnored(final Path projectRoot) {
     return false;
+  }
+
+  /**
+   * Returns the project-relative path of the Git-tracked OpenAPI spec of {@code projectRoot}: the
+   * first tracked {@code openapi.yml}, {@code openapi.yaml}, or {@code openapi.json} under {@code
+   * src/main/resources}, then at the project root.
+   */
+  default Optional<String> openApiSpec(final Path projectRoot) {
+    return Optional.empty();
   }
 
   /** Returns how the project's Dependency-Check build configuration sets the OSS Index analyzer. */
