@@ -24,16 +24,17 @@ final class TomlGateParser {
     final Set<String> profiles = profiles(where, gate);
     final boolean enabled = enabled(where, gate);
     final PartialGateConfiguration partial = TomlPartialParser.parse(where, gate);
+    final String root = TomlOpenSpecRoot.parse(where, gate);
     if (!gate.contains(COMMAND)) {
       if (enabled && where.endsWith("." + SupportedQualityGates.TRACEABILITY)) {
-        return new GateConfiguration(true, List.of(), profiles, partial);
+        return new GateConfiguration(true, List.of(), profiles, partial, root);
       }
       if (enabled) {
         throw new WardException("'" + where + ".command' is required for an enabled gate");
       }
-      return new GateConfiguration(false, List.of(), profiles, partial);
+      return new GateConfiguration(false, List.of(), profiles, partial, root);
     }
-    return new GateConfiguration(enabled, command(where, gate), profiles, partial);
+    return new GateConfiguration(enabled, command(where, gate), profiles, partial, root);
   }
 
   private static boolean enabled(final String where, final TomlTable gate) {

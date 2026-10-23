@@ -64,7 +64,9 @@ Failed `checkstyle`, `pmd`, `gitleaks`, `compile`, and `format` gates include st
 Use `--format sarif` for code-scanning tools, CI annotations, and IDEs. Ward writes one
 [SARIF 2.1.0](https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html) log with one run per
 executed gate, as compact JSON without indentation: each visible finding becomes a located result, and a failed gate without visible findings becomes one
-result without a location whose rule id is the gate id. At most 50 results are listed per gate; the
+result without a location whose rule id is the gate id. Locations are relative to the Git repository
+root, so a project in `apps/api` reports `apps/api/src/...`; outside a Git work tree they are relative
+to the project root. At most 50 results are listed per gate; the
 run's `properties.findingsTotal` and `findingsHidden` hold the full and hidden counts. When Ward cannot run at all, SARIF mode
 writes nothing to stdout and reports the error on stderr.
 
@@ -90,7 +92,8 @@ executable and a project-root `openspec/` directory; missing prerequisites are r
 failures and never trigger installation or scaffolding. An installed CLI that rejects a required
 flag also fails without automatic flag removal or downgrade. See [JSON output](/reference/json-output/)
 and [exit codes](/reference/exit-codes/). `-C <dir>` runs
-against a project directory other than the current one. Exit `0` means all gates passed, `1` means
+against a project directory other than the current one. Started inside a Maven or Gradle module,
+Ward checks the aggregator project and uses its `ward.toml`. Exit `0` means all gates passed, `1` means
 at least one gate failed, and `2` means Ward could not run (for example, invalid configuration).
 ## Verbose diagnostics
 

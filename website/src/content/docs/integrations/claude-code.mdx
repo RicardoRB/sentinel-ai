@@ -102,6 +102,23 @@ Ward 0.0.7 and earlier registered relative hook paths, which Claude Code can't f
 directory changes; the hook then fails as a non-blocking error and no check runs. Refreshing replaces those
 registrations in place.
 
+## Projects in a subdirectory
+
+Claude Code loads `.claude/settings.json` from the directory a session starts in, which in a
+monorepo is usually the repository root. When `ward init` configures a project below the root, such
+as `apps/api`, it therefore installs the integration at the repository root:
+
+- the hook scripts are named after the project, `.claude/hooks/ward-edit-write-apps-api` (and
+  `ward-openspec-guard-apps-api` with the guard), and change to the repository root before running
+  `ward hook claude-code -C 'apps/api'`, so the session's directory does not matter;
+- the root `.claude/settings.json` keeps every hook you already registered. Ward adds or replaces
+  only the entries of the project being installed, so several Ward projects can share the file;
+- an edit outside the project runs none of its gates, and at the end of a turn the full check runs
+  only when a file under the project differs from `HEAD` (`git status -- .` in the project).
+
+Removing one project's integration leaves the other projects' hooks and your own in place; the
+`wardOwnership` key goes away with the last Ward entry.
+
 ## Verification
 
 The deterministic suite in `compatibility/claude-code` (`bun run test`) runs the generated settings and hook

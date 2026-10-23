@@ -106,7 +106,8 @@ public class QualityGateFactory {
     if (OpenSpecQualityGate.ACTIVE.equals(id) || OpenSpecQualityGate.ARCHIVED.equals(id)) {
       return environment == null
           ? new CommandQualityGate(id, executor, configuration.command())
-          : new OpenSpecQualityGate(id, executor, environment, configuration.command());
+          : new OpenSpecQualityGate(
+              id, executor, environment, configuration.command(), configuration.root());
     }
     if (MavenTestGate.NAME.equals(id)) {
       return new MavenTestGate(executor, testsCommand(configuration.command(), project));

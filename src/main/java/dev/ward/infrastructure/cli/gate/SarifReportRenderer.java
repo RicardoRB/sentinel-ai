@@ -41,15 +41,18 @@ public class SarifReportRenderer {
    */
   public String render(final CheckReport report, final SeverityThreshold threshold) {
     final List<RunDto> runs = new ArrayList<>();
+    // Code scanning resolves relative URIs against the repository root, not the project root.
+    final String prefix = report.project().nested() ? report.project().projectPath() + "/" : "";
     for (final GateResult result : report.results()) {
       if (result.status() != GateStatus.SKIPPED) {
-        runs.add(run(result, threshold));
+        runs.add(run(result, threshold, prefix));
       }
     }
     return codec.toJson(new LogDto(SCHEMA, VERSION, runs));
   }
 
-  private static RunDto run(final GateResult result, final SeverityThreshold threshold) {
+  private static RunDto run(
+      final GateResult result, final SeverityThreshold threshold, final String prefix) {
     final GateFindings.Visible visible = result.findings().visible(threshold);
     final List<Finding> findings = visible.items();
     final Map<String, RuleDto> rules =
@@ -61,7 +64,9 @@ public class SarifReportRenderer {
                     (first, ignored) -> first,
                     LinkedHashMap::new));
     final List<ResultDto> results =
-        findings.stream().map(ResultDto::from).collect(Collectors.toCollection(ArrayList::new));
+        findings.stream()
+            .map(finding -> ResultDto.from(finding, prefix))
+            .collect(Collectors.toCollection(ArrayList::new));
     if (!result.passed() && findings.isEmpty()) {
       rules.putIfAbsent(result.name(), new RuleDto(result.name(), null));
       results.add(
@@ -192,13 +197,13 @@ public class SarifReportRenderer {
       locations = List.copyOf(locations);
     }
 
-    static ResultDto from(final Finding finding) {
+    static ResultDto from(final Finding finding, final String prefix) {
       final List<LocationDto> locations =
           finding.located()
               ? List.of(
                   new LocationDto(
                       new PhysicalLocationDto(
-                          new ArtifactLocationDto(uri(finding.file())),
+                          new ArtifactLocationDto(uri(finding.file(), prefix)),
                           finding.line() == null
                               ? null
                               : new RegionDto(finding.line(), finding.column()))))
@@ -210,8 +215,8 @@ public class SarifReportRenderer {
           locations);
     }
 
-    private static String uri(final String file) {
-      return file.startsWith("/") ? "file://" + file : file;
+    private static String uri(final String file, final String prefix) {
+      return file.startsWith("/") ? "file://" + file : prefix + file;
     }
   }
 
@@ -235,7 +240,7 @@ public class SarifReportRenderer {
   /**
    * A SARIF artifact location.
    *
-   * @param uri a project-relative path, or a file URI outside the project
+   * @param uri a repository-relative path, or a file URI outside the project
    */
   @JsonType
   public record ArtifactLocationDto(String uri) {}

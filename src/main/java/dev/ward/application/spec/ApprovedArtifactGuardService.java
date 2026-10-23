@@ -49,20 +49,61 @@ public final class ApprovedArtifactGuardService {
    */
   public GuardDecision evaluate(final GuardRequest request) {
     final long started = System.nanoTime();
-    final Project project =
-        detector.detect(request.start()).orElseThrow(ProjectNotFoundException::new);
-    if (!paths.isDirectory(project.root(), OPENSPEC)) {
+    final Optional<Project> project = detector.detect(request.start());
+    final Optional<Path> root = project.map(this::openSpecRoot).orElseGet(() -> outside(request));
+    if (root.isEmpty()) {
       LOGGER.log(
           Level.INFO,
           () -> "event=spec-guard-skipped kind=" + kind(request) + " reason=no-openspec");
       return GuardDecision.ALLOWED;
     }
-    final Evaluation evaluation = evaluate(project.root(), request);
+    final Evaluation evaluation =
+        evaluate(
+            root.get(),
+            project.map(found -> fromProject(found, root.get(), request)).orElse(request));
     LOGGER.log(Level.INFO, () -> describe(request, evaluation, started));
     return evaluation.refusals().isEmpty()
         ? GuardDecision.ALLOWED
         : GuardDecision.refused(
-            GuardFeedback.render(evaluation.refusals(), paths.activeChanges(project.root())));
+            GuardFeedback.render(evaluation.refusals(), paths.activeChanges(root.get())));
+  }
+
+  /**
+   * The directory whose {@code openspec/} is protected: the project's own, or for a nested project
+   * without one, the repository root's, as init configures it. The guard reads no configuration.
+   */
+  private Optional<Path> openSpecRoot(final Project project) {
+    if (paths.isDirectory(project.root(), OPENSPEC)) {
+      return Optional.of(project.root());
+    }
+    return project.nested() && paths.isDirectory(project.repositoryRoot(), OPENSPEC)
+        ? Optional.of(project.repositoryRoot())
+        : Optional.empty();
+  }
+
+  /**
+   * A repository-level hook starts outside every project; it protects the {@code openspec/} of the
+   * directory it starts in, where a monorepo keeps the specs its projects share.
+   *
+   * @throws ProjectNotFoundException when that directory has no {@code openspec/} either
+   */
+  private Optional<Path> outside(final GuardRequest request) {
+    final Path start = request.start().toAbsolutePath().normalize();
+    if (!paths.isDirectory(start, OPENSPEC)) {
+      throw new ProjectNotFoundException();
+    }
+    return Optional.of(start);
+  }
+
+  /** Relative paths start from the project, also when the protected root sits above it. */
+  private static GuardRequest fromProject(
+      final Project project, final Path root, final GuardRequest request) {
+    if (root.equals(project.root())) {
+      return request;
+    }
+    final String start =
+        project.root().toAbsolutePath().resolve(request.workingDirectory()).toString();
+    return new GuardRequest(request.start(), start, request.kind(), request.values());
   }
 
   private Evaluation evaluate(final Path root, final GuardRequest request) {

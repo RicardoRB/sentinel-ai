@@ -11,7 +11,7 @@ each choice for this codebase, and runs `init` with explicit options after you a
 `--dry-run` plan.
 
 ```sh
-ward init [-C <dir>] [--preset <standard|strict>] [--integration <none|agent>[,...]] [--quality-hooks] [--remove-quality-hooks] [--ci github] [--agent-rules] [--gate <id>[,...]] [--tool openspec] [--openspec-validation <openspec|openspec-archived>[,...]] [--install-tool <tool|gate>[,...]] [--architecture <style>] [--overwrite] [--dry-run] [--accept-compatibility-updates] [--yes]
+ward init [-C <dir>] [--project <dir>]... [--preset <standard|strict>] [--integration <none|agent>[,...]] [--quality-hooks] [--remove-quality-hooks] [--ci github] [--agent-rules] [--gate <id>[,...]] [--tool openspec] [--openspec-validation <openspec|openspec-archived>[,...]] [--install-tool <tool|gate>[,...]] [--architecture <style>] [--overwrite] [--dry-run] [--accept-compatibility-updates] [--yes]
 ```
 
 `agent` accepts the IDs documented for [`integrate`](/commands/integrate/), including `codex`, `cursor`,
@@ -45,7 +45,7 @@ the local repository instead of Maven Central ([why](/guides/ci-cd/#trivy-offlin
 unchanged and report that the selected gate was not reconfigured. Preset rule files are Ward-owned;
 unmarked existing files are preserved and reported. With `--preset`, `--gate` only adds gates to the
 preset's set; it never removes preset gates. `-C <dir>` selects the
-project directory. Exit codes: `0` success, `2` invalid usage or
+directory init starts in. Exit codes: `0` success, `2` invalid usage or
 inability to initialize (including cancelled or invalid selection).
 
 Maven plugins are added only to the project-level `<build><plugins>` and dependencies only to the
@@ -165,6 +165,62 @@ Press `q`, `Q`, or Ctrl+C to cancel. On Windows, piped input, or when raw termin
 the wizard uses numbered prompts instead. Numbered prompts show pre-selected items as `[x]`; each number
 you enter toggles that item, and an empty line accepts the pre-selection. For example, after choosing
 `standard`, entering the number of `pmd` configures every standard gate except `pmd`.
+
+## Choosing projects
+
+Init configures the Maven or Gradle project that contains the `-C` directory. Started inside a
+build module, it configures the aggregator that lists the module, so `ward.toml` lands next to the
+aggregator's `pom.xml` or `settings.gradle(.kts)`.
+
+When the `-C` directory is not inside a Maven or Gradle project, such as the root of a pnpm or
+Turbo monorepo, init looks for Maven and Gradle projects below it. It skips hidden directories and
+`node_modules`, `target`, `build`, `dist`, and `out`, and it counts modules toward their aggregator
+instead of listing them. With one project found, init configures it and says so. With several, the
+wizard asks which to configure, all checked. Without a terminal, or with `--yes`, init stops and
+lists the `--project` values to pass.
+
+`--project <dir>` names a project explicitly, relative to `-C`. Repeat it to configure several
+projects in one run:
+
+```sh
+ward init --project apps/api --project services/billing --preset standard --integration none
+```
+
+Each value must be a Maven or Gradle project root. A module or a subdirectory fails before anything
+is planned and names the project to use instead. The answers apply to every selected project; run
+init again with a single `--project` to give one project different settings.
+
+## Monorepos
+
+Ward keeps two roots apart. The **project root** holds `ward.toml`, the build file, the rule files,
+and `AGENTS.md`. The **repository root**, the Git top-level, holds what Git, GitHub, and agent
+sessions only read there:
+
+| File | Single-project repository | Project in `apps/api` |
+|---|---|---|
+| Quality hooks | `.git/hooks/pre-commit`, `pre-push` | the same files, with a section keyed by `apps/api` |
+| CI workflow (`--ci github`) | `.github/workflows/ward.yml` | `.github/workflows/ward-apps-api.yml` |
+| Claude Code | `.claude/settings.json`, `.claude/hooks/ward-edit-write` | root `.claude/settings.json`, `.claude/hooks/ward-edit-write-apps-api` |
+| OpenCode | `.opencode/...` | root `.opencode/...`, files suffixed `-apps-api` |
+| Other agents (Codex, Gemini, Copilot, ...) | `.codex/hooks.json`, ... | the same root files, shared by every project |
+| OpenSpec gates | `openspec/` in the project | `root = "../.."` when `openspec/` exists only at the repository root |
+
+The plan shows repository-level files relative to the project root, such as
+`modify ../../.git/hooks/pre-commit`, and a run that configures several projects lists them once
+under **Repository root**. A project whose root is the repository root gets exactly the files it
+always did.
+
+The other agents read a single hook file at the repository root, so every project shares one
+installation. Its hook names no project: Ward checks the project whose `ward.toml` is closest above
+each edited file, and at turn end every configured project with changes. Edits outside every
+configured project, such as `apps/web/page.tsx`, run nothing. Removing such an integration removes
+it for every project in the repository.
+
+Earlier Ward versions wrote these files inside the project, where nothing reads them. After
+re-running init, delete them by hand if they exist: `apps/api/.git/hooks/` (only when
+`apps/api/.git` holds nothing but that directory), `apps/api/.github/workflows/ward.yml`, and the
+Ward files under `apps/api/.claude/`, `apps/api/.opencode/`, and the other agents' directories
+(such as `apps/api/.codex/`).
 
 ## Wizard tips
 

@@ -46,9 +46,9 @@ final class InitPlanner {
     final List<PlannedFileChange> changes = new ArrayList<>();
     changes.add(
         configuration(project, project.root().resolve("ward.toml"), gates, selection.preset()));
-    changes.addAll(installer.plan(project.root(), selection.integrations()));
+    changes.addAll(installer.plan(project, selection.integrations()));
     if (selection.qualityHooks()) {
-      changes.addAll(catalog.get().qualityHooks().plan(project.root()));
+      changes.addAll(catalog.get().qualityHooks().plan(project));
     }
     changes.add(files.buildTools().plan(project, gates, selection.preset(), approved));
     final List<PlannedFileChange> ruleFiles =
@@ -113,7 +113,9 @@ final class InitPlanner {
     }
     return new PlannedFileChange(
         file,
-        ConfigurationTemplate.render(gates, preset, project).equals(existing.get())
+        ConfigurationTemplate.render(
+                    gates, preset, project, catalog.get().openSpecDirectories().root(project))
+                .equals(existing.get())
             ? PlannedFileChange.Action.UNCHANGED
             : PlannedFileChange.Action.MODIFY);
   }

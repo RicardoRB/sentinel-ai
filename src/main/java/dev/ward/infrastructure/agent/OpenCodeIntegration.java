@@ -14,16 +14,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Stream;
 
 /** Safe, ownership-marked integration for OpenCode command discovery and edit/write events. */
 public final class OpenCodeIntegration implements AgentIntegration {
   public static final String MARKER = "<!-- ward-owned: opencode-quality-check v1 -->";
   public static final String PLUGIN_MARKER = "ward-owned: opencode-edit-write v1";
   public static final String GUARD_MARKER = "ward-owned: opencode-openspec-guard v1";
-  private static final String COMMAND_FILE = ".opencode/commands/ward-check.md";
-  private static final String PLUGIN_FILE = ".opencode/plugins/ward-edit-write.js";
-  private static final String GUARD_FILE = ".opencode/plugins/ward-openspec-guard.js";
 
   private static final String COMMAND =
       MARKER + "\n\nRun `ward check --format json --learn-after 3` and return the result.\n";
@@ -258,10 +254,11 @@ public final class OpenCodeIntegration implements AgentIntegration {
   }
 
   @Override
-  public boolean installed(final Path projectRoot) {
-    final Path root = projectRoot.toAbsolutePath().normalize();
-    return Files.isRegularFile(root.resolve(COMMAND_FILE))
-        && Files.isRegularFile(root.resolve(PLUGIN_FILE));
+  public boolean installed(final Path installRoot, final String projectPath) {
+    final Path root = installRoot.toAbsolutePath().normalize();
+    final OpenCodeFiles files = new OpenCodeFiles(projectPath);
+    return Files.isRegularFile(root.resolve(files.commandFile()))
+        && Files.isRegularFile(root.resolve(files.pluginFile()));
   }
 
   @Override
@@ -270,15 +267,22 @@ public final class OpenCodeIntegration implements AgentIntegration {
   }
 
   @Override
+  public boolean installsAtRepositoryRoot() {
+    return true;
+  }
+
+  @Override
   public IntegrationResult integrate(final Path projectRoot, final IntegrationRequest request) {
     final Path root = projectRoot.toAbsolutePath().normalize();
-    final Path command = root.resolve(COMMAND_FILE);
-    final Path plugin = root.resolve(PLUGIN_FILE);
-    final GuardFile guard = new GuardFile(root.resolve(GUARD_FILE), GUARD_MARKER, GUARD_PLUGIN);
+    final OpenCodeFiles files = new OpenCodeFiles(request.projectPath());
+    final Path command = root.resolve(files.commandFile());
+    final Path plugin = root.resolve(files.pluginFile());
+    final GuardFile guard =
+        new GuardFile(root.resolve(files.guardFile()), GUARD_MARKER, files.guard(GUARD_PLUGIN));
     try {
       return request.remove()
           ? remove(command, plugin, guard)
-          : install(command, plugin, guard, request.guard());
+          : install(command, plugin, guard, request.guard(), files);
     } catch (IOException e) {
       throw new UncheckedIOException("Could not update OpenCode integration: " + e.getMessage(), e);
     }
@@ -286,17 +290,26 @@ public final class OpenCodeIntegration implements AgentIntegration {
 
   @Override
   public List<PlannedFileChange> plan(final Path projectRoot, final GuardMode mode) {
+    return plan(projectRoot, new IntegrationRequest(false, mode));
+  }
+
+  @Override
+  public List<PlannedFileChange> plan(final Path projectRoot, final IntegrationRequest request) {
     final Path root = projectRoot.toAbsolutePath().normalize();
-    final GuardFile guard = new GuardFile(root.resolve(GUARD_FILE), GUARD_MARKER, GUARD_PLUGIN);
+    final GuardMode mode = request.guard();
+    final OpenCodeFiles files = new OpenCodeFiles(request.projectPath());
+    final GuardFile guard =
+        new GuardFile(root.resolve(files.guardFile()), GUARD_MARKER, files.guard(GUARD_PLUGIN));
     try {
       final List<PlannedFileChange> plan = new ArrayList<>();
-      final Path command = root.resolve(COMMAND_FILE);
-      final Path plugin = root.resolve(PLUGIN_FILE);
-      plan.add(
-          new PlannedFileChange(command, IntegrationArtifacts.decide(command, MARKER, COMMAND)));
+      final Path command = root.resolve(files.commandFile());
+      final Path plugin = root.resolve(files.pluginFile());
       plan.add(
           new PlannedFileChange(
-              plugin, IntegrationArtifacts.decide(plugin, PLUGIN_MARKER, PLUGIN)));
+              command, IntegrationArtifacts.decide(command, MARKER, files.command(COMMAND))));
+      plan.add(
+          new PlannedFileChange(
+              plugin, IntegrationArtifacts.decide(plugin, PLUGIN_MARKER, files.plugin(PLUGIN))));
       if (guard.preflight(mode) != null) {
         plan.add(new PlannedFileChange(guard.file(), PlannedFileChange.Action.CONFLICT));
       }
@@ -316,7 +329,11 @@ public final class OpenCodeIntegration implements AgentIntegration {
   }
 
   private IntegrationResult install(
-      final Path command, final Path plugin, final GuardFile guard, final GuardMode mode)
+      final Path command,
+      final Path plugin,
+      final GuardFile guard,
+      final GuardMode mode,
+      final OpenCodeFiles files)
       throws IOException {
     IntegrationResult conflict =
         IntegrationArtifacts.preflight(command, MARKER, plugin, PLUGIN_MARKER);
@@ -328,13 +345,13 @@ public final class OpenCodeIntegration implements AgentIntegration {
     }
     final IntegrationResult commandResult =
         IntegrationArtifacts.installOrRefresh(
-            command, MARKER, COMMAND, "Updated Ward OpenCode integration.");
+            command, MARKER, files.command(COMMAND), "Updated Ward OpenCode integration.");
     if (commandResult.status() == IntegrationResult.Status.CONFLICT) {
       return commandResult;
     }
     final IntegrationResult pluginResult =
         IntegrationArtifacts.installOrRefresh(
-            plugin, PLUGIN_MARKER, PLUGIN, "Updated Ward OpenCode integration.");
+            plugin, PLUGIN_MARKER, files.plugin(PLUGIN), "Updated Ward OpenCode integration.");
     if (pluginResult.status() == IntegrationResult.Status.CONFLICT) {
       return pluginResult;
     }
@@ -380,19 +397,9 @@ public final class OpenCodeIntegration implements AgentIntegration {
       removed.add(plugin.toString());
     }
     guard.remove(true).ifPresent(entry -> removed.add(entry.getKey().toString()));
-    deleteIfEmpty(plugin.getParent());
-    deleteIfEmpty(command.getParent());
+    EmptyDirectories.delete(plugin.getParent());
+    EmptyDirectories.delete(command.getParent());
     return new IntegrationResult(
         IntegrationResult.Status.REMOVED, removed, "Removed Ward-owned OpenCode integration.");
-  }
-
-  private static void deleteIfEmpty(final Path directory) throws IOException {
-    if (directory != null && Files.isDirectory(directory)) {
-      try (Stream<Path> entries = Files.list(directory)) {
-        if (entries.findAny().isEmpty()) {
-          Files.deleteIfExists(directory);
-        }
-      }
-    }
   }
 }

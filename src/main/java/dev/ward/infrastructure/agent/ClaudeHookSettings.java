@@ -3,6 +3,7 @@ package dev.ward.infrastructure.agent;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /** Operations for preserving unrelated hook entries while adding or removing Ward hooks. */
 final class ClaudeHookSettings {
@@ -10,11 +11,15 @@ final class ClaudeHookSettings {
 
   private ClaudeHookSettings() {}
 
-  static void merge(final Map<String, Object> existing, final Map<String, Object> desired) {
+  /** Replaces the hooks running {@code owned} commands with {@code desired}, keeping all others. */
+  static void merge(
+      final Map<String, Object> existing,
+      final Map<String, Object> desired,
+      final Set<String> owned) {
     for (final String event : MANAGED_EVENTS) {
-      final Object configuredEntries = existing.get(event);
-      final List<Object> preserved = withoutWardEntries(entries(configuredEntries, event));
-      appendDesiredEntries(preserved, desired.get(event));
+      final List<?> current = entries(existing.get(event), event);
+      final List<Object> preserved = withoutWardEntries(current, owned);
+      insertDesiredEntries(preserved, desired.get(event), position(current, owned));
       if (preserved.isEmpty()) {
         existing.remove(event);
       } else {
@@ -23,7 +28,8 @@ final class ClaudeHookSettings {
     }
   }
 
-  static void remove(final Map<String, Object> hooks) {
+  /** Removes the hooks running {@code owned} commands, keeping all others. */
+  static void remove(final Map<String, Object> hooks, final Set<String> owned) {
     final List<String> eventNames = new ArrayList<>(hooks.keySet());
     for (final String event : eventNames) {
       final Object value = hooks.get(event);
@@ -31,7 +37,7 @@ final class ClaudeHookSettings {
         rejectInvalidManagedEvent(event);
         continue;
       }
-      final List<Object> preserved = withoutWardEntries(eventEntries);
+      final List<Object> preserved = withoutWardEntries(eventEntries, owned);
       if (preserved.isEmpty()) {
         hooks.remove(event);
       } else {
@@ -62,7 +68,7 @@ final class ClaudeHookSettings {
     }
   }
 
-  private static List<Object> withoutWardEntries(final List<?> entries) {
+  private static List<Object> withoutWardEntries(final List<?> entries, final Set<String> owned) {
     final List<Object> preserved = new ArrayList<>();
     for (final Object entry : entries) {
       final Map<String, Object> mappedEntry = ClaudeSettingsDocument.object(entry);
@@ -70,7 +76,7 @@ final class ClaudeHookSettings {
       if (commands == null) {
         preserved.add(entry);
       } else {
-        preserveNonWardCommands(preserved, entry, mappedEntry, commands);
+        preserveNonWardCommands(preserved, entry, mappedEntry, commands, owned);
       }
     }
     return preserved;
@@ -80,13 +86,15 @@ final class ClaudeHookSettings {
       final List<Object> preserved,
       final Object originalEntry,
       final Map<String, Object> mappedEntry,
-      final Object commands) {
+      final Object commands,
+      final Set<String> owned) {
     if (!(commands instanceof List<?> list)) {
       throw conflict(
           "Claude Code hook entries must contain a JSON array; existing settings were preserved.");
     }
     final List<Object> remaining =
-        new ArrayList<>(list.stream().filter(item -> !WardClaudeHooks.isHook(item)).toList());
+        new ArrayList<>(
+            list.stream().filter(item -> !WardClaudeHooks.isHook(item, owned)).toList());
     if (remaining.size() == list.size()) {
       preserved.add(originalEntry);
     } else if (!remaining.isEmpty()) {
@@ -95,12 +103,29 @@ final class ClaudeHookSettings {
     }
   }
 
-  private static void appendDesiredEntries(
-      final List<Object> preserved, final Object desiredEntries) {
+  /**
+   * Where this project's entries go: where they were, so re-installing one project does not move it
+   * behind another project's entries; at the end when it had none.
+   */
+  private static int position(final List<?> current, final Set<String> owned) {
+    for (int i = 0; i < current.size(); i++) {
+      if (WardClaudeHooks.hasRegistration(ClaudeSettingsDocument.object(current.get(i)), owned)) {
+        return withoutWardEntries(current.subList(0, i), owned).size();
+      }
+    }
+    return -1;
+  }
+
+  private static void insertDesiredEntries(
+      final List<Object> preserved, final Object desiredEntries, final int position) {
     if (desiredEntries instanceof List<?> list) {
-      list.stream()
-          .filter(entry -> WardClaudeHooks.hasRegistration(ClaudeSettingsDocument.object(entry)))
-          .forEach(preserved::add);
+      final List<Object> desired =
+          list.stream()
+              .filter(
+                  entry -> WardClaudeHooks.hasRegistration(ClaudeSettingsDocument.object(entry)))
+              .map(Object.class::cast)
+              .toList();
+      preserved.addAll(position < 0 ? preserved.size() : position, desired);
     }
   }
 

@@ -12,9 +12,24 @@ import java.util.Set;
  * @param command the argument vector it runs
  * @param profiles the profiles it belongs to
  * @param partial how a per-edit check narrows it, or {@code null} when it always runs in full
+ * @param root the project-relative directory it runs from, or {@code null} for the project root;
+ *     only OpenSpec gates read it
  */
 public record GateConfiguration(
-    boolean enabled, List<String> command, Set<String> profiles, PartialGateConfiguration partial) {
+    boolean enabled,
+    List<String> command,
+    Set<String> profiles,
+    PartialGateConfiguration partial,
+    String root) {
+
+  /** Creates a gate that runs from the project root. */
+  public GateConfiguration(
+      final boolean enabled,
+      final List<String> command,
+      final Set<String> profiles,
+      final PartialGateConfiguration partial) {
+    this(enabled, command, profiles, partial, null);
+  }
 
   /** Creates a gate without a partial table. */
   public GateConfiguration(

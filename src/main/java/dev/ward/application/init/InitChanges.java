@@ -23,7 +23,7 @@ import java.util.stream.Stream;
 
 /** Tracks one initialization transaction and rolls back its changes as a unit. */
 final class InitChanges {
-  private final Path root;
+  private final Project project;
   private final List<String> integrationIds;
   private final InitProjectFiles files;
   private final IntegrationInstaller installer;
@@ -37,12 +37,12 @@ final class InitChanges {
   private QualityHookChange qualityHookChange;
 
   InitChanges(
-      final Path root,
+      final Project project,
       final List<String> integrationIds,
       final InitProjectFiles files,
       final IntegrationInstaller installer,
       final InitSetupCatalog catalog) {
-    this.root = root;
+    this.project = project;
     this.integrationIds = integrationIds;
     this.files = files;
     this.installer = installer;
@@ -51,14 +51,13 @@ final class InitChanges {
   }
 
   void apply(
-      final Project project,
       final InitSelection selection,
       final List<InitGateOption> gates,
       final Predicate<? super CompatibilityFinding> approval) {
     final QualityPreset preset = selection.preset();
-    installer.install(project.root(), selection.integrations(), installed);
+    installer.install(project, selection.integrations(), installed);
     if (selection.qualityHooks()) {
-      qualityHookChange = qualityHooks.apply(project.root());
+      qualityHookChange = qualityHooks.apply(project);
       if (qualityHookChange.result().status() == IntegrationResult.Status.CONFLICT) {
         throw new WardException(qualityHookChange.result().message());
       }
@@ -114,6 +113,6 @@ final class InitChanges {
     files.ruleFiles().rollback(ruleFileChange);
     files.buildTools().rollback(pomChange);
     qualityHooks.rollback(qualityHookChange);
-    installer.rollbackNew(root, integrationIds, installed);
+    installer.rollbackNew(project, integrationIds, installed);
   }
 }

@@ -8,6 +8,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import dev.ward.application.project.ProjectDetector;
 import dev.ward.application.project.ProjectNotFoundException;
 import dev.ward.domain.FakeCommandExecutor;
+import dev.ward.domain.FixedProjectInspection;
 import dev.ward.domain.config.GateConfiguration;
 import dev.ward.domain.config.WardConfiguration;
 import dev.ward.domain.config.WardException;
@@ -18,14 +19,12 @@ import dev.ward.domain.project.BuildTool;
 import dev.ward.domain.project.Framework;
 import dev.ward.domain.project.Language;
 import dev.ward.domain.project.Project;
-import dev.ward.domain.project.ProjectInspection;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -35,18 +34,7 @@ class CheckServiceTest {
   void orchestratesWithInMemoryProjectAndConfigurationPorts() {
     final Path root = Path.of("in-memory-project");
     final Project project = new Project(root, Language.JAVA, BuildTool.MAVEN, Framework.NONE);
-    final ProjectInspection projects =
-        new ProjectInspection() {
-          @Override
-          public Optional<Project> detect(Path ignored) {
-            return Optional.of(project);
-          }
-
-          @Override
-          public List<Project> discover(Path ignored) {
-            return List.of(project);
-          }
-        };
+    final FixedProjectInspection projects = new FixedProjectInspection(project);
     final FakeCommandExecutor executor = new FakeCommandExecutor(0, "ok", "");
     final CheckService checks =
         new CheckService(

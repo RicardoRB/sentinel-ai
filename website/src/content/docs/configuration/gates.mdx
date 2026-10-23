@@ -178,3 +178,23 @@ The configured executable is run directly from the target root; relative and abs
 honored without PATH fallback. Both validations require a project-root `openspec/` directory.
 Missing executables are reported as `UNAVAILABLE`; a missing or non-directory marker is a
 reported `FAILED` result. Check and doctor never install or scaffold OpenSpec.
+
+In a monorepo, `openspec/` often lives at the repository root while the Java project sits in a
+subdirectory. Set `root` on each OpenSpec gate to the directory that holds `openspec/`, relative
+to the project root:
+
+```toml
+[quality-gates.openspec]
+enabled = true
+command = ["openspec", "validate", "--all", "--strict", "--no-interactive"]
+root = "../.."
+```
+
+The gate then requires `openspec/` in that directory and runs the command from it. Ward never
+searches other parents: if `root` has no `openspec/`, the gate fails and names the configured root.
+`root` must be relative and must stay inside the Git repository; an absolute path is a
+configuration error, and a path that leaves the repository fails the gate without running it.
+`ward init` writes `root` for a nested project that has no `openspec/` of its own when the
+repository root has one, and doctor reports the prerequisites of the configured root. Targeted
+`ward spec validate -- <paths>` uses the same root, and the approved-artifact guard protects that
+repository-level `openspec/` too.

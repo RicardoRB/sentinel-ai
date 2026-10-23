@@ -82,6 +82,22 @@ jobs:
 GitHub's required status checks can block merges until the `ward` job passes. Use the runtime setup
 and cache action appropriate for your project; the example uses Maven only as an illustration.
 
+### Projects in a subdirectory
+
+GitHub only runs workflows from `.github/workflows/` at the repository root. When the project sits
+below it, for example `apps/api` in a monorepo, `ward init --ci github` writes the workflow there
+and names it after the project path, such as `.github/workflows/ward-apps-api.yml`, so several
+Ward projects never share one file. The workflow:
+
+- runs every shell step in the project directory through `defaults.run.working-directory`;
+- triggers only when a pull request or push to `main` changes a file under the project or the
+  workflow itself;
+- uploads `apps/api/ward.sarif` under its own code-scanning category (`ward-apps-api`), so the
+  results of different projects do not replace each other. SARIF locations are relative to the
+  repository root, so annotations land on `apps/api/...` files.
+
+A project whose root is the repository root keeps `ward.yml` exactly as before.
+
 ### Code scanning annotations with SARIF
 
 To see findings as pull-request annotations and code-scanning alerts, write a SARIF report and upload

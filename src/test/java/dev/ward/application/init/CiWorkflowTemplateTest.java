@@ -5,10 +5,13 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import dev.ward.domain.config.WardException;
 import dev.ward.domain.init.InitGateOption;
+import dev.ward.domain.init.OwnedSection;
 import dev.ward.domain.project.BuildTool;
 import dev.ward.domain.project.Framework;
 import dev.ward.domain.project.Language;
 import dev.ward.domain.project.Project;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -81,5 +84,56 @@ class CiWorkflowTemplateTest {
     assertThatThrownBy(() -> CiWorkflowTemplate.render("jenkins", MAVEN, gates(), "dev"))
         .isInstanceOf(WardException.class)
         .hasMessageContaining("Unknown CI provider 'jenkins'");
+  }
+
+  @Test
+  void rootProjectWorkflowIsUnchanged() throws IOException {
+    final OwnedSection workflow =
+        CiWorkflowTemplate.render(
+            "github",
+            MAVEN,
+            gates("tests", "gitleaks", "trivy", "semgrep", "dependency-check", "openspec"),
+            "0.1.1");
+
+    assertThat(workflow.body())
+        .isEqualTo(Files.readString(Path.of("src/test/resources/ci/ward-root.yml")));
+    assertThat(workflow.file()).isEqualTo(Path.of("/p/.github/workflows/ward.yml"));
+  }
+
+  @Test
+  void nestedProjectWorkflowLandsAtTheRepositoryRootScopedToTheProject() {
+    final OwnedSection workflow =
+        CiWorkflowTemplate.render("github", nested("apps/api"), gates("tests"), "0.1.1");
+
+    assertThat(workflow.file()).isEqualTo(Path.of("/repo/.github/workflows/ward-apps-api.yml"));
+    assertThat(workflow.body())
+        .startsWith("name: 'Ward (apps/api)'\n")
+        .contains(
+            "  pull_request:\n    paths: ['apps/api/**', '.github/workflows/ward-apps-api.yml']\n",
+            "    branches: [main]\n    paths: ['apps/api/**', '.github/workflows/ward-apps-api.yml']\n",
+            "    defaults:\n      run:\n        working-directory: 'apps/api'\n",
+            "run: ward check --profile ci --format sarif --output ward.sarif\n",
+            "hashFiles('apps/api/ward.sarif')",
+            "sarif_file: apps/api/ward.sarif\n",
+            "category: ward-apps-api\n");
+  }
+
+  @Test
+  void workflowNameSlugsThePath() {
+    assertThat(CiWorkflowTemplate.fileName(nested("Services/Billing.Core")))
+        .isEqualTo("ward-services-billing-core.yml");
+    assertThat(CiWorkflowTemplate.fileName(MAVEN)).isEqualTo("ward.yml");
+  }
+
+  private static Project nested(final String path) {
+    final Path repository = Path.of("/repo");
+    return new Project(
+        repository.resolve(path),
+        Language.JAVA,
+        BuildTool.MAVEN,
+        Framework.NONE,
+        false,
+        false,
+        repository);
   }
 }

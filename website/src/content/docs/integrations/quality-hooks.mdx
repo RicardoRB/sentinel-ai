@@ -23,6 +23,41 @@ To remove only Ward's quality sections, run:
 ward init --remove-quality-hooks
 ```
 
-This does not remove unrelated user content or other Ward-managed integrations. If a hook has
+This does not remove unrelated user content, other Ward-managed integrations, or the sections of
+other projects. If a hook has
 an incomplete or duplicate Ward quality marker, initialization reports a conflict and leaves
 the hook unchanged; repair the markers manually before retrying.
+
+## Where hooks are installed
+
+Ward asks Git which hooks directory it runs (`git rev-parse --git-path hooks`), so a configured
+`core.hooksPath` and the shared hooks of a linked worktree are honoured. When Git cannot answer,
+for example outside a Git work tree, Ward uses `.git/hooks` in the project.
+
+A hook manager that regenerates its hook files, such as husky or lefthook, may drop Ward's section
+when it rewrites them. Add `ward check --profile pre-commit` to that manager's configuration
+instead.
+
+## Nested projects
+
+When the project sits below the repository root, for example `apps/api` in a monorepo, Ward adds
+its sections to the repository's hooks and never creates `.git` inside the project. Each section
+is keyed by the project path, so several Ward projects can share one hook, and refreshing or
+removing one project's section leaves the others alone:
+
+```sh
+# ward-owned: quality-hooks v1 begin apps/api
+if ! git diff --cached --quiet -- 'apps/api'; then
+  if ! (cd "$(git rev-parse --show-toplevel)"/'apps/api' && ward check --profile pre-commit --format json); then
+    exit 1
+  fi
+fi
+# ward-owned: quality-hooks v1 end apps/api
+```
+
+- `pre-commit` runs only when the commit stages a file under the project.
+- `pre-push` compares `HEAD` with the branch's upstream and runs only when the project changed.
+  Without an upstream, as on a branch's first push, it always runs. The section never reads the
+  ref list Git passes on stdin, so hook content after it still receives that list.
+- A project whose root is the repository root keeps the original unkeyed section, which runs on
+  every commit and push.

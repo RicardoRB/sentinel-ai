@@ -40,7 +40,7 @@ class CoverageProjectMutationTest {
     final InitSetupCatalog catalog = new InitSetupCatalog(new FakeEnvironmentInspection());
     final List<InitGateOption> gates =
         catalog.gates(
-            new Project(root, Language.JAVA, BuildTool.MAVEN, Framework.NONE, false, true));
+            new Project(root, Language.JAVA, BuildTool.MAVEN, Framework.NONE, false, true, root));
     final PomToolConfigurator configurator = new PomToolConfigurator();
     final PomChange change =
         configurator.apply(

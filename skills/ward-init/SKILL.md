@@ -65,8 +65,9 @@ Follow [references/inspection.md](references/inspection.md). It is read-only fro
 it runs `ward detect`, `ward doctor`, file listings, `grep`, and one `ward init --dry-run`
 probe for tool availability. It never runs a build or a gate.
 
-If `ward detect` finds no Maven or Gradle project, tell the user that Ward cannot be set up
-here, and stop.
+If the directory is a monorepo root rather than a Maven or Gradle project, the inspection reference
+explains how to find the projects below it and pass each chosen one with `--project <dir>`. If no
+Maven or Gradle project exists there either, tell the user that Ward cannot be set up here, and stop.
 
 Show the user the short inspection summary described at the end of that file before asking anything.
 

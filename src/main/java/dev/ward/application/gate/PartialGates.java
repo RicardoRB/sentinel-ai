@@ -57,6 +57,17 @@ final class PartialGates {
     return gates;
   }
 
+  /**
+   * A nested project shares agent sessions with the rest of the repository, so edits that all land
+   * outside it are none of its business.
+   */
+  static boolean outsideNestedProject(final Project project, final List<Path> paths) {
+    final Path root = project.root().toAbsolutePath().normalize();
+    return project.nested()
+        && !paths.isEmpty()
+        && paths.stream().noneMatch(path -> path.toAbsolutePath().normalize().startsWith(root));
+  }
+
   /** Labels each result with the plan's decision and records the edited paths. */
   static CheckReport scoped(
       final CheckReport report, final PartialCheckPlan plan, final List<Path> paths) {
@@ -81,7 +92,8 @@ final class PartialGates {
         gate.enabled(),
         Stream.concat(gate.command().stream(), plan.args().stream()).toList(),
         gate.profiles(),
-        gate.partial());
+        gate.partial(),
+        gate.root());
   }
 
   private static GateScope scope(final PartialCheckPlan.GatePlan plan) {

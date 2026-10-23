@@ -5,6 +5,7 @@ import dev.ward.domain.agent.NativeHookInput;
 import dev.ward.domain.agent.NativeHookOutcome;
 import dev.ward.infrastructure.cli.ExitCodes;
 import java.io.PrintWriter;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -21,13 +22,13 @@ final class NativeHookTurnEnd {
   static int deliver(
       final NativeHookProtocol protocol,
       final NativeHookInput event,
-      final TurnEndResults results,
+      final Optional<String> results,
       final PrintWriter output,
       final PrintWriter error) {
-    if (results.clean()) {
+    if (results.isEmpty()) {
       return ExitCodes.OK;
     }
-    final String findings = NativeHookMessages.failureText(results.report(), results.specs());
+    final String findings = results.get();
     if (event.continued()) {
       LOGGER.log(Level.INFO, "event=native-turn-end-reported reason=already-continued");
       error.println(findings);

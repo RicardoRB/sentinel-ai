@@ -9,6 +9,9 @@ public interface ProjectInspection {
   /** Returns the project containing {@code start}, if it is supported. */
   Optional<Project> detect(Path start);
 
-  /** Returns every supported project under the repository containing {@code start}. */
-  List<Project> discover(Path start);
+  /**
+   * Returns every supported project under the repository containing {@code start}, with build
+   * modules grouped under their aggregator.
+   */
+  List<DiscoveredProject> discover(Path start);
 }

@@ -2,6 +2,7 @@ package dev.ward.infrastructure.init;
 
 import static dev.ward.ProjectSnapshot.assertPlanMatches;
 
+import dev.ward.ProjectFixtures;
 import dev.ward.domain.agent.PlannedFileChange;
 import dev.ward.domain.init.InitGateOption;
 import dev.ward.domain.init.QualityPreset;
@@ -84,7 +85,9 @@ class InitAdapterPlanContractTest {
     Files.createDirectories(preCommit.getParent());
     Files.writeString(preCommit, "#!/bin/sh\necho user\n");
 
-    assertPlanMatchesTwice(() -> hooks.plan(root), () -> hooks.apply(root));
+    assertPlanMatchesTwice(
+        () -> hooks.plan(ProjectFixtures.maven(root)),
+        () -> hooks.apply(ProjectFixtures.maven(root)));
   }
 
   /** A fresh run and a re-run must both match their plans. */

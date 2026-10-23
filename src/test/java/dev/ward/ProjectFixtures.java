@@ -1,5 +1,9 @@
 package dev.ward;
 
+import dev.ward.domain.project.BuildTool;
+import dev.ward.domain.project.Framework;
+import dev.ward.domain.project.Language;
+import dev.ward.domain.project.Project;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
@@ -39,5 +43,10 @@ public final class ProjectFixtures {
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     }
+  }
+
+  /** Returns a plain Maven project rooted at {@code root}, outside any nested layout. */
+  public static Project maven(final Path root) {
+    return new Project(root, Language.JAVA, BuildTool.MAVEN, Framework.NONE);
   }
 }

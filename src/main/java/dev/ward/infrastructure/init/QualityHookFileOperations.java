@@ -8,7 +8,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
-/** File-level operations used by the quality-hook transaction. */
+/**
+ * File-level operations used by the quality-hook transaction. Every operation works on the section
+ * of one project, so sections of other projects in the same hook stay untouched.
+ */
 final class QualityHookFileOperations {
   private QualityHookFileOperations() {}
 
@@ -16,52 +19,37 @@ final class QualityHookFileOperations {
     return Files.exists(path) ? Files.readString(path) : "";
   }
 
-  static void rejectMalformed(final Path path, final String content) {
-    final int starts = count(content, QualityHookInstaller.START_MARKER);
-    final int ends = count(content, QualityHookInstaller.END_MARKER);
+  static void rejectMalformed(final Path path, final String content, final HookSection section) {
+    final int starts = countLines(content, section.start());
+    final int ends = countLines(content, section.end());
     if ((starts != 0 || ends != 0) && (starts != 1 || ends != 1)) {
       throw new WardException("Malformed or duplicate Ward quality-hook markers in " + path);
     }
   }
 
-  static String update(final String original, final String profile) {
-    final String section = section(profile);
-    if (original.contains(QualityHookInstaller.START_MARKER)) {
-      final int start = original.indexOf(QualityHookInstaller.START_MARKER);
-      int end =
-          original.indexOf(QualityHookInstaller.END_MARKER, start)
-              + QualityHookInstaller.END_MARKER.length();
-      // The section brings its own line break, so replace the existing one with it.
-      if (end < original.length() && original.charAt(end) == '\n') {
-        end++;
-      }
-      return original.substring(0, start) + section + original.substring(end);
+  static boolean contains(final String content, final HookSection section) {
+    return lineIndex(content, section.start()) >= 0;
+  }
+
+  static String update(final String original, final HookSection section, final String profile) {
+    final String body = section.render(profile);
+    final int start = lineIndex(original, section.start());
+    if (start >= 0) {
+      return original.substring(0, start)
+          + body
+          + original.substring(sectionEnd(original, section));
     }
     final int shebangEnd = original.startsWith("#!") ? original.indexOf('\n') : -1;
     return shebangEnd >= 0
-        ? original.substring(0, shebangEnd + 1) + section + original.substring(shebangEnd + 1)
-        : section + original;
+        ? original.substring(0, shebangEnd + 1) + body + original.substring(shebangEnd + 1)
+        : body + original;
   }
 
-  static String removeSection(final String content) {
-    final int start = content.indexOf(QualityHookInstaller.START_MARKER);
-    int end =
-        content.indexOf(QualityHookInstaller.END_MARKER, start)
-            + QualityHookInstaller.END_MARKER.length();
-    if (end < content.length() && content.charAt(end) == '\n') {
-      end++;
-    }
-    final String result = content.substring(0, start) + content.substring(end);
+  static String removeSection(final String content, final HookSection section) {
+    final int start = lineIndex(content, section.start());
+    final String result =
+        content.substring(0, start) + content.substring(sectionEnd(content, section));
     return result.replaceFirst("(?s)\\A\\n", "");
-  }
-
-  static String section(final String profile) {
-    return QualityHookInstaller.START_MARKER
-        + "\nif ! ward check --profile "
-        + profile
-        + " --format json; then\n  exit 1\nfi\n"
-        + QualityHookInstaller.END_MARKER
-        + "\n";
   }
 
   static void writeHook(final Path path, final String content, final List<String> changed)
@@ -90,17 +78,35 @@ final class QualityHookFileOperations {
     }
   }
 
-  private static int count(final String value, final String token) {
-    int count = 0;
-    int index = 0;
-    while (index >= 0) {
-      index = value.indexOf(token, index);
-      if (index < 0) {
-        break;
-      }
-      count++;
-      index += token.length();
+  /** The index just past the end marker line, including its line break. */
+  private static int sectionEnd(final String content, final HookSection section) {
+    final int start = lineIndex(content, section.start());
+    int end = lineIndex(content.substring(start), section.end()) + start + section.end().length();
+    if (end < content.length() && content.charAt(end) == '\n') {
+      end++;
     }
-    return count;
+    return end;
+  }
+
+  /**
+   * Returns where {@code marker} starts as a whole line, or -1. Whole lines matter because the root
+   * project's marker is a prefix of every nested project's marker.
+   */
+  private static int lineIndex(final String content, final String marker) {
+    int index = content.indexOf(marker);
+    while (index >= 0) {
+      final int after = index + marker.length();
+      final boolean lineStart = index == 0 || content.charAt(index - 1) == '\n';
+      final boolean lineEnd = after == content.length() || content.charAt(after) == '\n';
+      if (lineStart && lineEnd) {
+        return index;
+      }
+      index = content.indexOf(marker, index + 1);
+    }
+    return -1;
+  }
+
+  private static int countLines(final String content, final String marker) {
+    return (int) content.lines().filter(marker::equals).count();
   }
 }

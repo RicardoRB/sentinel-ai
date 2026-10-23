@@ -22,6 +22,9 @@ final class InitWizard {
   static final String GATE_INPUT_ENDED =
       "Input ended before the gate selection. In non-interactive mode pass --preset or --gate,"
           + " or --yes to accept defaults.";
+  static final String PROJECT_INPUT_ENDED =
+      "Input ended before the project selection. In non-interactive mode pass --project for each"
+          + " project to configure.";
 
   final LinePrompt prompt;
   private final Answering answering;
@@ -238,6 +241,41 @@ final class InitWizard {
                     + ".");
           }
           return choices.get(choice - 1).id();
+        });
+  }
+
+  /**
+   * Asks which discovered projects to configure; every row starts checked. {@code labels} are the
+   * rows and {@code ids} the {@code --project} values they stand for.
+   */
+  List<String> selectProjects(final List<String> labels, final List<String> ids) {
+    final Set<Integer> all = IntStream.range(0, ids.size()).boxed().collect(Collectors.toSet());
+    final Optional<List<String>> fromMenu =
+        menu(
+            new MenuSpec(
+                "Select the projects to configure",
+                labels,
+                "Select at least one project.",
+                all,
+                false),
+            ids);
+    if (fromMenu.isPresent()) {
+      return fromMenu.get();
+    }
+    return answering.ask(
+        () -> {
+          out.println("Select the projects to configure:");
+          for (int i = 0; i < labels.size(); i++) {
+            out.printf("> [x] %d) %s%n", i + 1, labels.get(i));
+          }
+          out.print(
+              "Toggle projects with space-separated numbers [1-"
+                  + labels.size()
+                  + "], or press Enter to accept: ");
+          out.flush();
+          return prompt
+              .readSelection(ids, ids, "project", "Select at least one project.")
+              .orElseThrow(() -> new WardException(PROJECT_INPUT_ENDED));
         });
   }
 

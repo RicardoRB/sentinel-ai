@@ -2,7 +2,6 @@ package dev.ward.infrastructure.cli.init;
 
 import dev.ward.application.init.InitService;
 import dev.ward.application.init.InitSetupCatalog;
-import dev.ward.domain.init.InitSelection;
 import dev.ward.domain.init.RawTerminal;
 import dev.ward.domain.init.RawTerminal.RawSession;
 import dev.ward.domain.project.Project;
@@ -95,6 +94,13 @@ public class InitCommand implements Callable<Integer> {
       description = "Remove Ward-managed quality-hook sections without changing user content.")
   private boolean removeQualityHooks;
 
+  @Option(
+      names = "--project",
+      paramLabel = "<dir>",
+      description =
+          "Maven or Gradle project to configure, relative to -C. Repeat to configure several.")
+  private List<String> projects;
+
   @Option(names = "--overwrite", description = "Overwrite an existing ward.toml without prompting.")
   private boolean overwriteOption;
 
@@ -165,42 +171,41 @@ public class InitCommand implements Callable<Integer> {
   @Override
   public Integer call() {
     final InitService init = service.get();
-    final Project project = init.project(options.directory());
+    final InitWizard wizard = new InitWizard(prompt, this::openRawTerminal, output(), terminal);
+    final List<Project> chosen =
+        InitProjectChoice.choose(
+            init.targets(options.directory(), projects == null ? List.of() : projects),
+            options.directory(),
+            terminal && !yesOption,
+            wizard,
+            output());
     final InitSetupCatalog catalog = init.catalog();
     if (removeQualityHooks) {
-      output().println(catalog.removeQualityHooks(project.root()).message());
+      chosen.forEach(project -> output().println(catalog.removeQualityHooks(project).message()));
       return ExitCodes.OK;
     }
-    final InitWizard wizard = new InitWizard(prompt, this::openRawTerminal, output(), terminal);
     final InitConfirmations confirmations = new InitConfirmations(prompt, output(), terminal);
-    final InitQuestions questions =
-        new InitQuestions(
-            answers(),
-            new InitPrompts(wizard, confirmations, new QuestionProgress(output())),
-            catalog,
-            project,
-            terminal);
-    final boolean exists = init.configurationExists(project);
-    if (exists
-        && !overwriteOption
-        && !questions.confirmOverwrite(project.root().resolve("ward.toml"))) {
-      output().println("Kept existing ward.toml. No changes were made.");
+    final List<InitApply.Target> targets =
+        new InitTargetAnswers(
+                answers(),
+                new InitPrompts(wizard, confirmations, new QuestionProgress(output())),
+                terminal,
+                overwriteOption,
+                output())
+            .resolve(init, chosen);
+    final InitApply apply = new InitApply(init, confirmations, output());
+    if (targets.isEmpty()) {
       return ExitCodes.OK;
     }
-    if (exists) {
-      catalog.previousChoices(project).ifPresent(questions::reconfigure);
-    }
-    final InitSelection selection = questions.resolve();
-    new InitResultPrinter(output()).printSelectedGates(catalog, project, selection.gates());
-    return new InitApply(init, confirmations, output())
-        .run(
-            project,
-            selection,
-            new InitApply.Mode(
-                dryRun,
-                terminal && !yesOption,
-                yesOption || acceptCompatibilityUpdates,
-                overwriteOption || exists));
+    final InitApply.Target first = targets.getFirst();
+    return targets.equals(List.of(first))
+        ? apply.run(first.project(), first.selection(), mode(first.overwrite()))
+        : apply.runAll(targets, mode(false), options.directory().toAbsolutePath().normalize());
+  }
+
+  private InitApply.Mode mode(final boolean overwrite) {
+    return new InitApply.Mode(
+        dryRun, terminal && !yesOption, yesOption || acceptCompatibilityUpdates, overwrite);
   }
 
   private InitQuestions.Answers answers() {

@@ -45,6 +45,19 @@ With an event payload:
 
 See [Claude Code](/integrations/claude-code/) and [learning](/configuration/learning/).
 
+## Nested projects
+
+When `-C` names a project below the repository root, an edit event whose paths all lie outside the
+project runs no gate and succeeds, and a Claude Code `Stop` event runs the full check only when a
+file under the project differs from `HEAD` in the working tree or the index. Projects at the
+repository root behave as before.
+
+A native hook started outside every project, as the shared repository-level hooks of
+[monorepos](/commands/init/#monorepos) are, checks each configured project (a directory with
+`ward.toml`) that contains an edited file, and at turn end each configured project with changes.
+Findings start with `Ward checked <project>:`. Its approved-artifact guard protects the
+`openspec/` directory of the repository root, if there is one.
+
 ## Approved-artifact guard
 
 `ward integrate claude-code --guard-approved-specs` creates `.claude/hooks/ward-openspec-guard`, which runs

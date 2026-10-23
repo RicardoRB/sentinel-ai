@@ -1,23 +1,20 @@
 package dev.ward.infrastructure.cli.agent;
 
 import dev.ward.application.agent.NativeHookProtocol;
+import dev.ward.application.project.ProjectNotFoundException;
 import dev.ward.application.spec.ApprovedArtifactGuardService;
 import dev.ward.domain.agent.AgentIntegration;
 import dev.ward.domain.agent.NativeHookInput;
 import dev.ward.domain.agent.NativeHookOutcome;
 import dev.ward.domain.config.WardException;
-import dev.ward.domain.gate.CheckReport;
-import dev.ward.domain.gate.SupportedQualityGates;
 import dev.ward.domain.json.JsonCodec;
 import dev.ward.domain.json.JsonCodecException;
-import dev.ward.domain.spec.SpecValidationReport;
 import dev.ward.infrastructure.cli.ExitCodes;
 import dev.ward.infrastructure.cli.ProjectOptions;
 import java.io.InputStream;
 import java.io.PrintWriter;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -87,30 +84,19 @@ public final class NativeHookCommand implements Callable<Integer> {
         return evaluateGuard(protocol, event);
       }
       if (protocol.turnEnds(event)) {
-        final CheckReport report =
-            hookChecks
-                .checks()
-                .checkExcluding(options.directory(), SupportedQualityGates.specIds());
         return NativeHookTurnEnd.deliver(
             protocol,
             event,
-            new TurnEndResults(
-                report, hookChecks.specs().validateConfigured(options.directory(), List.of())),
+            NativeHookChecks.turnEnd(hookChecks, options.directory()),
             output(),
             error());
       }
-      final CheckReport report =
-          hookChecks
-              .checks()
-              .checkPartial(
-                  options.directory(),
-                  NativeHookEditedPaths.of(event, options.directory()),
-                  SupportedQualityGates.specIds());
-      final SpecValidationReport specs = validateEditedPath(event);
-      if (report.passed() && !specs.hasFindings()) {
+      final Optional<String> found =
+          NativeHookChecks.afterEdit(hookChecks, event, options.directory());
+      if (found.isEmpty()) {
         return ExitCodes.OK;
       }
-      final String findings = NativeHookMessages.failureText(report, specs);
+      final String findings = found.get();
       final Optional<String> feedback = protocol.postEditFeedback(findings);
       if (feedback.isPresent()) {
         output().println(feedback.get());
@@ -140,16 +126,13 @@ public final class NativeHookCommand implements Callable<Integer> {
       }
       output().println(protocol.serialize(deny.get()));
       return ExitCodes.OK;
+    } catch (ProjectNotFoundException outside) {
+      // A repository-level hook outside every project, with no shared openspec/, guards nothing.
+      return ExitCodes.OK;
     } catch (WardException | UncheckedIOException exception) {
       error().println("Ward native hook could not inspect the tool call.");
       return ExitCodes.ERROR;
     }
-  }
-
-  private SpecValidationReport validateEditedPath(final NativeHookInput event) {
-    return event.path() == null
-        ? SpecValidationReport.EMPTY
-        : hookChecks.specs().validatePaths(options.directory(), List.of(), List.of(event.path()));
   }
 
   private NativeHookProtocol protocol() {

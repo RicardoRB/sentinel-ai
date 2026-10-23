@@ -4,12 +4,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import dev.ward.application.gate.CheckService;
 import dev.ward.application.project.ProjectDetector;
+import dev.ward.domain.FixedProjectInspection;
 import dev.ward.domain.gate.CheckReport;
 import dev.ward.domain.project.BuildTool;
 import dev.ward.domain.project.Framework;
 import dev.ward.domain.project.Language;
 import dev.ward.domain.project.Project;
-import dev.ward.domain.project.ProjectInspection;
 import dev.ward.domain.provenance.BootstrapDeclaration;
 import dev.ward.domain.provenance.EnforcementFinding;
 import dev.ward.domain.provenance.EnforcementReport;
@@ -19,7 +19,6 @@ import dev.ward.domain.provenance.GitRevisionSnapshot;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 
@@ -32,17 +31,8 @@ class SpecEnforcementFixtureTest {
       List.of(GitChange.modified(SPEC), GitChange.added(ARCHIVE + "/tasks.md"));
   private static final ProjectDetector DETECTOR =
       new ProjectDetector(
-          new ProjectInspection() {
-            @Override
-            public Optional<Project> detect(final Path start) {
-              return Optional.of(new Project(ROOT, Language.JAVA, BuildTool.MAVEN, Framework.NONE));
-            }
-
-            @Override
-            public List<Project> discover(final Path start) {
-              return List.of(new Project(ROOT, Language.JAVA, BuildTool.MAVEN, Framework.NONE));
-            }
-          });
+          new FixedProjectInspection(
+              new Project(ROOT, Language.JAVA, BuildTool.MAVEN, Framework.NONE)));
   private static final CheckService PASSING_CHECKS =
       new CheckService(null, null, null, null, null) {
         @Override

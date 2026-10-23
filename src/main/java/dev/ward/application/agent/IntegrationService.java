@@ -7,6 +7,7 @@ import dev.ward.domain.agent.IntegrationRequest;
 import dev.ward.domain.agent.IntegrationResult;
 import dev.ward.domain.agent.SupportedAgents;
 import dev.ward.domain.config.WardException;
+import dev.ward.domain.project.Project;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Locale;
@@ -69,9 +70,13 @@ public final class IntegrationService {
                             + agent
                             + "'. Supported agents: "
                             + SupportedAgents.idsText()));
-    final Path root = detector.detect(start).orElseThrow(ProjectNotFoundException::new).root();
+    final Project project = detector.detect(start).orElseThrow(ProjectNotFoundException::new);
+    // Agent sessions start at the repository root, so nested projects install there when they can.
+    final boolean shared = adapter.installsAtRepositoryRoot();
     final IntegrationResult result =
-        adapter.integrate(root, request).withCapabilities(adapter.capabilities());
+        adapter
+            .integrate(project.installRoot(shared), request.forProject(project.installPath(shared)))
+            .withCapabilities(adapter.capabilities());
     LOGGER.log(Level.INFO, () -> "event=integration-complete agent=" + agent + " status=completed");
     return result;
   }

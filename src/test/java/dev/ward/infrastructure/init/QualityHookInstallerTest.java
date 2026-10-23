@@ -3,6 +3,7 @@ package dev.ward.infrastructure.init;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import dev.ward.ProjectFixtures;
 import dev.ward.domain.agent.IntegrationResult;
 import dev.ward.domain.init.QualityHookChange;
 import java.nio.file.Files;
@@ -18,7 +19,7 @@ class QualityHookInstallerTest {
     Files.createDirectories(root.resolve(".git/hooks"));
 
     final QualityHookInstaller installer = new QualityHookInstaller();
-    final IntegrationResult result = installer.apply(root).result();
+    final IntegrationResult result = installer.apply(ProjectFixtures.maven(root)).result();
 
     assertThat(result.status()).isEqualTo(IntegrationResult.Status.CHANGED);
     assertThat(Files.readString(root.resolve(".git/hooks/pre-commit")))
@@ -37,7 +38,7 @@ class QualityHookInstallerTest {
     Files.writeString(prePush, "#!/bin/sh\necho user-hook\n");
     prePush.toFile().setExecutable(true, false);
 
-    new QualityHookInstaller().apply(root);
+    new QualityHookInstaller().apply(ProjectFixtures.maven(root));
     final String content = Files.readString(prePush);
 
     assertThat(content.indexOf(QualityHookInstaller.START_MARKER))
@@ -50,15 +51,16 @@ class QualityHookInstallerTest {
       throws Exception {
     Files.createDirectories(root.resolve(".git/hooks"));
     final QualityHookInstaller installer = new QualityHookInstaller();
-    installer.apply(root);
-    installer.apply(root);
+    installer.apply(ProjectFixtures.maven(root));
+    installer.apply(ProjectFixtures.maven(root));
     final String content = Files.readString(root.resolve(PRE_PUSH));
     assertThat(content.indexOf(QualityHookInstaller.START_MARKER))
         .isEqualTo(content.lastIndexOf(QualityHookInstaller.START_MARKER));
 
     Files.writeString(
         root.resolve(PRE_PUSH), "#!/bin/sh\n" + QualityHookInstaller.START_MARKER + "\n");
-    assertThatThrownBy(() -> installer.apply(root)).hasMessageContaining("Malformed");
+    assertThatThrownBy(() -> installer.apply(ProjectFixtures.maven(root)))
+        .hasMessageContaining("Malformed");
   }
 
   @Test
@@ -67,9 +69,9 @@ class QualityHookInstallerTest {
     final Path prePush = root.resolve(PRE_PUSH);
     Files.writeString(prePush, "#!/bin/sh\necho user-hook\n");
     final QualityHookInstaller installer = new QualityHookInstaller();
-    installer.apply(root);
+    installer.apply(ProjectFixtures.maven(root));
 
-    final IntegrationResult result = installer.remove(root);
+    final IntegrationResult result = installer.remove(ProjectFixtures.maven(root));
 
     assertThat(result.status()).isEqualTo(IntegrationResult.Status.REMOVED);
     assertThat(Files.readString(prePush)).isEqualTo("#!/bin/sh\necho user-hook\n");
@@ -85,11 +87,12 @@ class QualityHookInstallerTest {
     Files.writeString(prePush, QualityHookInstaller.START_MARKER + "\n");
 
     final QualityHookInstaller installer = new QualityHookInstaller();
-    assertThatThrownBy(() -> installer.apply(root)).hasMessageContaining("Malformed");
+    assertThatThrownBy(() -> installer.apply(ProjectFixtures.maven(root)))
+        .hasMessageContaining("Malformed");
     assertThat(Files.readString(preCommit)).isEqualTo("#!/bin/sh\necho existing\n");
 
     Files.delete(prePush);
-    final QualityHookChange change = installer.apply(root);
+    final QualityHookChange change = installer.apply(ProjectFixtures.maven(root));
     installer.rollback(change);
     assertThat(Files.readString(preCommit)).isEqualTo("#!/bin/sh\necho existing\n");
     assertThat(prePush).doesNotExist();
@@ -105,8 +108,8 @@ class QualityHookInstallerTest {
         "#!/bin/sh\n" + "# ward-owned: spec-enforce-pre-commit v1\n" + "echo openspec\n");
 
     final QualityHookInstaller installer = new QualityHookInstaller();
-    installer.apply(root);
-    installer.remove(root);
+    installer.apply(ProjectFixtures.maven(root));
+    installer.remove(ProjectFixtures.maven(root));
 
     assertThat(Files.readString(preCommit))
         .contains("ward-owned: spec-enforce-pre-commit v1", "echo openspec")
@@ -119,10 +122,10 @@ class QualityHookInstallerTest {
     Files.createDirectories(hook.getParent());
     Files.writeString(hook, "#!/bin/sh\necho user\n");
     final QualityHookInstaller installer = new QualityHookInstaller();
-    installer.apply(root);
+    installer.apply(ProjectFixtures.maven(root));
     final String installed = Files.readString(hook);
 
-    final QualityHookChange refreshed = installer.apply(root);
+    final QualityHookChange refreshed = installer.apply(ProjectFixtures.maven(root));
 
     assertThat(Files.readString(hook)).isEqualTo(installed);
     assertThat(refreshed.result().status()).isEqualTo(IntegrationResult.Status.ALREADY_PRESENT);

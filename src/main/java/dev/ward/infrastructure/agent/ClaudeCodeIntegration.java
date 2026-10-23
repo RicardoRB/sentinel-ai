@@ -6,6 +6,7 @@ import dev.ward.domain.agent.IntegrationCapability;
 import dev.ward.domain.agent.IntegrationRequest;
 import dev.ward.domain.agent.IntegrationResult;
 import dev.ward.domain.agent.PlannedFileChange;
+import dev.ward.domain.config.WardException;
 import dev.ward.domain.json.JsonCodec;
 import dev.ward.infrastructure.json.ForyJsonCodec;
 import java.io.IOException;
@@ -17,7 +18,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Stream;
 import javax.inject.Inject;
 
 /** Ownership-safe Claude Code project hook integration. */
@@ -26,8 +26,6 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
   public static final String HOOK_MARKER = "ward-owned: edit-write-guard v1";
   public static final String GUARD_MARKER = "ward-owned: openspec-guard v1";
   private static final String SETTINGS_FILE = ".claude/settings.json";
-  private static final String HOOK_FILE = ".claude/hooks/ward-edit-write";
-  private static final String GUARD_FILE = ".claude/hooks/ward-openspec-guard";
   private static final String UPDATED = "Updated Ward Claude Code integration.";
   private final ClaudeSettingsDocument settingsDocument;
 
@@ -133,10 +131,10 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
   }
 
   @Override
-  public boolean installed(final Path projectRoot) {
-    final Path root = projectRoot.toAbsolutePath().normalize();
+  public boolean installed(final Path installRoot, final String projectPath) {
+    final Path root = installRoot.toAbsolutePath().normalize();
     return Files.isRegularFile(root.resolve(SETTINGS_FILE))
-        && Files.isRegularFile(root.resolve(HOOK_FILE));
+        && Files.isRegularFile(root.resolve(new ClaudeCodeFiles(projectPath).hookFile()));
   }
 
   @Override
@@ -145,32 +143,54 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
   }
 
   @Override
+  public boolean installsAtRepositoryRoot() {
+    return true;
+  }
+
+  @Override
   public IntegrationResult integrate(final Path projectRoot, final IntegrationRequest request) {
     final Path root = projectRoot.toAbsolutePath().normalize();
+    final ClaudeCodeFiles files = new ClaudeCodeFiles(request.projectPath());
     final Path settings = root.resolve(SETTINGS_FILE);
-    final Path hook = root.resolve(HOOK_FILE);
-    final GuardFile guard = new GuardFile(root.resolve(GUARD_FILE), GUARD_MARKER, GUARD);
+    final Path hook = root.resolve(files.hookFile());
+    final GuardFile guard =
+        new GuardFile(root.resolve(files.guardFile()), GUARD_MARKER, files.script(GUARD));
     try {
       return request.remove()
-          ? remove(settings, hook, guard)
-          : install(settings, hook, guard, request.guard());
+          ? remove(settings, hook, guard, files)
+          : install(settings, hook, guard, request.guard(), files);
     } catch (IOException e) {
       throw new UncheckedIOException(
           "Could not update Claude Code integration: " + e.getMessage(), e);
     }
   }
 
-  /** Mirrors {@link #install}: the same preflight, settings merge, and guard order. */
   @Override
   public List<PlannedFileChange> plan(final Path projectRoot, final GuardMode mode) {
+    return plan(projectRoot, new IntegrationRequest(false, mode));
+  }
+
+  /** Mirrors {@link #install}: the same preflight, settings merge, and guard order. */
+  @Override
+  public List<PlannedFileChange> plan(final Path projectRoot, final IntegrationRequest request) {
     final Path root = projectRoot.toAbsolutePath().normalize();
     final Path settings = root.resolve(SETTINGS_FILE);
-    final GuardFile guard = new GuardFile(root.resolve(GUARD_FILE), GUARD_MARKER, GUARD);
+    final ClaudeCodeFiles files;
+    try {
+      files = new ClaudeCodeFiles(request.projectPath());
+    } catch (WardException unsafe) {
+      return List.of(
+          new PlannedFileChange(
+              settings, PlannedFileChange.Action.CONFLICT, List.of(unsafe.getMessage())));
+    }
+    final GuardMode mode = request.guard();
+    final GuardFile guard =
+        new GuardFile(root.resolve(files.guardFile()), GUARD_MARKER, files.script(GUARD));
+    final Path hookFile = root.resolve(files.hookFile());
     try {
       final PlannedFileChange hook =
           new PlannedFileChange(
-              root.resolve(HOOK_FILE),
-              IntegrationArtifacts.decide(root.resolve(HOOK_FILE), HOOK_MARKER, HOOK));
+              hookFile, IntegrationArtifacts.decide(hookFile, HOOK_MARKER, files.script(HOOK)));
       if (hook.action() == PlannedFileChange.Action.CONFLICT) {
         return List.of(hook);
       }
@@ -181,7 +201,10 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
       try {
         content =
             settingsDocument.merge(
-                settings, guard.enabled(mode), SETTINGS_MARKER, SETTINGS, GUARDED_SETTINGS);
+                settings,
+                SETTINGS_MARKER,
+                files.settings(guard.enabled(mode) ? GUARDED_SETTINGS : SETTINGS),
+                files.commands());
       } catch (ClaudeSettingsDocument.SettingsConflictException e) {
         return List.of(
             new PlannedFileChange(
@@ -189,14 +212,7 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
       }
       final List<PlannedFileChange> plan = new ArrayList<>();
       guard.plan(mode).ifPresent(plan::add);
-      PlannedFileChange.Action settingsAction = PlannedFileChange.Action.CREATE;
-      if (Files.exists(settings)) {
-        settingsAction =
-            Objects.equals(Files.readString(settings), content)
-                ? PlannedFileChange.Action.UNCHANGED
-                : PlannedFileChange.Action.MODIFY;
-      }
-      plan.add(new PlannedFileChange(settings, settingsAction));
+      plan.add(new PlannedFileChange(settings, ClaudeSettingsDocument.action(settings, content)));
       plan.add(hook);
       return plan;
     } catch (IOException e) {
@@ -210,7 +226,11 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
    * written before the settings that reference it, and a disabled one is deleted after them.
    */
   private IntegrationResult install(
-      final Path settings, final Path hook, final GuardFile guard, final GuardMode mode)
+      final Path settings,
+      final Path hook,
+      final GuardFile guard,
+      final GuardMode mode,
+      final ClaudeCodeFiles files)
       throws IOException {
     final IntegrationResult hookConflict = IntegrationArtifacts.preflight(hook, HOOK_MARKER);
     if (hookConflict != null) {
@@ -224,7 +244,11 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
     final String settingsContent;
     try {
       settingsContent =
-          settingsDocument.merge(settings, guarded, SETTINGS_MARKER, SETTINGS, GUARDED_SETTINGS);
+          settingsDocument.merge(
+              settings,
+              SETTINGS_MARKER,
+              files.settings(guarded ? GUARDED_SETTINGS : SETTINGS),
+              files.commands());
     } catch (ClaudeSettingsDocument.SettingsConflictException e) {
       return new IntegrationResult(
           IntegrationResult.Status.CONFLICT, List.of(settings.toString()), e.getMessage());
@@ -234,9 +258,12 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
       results.add(guard.install(UPDATED));
       IntegrationArtifacts.makeExecutable(guard.file());
     }
-    results.add(Map.entry(settings, writeSettings(settings, settingsContent)));
     results.add(
-        Map.entry(hook, IntegrationArtifacts.installOrRefresh(hook, HOOK_MARKER, HOOK, UPDATED)));
+        Map.entry(settings, ClaudeSettingsDocument.write(settings, settingsContent, UPDATED)));
+    results.add(
+        Map.entry(
+            hook,
+            IntegrationArtifacts.installOrRefresh(hook, HOOK_MARKER, files.script(HOOK), UPDATED)));
     if (Files.exists(hook)) {
       IntegrationArtifacts.makeExecutable(hook);
     }
@@ -247,22 +274,8 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
         "Created Ward-owned Claude Code edit/write integration (or refreshed it).");
   }
 
-  private static IntegrationResult writeSettings(final Path settings, final String content)
-      throws IOException {
-    if (Files.exists(settings) && Objects.equals(Files.readString(settings), content)) {
-      return new IntegrationResult(
-          IntegrationResult.Status.ALREADY_PRESENT,
-          List.of(),
-          "Ward integration is already present.");
-    }
-    Files.createDirectories(
-        Objects.requireNonNull(settings.getParent(), "settings must have a parent"));
-    Files.writeString(settings, content);
-    return new IntegrationResult(
-        IntegrationResult.Status.CHANGED, List.of(settings.toString()), UPDATED);
-  }
-
-  private IntegrationResult remove(final Path settings, final Path hook, final GuardFile guard)
+  private IntegrationResult remove(
+      final Path settings, final Path hook, final GuardFile guard, final ClaudeCodeFiles files)
       throws IOException {
     final IntegrationResult conflict = IntegrationArtifacts.preflight(hook, HOOK_MARKER);
     if (conflict != null) {
@@ -270,7 +283,7 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
     }
     final ClaudeSettingsDocument.SettingsUpdate update;
     try {
-      update = settingsDocument.remove(settings, SETTINGS_MARKER);
+      update = settingsDocument.remove(settings, SETTINGS_MARKER, files.commands());
     } catch (ClaudeSettingsDocument.SettingsConflictException e) {
       return new IntegrationResult(
           IntegrationResult.Status.CONFLICT, List.of(settings.toString()), e.getMessage());
@@ -290,19 +303,9 @@ public final class ClaudeCodeIntegration implements AgentIntegration {
       removed.add(hook.toString());
     }
     guard.remove(true).ifPresent(entry -> removed.add(entry.getKey().toString()));
-    deleteIfEmpty(hook.getParent());
-    deleteIfEmpty(settings.getParent());
+    EmptyDirectories.delete(hook.getParent());
+    EmptyDirectories.delete(settings.getParent());
     return new IntegrationResult(
         IntegrationResult.Status.REMOVED, removed, "Removed Ward-owned Claude Code integration.");
-  }
-
-  private static void deleteIfEmpty(final Path directory) throws IOException {
-    if (directory != null && Files.isDirectory(directory)) {
-      try (Stream<Path> entries = Files.list(directory)) {
-        if (entries.findAny().isEmpty()) {
-          Files.deleteIfExists(directory);
-        }
-      }
-    }
   }
 }

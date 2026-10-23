@@ -80,4 +80,6 @@ untrusted repositories outside a sandbox. See [security](/security/).
 
 OpenSpec registrations are optional and independent. Use `openspec` for strict active validation and
 `openspec-archived` for completed-task validation. A configured local executable is resolved from the
-target project root and is never silently replaced by a PATH executable.
+target project root and is never silently replaced by a PATH executable. An OpenSpec gate may set
+`root`, a path relative to the project root such as `"../.."`, to run from the directory that holds
+`openspec/`; see [OpenSpec tool validations](/configuration/gates/#openspec-tool-validations).

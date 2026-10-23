@@ -1,8 +1,10 @@
 package dev.ward.application.project;
 
+import dev.ward.domain.project.DiscoveredProject;
 import dev.ward.domain.project.Project;
 import dev.ward.domain.project.ProjectInspection;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -26,6 +28,16 @@ public final class ProjectDetector {
     LOGGER.log(
         Level.INFO,
         () -> "event=project-detection status=" + (result.isPresent() ? "found" : "not-found"));
+    return result;
+  }
+
+  /**
+   * Returns every supported project under the repository containing {@code start}, with build
+   * modules grouped under their aggregator.
+   */
+  public List<DiscoveredProject> discover(final Path start) {
+    final List<DiscoveredProject> result = inspection.discover(start);
+    LOGGER.log(Level.INFO, () -> "event=project-discovery count=" + result.size());
     return result;
   }
 }

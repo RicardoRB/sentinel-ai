@@ -10,8 +10,6 @@ import dev.ward.domain.config.WardConfigurationReader;
 import dev.ward.domain.config.WardException;
 import dev.ward.domain.doctor.EnvironmentFacts;
 import dev.ward.domain.doctor.EnvironmentInspection;
-import dev.ward.domain.doctor.ExecutableObservation;
-import dev.ward.domain.doctor.OpenSpecIgnoreWarning;
 import dev.ward.domain.project.BuildTool;
 import dev.ward.domain.project.Project;
 import dev.ward.domain.traceability.TraceabilityPrerequisites;
@@ -19,7 +17,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import javax.inject.Inject;
@@ -127,7 +124,7 @@ public final class DoctorService {
             Status.ERROR,
             "Configuration is present.",
             "Run 'ward init'."));
-    diagnoseIntegrations(root, openCode, findings);
+    diagnoseIntegrations(project.get(), openCode, findings);
     findings.add(
         check(
             "native",
@@ -160,10 +157,11 @@ public final class DoctorService {
   }
 
   private void diagnoseIntegrations(
-      final Path root, final boolean legacyOpenCode, final List<Finding> findings) {
+      final Project project, final boolean legacyOpenCode, final List<Finding> findings) {
     final List<AgentIntegration> configured =
         integrations.stream()
-            .filter(adapter -> adapter.health(root).status() != IntegrationHealth.Status.MISSING)
+            .filter(
+                adapter -> health(project, adapter).status() != IntegrationHealth.Status.MISSING)
             .toList();
     if (configured.isEmpty()) {
       findings.add(
@@ -181,7 +179,7 @@ public final class DoctorService {
                 adapter ->
                     adapter.id()
                         + "="
-                        + adapter.health(root).status().name().toLowerCase(Locale.ROOT)
+                        + health(project, adapter).status().name().toLowerCase(Locale.ROOT)
                         + " ["
                         + adapter.capabilities().stream()
                             .map(IntegrationCapability::name)
@@ -197,7 +195,7 @@ public final class DoctorService {
     final boolean healthy =
         configured.stream()
             .allMatch(
-                adapter -> adapter.health(root).status() == IntegrationHealth.Status.INSTALLED);
+                adapter -> health(project, adapter).status() == IntegrationHealth.Status.INSTALLED);
     findings.add(
         new Finding(
             "integration",
@@ -205,6 +203,12 @@ public final class DoctorService {
             "Configured integrations: "
                 + summary
                 + (healthy ? "." : "; re-run integrate to repair.")));
+  }
+
+  /** Nested projects find integrations that install at the repository root there. */
+  private static IntegrationHealth health(final Project project, final AgentIntegration adapter) {
+    final boolean shared = adapter.installsAtRepositoryRoot();
+    return adapter.health(project.installRoot(shared), project.installPath(shared));
   }
 
   private void diagnoseTraceability(final Path root, final List<Finding> findings) {
@@ -258,42 +262,7 @@ public final class DoctorService {
     }
     configuration.gates().entrySet().stream()
         .filter(entry -> isOpenSpec(entry.getKey()) && entry.getValue().enabled())
-        .forEach(entry -> addOpenSpecFinding(root, entry, findings));
-  }
-
-  private void addOpenSpecFinding(
-      final Path root,
-      final Map.Entry<String, GateConfiguration> entry,
-      final List<Finding> findings) {
-    final String executable =
-        entry.getValue().command().isEmpty() ? "" : entry.getValue().command().getFirst();
-    final ExecutableObservation observation = environment.inspectExecutable(root, executable);
-    final boolean directory = environment.hasOpenSpecDirectory(root);
-    if (observation.usable() && directory) {
-      findings.add(
-          new Finding(
-              entry.getKey(),
-              Status.OK,
-              "OpenSpec executable and project directory are available."));
-      if (environment.isOpenSpecDirectoryIgnored(root)) {
-        findings.add(new Finding(entry.getKey(), Status.WARNING, OpenSpecIgnoreWarning.MESSAGE));
-      }
-      return;
-    }
-    final String executableMessage =
-        observation.usable() ? "executable available" : "executable unavailable";
-    final String directoryMessage =
-        directory
-            ? "project-root openspec/ directory available"
-            : "project-root openspec/ directory missing";
-    findings.add(
-        new Finding(
-            entry.getKey(),
-            Status.ERROR,
-            executableMessage
-                + "; "
-                + directoryMessage
-                + ". Configure prerequisites before checking."));
+        .forEach(entry -> findings.addAll(OpenSpecDoctorFindings.of(environment, root, entry)));
   }
 
   private static boolean isOpenSpec(final String id) {

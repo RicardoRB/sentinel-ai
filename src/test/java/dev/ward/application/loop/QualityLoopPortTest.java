@@ -7,6 +7,7 @@ import dev.ward.application.gate.QualityGateFactory;
 import dev.ward.application.gate.QualityGateRunner;
 import dev.ward.application.project.ProjectDetector;
 import dev.ward.domain.FakeCommandExecutor;
+import dev.ward.domain.FixedProjectInspection;
 import dev.ward.domain.agent.AgentRequest;
 import dev.ward.domain.agent.AgentResult;
 import dev.ward.domain.agent.AgentRunner;
@@ -22,13 +23,11 @@ import dev.ward.domain.project.BuildTool;
 import dev.ward.domain.project.Framework;
 import dev.ward.domain.project.Language;
 import dev.ward.domain.project.Project;
-import dev.ward.domain.project.ProjectInspection;
 import dev.ward.infrastructure.config.FilePathExistence;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
 class QualityLoopPortTest {
@@ -36,18 +35,7 @@ class QualityLoopPortTest {
   void orchestratesFromRequestUsingFakePortsWithoutFilesystemAdapters() {
     final Path root = Path.of("memory-project");
     final Project project = new Project(root, Language.JAVA, BuildTool.MAVEN, Framework.NONE);
-    final ProjectInspection projects =
-        new ProjectInspection() {
-          @Override
-          public Optional<Project> detect(Path ignored) {
-            return Optional.of(project);
-          }
-
-          @Override
-          public List<Project> discover(Path ignored) {
-            return List.of(project);
-          }
-        };
+    final FixedProjectInspection projects = new FixedProjectInspection(project);
     final FakeCommandExecutor commands = new FakeCommandExecutor(0, "ok", "");
     final CheckService checks =
         new CheckService(

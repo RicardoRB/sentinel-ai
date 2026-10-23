@@ -5,12 +5,10 @@ import dev.ward.domain.config.WardConfiguration;
 import dev.ward.domain.config.WardConfigurationReader;
 import dev.ward.domain.config.WardException;
 import dev.ward.domain.doctor.EnvironmentInspection;
-import dev.ward.domain.doctor.OpenSpecIgnoreWarning;
 import dev.ward.domain.init.InitGateOption;
 import dev.ward.domain.init.InitToolOption;
 import dev.ward.domain.init.QualityHookGeneration;
 import dev.ward.domain.project.Project;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -23,6 +21,7 @@ import javax.inject.Named;
 
 /** Stable OpenSpec tool choices and project-aware defaults used by init. */
 public final class InitSetupCatalog extends InitGeneralCatalog {
+  static final List<String> OPENSPEC_VALIDATIONS = List.of("openspec", "openspec-archived");
   private final EnvironmentInspection environment;
   private static final Logger LOGGER = Logger.getLogger(InitSetupCatalog.class.getName());
 
@@ -100,9 +99,9 @@ public final class InitSetupCatalog extends InitGeneralCatalog {
     return qualityHooks.get();
   }
 
-  /** Removes the Ward-owned quality hooks from {@code projectRoot}. */
-  public IntegrationResult removeQualityHooks(final Path projectRoot) {
-    return qualityHooks.get().remove(projectRoot);
+  /** Removes the Ward-owned quality hooks of {@code project}. */
+  public IntegrationResult removeQualityHooks(final Project project) {
+    return qualityHooks.get().remove(project);
   }
 
   /** Returns the optional tools init can install. */
@@ -112,7 +111,7 @@ public final class InitSetupCatalog extends InitGeneralCatalog {
 
   /** Returns the OpenSpec validation IDs. */
   public List<String> openSpecValidations() {
-    return List.of("openspec", "openspec-archived");
+    return OPENSPEC_VALIDATIONS;
   }
 
   /** Returns whether a usable OpenSpec executable is on the path of {@code project}. */
@@ -120,13 +119,9 @@ public final class InitSetupCatalog extends InitGeneralCatalog {
     return environment.inspectExecutable(project.root(), "openspec").usable();
   }
 
-  /** Returns the warning for enabled OpenSpec validations whose directory Git ignores. */
-  public List<String> openSpecWarnings(final Project project, final List<InitGateOption> gates) {
-    final boolean openSpec =
-        gates.stream().anyMatch(gate -> openSpecValidations().contains(gate.id()));
-    return openSpec && environment.isOpenSpecDirectoryIgnored(project.root())
-        ? List.of(OpenSpecIgnoreWarning.MESSAGE)
-        : List.of();
+  /** Returns where the OpenSpec gates of a project find {@code openspec/}. */
+  public OpenSpecDirectories openSpecDirectories() {
+    return new OpenSpecDirectories(environment);
   }
 
   /** Returns whether {@code NVD_API_KEY} is set, which dependency-check needs to update quickly. */
