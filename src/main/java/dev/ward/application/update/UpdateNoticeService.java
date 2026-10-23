@@ -24,8 +24,8 @@ public final class UpdateNoticeService {
   private static final String INSTALL =
       "Update: curl -fsSL https://raw.githubusercontent.com/RicardoRB/ward-ai/main/install.sh"
           + " | sh";
-  private static final String DOWNLOAD =
-      "Download: https://github.com/RicardoRB/ward-ai/releases/latest";
+  private static final String INSTALL_WINDOWS =
+      "Update: irm https://raw.githubusercontent.com/RicardoRB/ward-ai/main/install.ps1 | iex";
 
   private final String runningVersion;
   private final LatestReleaseLookup lookup;
@@ -119,7 +119,7 @@ public final class UpdateNoticeService {
         + " is available (you have v"
         + running
         + "). "
-        + (context.windows() ? DOWNLOAD : INSTALL);
+        + (context.windows() ? INSTALL_WINDOWS : INSTALL);
   }
 
   private boolean isSet(final String name) {

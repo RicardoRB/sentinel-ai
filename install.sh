@@ -1,6 +1,7 @@
 #!/bin/sh
-# Ward installer: downloads a native release archive, verifies its SHA-256
-# checksum, and installs it as `ward` together with its LICENSE and NOTICE.
+# Ward installer for Linux, macOS, and Git Bash on Windows (PowerShell users: install.ps1):
+# downloads a native release archive, verifies its SHA-256 checksum, and installs it as `ward`
+# together with its LICENSE and NOTICE.
 #
 #   curl -fsSL https://raw.githubusercontent.com/RicardoRB/ward-ai/main/install.sh | sh
 #
@@ -23,14 +24,14 @@ fail() {
   exit 1
 }
 
+# Sets asset, archive, and exe for this machine.
 detect_platform() {
   os=$(uname -s)
   arch=$(uname -m)
   case "$os" in
     Linux) os=linux ;;
     Darwin) os=macos ;;
-    MINGW* | MSYS* | CYGWIN*)
-      fail "Windows is not supported by this script; download ward-windows-x86_64.exe from https://github.com/$REPO/releases" ;;
+    MINGW* | MSYS* | CYGWIN*) os=windows ;;
     *) fail "unsupported operating system: $os" ;;
   esac
   case "$arch" in
@@ -41,7 +42,18 @@ detect_platform() {
   if [ "$os" = linux ] && [ "$arch" = aarch64 ]; then
     fail "no Linux aarch64 binary is published yet; build from source: https://github.com/$REPO#development"
   fi
-  printf 'ward-%s-%s' "$os" "$arch"
+  if [ "$os" = windows ] && [ "$arch" = aarch64 ]; then
+    info "no Windows ARM64 binary is published; installing x86_64, which runs under emulation"
+    arch=x86_64
+  fi
+  asset="ward-$os-$arch"
+  if [ "$os" = windows ]; then
+    archive="$asset.zip"
+    exe=ward.exe
+  else
+    archive="$asset.tar.gz"
+    exe=ward
+  fi
 }
 
 download() {
@@ -52,6 +64,17 @@ download() {
   else
     fail "curl or wget is required"
   fi
+}
+
+# extract <archive> <directory>
+extract() {
+  case "$1" in
+    *.zip)
+      command -v unzip >/dev/null 2>&1 || fail "unzip is required to extract $(basename "$1")"
+      unzip -q "$1" -d "$2"
+      ;;
+    *) tar -xzf "$1" -C "$2" ;;
+  esac
 }
 
 # verify <file> <checksum-file>
@@ -73,7 +96,7 @@ sha256() {
 }
 
 main() {
-  asset=$(detect_platform)
+  detect_platform
 
   if [ -n "${WARD_BASE_URL:-}" ]; then
     base_url="$WARD_BASE_URL"
@@ -87,7 +110,6 @@ main() {
   trap 'rm -rf "$tmp"' EXIT INT TERM
 
   info "downloading $asset ($VERSION)"
-  archive="$asset.tar.gz"
   download "$base_url/$archive" "$tmp/$archive" || fail "download failed: $base_url/$archive"
   download "$base_url/$archive.sha256" "$tmp/$archive.sha256" \
     || fail "checksum download failed: $base_url/$archive.sha256"
@@ -95,22 +117,22 @@ main() {
   info "checksum verified"
 
   mkdir "$tmp/extract"
-  tar -xzf "$tmp/$archive" -C "$tmp/extract" || fail "cannot extract $archive"
-  for file in ward LICENSE NOTICE; do
+  extract "$tmp/$archive" "$tmp/extract" || fail "cannot extract $archive"
+  for file in "$exe" LICENSE NOTICE; do
     [ -f "$tmp/extract/$file" ] || fail "$archive does not contain $file"
   done
 
   mkdir -p "$INSTALL_DIR" || fail "cannot create $INSTALL_DIR; set WARD_INSTALL_DIR"
   [ -w "$INSTALL_DIR" ] || fail "$INSTALL_DIR is not writable; set WARD_INSTALL_DIR or re-run with sudo"
-  chmod +x "$tmp/extract/ward"
-  mv "$tmp/extract/ward" "$INSTALL_DIR/ward"
+  chmod +x "$tmp/extract/$exe"
+  mv "$tmp/extract/$exe" "$INSTALL_DIR/$exe"
 
   if mkdir -p "$DOC_DIR" 2>/dev/null && cp "$tmp/extract/LICENSE" "$tmp/extract/NOTICE" "$DOC_DIR/"; then
     info "installed LICENSE and NOTICE to $DOC_DIR"
   else
     info "could not write LICENSE and NOTICE to $DOC_DIR; set WARD_DOC_DIR"
   fi
-  info "installed $("$INSTALL_DIR/ward" --version 2>/dev/null || echo ward) to $INSTALL_DIR/ward"
+  info "installed $("$INSTALL_DIR/$exe" --version 2>/dev/null || echo ward) to $INSTALL_DIR/$exe"
 
   case ":$PATH:" in
     *":$INSTALL_DIR:"*) ;;

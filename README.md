@@ -65,10 +65,16 @@ move a check between layers by editing its `profiles` list. Read the
 
 ## Quick start
 
-**1. Install** (Linux and macOS; see [installation](https://ricardorb.github.io/ward-ai/getting-started/installation/) for Windows):
+**1. Install** on Linux, macOS, or Git Bash (see [installation](https://ricardorb.github.io/ward-ai/getting-started/installation/) for options):
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/RicardoRB/ward-ai/main/install.sh | sh
+```
+
+On Windows, in PowerShell:
+
+```powershell
+irm https://raw.githubusercontent.com/RicardoRB/ward-ai/main/install.ps1 | iex
 ```
 
 **2. Set up your project.** The wizard asks for a preset, the checks, your coding agent, and the Git
@@ -179,7 +185,7 @@ Windows x86_64, or as a JAR on JDK 25. Only the latest release receives fixes.
 - Shared Git hooks (for example through `core.hooksPath`), so teammates get the commit and push
   layers without a setup step
 - More agent skills (`ward-check`, `ward-fix-<gate>`, …)
-- Homebrew tap and container image
+- Homebrew tap, Scoop and winget packages, and container image
 
 **Known limitations:** Ward never installs tools; a missing tool is reported as `UNAVAILABLE`.
 Commands run without a shell, but that is **not a sandbox** (see below).

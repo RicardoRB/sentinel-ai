@@ -39,7 +39,8 @@ ward --version
 
 Compare the version with this skill's minimum, **0.1.1**, numerically. If `ward` is missing or
 older, stop. Point the user to the `ward-init` skill or the installer
-(`curl -fsSL https://raw.githubusercontent.com/RicardoRB/ward-ai/main/install.sh | sh`), and run
+(`curl -fsSL https://raw.githubusercontent.com/RicardoRB/ward-ai/main/install.sh | sh`; on Windows
+PowerShell, `irm https://raw.githubusercontent.com/RicardoRB/ward-ai/main/install.ps1 | iex`), and run
 the installer only after an explicit yes.
 
 Read `ward.toml` as text. If it does not exist, stop and suggest `ward-init`.
