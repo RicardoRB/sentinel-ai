@@ -3,12 +3,23 @@ title: doctor
 description: Diagnose project and integration prerequisites.
 ---
 
+`ward doctor` checks that the project, its tools, and its integrations are ready for Ward.
+
 ```sh
 ward doctor [-C <dir>]
 ```
 
-`ward doctor` inspects the selected directory (or its nearest supported parent project) and prints
-one line per check:
+## Options
+
+| Option | What it does |
+|---|---|
+| `-C`, `--directory <dir>` | Inspect the project in `<dir>` instead of the current directory. |
+| `--verbose` | Print diagnostics to stderr. See [Verbose diagnostics](#verbose-diagnostics). |
+
+## Checks
+
+Doctor inspects the selected directory, or its nearest supported parent project, and prints one line
+per check:
 
 ```text
 [OK] project       /path/to/project
@@ -32,14 +43,26 @@ one line per check:
 | `ward` | `OK` / `WARNING` | Compares the running version with the latest GitHub release, looking it up now rather than using the [update check](/reference/environment-variables/) cache. `WARNING` means a newer release exists (the line shows how to install it) or the latest release could not be determined, for example offline. `OK` also covers development builds and `WARD_NO_UPDATE_CHECK`, which skip the lookup. |
 | `dependency-check-oss-index` | `WARNING` | When dependency-check is enabled and the build leaves the OSS Index analyzer on (explicitly or by the plugin default), `OSS_INDEX_PASSWORD` should be set; without it scans fail with `401 Unauthorized`. Turn the analyzer off or set the variable. Values are never displayed. |
 
-Warnings do not affect the result. Exit `0` means no check reported `ERROR`; exit `2` means at least
-one did.
+Warnings do not affect the result.
+
+### OpenSpec checks
+
+OpenSpec diagnosis is conditional and read-only:
+
+- Doctor inspects only enabled registrations in configured profiles.
+- It never runs validation, installs a tool, creates an `openspec/` directory, or reads artifact
+  contents.
+- Relative executable paths are resolved against the target root. Bare names use `PATH`, and
+  absolute paths are used as supplied.
+
 ## Verbose diagnostics
 
 `ward --verbose doctor` explains the inspection phase and safe availability counts on stderr.
 Environment contents and filesystem paths are not included in diagnostics.
 
-OpenSpec diagnosis is conditional and read-only: doctor inspects only enabled registrations in
-configured profiles. It never runs validation, installs a tool, creates an `openspec/` directory,
-or reads artifact contents. Relative executable paths are resolved against the target root; bare
-names use PATH and absolute paths are used as supplied.
+## Exit codes
+
+| Code | Meaning |
+|---|---|
+| `0` | No check reported `ERROR`. |
+| `2` | At least one check reported `ERROR`. |

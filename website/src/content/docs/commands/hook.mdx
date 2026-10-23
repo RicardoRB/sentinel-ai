@@ -3,30 +3,32 @@ title: hook
 description: Agent hook adapters invoked by generated integrations.
 ---
 
+`ward hook` contains the adapters that generated agent integrations call. You normally do not run it
+yourself.
+
 ```sh
 ward hook claude-code [-C <dir>] [--learn-after <n>] [--exclude-spec] [--event-stdin]
 ward hook claude-code [-C <dir>] --guard-approved-specs --event-stdin
 ward hook native --agent <agent> [-C <dir>] [--event-stdin] [--guard-approved-specs]
 ```
 
-`ward hook` contains the adapters that generated agent integrations call. You normally do not run it
-yourself. `ward integrate claude-code` creates `.claude/hooks/ward-edit-write`, which runs
-`ward hook claude-code --learn-after 3 --exclude-spec --event-stdin` after Claude Code's edit tools and
-when Claude stops.
-
-The native adapter accepts bounded JSON from the supported harnesses, runs quality checks and targeted
-OpenSpec validation, and translates guard refusals into the harness response shape. Malformed, missing,
-or oversized payloads (over 1 MiB) fail safely and never print payload contents. `--agent` is required
-and must be one of the native harness IDs (`codex`, `cursor`, `copilot`, `gemini`, `windsurf`, `cline`,
-`factory-droid`, `amp`). See [native harness integrations](/integrations/native-harnesses/).
+## Options
 
 | Option | Effect |
 |---|---|
+| `-C`, `--directory <dir>` | Run for the project in `<dir>`. See [Nested projects](#nested-projects). |
 | `--learn-after <n>` | Learn recurring quality failures after `n` occurrences (default `3`). |
 | `--exclude-spec` | Skip the `openspec` and `openspec-archived` gates in the quality check, because spec validation runs separately. |
 | `--agent <agent>` | (`native` only) Harness whose payload and response format to use. |
 | `--event-stdin` | Read the hook event JSON from stdin. It is ignored when stdin is an interactive terminal. |
 | `--guard-approved-specs` | Act as the opt-in `PreToolUse` [approved-artifact guard](#approved-artifact-guard). No quality gates, learning, or spec validation run in this mode. |
+| `--verbose` | Print diagnostics to stderr. See [Verbose diagnostics](#verbose-diagnostics). |
+
+## Claude Code adapter
+
+`ward integrate claude-code` creates `.claude/hooks/ward-edit-write`, which runs
+`ward hook claude-code --learn-after 3 --exclude-spec --event-stdin` after Claude Code's edit tools and
+when Claude stops.
 
 Without `--event-stdin`, or when the payload is empty or not valid JSON, the adapter behaves as it always has. It
 runs the `default` profile gates as a `PostToolUse` check. When they pass, it returns any learning prompts as
@@ -45,18 +47,35 @@ With an event payload:
 
 See [Claude Code](/integrations/claude-code/) and [learning](/configuration/learning/).
 
+## Native adapter
+
+`ward hook native` accepts bounded JSON from the supported harnesses, runs quality checks and
+targeted OpenSpec validation, and translates guard refusals into the harness's response shape.
+
+- `--agent` is required and must be a native harness ID: `codex`, `cursor`, `copilot`, `gemini`,
+  `windsurf`, `cline`, `factory-droid`, or `amp`.
+- Malformed, missing, or oversized payloads (over 1 MiB) fail safely and never print payload
+  contents.
+
+See [native harness integrations](/integrations/native-harnesses/).
+
 ## Nested projects
 
-When `-C` names a project below the repository root, an edit event whose paths all lie outside the
-project runs no gate and succeeds, and a Claude Code `Stop` event runs the full check only when a
-file under the project differs from `HEAD` in the working tree or the index. Projects at the
-repository root behave as before.
+When `-C` names a project below the repository root:
+
+- An edit event whose paths all lie outside the project runs no gate and succeeds.
+- A Claude Code `Stop` event runs the full check only when a file under the project differs from
+  `HEAD` in the working tree or the index.
+- Projects at the repository root behave as before.
 
 A native hook started outside every project, as the shared repository-level hooks of
-[monorepos](/commands/init/#monorepos) are, checks each configured project (a directory with
-`ward.toml`) that contains an edited file, and at turn end each configured project with changes.
-Findings start with `Ward checked <project>:`. Its approved-artifact guard protects the
-`openspec/` directory of the repository root, if there is one.
+[monorepos](/commands/init/#monorepos) are:
+
+- checks each configured project (a directory with `ward.toml`) that contains an edited file, and at
+  turn end each configured project with changes;
+- starts findings with `Ward checked <project>:`;
+- has an approved-artifact guard that protects the repository root's `openspec/` directory, if
+  there is one.
 
 ## Approved-artifact guard
 
@@ -82,3 +101,11 @@ The guard never answers `allow` or `ask`, so it cannot bypass your permission pr
 The inherited `--verbose` option also applies to nested hooks, for example
 `ward hook claude-code --verbose`. Diagnostics are written to stderr, leaving the hook JSON
 response on stdout unchanged. They never include findings, payload contents, or command lines.
+
+## Exit codes
+
+| Adapter | `0` | `1` | `2` |
+|---|---|---|---|
+| `hook claude-code` | Gates passed and no spec findings; always for `Stop` events | — | Gates failed, spec findings, or Ward could not run (reported to the agent on stderr) |
+| `hook claude-code --guard-approved-specs` | Allowed or refused; see [the guard table](#approved-artifact-guard) | Ward could not decide | — |
+| `hook native` | Depends on the harness's hook contract; see [native harness integrations](/integrations/native-harnesses/) | | |
