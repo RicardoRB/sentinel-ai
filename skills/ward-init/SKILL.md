@@ -47,9 +47,14 @@ ward --version
   curl -fsSL https://raw.githubusercontent.com/RicardoRB/ward-ai/main/install.sh | sh
   ```
 
-  Run it only if the user explicitly says yes. Otherwise, give them the command and stop. Windows is
-  not supported by the script. There, point to the releases page:
-  https://github.com/RicardoRB/ward-ai/releases.
+  On Windows, outside Git Bash, use the PowerShell installer instead, which installs into
+  `%LOCALAPPDATA%\Programs\ward\bin` and adds it to the user `PATH`:
+
+  ```powershell
+  irm https://raw.githubusercontent.com/RicardoRB/ward-ai/main/install.ps1 | iex
+  ```
+
+  Run an installer only if the user explicitly says yes. Otherwise, give them the command and stop.
 - After an install, run `ward --version` again. Do not continue below the minimum.
 
 Then read the options the installed CLI actually supports. You will check every option against

@@ -118,6 +118,37 @@ jobs:
             target/ward.sarif
           if-no-files-found: ignore
 
+  # The installers change independently of the binary, so they install the latest published release.
+  windows-installers:
+    name: Windows installers
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install with Windows PowerShell 5.1
+        shell: powershell
+        env:
+          WARD_INSTALL_DIR: ${{ runner.temp }}\ward-powershell\bin
+        run: |
+          Get-Content install.ps1 -Raw | Invoke-Expression
+          ward --version
+
+      - name: Install with PowerShell 7
+        shell: pwsh
+        env:
+          WARD_INSTALL_DIR: ${{ runner.temp }}\ward-pwsh\bin
+        run: |
+          Get-Content install.ps1 -Raw | Invoke-Expression
+          ward --version
+
+      - name: Install with Git Bash
+        shell: bash
+        env:
+          WARD_INSTALL_DIR: ${{ runner.temp }}/ward-bash/bin
+        run: |
+          ./install.sh
+          "$WARD_INSTALL_DIR/ward.exe" --version
+
   native:
     name: Native checks (${{ matrix.os }})
     needs: quality
