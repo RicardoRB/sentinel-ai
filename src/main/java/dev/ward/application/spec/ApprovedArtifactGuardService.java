@@ -49,16 +49,18 @@ public final class ApprovedArtifactGuardService {
    */
   public GuardDecision evaluate(final GuardRequest request) {
     final long started = System.nanoTime();
-    final Project project =
-        detector.detect(request.start()).orElseThrow(ProjectNotFoundException::new);
-    final Optional<Path> root = openSpecRoot(project);
+    final Optional<Project> project = detector.detect(request.start());
+    final Optional<Path> root = project.map(this::openSpecRoot).orElseGet(() -> outside(request));
     if (root.isEmpty()) {
       LOGGER.log(
           Level.INFO,
           () -> "event=spec-guard-skipped kind=" + kind(request) + " reason=no-openspec");
       return GuardDecision.ALLOWED;
     }
-    final Evaluation evaluation = evaluate(root.get(), fromProject(project, root.get(), request));
+    final Evaluation evaluation =
+        evaluate(
+            root.get(),
+            project.map(found -> fromProject(found, root.get(), request)).orElse(request));
     LOGGER.log(Level.INFO, () -> describe(request, evaluation, started));
     return evaluation.refusals().isEmpty()
         ? GuardDecision.ALLOWED
@@ -77,6 +79,20 @@ public final class ApprovedArtifactGuardService {
     return project.nested() && paths.isDirectory(project.repositoryRoot(), OPENSPEC)
         ? Optional.of(project.repositoryRoot())
         : Optional.empty();
+  }
+
+  /**
+   * A repository-level hook starts outside every project; it protects the {@code openspec/} of the
+   * directory it starts in, where a monorepo keeps the specs its projects share.
+   *
+   * @throws ProjectNotFoundException when that directory has no {@code openspec/} either
+   */
+  private Optional<Path> outside(final GuardRequest request) {
+    final Path start = request.start().toAbsolutePath().normalize();
+    if (!paths.isDirectory(start, OPENSPEC)) {
+      throw new ProjectNotFoundException();
+    }
+    return Optional.of(start);
   }
 
   /** Relative paths start from the project, also when the protected root sits above it. */

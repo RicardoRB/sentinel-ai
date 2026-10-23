@@ -160,7 +160,7 @@ public final class ClaudeCodeHookCommand implements Callable<Integer> {
    * hook, the findings go to the user instead of blocking again.
    */
   private Integer executeStop(final ClaudeHookEvent event) {
-    if (!hookChecks.turnEnd().applies(options.directory())) {
+    if (!hookChecks.scope().applies(options.directory())) {
       LOGGER.log(Level.INFO, "event=claude-stop-skipped reason=project-unchanged");
       return ExitCodes.OK;
     }

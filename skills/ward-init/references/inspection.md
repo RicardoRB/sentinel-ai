@@ -21,7 +21,9 @@ ward detect -C <dir>
   `pom.xml` `<modules>` or below a `settings.gradle(.kts)` as a module of that parent, not a
   project. If none remain, tell the user Ward cannot be initialized here and stop. Otherwise list
   them and ask which to configure; each answer becomes one `--project <dir>` option, and
-  `ward detect -C <dir>/<project>` gives that project's details.
+  `ward detect -C <dir>/<project>` gives that project's details. Agent integrations then install
+  at the repository root: Claude Code and OpenCode with one set of files per project, the other
+  agents with one hook that every project shares and that checks the project of each edited file.
 - Exit `2`: Ward could not run. Show the error and stop.
 
 ## 2. Build readiness

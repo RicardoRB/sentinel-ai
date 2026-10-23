@@ -14,7 +14,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 /** A nested project's turn-end check runs only when the turn changed the project. */
-class TurnEndScopeTest {
+class HookScopeTest {
   private static final Path REPOSITORY = Path.of("/repo");
   private static final Project API =
       new Project(
@@ -45,15 +45,16 @@ class TurnEndScopeTest {
   void rootProjectsNeverAskVersionControl() {
     assertThat(scope(ROOT, false).applies(REPOSITORY)).isTrue();
     assertThat(asked).isEmpty();
-    assertThat(TurnEndScope.ALWAYS.applies(REPOSITORY)).isTrue();
+    assertThat(HookScope.ALWAYS.applies(REPOSITORY)).isTrue();
   }
 
-  private TurnEndScope scope(final Project project, final boolean changed) {
-    return new TurnEndScope(
+  private HookScope scope(final Project project, final boolean changed) {
+    return new HookScope(
         new ProjectDetector(new FixedProjectInspection(project)),
         directory -> {
           asked.add(directory);
           return changed;
-        });
+        },
+        null);
   }
 }

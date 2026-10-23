@@ -1,6 +1,6 @@
 package dev.ward.infrastructure.cli.agent;
 
-import dev.ward.application.agent.TurnEndScope;
+import dev.ward.application.agent.HookScope;
 import dev.ward.application.gate.CheckService;
 import dev.ward.application.spec.SpecValidationService;
 
@@ -9,11 +9,11 @@ import dev.ward.application.spec.SpecValidationService;
  *
  * @param checks runs the configured quality gates
  * @param specs validates OpenSpec artifacts
- * @param turnEnd decides whether a turn-end check runs
+ * @param scope decides which projects a hook checks
  */
-public record HookChecks(CheckService checks, SpecValidationService specs, TurnEndScope turnEnd) {
-  /** Creates checks whose turn-end check always runs. */
+public record HookChecks(CheckService checks, SpecValidationService specs, HookScope scope) {
+  /** Creates checks that always check the hook's own project. */
   public HookChecks(final CheckService checks, final SpecValidationService specs) {
-    this(checks, specs, TurnEndScope.ALWAYS);
+    this(checks, specs, HookScope.ALWAYS);
   }
 }

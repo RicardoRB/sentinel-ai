@@ -202,17 +202,25 @@ sessions only read there:
 | CI workflow (`--ci github`) | `.github/workflows/ward.yml` | `.github/workflows/ward-apps-api.yml` |
 | Claude Code | `.claude/settings.json`, `.claude/hooks/ward-edit-write` | root `.claude/settings.json`, `.claude/hooks/ward-edit-write-apps-api` |
 | OpenCode | `.opencode/...` | root `.opencode/...`, files suffixed `-apps-api` |
+| Other agents (Codex, Gemini, Copilot, ...) | `.codex/hooks.json`, ... | the same root files, shared by every project |
 | OpenSpec gates | `openspec/` in the project | `root = "../.."` when `openspec/` exists only at the repository root |
 
 The plan shows repository-level files relative to the project root, such as
 `modify ../../.git/hooks/pre-commit`, and a run that configures several projects lists them once
 under **Repository root**. A project whose root is the repository root gets exactly the files it
-always did. Other agent integrations still install in the project directory.
+always did.
+
+The other agents read a single hook file at the repository root, so every project shares one
+installation. Its hook names no project: Ward checks the project whose `ward.toml` is closest above
+each edited file, and at turn end every configured project with changes. Edits outside every
+configured project, such as `apps/web/page.tsx`, run nothing. Removing such an integration removes
+it for every project in the repository.
 
 Earlier Ward versions wrote these files inside the project, where nothing reads them. After
 re-running init, delete them by hand if they exist: `apps/api/.git/hooks/` (only when
 `apps/api/.git` holds nothing but that directory), `apps/api/.github/workflows/ward.yml`, and the
-Ward files under `apps/api/.claude/` and `apps/api/.opencode/`.
+Ward files under `apps/api/.claude/`, `apps/api/.opencode/`, and the other agents' directories
+(such as `apps/api/.codex/`).
 
 ## Wizard tips
 

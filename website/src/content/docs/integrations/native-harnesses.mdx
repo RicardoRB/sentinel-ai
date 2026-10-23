@@ -54,6 +54,13 @@ documented contract. That proves the generated files are well formed and reach W
 prove that a running harness loads them. `ward doctor` reports an integration as installed when its
 files are present, which likewise says nothing about whether the harness has activated it.
 
+## Monorepos
+
+For a project below the Git top-level, such as `apps/api`, the integration installs at the
+repository root, where the agent reads it. Its hook names no project, so every nested project shares
+the one installation: Ward checks the project whose `ward.toml` is closest above each edited file,
+and at turn end every configured project with changes. See [monorepos](/commands/init/#monorepos).
+
 ## Verification status
 
 Each adapter is being checked against the pinned harness release's documented contract

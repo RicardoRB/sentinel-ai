@@ -48,7 +48,9 @@ Exit `0` means success. A conflict or invalid usage returns `2` (Ward could not 
 
 For a project below the Git top-level, such as `apps/api`, `claude-code` and `opencode` install at
 the repository root with files named after the project, exactly as `ward init` does; see
-[monorepos](/commands/init/#monorepos). Other agents install in the project directory.
+[monorepos](/commands/init/#monorepos). Other agents install one shared hook at the repository
+root; running `ward integrate` from a second project finds it already present, and `--remove`
+removes it for every project.
 
 ## Approved-artifact guard (opt-in)
 

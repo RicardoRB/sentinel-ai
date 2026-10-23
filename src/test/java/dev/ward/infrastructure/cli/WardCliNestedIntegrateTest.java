@@ -16,6 +16,7 @@ import org.junit.jupiter.api.io.TempDir;
 class WardCliNestedIntegrateTest extends WardCliIntegrationSupport {
   private static final String CLAUDE = "claude-code";
   private static final String DOCTOR = "doctor";
+  private static final String CODEX = "codex";
 
   @TempDir Path repository;
 
@@ -45,5 +46,23 @@ class WardCliNestedIntegrateTest extends WardCliIntegrationSupport {
 
     assertThat(run("integrate", CLAUDE, "--remove", "-C", api.toString())).isZero();
     assertThat(repository.resolve(".claude/hooks/ward-edit-write-apps-api")).doesNotExist();
+  }
+
+  @Test
+  void nativeHarnessIsSharedByEveryNestedProject() throws IOException {
+    final Path billing = Files.createDirectories(repository.resolve("services/billing"));
+    Files.copy(project.resolve("pom.xml"), billing.resolve("pom.xml"));
+
+    assertThat(run("integrate", CODEX, "-C", api.toString())).as(err.toString()).isZero();
+    final String installed = Files.readString(repository.resolve(".codex/hooks.json"));
+    assertThat(run("integrate", CODEX, "-C", billing.toString())).as(err.toString()).isZero();
+
+    assertThat(repository.resolve(".codex/hooks.json")).hasContent(installed);
+    assertThat(repository.resolve(".codex/hooks/ward.sh")).exists();
+    assertThat(api.resolve(".codex")).doesNotExist();
+    assertThat(billing.resolve(".codex")).doesNotExist();
+    out.getBuffer().setLength(0);
+    run(DOCTOR, "-C", billing.toString());
+    assertThat(out.toString()).contains("codex=installed");
   }
 }
