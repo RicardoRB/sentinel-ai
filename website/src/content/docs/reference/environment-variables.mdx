@@ -18,7 +18,8 @@ exists:
 ward: v0.4.0 is available (you have v0.3.1). Update: curl -fsSL https://raw.githubusercontent.com/RicardoRB/ward-ai/main/install.sh | sh
 ```
 
-On Windows the line links the releases page instead. Ward never updates itself.
+On Windows the line shows
+`irm https://raw.githubusercontent.com/RicardoRB/ward-ai/main/install.ps1 | iex` instead. Ward never updates itself.
 
 The check runs at most once every 24 hours. Its result is stored in
 `$XDG_CACHE_HOME/ward/update-check` (by default `~/.cache/ward/update-check`), never in the

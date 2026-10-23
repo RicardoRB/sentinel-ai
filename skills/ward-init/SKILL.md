@@ -47,9 +47,14 @@ ward --version
   curl -fsSL https://raw.githubusercontent.com/RicardoRB/ward-ai/main/install.sh | sh
   ```
 
-  Run it only if the user explicitly says yes. Otherwise, give them the command and stop. Windows is
-  not supported by the script. There, point to the releases page:
-  https://github.com/RicardoRB/ward-ai/releases.
+  On Windows, outside Git Bash, use the PowerShell installer instead, which installs into
+  `%LOCALAPPDATA%\Programs\ward\bin` and adds it to the user `PATH`:
+
+  ```powershell
+  irm https://raw.githubusercontent.com/RicardoRB/ward-ai/main/install.ps1 | iex
+  ```
+
+  Run an installer only if the user explicitly says yes. Otherwise, give them the command and stop.
 - After an install, run `ward --version` again. Do not continue below the minimum.
 
 Then read the options the installed CLI actually supports. You will check every option against
@@ -109,6 +114,12 @@ order:
      `trivy` unless the user needs Dependency-Check's reports.
    - `zap` needs a running application and a `<TARGET_URL>` that the user is authorized to scan.
      `check` fails until it is replaced.
+   - `openapi-lint`, `openapi-diff`, and `openapi-compat` are offered only when Git tracks an
+     `openapi.yml`, `openapi.yaml`, or `openapi.json` in `src/main/resources` or the project root.
+     They need `vacuum` and `oasdiff`. They allow no exceptions: `openapi-lint` runs every built-in
+     vacuum rule, and the gates fail on `vacuum.conf.yaml`, `.oasdiff.*` files, or `x-lint-ignore`
+     in the spec. Say so before recommending them on a spec that has never been linted.
+     `openapi-compat` compares with `origin/main`, so CI needs the base branch history.
    - `archunit` when the layering checks in the inspection found violations: the gate fails on its
      first run.
 

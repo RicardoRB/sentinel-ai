@@ -58,11 +58,11 @@ class UpdateNoticeServiceTest {
   }
 
   @Test
-  void windowsNoticeLinksTheReleasesPage() {
+  void windowsNoticeShowsThePowerShellInstaller() {
     assertThat(fixtures.service(RUNNING, Optional.of(NEWER), Map.of(), true).automaticNotice())
         .contains(
-            "ward: v0.4.0 is available (you have v0.3.1). Download:"
-                + " https://github.com/RicardoRB/ward-ai/releases/latest");
+            "ward: v0.4.0 is available (you have v0.3.1). Update: irm"
+                + " https://raw.githubusercontent.com/RicardoRB/ward-ai/main/install.ps1 | iex");
   }
 
   @Test

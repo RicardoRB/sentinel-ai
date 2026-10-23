@@ -29,6 +29,7 @@ public class QualityGateFactory {
   private final ScenarioInventory scenarioInventory;
   private final TestMappingInventory testMappingInventory;
   private final ReportDirectories reportDirectories;
+  private final OpenApiGates openApiGates;
 
   /** Creates a factory for command gates only. */
   public QualityGateFactory(final CommandExecutor executor) {
@@ -51,21 +52,40 @@ public class QualityGateFactory {
   }
 
   /**
-   * Creates the factory. {@code reportDirectories} tells command gates where their tools write
-   * reports.
+   * Creates a factory without OpenAPI gates. {@code reportDirectories} tells command gates where
+   * their tools write reports.
    */
-  @Inject
   public QualityGateFactory(
       final CommandExecutor executor,
       final EnvironmentInspection environment,
       final ScenarioInventory scenarioInventory,
       final TestMappingInventory testMappingInventory,
       final ReportDirectories reportDirectories) {
+    this(
+        executor,
+        environment,
+        new TraceabilitySources(scenarioInventory, testMappingInventory),
+        reportDirectories,
+        null);
+  }
+
+  /**
+   * Creates the factory. {@code reportDirectories} tells command gates where their tools write
+   * reports, and {@code openApiGates} builds the OpenAPI gates.
+   */
+  @Inject
+  public QualityGateFactory(
+      final CommandExecutor executor,
+      final EnvironmentInspection environment,
+      final TraceabilitySources traceability,
+      final ReportDirectories reportDirectories,
+      final OpenApiGates openApiGates) {
     this.reportDirectories = reportDirectories;
     this.executor = executor;
     this.environment = environment;
-    this.scenarioInventory = scenarioInventory;
-    this.testMappingInventory = testMappingInventory;
+    this.scenarioInventory = traceability.scenarios();
+    this.testMappingInventory = traceability.mappings();
+    this.openApiGates = openApiGates;
   }
 
   /** Creates one gate per configured ID, without project-specific commands. */
@@ -118,7 +138,19 @@ public class QualityGateFactory {
     if (ZAP.equals(id)) {
       ZapTargetValidation.require(id, configuration.command());
     }
+    if (SupportedQualityGates.openApiIds().contains(id)) {
+      return openApiGate(id, configuration, project);
+    }
     return new CommandQualityGate(id, executor, configuration.command(), reportDirectories);
+  }
+
+  private QualityGate openApiGate(
+      final String id, final GateConfiguration configuration, final Project project) {
+    if (openApiGates == null) {
+      OpenApiCommandValidation.require(id, configuration.command());
+      throw new WardException("OpenAPI gate dependencies are unavailable.");
+    }
+    return openApiGates.create(id, configuration, project);
   }
 
   private QualityGate traceabilityGate() {

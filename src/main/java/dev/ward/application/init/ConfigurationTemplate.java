@@ -61,7 +61,8 @@ final class ConfigurationTemplate {
       if (openSpecRoot != null && isOpenSpec(gate.id())) {
         content.append("root = \"").append(escape(openSpecRoot)).append("\"\n");
       }
-      partial(content, gate.id(), project, preset);
+      gate.settings().forEach((key, value) -> string(content, key, value));
+      partial(content, gate, project, preset);
     }
     return content.toString();
   }
@@ -72,15 +73,19 @@ final class ConfigurationTemplate {
 
   private static void partial(
       final StringBuilder content,
-      final String id,
+      final InitGateOption gate,
       final Project project,
       final QualityPreset preset) {
+    final String id = gate.id();
     PartialCheckDefaults.forGate(id, project, preset)
+        .or(() -> PartialCheckDefaults.forOpenApi(id, gate.settings().get("spec")))
         .ifPresent(
             table -> {
               content.append("\n[quality-gates.").append(id).append(".partial]\n");
               array(content, "inputs", table.inputs());
-              array(content, "config", table.config());
+              if (!table.config().isEmpty()) {
+                array(content, "config", table.config());
+              }
               if (!table.args().isEmpty()) {
                 array(content, "args", table.args());
               }

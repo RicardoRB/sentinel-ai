@@ -17,8 +17,8 @@ The script detects your OS and CPU, downloads the matching release archive from 
 verifies its SHA-256 checksum, and installs it as `ward` in `~/.local/bin`. The archive's
 `LICENSE` and `NOTICE` go to `~/.local/share/doc/ward`. Releases before `v0.0.7` predate the
 archives and can't be installed with the script. If that directory is not on your
-`PATH`, the script prints the line to add to your shell profile. It supports Linux x86_64 and macOS
-(Apple Silicon and Intel).
+`PATH`, the script prints the line to add to your shell profile. It supports Linux x86_64, macOS
+(Apple Silicon and Intel), and Git Bash on Windows, where it installs `ward.exe` and needs `unzip`.
 
 When it finishes, the script prints the command that installs the Ward
 [agent skills](/integrations/agent-skills/). It only prints the command and does not run it:
@@ -39,6 +39,30 @@ Then run `/ward-init` in your coding agent to set up Ward together with it.
 ```bash
 curl -fsSL https://raw.githubusercontent.com/RicardoRB/ward-ai/main/install.sh \
   | WARD_VERSION=v0.1.1 WARD_INSTALL_DIR=/usr/local/bin sh
+```
+
+## Install script (Windows)
+
+In PowerShell (Windows PowerShell 5.1 or PowerShell 7):
+
+```powershell
+irm https://raw.githubusercontent.com/RicardoRB/ward-ai/main/install.ps1 | iex
+ward --version
+```
+
+The script downloads `ward-windows-x86_64.zip`, verifies its SHA-256 checksum, and installs
+`ward.exe` in `%LOCALAPPDATA%\Programs\ward\bin`, with `LICENSE` and `NOTICE` one directory up.
+
+- It needs no administrator rights.
+- It adds the install directory to your user `PATH` and to the current session. Terminals that are
+  already open must be restarted to see it.
+- On Windows ARM64 it installs the x86_64 binary, which runs under emulation.
+
+It reads the same `WARD_VERSION`, `WARD_INSTALL_DIR`, `WARD_DOC_DIR`, and `WARD_BASE_URL`
+variables; `WARD_DOC_DIR` defaults to the install directory's parent:
+
+```powershell
+$env:WARD_VERSION = 'v0.1.1'; irm https://raw.githubusercontent.com/RicardoRB/ward-ai/main/install.ps1 | iex
 ```
 
 ## Manual download
@@ -64,8 +88,8 @@ mkdir ward && tar -xzf ward-macos-aarch64.tar.gz -C ward
 mv ward/ward ~/.local/bin/ward
 ```
 
-On Windows, download `ward-windows-x86_64.zip`, extract it, and place `ward.exe` in a
-directory on your `PATH`.
+To install by hand on Windows, download `ward-windows-x86_64.zip`, extract it, and place `ward.exe`
+in a directory on your `PATH`.
 
 ## Build from source
 

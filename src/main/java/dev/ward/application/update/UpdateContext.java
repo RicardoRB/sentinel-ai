@@ -9,7 +9,7 @@ import java.util.function.UnaryOperator;
  *
  * @param clock the current time
  * @param environment reads an environment variable, returning {@code null} when it is unset
- * @param windows whether the notice should point to the releases page instead of {@code install.sh}
+ * @param windows whether the notice should show {@code install.ps1} instead of {@code install.sh}
  */
 public record UpdateContext(
     InstantSource clock, UnaryOperator<String> environment, boolean windows) {

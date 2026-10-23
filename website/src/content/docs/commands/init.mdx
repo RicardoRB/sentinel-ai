@@ -63,6 +63,10 @@ Some gates need extra input:
   `check` will run the gate.
 - **`api-compat`** needs a released baseline. On Maven it is offered only when `pom.xml` declares
   `<distributionManagement>`; otherwise `--gate api-compat` fails with that explanation.
+- **`openapi-lint`, `openapi-diff`, and `openapi-compat`** are offered only when Git tracks an
+  `openapi.yml`, `openapi.yaml`, or `openapi.json` in `src/main/resources` or the project root.
+  Init writes that path as their `spec`; see
+  [OpenAPI contract gates](/configuration/gates/#openapi-contract-gates).
 - **`dependency-check` with `trivy`**: init warns that trivy already scans dependencies without an
   API key, so you can usually drop one of them.
 
