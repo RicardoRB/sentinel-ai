@@ -132,6 +132,9 @@ ward init -C <dir> --dry-run --preset strict --integration none --architecture l
 Add `--overwrite` when `ward.toml` already exists. Without it the probe prints nothing useful.
 On a Maven project whose `pom.xml` has no `<distributionManagement>`, drop `api-compat` from the
 list: init offers it only for published libraries and rejects it otherwise.
+When Git tracks an OpenAPI spec (`openapi.yml`, `openapi.yaml`, or `openapi.json` in
+`src/main/resources` or the project root), add `openapi-lint,openapi-diff,openapi-compat`; init
+rejects them otherwise.
 The probe still writes nothing.
 
 Read these lines from the output:

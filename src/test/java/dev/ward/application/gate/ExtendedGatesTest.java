@@ -67,7 +67,8 @@ class ExtendedGatesTest {
 
     assertThatThrownBy(() -> factory.create(config("nope", List.of("x"))))
         .isInstanceOf(WardException.class)
-        .hasMessageContaining(GITLEAKS, "zap", "api-compat", "pmd");
+        .hasMessageContaining(
+            GITLEAKS, "zap", "api-compat", "pmd", "openapi-lint", "openapi-diff", "openapi-compat");
   }
 
   @Test
@@ -143,7 +144,17 @@ class ExtendedGatesTest {
   void javaDefaultsIncludeNewGates() {
     assertThat(new LanguageGateRegistry().defaults(Language.JAVA))
         .contains(
-            "format", "semgrep", GITLEAKS, "zap", "trivy", "enforcer", "license", "api-compat");
+            "format",
+            "semgrep",
+            GITLEAKS,
+            "zap",
+            "trivy",
+            "enforcer",
+            "license",
+            "api-compat",
+            "openapi-lint",
+            "openapi-diff",
+            "openapi-compat");
     assertThat(new LanguageGateRegistry().defaults(Language.GO)).contains(GITLEAKS, "trivy");
   }
 }

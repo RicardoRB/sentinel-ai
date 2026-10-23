@@ -1,5 +1,6 @@
 package dev.ward.application.init;
 
+import dev.ward.domain.gate.SupportedQualityGates;
 import dev.ward.domain.init.QualityPreset;
 import dev.ward.domain.project.BuildTool;
 import dev.ward.domain.project.Project;
@@ -48,6 +49,19 @@ final class PartialCheckDefaults {
               new Table(List.of("**"), List.of(".semgrep*"), List.of("{paths}"), null, null));
       default -> Optional.empty();
     };
+  }
+
+  /**
+   * The OpenAPI lint and diff gates always analyze the whole spec, so editing it runs them in full
+   * and other edits skip them.
+   */
+  static Optional<Table> forOpenApi(final String gate, final String spec) {
+    if (spec == null
+        || !SupportedQualityGates.OPENAPI_LINT.equals(gate)
+            && !SupportedQualityGates.OPENAPI_DIFF.equals(gate)) {
+      return Optional.empty();
+    }
+    return Optional.of(Table.full(List.of(spec), List.of()));
   }
 
   /** Checkstyle's {@code includes} matches source-relative paths, so only the file name works. */

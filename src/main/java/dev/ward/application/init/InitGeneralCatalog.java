@@ -128,17 +128,7 @@ public class InitGeneralCatalog {
    * @throws WardException if {@code id} is an OpenSpec tool or not a supported gate
    */
   public InitGateOption gate(final Project project, final String id) {
-    if ("openspec".equals(id) || "openspec-archived".equals(id)) {
-      throw new WardException(
-          "OpenSpec validations are tools, not quality gates. Use --tool openspec and --openspec-validation "
-              + id
-              + ".");
-    }
-    if ("api-compat".equals(id) && !project.hasApiBaseline()) {
-      throw new WardException(
-          "api-compat compares against a released baseline, so it is offered only for Maven projects"
-              + " whose pom.xml declares <distributionManagement>.");
-    }
+    GateOffers.require(environment, project, id);
     return gates(project).stream()
         .filter(option -> option.id().equals(id))
         .findFirst()

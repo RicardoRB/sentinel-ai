@@ -29,7 +29,10 @@ The gates you confirm are exactly the gates configured: unticking a pre-selected
 remaining gates. `zap` writes a `<TARGET_URL>` placeholder that you must replace
 with an authorized target before `check` will run it. On Maven, `api-compat` is offered only when
 `pom.xml` declares `<distributionManagement>`, because it needs a released baseline; passing
-`--gate api-compat` otherwise fails with that explanation. For `format`, `enforcer`, `license`, `api-compat`, and
+`--gate api-compat` otherwise fails with that explanation. `openapi-lint`, `openapi-diff`, and
+`openapi-compat` are offered only when Git tracks an `openapi.yml`, `openapi.yaml`, or `openapi.json` in
+`src/main/resources` or the project root; init writes that path as their `spec` (see
+[OpenAPI contract gates](/configuration/gates/#openapi-contract-gates)). For `format`, `enforcer`, `license`, `api-compat`, and
 `pmd`, missing Maven plugins are added to `pom.xml` using Ward's embedded Java/Maven compatibility catalog.
 For Gradle projects, equivalent pinned plugin declarations are added to `build.gradle` or
 `build.gradle.kts` using the detected DSL, and the Gradle Wrapper is preferred when available.
