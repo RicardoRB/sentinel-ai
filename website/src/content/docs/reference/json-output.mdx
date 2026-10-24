@@ -4,9 +4,12 @@ description: The check command's machine-readable result format.
 ---
 
 `ward check --format json` emits schema version `2`. It writes **only JSON to stdout**;
-diagnostics go to stderr. The document is compact (a single line, no indentation) to keep it
-small for agents and tools; it is shown indented below for readability. Consumers should inspect `schemaVersion` and may ignore fields added in
-later compatible versions; existing fields keep their meaning within a schema version.
+diagnostics go to stderr.
+
+- The document is compact (a single line, no indentation) to keep it small for agents and tools. It
+  is shown indented below for readability.
+- Consumers should inspect `schemaVersion` and may ignore fields added in later compatible versions.
+  Existing fields keep their meaning within a schema version.
 
 ```json
 {
@@ -30,26 +33,41 @@ later compatible versions; existing fields keep their meaning within a schema ve
 }
 ```
 
-`failFast` is `true` when the run used `--fail-fast`; gates that did not run are listed with status
-`SKIPPED` and summary `not run (fail-fast)`. `--severity` defaults to `warning`: `error` shows errors,
-`warning` shows errors and warnings, and `info` shows notes as well. Passed gates omit captured output
-below `info`; failed gates show visible findings instead of output, falling back to the last 200 lines
-when no finding is visible. `info` includes complete `stdout` and `stderr` plus the `output` tail.
+## Fields
+
+| Field | Meaning |
+|---|---|
+| `failFast` | `true` when the run used `--fail-fast`. Gates that did not run are listed with status `SKIPPED` and summary `not run (fail-fast)`. |
+| `severity` | The `--severity` threshold; see the table below. Defaults to `warning`. |
+| `project` | Enum names such as `JAVA`, `MAVEN`, and `SPRING_BOOT`. |
+| `partial`, `scope` | Present only when `--path` is used. See [Partial checks](#partial-checks). |
+
 Omitted fields are intentional in schema v2.
-Project values are enum names such as `JAVA`, `MAVEN`, and `SPRING_BOOT`.
-The additive `partial` object and per-check `scope` field are present only when `--path` is used.
-`partial.paths` lists each edited path once, relative to the project root with `/` separators; a path
-outside the project is listed as given.
-`scope` is `skipped`, `narrowed`, or `full`; skipped checks have status `SKIPPED` and do not affect
-the verdict.
+
+### Severity and captured output
+
+| `--severity` | Findings shown | Captured output |
+|---|---|---|
+| `error` | Errors | Passed gates: none. Failed gates: visible findings, or the last 200 lines when no finding is visible. |
+| `warning` (default) | Errors and warnings | Same as `error`. |
+| `info` | Errors, warnings, and notes | Complete `stdout` and `stderr`, plus the `output` tail. |
+
+### Partial checks
+
+- `partial.paths` lists each edited path once, relative to the project root with `/` separators. A
+  path outside the project is listed as given.
+- `scope` is `skipped`, `narrowed`, or `full`. Skipped checks have status `SKIPPED` and do not
+  affect the verdict.
 
 ## Findings
 
-A failed `checkstyle`, `pmd`, `gitleaks`, `compile`, or `format` gate lists one entry per visible violation
-in `findings`, in the tool's report order, so an agent can go straight to the file and line. Every
-check has the four findings fields; `findingsTotal` counts all findings and `findingsHidden` counts
-findings below the threshold. Gates that passed or have no supported source have an empty array,
-`findingsTotal` `0`, `findingsHidden` `0`, and `findingsTruncated` `false`.
+A failed `checkstyle`, `pmd`, `gitleaks`, `compile`, or `format` gate lists one entry per visible
+violation in `findings`, in the tool's report order, so an agent can go straight to the file and
+line.
+
+Every check has the four findings fields: `findingsTotal` counts all findings, and `findingsHidden`
+counts findings below the threshold. Gates that passed or have no supported source have an empty
+array, `findingsTotal` `0`, `findingsHidden` `0`, and `findingsTruncated` `false`.
 
 ```json
 {
@@ -72,6 +90,8 @@ findings below the threshold. Gates that passed or have no supported source have
 See [quality gates](/configuration/gates/#structured-findings) for where each gate's findings come
 from. Use `--format sarif` for code-scanning tools.
 
+## Learning
+
 When learning is enabled with `--learn-after <n>`, the additive `learning` object is present:
 
 ```json
@@ -81,7 +101,10 @@ When learning is enabled with `--learn-after <n>`, the additive `learning` objec
   "instruction": "Ward: the `checkstyle` rule `LineLength` was violated in 3 separate occurrences..."
 }] } }
 ```
+
 It is omitted when learning is disabled. `schemaVersion` remains `2`.
+
+## Errors
 
 When Ward cannot run at all (exit `2`), it emits a short error report without `schemaVersion`:
 

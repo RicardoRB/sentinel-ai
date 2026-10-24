@@ -63,7 +63,7 @@ jobs:
           else
             grep -Fq "href=\"${expected_base}" dist/index.html || grep -Fq "src=\"${expected_base}" dist/index.html
           fi
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         with:
           path: website/dist
@@ -79,6 +79,6 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/configure-pages@v5
+      - uses: actions/configure-pages@v6
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
