@@ -5,7 +5,7 @@
 
     <groupId>dev.ward</groupId>
     <artifactId>ward-ai</artifactId>
-    <version>0.1.1</version>
+    <version>0.1.2</version>
     <name>ward-ai</name>
     <description>Ward: a quality gate orchestrator for AI coding agents</description>
 

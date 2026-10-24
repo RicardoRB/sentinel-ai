@@ -31,14 +31,14 @@ Then run `/ward-init` in your coding agent to set up Ward together with it.
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `WARD_VERSION` | `latest` | Release tag to install, for example `v0.1.1`. |
+| `WARD_VERSION` | `latest` | Release tag to install, for example `v0.1.2`. |
 | `WARD_INSTALL_DIR` | `~/.local/bin` | Directory for the `ward` binary. |
 | `WARD_DOC_DIR` | `<install dir parent>/share/doc/ward` | Directory for `LICENSE` and `NOTICE`. |
 | `WARD_BASE_URL` | GitHub Releases | Download base URL, for mirrors. |
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/RicardoRB/ward-ai/main/install.sh \
-  | WARD_VERSION=v0.1.1 WARD_INSTALL_DIR=/usr/local/bin sh
+  | WARD_VERSION=v0.1.2 WARD_INSTALL_DIR=/usr/local/bin sh
 ```
 
 ## Install script (Windows)
@@ -62,7 +62,7 @@ It reads the same `WARD_VERSION`, `WARD_INSTALL_DIR`, `WARD_DOC_DIR`, and `WARD_
 variables; `WARD_DOC_DIR` defaults to the install directory's parent:
 
 ```powershell
-$env:WARD_VERSION = 'v0.1.1'; irm https://raw.githubusercontent.com/RicardoRB/ward-ai/main/install.ps1 | iex
+$env:WARD_VERSION = 'v0.1.2'; irm https://raw.githubusercontent.com/RicardoRB/ward-ai/main/install.ps1 | iex
 ```
 
 ## Manual download
