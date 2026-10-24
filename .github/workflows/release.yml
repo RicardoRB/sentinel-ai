@@ -117,7 +117,7 @@ jobs:
           "$hash  $archive" | Out-File "$archive.sha256" -Encoding ascii
 
       - name: Upload platform assets
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ward-${{ matrix.platform }}
           path: |
@@ -138,7 +138,7 @@ jobs:
           sparse-checkout-cone-mode: false
 
       - name: Download platform assets
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           pattern: ward-*
           path: release-assets

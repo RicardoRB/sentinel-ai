@@ -37,7 +37,7 @@ jobs:
           pip install semgrep==1.181.0
           npm install -g @fission-ai/openspec@1.14.1
       - name: Restore trivy cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: ~/.cache/trivy
           key: trivy-${{ github.run_id }}
@@ -65,7 +65,7 @@ jobs:
           category: ward
       - name: Save trivy cache
         if: always()
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         with:
           path: ~/.cache/trivy
           key: trivy-${{ github.run_id }}

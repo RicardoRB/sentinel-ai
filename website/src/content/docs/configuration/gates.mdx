@@ -3,6 +3,8 @@ title: Quality gates
 description: Supported quality gate identifiers and configuration.
 ---
 
+import { Aside } from '@astrojs/starlight/components';
+
 Every gate uses `[quality-gates.<id>]` with `command` (string or argument array), optional
 `enabled` (default `true`) and optional `profiles` (default profile when omitted). The command
 defines the actual tool invocation. Ward does not install gate tools during `check`.
@@ -33,15 +35,71 @@ defines the actual tool invocation. Ward does not install gate tools during `che
 | Custom | `command` | — | Run an arbitrary configured project check. |
 | Traceability | `openspec-junit-traceability` | Ward source analysis | Require one explicitly annotated JUnit mapping per live OpenSpec scenario. |
 
-The traceability gate is the one built-in gate that does not need a `command`:
+## Choosing gates
+
+`ward init` offers every gate but selects none unless you choose a preset.
+
+These gates need network access, a running application, or a comparison baseline, so enable them
+deliberately, for example in a CI-only profile with `profiles = ["ci"]`:
+
+- `zap`
+- `trivy`
+- `sonar`
+- `dependency-check`
+- `api-compat`
+- `semgrep`
+
+## Quality presets
+
+| Preset | Gates | Minimums |
+|---|---|---|
+| `standard` | compile, tests, format, Checkstyle, PMD, SpotBugs, coverage | 70% line coverage |
+| `strict` | `standard` plus ArchUnit, Enforcer, and PIT mutation testing | 85% line, 75% branch, 60% mutation |
+
+Strict mutation testing can add a lot to check runtime.
+
+Presets may write these rule files:
+
+- `config/pmd-ruleset.xml`
+- `config/checkstyle.xml`
+- `config/spotbugs-exclude.xml` (standard)
+- `config/enforcer-rules.xml`
+
+The files carry a `managed-by: ward` marker. Unmarked user files are never overwritten.
+
+## Build plugins
+
+For Maven-backed gates, `init` picks a version from its embedded Java/Maven compatibility catalog
+before adding a missing plugin to `pom.xml`.
+
+- Existing compatible versions are kept.
+- Incompatible versions need confirmation, or `--yes` for explicit automation.
+- Unknown compatibility, or no compatible version in the catalog, stops init before it writes
+  anything and reports how to fix it.
+
+For Gradle projects, the same gate IDs map to Gradle tasks and pinned plugin declarations, in either
+the Groovy or the Kotlin build script. See [what init changes](/commands/init/#what-init-changes-in-your-build).
+
+## Standalone tools
+
+`semgrep`, `gitleaks`, `trivy`, and `zap-baseline.py` must already be on the path.
+
+- A missing tool is reported as unavailable with an install link, and other gates still run.
+- `ward init` can install supported tools with your consent; `check` never installs them.
+- When a command contains `--report-path <path>` inside the project, Ward creates the parent
+  directory before running it. The command itself never changes.
+
+## Traceability gate
+
+`openspec-junit-traceability` is the one built-in gate that needs no `command`:
 
 ```toml
 [quality-gates.openspec-junit-traceability]
 enabled = true
 ```
 
-Each mapping must be directly declared on a `@Test`, `@ParameterizedTest`, or
-`@RepeatedTest` method, using matching exact identities:
+Each mapping must be declared directly on a `@Test`, `@ParameterizedTest`, or `@RepeatedTest`
+method, using matching exact identities:
 
 ```java
 @Tag("spec:identity/user-auth")
@@ -50,110 +108,31 @@ Each mapping must be directly declared on a `@Test`, `@ParameterizedTest`, or
 void signsIn() {}
 ```
 
-Only mapping existence is checked; test execution and assertions are not. Empty
-live specs fail with `no scenarios found`, and active-change specs are excluded.
+- Only the existence of a mapping is checked, not test execution or assertions.
+- Empty live specs fail with `no scenarios found`.
+- Active-change specs are excluded.
 
-`ward init` offers every gate but selects none by default unless a preset is chosen. `zap`, `trivy`, `sonar`,
-`dependency-check`, `api-compat`, and `semgrep` need network access, a running application, or a
-comparison baseline, so enable them deliberately (for example in a CI-only profile with
-`profiles = ["ci"]`).
+## API compatibility
 
 `api-compat` is for published libraries. It compares the latest released artifact (`RELEASE`) with
 the jar the current build produces, so a released baseline must be resolvable from a Maven
-repository. On Maven, init runs `-DskipTests package japicmp:cmp`, points japicmp's new version at
-`${project.build.directory}/${project.build.finalName}.jar` (so a custom `finalName` works), and limits
-the comparison to `${project.groupId}.*`, so classes bundled from dependencies are not reported. Init
-offers it only when `pom.xml` declares `<distributionManagement>`. Applications shipped as binaries,
-such as CLIs, have no Java API consumers and should not enable it.
+repository.
 
-The Maven and Gradle `dependency-check` configurations read the NVD API key from the
-`NVD_API_KEY` environment variable and never write the key to a build file. Without the variable,
-scans may be very slow or rate-limited; request a key from the NVD API service.
+On Maven, init:
 
-Sonatype OSS Index requires credentials, so init turns the OSS Index analyzer off
-(`<ossindexAnalyzerEnabled>false` on Maven, `analyzers { ossIndex { enabled = false } }` on Gradle).
-To turn it on, set `OSS_INDEX_PASSWORD` (and `OSS_INDEX_USERNAME` if your token needs one) in the
-environment and flip the setting. Gradle reads the variables directly. Maven reads credentials from a
-`settings.xml` server whose id matches the generated `ossIndexServerId` (`ossindex`), so reference the
-variables there instead of writing values to a file in the project:
+- runs `-DskipTests package japicmp:cmp`;
+- points japicmp's new version at `${project.build.directory}/${project.build.finalName}.jar`, so a
+  custom `finalName` works;
+- limits the comparison to `${project.groupId}.*`, so classes bundled from dependencies are not
+  reported;
+- offers the gate only when `pom.xml` declares `<distributionManagement>`.
 
-```xml
-<server>
-  <id>ossindex</id>
-  <username>${env.OSS_INDEX_USERNAME}</username>
-  <password>${env.OSS_INDEX_PASSWORD}</password>
-</server>
-```
-
-If you do not want to manage NVD or OSS Index credentials, the `trivy` gate also scans Maven and
-Gradle dependencies for known vulnerabilities and needs no API key.
-
-Standalone tools (`semgrep`, `gitleaks`, `trivy`, `zap-baseline.py`) must already be on the path; a
-missing tool is reported as unavailable with an install link and other gates still run. `ward init`
-can offer consented installation for supported tools, but `check` never installs them. When a command contains `--report-path <path>` inside the project, Ward
-creates the parent directory before running it; the command itself is never changed.
-
-## Structured findings
-
-When `checkstyle`, `pmd`, `gitleaks`, `compile`, or `format` fails, Ward turns the tool's output
-into findings with rule, severity, file, line, column, message, and a rule documentation link when
-known. They appear in [JSON](/reference/json-output/) and SARIF output.
-
-| Gate | Source | Maven | Gradle |
-|---|---|---|---|
-| `checkstyle` | XML report | `target/checkstyle-result.xml` | `build/reports/checkstyle/*.xml` |
-| `pmd` | XML report | `target/pmd.xml` | `build/reports/pmd/*.xml` |
-| `gitleaks` | SARIF report | `target/gitleaks.sarif` | `build/gitleaks.sarif` |
-| `compile` | javac messages in the output | | |
-| `format` | Spotless file list in the output (file only, no line) | | |
-
-Only default report locations are read, and only reports written during the current run; an older
-report is ignored. A missing or malformed report never changes the gate result: the gate just has
-no findings. Gitleaks findings never contain the matched secret. Other gates have no findings yet.
-
-## Partial checks
-
-`ward init` writes a [`[quality-gates.<id>.partial]` table](/configuration/ward-toml/#partial-checks)
-for `checkstyle`, `pmd`, `format`, `semgrep`, `openapi-lint`, and `openapi-diff`. After an agent edit, a gate is skipped when no edited
-file is in its `inputs`, runs in full when one of its `config` files was edited, and is narrowed to the
-edited files when the tool supports it:
-
-| Gate | Maven | Gradle |
-|---|---|---|
-| `checkstyle` | `-Dcheckstyle.includes=**/<file name>` | `-PwardPaths=<paths>`, with a preset |
-| `pmd` | full, with PMD's analysis cache | `-PwardPaths=<paths>`, with a preset |
-| `format` | `-DspotlessFiles=.*/<path>`, a regular expression matched against the absolute path | full |
-| `semgrep` | each path as its own argument | each path as its own argument |
-| `openapi-lint`, `openapi-diff` | full, only when the spec is edited | full, only when the spec is edited |
-
-The Gradle Checkstyle and PMD blocks init writes with a preset filter their sources to
-`wardPaths` only when the property is set, so `checkstyleMain` and `pmdMain` still check the whole
-`main` source set otherwise. Without a preset there is no filter, and those gates run in full. Gradle's
-single-file Spotless mode applies formatting instead of checking it, so Gradle `format` runs in full.
-The forms above were verified against the real tools: a path format a tool does not understand
-analyzes no files and passes. The full check at the end of an agent turn, git hooks, and CI always
-check the whole project.
-
-For Maven-backed gates, `init` resolves a version from its embedded
-Java/Maven compatibility catalog before adding a missing plugin to `pom.xml`. Existing compatible
-versions are preserved; incompatible versions require confirmation, or `--yes` for explicit automation.
-Unknown compatibility or an empty compatible catalog result stops before writing and reports remediation.
-For Gradle projects, the same gate IDs map to Gradle tasks and pinned plugin declarations in either
-the Groovy or Kotlin build script.
-
-## Quality presets
-
-`standard` enables compile, tests, format, Checkstyle, PMD, SpotBugs, and coverage with 70% line
-coverage. `strict` adds ArchUnit, Enforcer, and PIT mutation testing; it requires 85% line, 75%
-branch, and 60% mutation coverage. Strict mutation testing can substantially increase check runtime.
-Preset initialization may write `config/pmd-ruleset.xml`, `config/checkstyle.xml`,
-`config/spotbugs-exclude.xml` (standard), and `config/enforcer-rules.xml`. These files carry a
-`managed-by: ward` marker; unmarked user files are never overwritten.
+Applications shipped as binaries, such as CLIs, have no Java API consumers and should not enable it.
 
 ## OpenAPI contract gates
 
 `openapi-lint`, `openapi-diff`, and `openapi-compat` check a committed (contract-first) OpenAPI
-spec. Each one needs a `spec` option with the project-relative path of that file; Ward appends the
+spec. Each one needs a `spec` option with the project-relative path of that file. Ward appends the
 spec to the command, so the command names only the tool and its flags:
 
 ```toml
@@ -179,55 +158,140 @@ and behavior below were verified with vacuum 0.35.1 and oasdiff 1.34.1.
 
 ### Baselines
 
-- `openapi-diff` compares the working-tree spec with the spec at `HEAD`. It catches a breaking
-  edit before you commit it. In `pre-push` and `ci` everything is committed, so it would compare
-  the file with itself; use `openapi-compat` there.
-- `openapi-compat` compares with the merge base of `HEAD` and `base`, so only the changes on your
-  branch count. When `HEAD` is that merge base, as on `main` after a merge, it compares with the
-  first parent of `HEAD`.
-- A spec that does not exist at the baseline is new: the gate passes and its summary says there
-  was no baseline.
+| Gate | Compares the spec with |
+|---|---|
+| `openapi-diff` | The spec at `HEAD`, so it catches a breaking edit before you commit it. In `pre-push` and `ci` everything is committed, so it would compare the file with itself; use `openapi-compat` there. |
+| `openapi-compat` | The merge base of `HEAD` and `base`, so only the changes on your branch count. When `HEAD` is that merge base, as on `main` after a merge, it compares with the first parent of `HEAD`. |
 
-Ward never fetches. Fetch the base branch before pushing, and give CI a checkout with the base
-branch history (for example `actions/checkout` with `fetch-depth: 0`): without a merge base,
-`openapi-compat` fails and says so. A `base` ref that does not exist is a configuration error
-(exit `2`).
+A spec that does not exist at the baseline is new: the gate passes and its summary says there was no
+baseline.
+
+Ward never fetches:
+
+- Fetch the base branch before pushing.
+- Give CI a checkout with the base branch history, for example `actions/checkout` with
+  `fetch-depth: 0`. Without a merge base, `openapi-compat` fails and says so.
+- A `base` ref that does not exist is a configuration error (exit `2`).
 
 ### No exceptions
 
 These gates accept no way to silence a rule, in any profile:
 
 - `openapi-lint` requires `-z` (every built-in rule, including OWASP) and `-n` with `warn`,
-  `info`, or `hint`. It accepts only output flags besides those (`-b`, `-q`, `-d`, `-s`, `-a`,
+  `info`, or `hint`. Besides those it accepts only output flags: `-b`, `-q`, `-d`, `-s`, `-a`,
   `-x`, `-m`, `-t` and their long forms, `--no-clip`, `--abs-paths`, `--pipeline-output`,
-  `--github-annotations`, `--no-update-check`, `--min-score`). Rulesets (`-r`), ignore files,
-  and `--config` are rejected: a ruleset can lower a rule's severity even in hard mode.
+  `--github-annotations`, `--no-update-check`, and `--min-score`. Rulesets (`-r`), ignore files,
+  and `--config` are rejected, because a ruleset can lower a rule's severity even in hard mode.
 - `openapi-diff` and `openapi-compat` require `--fail-on ERR` or `--fail-on WARN`, and accept only
   `--format`, `--color`, `--lang`, `--flatten-allof`, `--flatten-params`, and
   `--include-path-params`. Ignore files, path and extension filters, `--config`, `--open` (which
   uploads the comparison), and `--fetch` are rejected.
 
 Any other flag, a repeated flag, or a spec path in the command is a configuration error (exit `2`)
-that names the argument. Before running, the gates also fail when the project root contains a file
-the tool loads on its own (`vacuum.conf.yaml`; `.oasdiff.yaml`, `.oasdiff.yml`, `.oasdiff.json`),
-when `OASDIFF_CONFIG` is set, or when the spec contains `x-lint-ignore`.
+that names the argument.
+
+Before running, the gates also fail when:
+
+- the project root contains a file the tool loads on its own: `vacuum.conf.yaml`, `.oasdiff.yaml`,
+  `.oasdiff.yml`, or `.oasdiff.json`;
+- `OASDIFF_CONFIG` is set;
+- the spec contains `x-lint-ignore`.
+
+## Dependency scanning credentials
+
+The Maven and Gradle `dependency-check` configurations read the NVD API key from the `NVD_API_KEY`
+environment variable and never write it to a build file. Without the variable, scans may be very slow
+or rate-limited. Request a key from the NVD API service.
+
+Sonatype OSS Index needs credentials, so init turns its analyzer off:
+`<ossindexAnalyzerEnabled>false` on Maven, `analyzers { ossIndex { enabled = false } }` on Gradle.
+
+To turn it on, set `OSS_INDEX_PASSWORD` (and `OSS_INDEX_USERNAME` if your token needs one) in the
+environment and flip the setting:
+
+- Gradle reads the variables directly.
+- Maven reads credentials from a `settings.xml` server whose id matches the generated
+  `ossIndexServerId` (`ossindex`). Reference the variables there instead of writing values to a file
+  in the project:
+
+```xml
+<server>
+  <id>ossindex</id>
+  <username>${env.OSS_INDEX_USERNAME}</username>
+  <password>${env.OSS_INDEX_PASSWORD}</password>
+</server>
+```
+
+If you do not want to manage NVD or OSS Index credentials, use the `trivy` gate. It also scans Maven
+and Gradle dependencies for known vulnerabilities and needs no API key.
 
 ## ZAP target
 
-`zap` requires an explicit target in its command. Init writes `<TARGET_URL>` as a placeholder; replace
-it with an authorized target before running `check`, for example
-`command = ["zap-baseline.py", "-t", "http://localhost:8080"]`. An enabled `zap` gate without
-`-t <url>`, or still containing the `<TARGET_URL>` placeholder written by `init`, is a configuration
-error (exit `2`). Ward never infers, starts, or scans a target on its own. You are responsible
-for being authorized to scan the target.
+`zap` requires an explicit target in its command. Init writes `<TARGET_URL>` as a placeholder.
+Replace it with an authorized target before running `check`, for example
+`command = ["zap-baseline.py", "-t", "http://localhost:8080"]`.
 
-The legacy identifiers `architecture` (use `archunit`) and `compliance` (use `enforcer`; license
-checks now use `license`) remain readable for compatibility. Existing configurations need no change. Registry identifiers are validated by Ward; the configured command is the
-gate-specific option and must be supplied. See [configuration syntax](/configuration/ward-toml/).
+An enabled `zap` gate without `-t <url>`, or still containing `<TARGET_URL>`, is a configuration
+error (exit `2`). Ward never infers, starts, or scans a target on its own.
+
+<Aside type="caution">
+You are responsible for being authorized to scan the target.
+</Aside>
+
+## Structured findings
+
+When `checkstyle`, `pmd`, `gitleaks`, `compile`, or `format` fails, Ward turns the tool's output
+into findings with rule, severity, file, line, column, message, and a rule documentation link when
+known. They appear in [JSON](/reference/json-output/) and SARIF output.
+
+| Gate | Source | Maven | Gradle |
+|---|---|---|---|
+| `checkstyle` | XML report | `target/checkstyle-result.xml` | `build/reports/checkstyle/*.xml` |
+| `pmd` | XML report | `target/pmd.xml` | `build/reports/pmd/*.xml` |
+| `gitleaks` | SARIF report | `target/gitleaks.sarif` | `build/gitleaks.sarif` |
+| `compile` | javac messages in the output | | |
+| `format` | Spotless file list in the output (file only, no line) | | |
+
+- Only default report locations are read, and only reports written during the current run. An older
+  report is ignored.
+- A missing or malformed report never changes the gate result; the gate just has no findings.
+- Gitleaks findings never contain the matched secret.
+- Other gates have no findings yet.
+
+## Partial checks
+
+`ward init` writes a [`[quality-gates.<id>.partial]` table](/configuration/ward-toml/#partial-checks)
+for `checkstyle`, `pmd`, `format`, `semgrep`, `openapi-lint`, and `openapi-diff`. After an agent
+edit, a gate:
+
+- is skipped when no edited file is in its `inputs`;
+- runs in full when one of its `config` files was edited;
+- is narrowed to the edited files when the tool supports it:
+
+| Gate | Maven | Gradle |
+|---|---|---|
+| `checkstyle` | `-Dcheckstyle.includes=**/<file name>` | `-PwardPaths=<paths>`, with a preset |
+| `pmd` | full, with PMD's analysis cache | `-PwardPaths=<paths>`, with a preset |
+| `format` | `-DspotlessFiles=.*/<path>`, a regular expression matched against the absolute path | full |
+| `semgrep` | each path as its own argument | each path as its own argument |
+| `openapi-lint`, `openapi-diff` | full, only when the spec is edited | full, only when the spec is edited |
+
+Gradle notes:
+
+- With a preset, the Checkstyle and PMD blocks init writes filter their sources to `wardPaths` only
+  when the property is set, so `checkstyleMain` and `pmdMain` still check the whole `main` source set
+  otherwise.
+- Without a preset there is no filter, and those gates run in full.
+- Gradle's single-file Spotless mode applies formatting instead of checking it, so Gradle `format`
+  runs in full.
+
+The forms above were verified against the real tools: a path format a tool does not understand
+analyzes no files and passes. The full check at the end of an agent turn, Git hooks, and CI always
+check the whole project.
 
 ## OpenSpec tool validations
 
-OpenSpec is an optional project tool, not a quality-gate menu entry. Configuration may register
+OpenSpec is an optional project tool, not a quality-gate menu entry. A configuration may register
 the two validations independently:
 
 ```toml
@@ -240,14 +304,18 @@ enabled = true
 command = ["openspec", "validate", "--archived", "--no-interactive"]
 ```
 
-The configured executable is run directly from the target root; relative and absolute paths are
-honored without PATH fallback. Both validations require a project-root `openspec/` directory.
-Missing executables are reported as `UNAVAILABLE`; a missing or non-directory marker is a
-reported `FAILED` result. Check and doctor never install or scaffold OpenSpec.
+- The configured executable runs directly from the target root. Relative and absolute paths are
+  honored, with no PATH fallback.
+- Both validations need an `openspec/` directory at the project root.
+- A missing executable is reported as `UNAVAILABLE`. A missing or non-directory `openspec/` is a
+  `FAILED` result.
+- Check and doctor never install or scaffold OpenSpec.
+
+### OpenSpec in a monorepo
 
 In a monorepo, `openspec/` often lives at the repository root while the Java project sits in a
-subdirectory. Set `root` on each OpenSpec gate to the directory that holds `openspec/`, relative
-to the project root:
+subdirectory. Set `root` on each OpenSpec gate to the directory that holds `openspec/`, relative to
+the project root:
 
 ```toml
 [quality-gates.openspec]
@@ -256,11 +324,20 @@ command = ["openspec", "validate", "--all", "--strict", "--no-interactive"]
 root = "../.."
 ```
 
-The gate then requires `openspec/` in that directory and runs the command from it. Ward never
-searches other parents: if `root` has no `openspec/`, the gate fails and names the configured root.
-`root` must be relative and must stay inside the Git repository; an absolute path is a
-configuration error, and a path that leaves the repository fails the gate without running it.
-`ward init` writes `root` for a nested project that has no `openspec/` of its own when the
-repository root has one, and doctor reports the prerequisites of the configured root. Targeted
-`ward spec validate -- <paths>` uses the same root, and the approved-artifact guard protects that
-repository-level `openspec/` too.
+- The gate then requires `openspec/` in that directory and runs the command from it.
+- Ward never searches other parents. If `root` has no `openspec/`, the gate fails and names the
+  configured root.
+- `root` must be relative and stay inside the Git repository. An absolute path is a configuration
+  error, and a path that leaves the repository fails the gate without running it.
+- `ward init` writes `root` for a nested project without its own `openspec/` when the repository
+  root has one. Doctor reports the prerequisites of the configured root.
+- Targeted `ward spec validate -- <paths>` uses the same root, and the approved-artifact guard
+  protects that repository-level `openspec/` too.
+
+## Legacy identifiers
+
+The legacy identifiers `architecture` (use `archunit`) and `compliance` (use `enforcer`; license
+checks now use `license`) are still read, so existing configurations need no change.
+
+Ward validates registry identifiers; the configured command is the gate-specific part and must be
+supplied. See [configuration syntax](/configuration/ward-toml/).

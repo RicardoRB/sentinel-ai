@@ -28,22 +28,29 @@ command = "./gradlew test"
 ```
 
 `command` accepts a string or an array of strings. Arrays preserve exact argument boundaries. A
-string is parsed into arguments; neither form is executed through a shell. Gates without `profiles`
-belong to `default`. Init-generated configurations assign fast gates to both `default` and
-`pre-commit`, slower local gates to `pre-push`, and every selected gate to `ci`; `pre-push` is
-cumulative. Select other profiles using `ward check --profile ci,strict`. Legacy
-top-level `[profiles]` tables are unsupported. Unknown gate IDs and checks with no enabled matching
-gates are errors.
+string is parsed into arguments. Neither form is executed through a shell.
+
+Profiles:
+
+- Gates without `profiles` belong to `default`.
+- Init-generated configurations assign fast gates to both `default` and `pre-commit`, slower local
+  gates to `pre-push`, and every selected gate to `ci`. `pre-push` is cumulative.
+- Select other profiles with `ward check --profile ci,strict`.
+- Legacy top-level `[profiles]` tables are unsupported.
+
+Unknown gate IDs, and checks with no enabled matching gates, are errors.
 
 ## Partial checks
 
 An optional `[quality-gates.<id>.partial]` table controls how a gate responds to an edited path
-passed to `ward check --path`. `inputs` lists files the gate analyzes and `config` lists files
-that configure it; both use patterns relative to the project root. If an edited path matches
-`config`, the gate runs its normal command. If it matches `inputs`, `args` can narrow the command:
-`{paths}` is replaced with the edited paths as separate process arguments, or as one value joined by
-`separator`. Each path is rendered as `{path}` (the root-relative path) by default; `item =
-"**/{name}"` renders the file name instead.
+passed to `ward check --path`:
+
+| Key | Meaning |
+|---|---|
+| `inputs` | Files the gate analyzes, as patterns relative to the project root. If an edited path matches, `args` can narrow the command. |
+| `config` | Files that configure the gate, as patterns relative to the project root. If an edited path matches, the gate runs its normal command. |
+| `args` | The narrowed arguments. `{paths}` is replaced with the edited paths as separate process arguments, or as one value joined by `separator`. |
+| `item` | How each path is rendered: `{path}` (the root-relative path) by default, or `"**/{name}"` for the file name. |
 
 ```toml
 [quality-gates.checkstyle.partial]

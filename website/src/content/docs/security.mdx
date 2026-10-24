@@ -45,11 +45,14 @@ ward --verbose check > report.txt 2> ward-diagnostics.log
 
 Ward makes one network request of its own: after an interactive command, at most once a day, it
 sends an HTTPS `HEAD` request to `https://github.com/RicardoRB/ward-ai/releases/latest` and
-reads the release tag from the redirect. The request carries no project, configuration, or
-environment data. `ward doctor` makes the same request every time it runs. Ward only prints
-a notice; it never downloads or replaces itself. Agent hooks, CI, and JSON or SARIF output never
-trigger the request, and `WARD_NO_UPDATE_CHECK=1` turns it off everywhere, including in
-`doctor`. See [Environment variables](/reference/environment-variables/).
+reads the release tag from the redirect.
+
+- The request carries no project, configuration, or environment data.
+- `ward doctor` makes the same request every time it runs.
+- Ward only prints a notice. It never downloads or replaces itself.
+- Agent hooks, CI, and JSON or SARIF output never trigger the request.
+- `WARD_NO_UPDATE_CHECK=1` turns it off everywhere, including in `doctor`. See
+  [Environment variables](/reference/environment-variables/).
 
 ## Optional OpenSpec installation
 

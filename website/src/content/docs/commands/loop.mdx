@@ -3,27 +3,43 @@ title: loop
 description: Run an external agent until the quality gates pass.
 ---
 
+import { Aside } from '@astrojs/starlight/components';
+
+`ward loop` alternates between an external coding agent and `ward check` until the quality gates
+pass or a limit is reached.
+
 ```sh
 ward loop <task> --agent-command <command> [-C <dir>] [--max-iterations <n>] [--timeout-seconds <n>] [--allow-dirty]
 ```
-
-`ward loop` alternates between an external coding agent and `ward check`. Each iteration runs
-the agent, then the `default` profile gates. The loop stops when all gates pass or a limit is reached.
 
 ```sh
 ward loop "Fix the failing tests" --agent-command "claude -p" --max-iterations 3
 ```
 
-- `--agent-command` is required. It is split into arguments and run without a shell from the project
-  root. Ward appends the prompt as the final argument.
-- The first iteration sends `<task>`. Later iterations send only the failure feedback: the name,
-  status, and output of every failed gate, prefixed with `Fix these failed quality gates:`.
-- `--max-iterations` (default `3`) limits the number of agent runs.
-- `--timeout-seconds` (default `300`) limits each agent run.
-- By default, the loop refuses to start when the Git working tree has uncommitted changes, so that
-  the agent's changes are easy to review or revert. `--allow-dirty` disables this check.
+## Options
 
-The command prints one result line, for example `PASSED after 2 iteration(s): All quality gates passed.`
+| Option | What it does | Default |
+|---|---|---|
+| `<task>` | The prompt for the first iteration. | required |
+| `--agent-command <command>` | The agent to run. It is split into arguments and run without a shell from the project root, with the prompt appended as the final argument. | required |
+| `-C`, `--directory <dir>` | Run for the project in `<dir>` instead of the current directory. | current directory |
+| `--max-iterations <n>` | Maximum number of agent runs. | `3` |
+| `--timeout-seconds <n>` | Time limit for each agent run. | `300` |
+| `--allow-dirty` | Start even when the Git working tree has uncommitted changes. | off |
+| `--verbose` | Print diagnostics to stderr. See [Verbose diagnostics](#verbose-diagnostics). | off |
+
+## How the loop runs
+
+Each iteration runs the agent, then the `default` profile gates.
+
+- The first iteration sends `<task>`.
+- Later iterations send only the failure feedback: the name, status, and output of every failed gate,
+  prefixed with `Fix these failed quality gates:`.
+- By default, the loop refuses to start when the Git working tree has uncommitted changes, so the
+  agent's changes are easy to review or revert. `--allow-dirty` disables this check.
+
+The command prints one result line, for example
+`PASSED after 2 iteration(s): All quality gates passed.`
 
 | State | Meaning |
 |---|---|
@@ -33,10 +49,21 @@ The command prints one result line, for example `PASSED after 2 iteration(s): Al
 | `AGENT_ERROR` | The agent command exited unsuccessfully or could not be run. |
 | `GATE_ERROR` | Ward could not run the checks, or the working tree was dirty. |
 
-Exit `0` means `PASSED`; every other state exits `1`. The agent runs with your user's privileges, so
-use the loop only in repositories you trust. See [security](/security/).
+<Aside type="caution">
+The agent runs with your user's privileges, so use the loop only in repositories you trust. See
+[security](/security/).
+</Aside>
+
 ## Verbose diagnostics
 
-Use `ward --verbose loop ...` to inspect iteration, agent/check phase, timeout, interruption,
-and terminal-state transitions. Task text, feedback, command arguments, and process output are
-never emitted as application logs.
+Use `ward --verbose loop ...` to inspect iteration, agent and check phases, timeouts, interruption,
+and terminal-state transitions. Task text, feedback, command arguments, and process output are never
+emitted as application logs.
+
+## Exit codes
+
+| Code | Meaning |
+|---|---|
+| `0` | `PASSED`. |
+| `1` | Any other terminal state. |
+| `2` | Invalid usage. |

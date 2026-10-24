@@ -47,7 +47,7 @@ final class CiWorkflowTemplate {
       body.append(
           STEP
               + "Restore trivy cache\n"
-              + "        uses: actions/cache/restore@v4\n"
+              + "        uses: actions/cache/restore@v5\n"
               + "        with:\n"
               + "          path: ~/.cache/trivy\n"
               + "          key: trivy-${{ github.run_id }}\n"
@@ -60,7 +60,7 @@ final class CiWorkflowTemplate {
           STEP
               + "Save trivy cache\n"
               + "        if: always()\n"
-              + "        uses: actions/cache/save@v4\n"
+              + "        uses: actions/cache/save@v5\n"
               + "        with:\n"
               + "          path: ~/.cache/trivy\n"
               + "          key: trivy-${{ github.run_id }}\n");

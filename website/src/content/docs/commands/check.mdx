@@ -3,48 +3,85 @@ title: check
 description: Run configured quality gates.
 ---
 
+`ward check` runs the quality gates configured in `ward.toml` and reports the result.
+
 ```sh
 ward check [-C <dir>] [--format text|json|sarif] [--severity error|warning|info] [--output <path>] [--profile <name>[,...]] [--path <path>] [--fail-fast] [--exclude-spec] [--learn-after <n>]
 ```
 
-For Maven and Gradle projects, built-in test commands prefer the project wrapper
-(`./mvnw` or `./gradlew`) and fall back to `mvn` or `gradle` when no wrapper is
-available. Commands configured explicitly in `ward.toml` are preserved.
+## Options
 
-Checks run in configuration declaration order. `default` is selected when no profile is provided;
-repeat `--profile` or provide comma-separated names to select the union. At least one enabled gate
-must match. All selected gates run even when an earlier one fails. A gate whose standalone tool is
-missing (for example `gitleaks`) is reported as unavailable with install guidance; an enabled
-`zap` gate without an explicit `-t <url>` target is a configuration error.
-Use `--fail-fast` to stop after the first gate that fails, is unavailable, or encounters an execution
-error. Later selected gates are listed as skipped (`not run (fail-fast)`). Without the option, all
-selected gates run as usual.
+| Option | What it does | Default |
+|---|---|---|
+| `-C`, `--directory <dir>` | Check the project in `<dir>` instead of the current directory. | current directory |
+| `--profile <name>[,...]` | Run the gates in these profiles. Repeat or comma-separate to select the union. | `default` |
+| `--format text\|json\|sarif` | Report format. See [Output formats](#output-formats). Any other value is a usage error. | `text` |
+| `--severity error\|warning\|info` | Which findings and output to show. See [Severity](#severity). | `warning` |
+| `--output <path>` | Write the JSON or SARIF report to a file. See [Writing the report to a file](#writing-the-report-to-a-file). | stdout |
+| `--path <path>` | Run a [partial check](#partial-checks) for an edited file. Repeat for several. | whole project |
+| `--fail-fast` | Stop after the first gate that does not pass. | off |
+| `--exclude-spec` | Skip the `openspec` and `openspec-archived` gates. See [Excluding spec gates](#excluding-spec-gates). | off |
+| `--learn-after <n>` | Record recurring rule findings after `n` occurrences. Must be at least `1`. See [Learning](#learning). | off |
+| `--verbose` | Print diagnostics to stderr. See [Verbose diagnostics](#verbose-diagnostics). | off |
 
-Repeat `--path <path>` to run a partial check for edited files, as the agent integrations do after
-each edit. Paths are resolved against the working directory, and `--profile` still selects the gates
-(`default` otherwise). Each gate with a [`partial` table](/configuration/ward-toml/#partial-checks)
-is skipped when no edited path is relevant to it, narrowed to the edited files when it declares
-`args`, and run in full when one of its `config` files was edited. Gates without the table run in
-full. Skipped gates are listed as `– Checkstyle — Not affected by the edited files` and do not
-affect the verdict. The JSON report adds the edited paths and each gate's `scope`; see
-[JSON output](/reference/json-output/). Checks without `--path`, including git hooks and CI, never
-apply `partial` settings.
+An invalid option value is a usage error and produces no partial report.
 
-Use `--exclude-spec` to skip the spec validation gates, `openspec` and `openspec-archived`, while
-running every other selected gate. The generated agent integrations pass it on each edit because they
-validate specs separately with [`spec validate`](/commands/spec/): the edited change on each edit, and
-everything at the end of the turn. If excluding the spec gates leaves nothing enabled, the check passes
-with an empty report instead of failing with "No quality gates are enabled". Without the option, enabled
-spec gates run like any other gate.
+## How gates run
 
-Text output starts with the Ward version, then reports each gate as it completes, followed by a
-summary. On an interactive terminal, the running gate line is replaced in place by its final status.
-When output is redirected, `NO_COLOR` is set, or `TERM=dumb`, each gate is printed once on completion
-without ANSI cursor-control sequences. Failed gates include their command and visible findings; the
-captured output tail is shown when no finding is visible. Use `--severity error` for errors only,
-`--severity warning` (the default) for errors and warnings, or `--severity info` for all findings and
-complete captured output. The threshold changes presentation only; gate status, verdict, policies,
-learning, counts, and exit code are unchanged.
+- Gates run in the order they are declared in `ward.toml`.
+- At least one enabled gate must match the selected profiles.
+- Every selected gate runs, even after an earlier one fails, unless you pass `--fail-fast`.
+- With `--fail-fast`, Ward stops after the first gate that fails, is unavailable, or hits an
+  execution error. Later gates are listed as skipped (`not run (fail-fast)`).
+- A gate whose standalone tool is missing, such as `gitleaks`, is reported as unavailable with
+  install guidance.
+- An enabled `zap` gate without an explicit `-t <url>` target is a configuration error.
+
+For Maven and Gradle projects, built-in test commands prefer the project wrapper (`./mvnw` or
+`./gradlew`) and fall back to `mvn` or `gradle`. Commands configured explicitly in `ward.toml` are
+kept as they are.
+
+Started inside a Maven or Gradle module, Ward checks the aggregator project and uses its
+`ward.toml`.
+
+## Partial checks
+
+Repeat `--path <path>` to check only what an edit can affect, as the agent integrations do after
+each edit. Paths are resolved against the working directory, and `--profile` still selects the
+gates.
+
+Each gate with a [`partial` table](/configuration/ward-toml/#partial-checks) is handled this way:
+
+| The edited paths | The gate |
+|---|---|
+| Include none relevant to the gate | Is skipped and does not affect the verdict |
+| Include relevant files, and the gate declares `args` | Runs on the edited files only |
+| Include one of the gate's `config` files | Runs in full |
+
+Gates without a `partial` table run in full. Skipped gates are listed as
+`– Checkstyle — Not affected by the edited files`. The JSON report adds the edited paths and each
+gate's `scope`; see [JSON output](/reference/json-output/).
+
+Checks without `--path`, including Git hooks and CI, never apply `partial` settings.
+
+## Excluding spec gates
+
+`--exclude-spec` skips the spec validation gates, `openspec` and `openspec-archived`, and runs every
+other selected gate.
+
+The generated agent integrations pass it on each edit, because they validate specs separately with
+[`spec validate`](/commands/spec/): the edited change on each edit, and everything at the end of the
+turn.
+
+If excluding the spec gates leaves nothing enabled, the check passes with an empty report instead of
+failing with "No quality gates are enabled".
+
+## Output formats
+
+### Text
+
+Text output starts with the Ward version, reports each gate as it completes, and ends with a
+summary:
 
 ```text
 Ward 1.2.3
@@ -56,45 +93,83 @@ Quality Gate: FAILED
 1 passed · 1 failed · 0 skipped
 ```
 
-Use `--format json` in scripts; only the JSON report goes to stdout and diagnostics go to stderr.
+- On an interactive terminal, the running gate's line is replaced in place by its final status.
+- When output is redirected, `NO_COLOR` is set, or `TERM=dumb`, each gate is printed once on
+  completion, without ANSI cursor-control sequences.
+- Failed gates show their command and visible findings. The captured output tail is shown when no
+  finding is visible.
+
+### JSON
+
+Use `--format json` in scripts. Only the JSON report goes to stdout; diagnostics go to stderr.
+
 Failed `checkstyle`, `pmd`, `gitleaks`, `compile`, and `format` gates include structured findings
-(rule, file, line, column, message) so agents can fix them without reading raw logs; see
-[structured findings](/configuration/gates/#structured-findings).
+(rule, file, line, column, message), so agents can fix them without reading raw logs. See
+[structured findings](/configuration/gates/#structured-findings) and
+[JSON output](/reference/json-output/).
 
-Use `--format sarif` for code-scanning tools, CI annotations, and IDEs. Ward writes one
-[SARIF 2.1.0](https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html) log with one run per
-executed gate, as compact JSON without indentation: each visible finding becomes a located result, and a failed gate without visible findings becomes one
-result without a location whose rule id is the gate id. Locations are relative to the Git repository
-root, so a project in `apps/api` reports `apps/api/src/...`; outside a Git work tree they are relative
-to the project root. At most 50 results are listed per gate; the
-run's `properties.findingsTotal` and `findingsHidden` hold the full and hidden counts. When Ward cannot run at all, SARIF mode
-writes nothing to stdout and reports the error on stderr.
+### SARIF
 
-Use `--output <path>` with `--format json` or `--format sarif` to write the report to a file instead
-of stdout; stdout then shows the normal text report, and missing parent directories are created. The
-path is resolved against the current working directory. `--output` with `--format text` is a usage
-error, and a file that cannot be written exits with `2`:
+Use `--format sarif` for code-scanning tools, CI annotations, and IDEs. Ward writes one compact
+[SARIF 2.1.0](https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html) log, with one run per
+executed gate:
+
+- Each visible finding becomes a located result.
+- A failed gate without visible findings becomes one result without a location, whose rule id is the
+  gate id.
+- Locations are relative to the Git repository root, so a project in `apps/api` reports
+  `apps/api/src/...`. Outside a Git work tree they are relative to the project root.
+- At most 50 results are listed per gate. The run's `properties.findingsTotal` and
+  `findingsHidden` hold the full and hidden counts.
+- When Ward cannot run at all, SARIF mode writes nothing to stdout and reports the error on stderr.
+
+### Severity
+
+| `--severity` | Shows |
+|---|---|
+| `error` | Errors only |
+| `warning` (default) | Errors and warnings |
+| `info` | All findings and the complete captured output |
+
+The threshold changes presentation only. Gate status, verdict, policies, learning, counts, and exit
+code stay the same.
+
+### Writing the report to a file
+
+`--output <path>` writes the JSON or SARIF report to a file instead of stdout, and stdout shows the
+normal text report:
 
 ```sh
 ward check --profile ci --format sarif --output build/ward.sarif
 ```
 
-The format values are exactly `text`, `json`, and `sarif`; an unknown value is a usage error. `--learn-after`
-must be at least `1`, and invalid values are reported as usage errors without emitting a partial
-report.
-Learning is opt-in: `--learn-after <n>` records recurring Checkstyle, PMD, and gitleaks rule findings
-in `.ward/learning.json`. A rule is counted once per failing episode; when a recurring rule is
-later fixed, the text report adds a `Learning` section asking the agent to add a preventive coding rule
-to `AGENTS.md`. See [learning](/configuration/learning/). Ward never
-edits that file, and learning prompts do not change the gate exit code.
-OpenSpec registrations use their configured vectors exactly. They require both the configured
-executable and a project-root `openspec/` directory; missing prerequisites are reported as gate
-failures and never trigger installation or scaffolding. An installed CLI that rejects a required
-flag also fails without automatic flag removal or downgrade. See [JSON output](/reference/json-output/)
-and [exit codes](/reference/exit-codes/). `-C <dir>` runs
-against a project directory other than the current one. Started inside a Maven or Gradle module,
-Ward checks the aggregator project and uses its `ward.toml`. Exit `0` means all gates passed, `1` means
-at least one gate failed, and `2` means Ward could not run (for example, invalid configuration).
+- The path is resolved against the current working directory.
+- Missing parent directories are created.
+- `--output` with `--format text` is a usage error.
+- A file that cannot be written exits with `2`.
+
+## Learning
+
+Learning is opt-in. `--learn-after <n>` records recurring Checkstyle, PMD, and gitleaks rule
+findings in `.ward/learning.json`:
+
+- A rule is counted once per failing episode.
+- When a recurring rule is later fixed, the text report adds a `Learning` section. It asks the agent
+  to add a preventive coding rule to `AGENTS.md`.
+- Ward never edits that file, and learning prompts do not change the exit code.
+
+See [learning](/configuration/learning/).
+
+## OpenSpec gates
+
+OpenSpec gates run their configured command vectors exactly.
+
+- They need both the configured executable and an `openspec/` directory at the project root.
+- A missing prerequisite is reported as a gate failure. Ward never installs the tool or scaffolds
+  the directory.
+- An installed CLI that rejects a required flag also fails. Ward does not remove the flag or
+  downgrade.
+
 ## Verbose diagnostics
 
 Use `--verbose` before or after `check` to send compact execution diagnostics to stderr:
@@ -104,7 +179,17 @@ ward --verbose check
 ward check --format json --verbose > report.json 2> diagnostics.log
 ```
 
-Diagnostics describe discovery, profile selection, gate lifecycle, fail-fast skips, and safe
-process status metadata. They do not contain gate stdout/stderr, command arguments, configuration
-contents, or credentials. Gate failures remain the normal check report and are not warnings by
+Diagnostics describe discovery, profile selection, the gate lifecycle, fail-fast skips, and safe
+process status metadata. They never contain gate stdout or stderr, command arguments, configuration
+contents, or credentials. Gate failures stay in the normal check report and are not warnings by
 themselves.
+
+## Exit codes
+
+| Code | Meaning |
+|---|---|
+| `0` | All selected gates passed. |
+| `1` | At least one gate failed. |
+| `2` | Ward could not run, for example because of invalid usage, invalid configuration, or an unwritable `--output` file. |
+
+See [exit codes](/reference/exit-codes/) for every command.

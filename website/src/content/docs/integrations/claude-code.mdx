@@ -3,6 +3,8 @@ title: Claude Code
 description: Install Ward's Claude Code edit and turn-end hooks.
 ---
 
+import { Aside } from '@astrojs/starlight/components';
+
 Install with `ward integrate claude-code`. Ward creates or updates `.claude/settings.json` and the
 executable `.claude/hooks/ward-edit-write`, and registers the same hook for two Claude Code events:
 
@@ -11,12 +13,14 @@ executable `.claude/hooks/ward-edit-write`, and registers the same hook for two 
 | `PostToolUse` (`Edit`, `Write`, `MultiEdit`) | After each file edit | Runs a partial quality check, then validates the edited spec file |
 | `Stop` | When Claude finishes its turn | Runs the full default quality check plus every configured spec check |
 
-The generated hook runs `ward hook claude-code --learn-after 3 --exclude-spec --event-stdin` for the
-project directory. Make sure `ward` is on `PATH`. Claude Code runs hooks in the session's current
-directory, so the registrations point at `${CLAUDE_PROJECT_DIR}/.claude/hooks/...` and the hook passes
-`-C "$CLAUDE_PROJECT_DIR"` to Ward. Checks still run for the project after the agent changes into a
-subdirectory. Claude Code passes each hook event as JSON on stdin, and Ward reads only the event
-name, the edited `file_path`, and `stop_hook_active`.
+Make sure `ward` is on `PATH`. The generated hook runs
+`ward hook claude-code --learn-after 3 --exclude-spec --event-stdin` for the project directory.
+
+- Claude Code runs hooks in the session's current directory, so the registrations point at
+  `${CLAUDE_PROJECT_DIR}/.claude/hooks/...` and the hook passes `-C "$CLAUDE_PROJECT_DIR"` to Ward.
+  Checks still run for the project after the agent changes into a subdirectory.
+- Claude Code passes each hook event as JSON on stdin. Ward reads only the event name, the edited
+  `file_path`, and `stop_hook_active`.
 
 ## After each edit
 
@@ -87,20 +91,28 @@ keeps the guard as it is. `--no-guard-approved-specs` removes only the guard, an
 
 ## Ownership and removal
 
-Generated files contain Ward ownership markers. Existing user-owned targets are never
-overwritten; a conflict prevents partial integration. If `.claude/settings.json` already contains valid JSON,
-Ward merges its hook registrations into that file and preserves unrelated settings and hooks. It does not
-replace the settings file. Malformed JSON, a non-object settings root, or an incompatible `hooks` structure
-causes a conflict; Ward leaves the settings and other integration targets unchanged.
+Generated files contain Ward ownership markers. Existing user-owned targets are never overwritten,
+and a conflict prevents a partial integration.
 
-Remove using `ward integrate claude-code --remove`. Ward removes only its hook registrations and
-ownership marker, deletes its owned hook scripts, and preserves unrelated settings and hooks. The
-`.claude/settings.json` file remains, even if no settings remain in it. The hook executes repository
-configuration with your user privileges. Enable it only in repositories you trust.
-Re-run `ward integrate claude-code` to refresh an outdated Ward-owned hook. Integrations installed by
-Ward 0.0.7 and earlier registered relative hook paths, which Claude Code can't find once the session's
-directory changes; the hook then fails as a non-blocking error and no check runs. Refreshing replaces those
-registrations in place.
+- **Existing settings:** if `.claude/settings.json` already contains valid JSON, Ward merges its hook
+  registrations into it and keeps unrelated settings and hooks. It never replaces the file.
+- **Conflicts:** malformed JSON, a non-object settings root, or an incompatible `hooks` structure
+  causes a conflict. Ward then leaves the settings and the other integration targets unchanged.
+- **Removal:** `ward integrate claude-code --remove` removes only Ward's hook registrations and
+  ownership marker, deletes its owned hook scripts, and keeps unrelated settings and hooks. The
+  `.claude/settings.json` file remains, even if it ends up empty.
+- **Refresh:** re-run `ward integrate claude-code` to refresh an outdated Ward-owned hook.
+
+<Aside type="caution">
+The hook executes repository configuration with your user privileges. Enable it only in
+repositories you trust.
+</Aside>
+
+<Aside title="Upgrading from Ward 0.0.7 or earlier">
+Those versions registered relative hook paths, which Claude Code can't find once the session's
+directory changes. The hook then fails as a non-blocking error and no check runs. Refreshing
+replaces those registrations in place.
+</Aside>
 
 ## Projects in a subdirectory
 
@@ -121,14 +133,22 @@ Removing one project's integration leaves the other projects' hooks and your own
 
 ## Verification
 
-The deterministic suite in `compatibility/claude-code` (`bun run test`) runs the generated settings and hook
-scripts the way Claude Code launches them, from a subdirectory and with `CLAUDE_PROJECT_DIR` set, against the
-real Ward. It covers edit checks and their exit-2 feedback, learning context, the guard's deny decision,
-uninspectable input, the one-time stop block, and settings merge and removal. It proves the generated files
-match Claude Code's hook contract, not that a running Claude Code loads them.
+The deterministic suite in `compatibility/claude-code` (`bun run test`) runs the generated settings
+and hook scripts against the real Ward, the way Claude Code launches them: from a subdirectory, with
+`CLAUDE_PROJECT_DIR` set. It covers:
 
-The opt-in live run, `bun run src/cli.ts live claude-code` from `compatibility/`, runs headless `claude -p`
-turns against Claude Code 2.1.292 in a disposable fixture with an isolated `CLAUDE_CONFIG_DIR`, so no user or
-global settings are loaded. It needs `WARD_COMPAT_CLAUDE_CODE_BIN` (an absolute path to that release) and
-`ANTHROPIC_API_KEY`; without them every scenario is reported as blocked and the command exits non-zero. No
-live run has been recorded yet.
+- edit checks and their exit-2 feedback, and learning context;
+- the guard's deny decision and uninspectable input;
+- the one-time stop block;
+- settings merge and removal.
+
+It proves the generated files match Claude Code's hook contract, not that a running Claude Code
+loads them.
+
+The opt-in live run, `bun run src/cli.ts live claude-code` from `compatibility/`, runs headless
+`claude -p` turns against Claude Code 2.1.292 in a disposable fixture. An isolated
+`CLAUDE_CONFIG_DIR` keeps user and global settings out.
+
+- It needs `WARD_COMPAT_CLAUDE_CODE_BIN` (an absolute path to that release) and `ANTHROPIC_API_KEY`.
+- Without them, every scenario is reported as blocked and the command exits non-zero.
+- No live run has been recorded yet.

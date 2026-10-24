@@ -15,13 +15,17 @@ and gitleaks. Gates without rule-level findings (tests, coverage, SpotBugs, Arch
 catch-all findings such as Spotless formatting or javac errors are not tracked, because the only
 lesson they offer is to run the command again.
 
-A rule is counted once per run however many violations it has. An occurrence starts when the rule
-begins failing and is counted again only after it was fixed: the rule's gate ran and no longer
-reported it, even if the gate still failed on other rules. Skipped or unevaluated gates do not change
-their records. Once a recurring rule is fixed, Ward asks the agent to add a coding rule to
-`AGENTS.md` that prevents the problem, quoting the rule and an example message, and not a rule about
-running the gate or a command. Ward never edits that file. Prompts are issued at most once per
-record.
+How occurrences are counted:
+
+- A rule is counted once per run, however many violations it has.
+- An occurrence starts when the rule begins failing. It is counted again only after the rule was
+  fixed: its gate ran and no longer reported it, even if the gate still failed on other rules.
+- Skipped or unevaluated gates do not change their records.
+
+Once a recurring rule is fixed, Ward asks the agent to add a coding rule to `AGENTS.md` that prevents
+the problem. The prompt quotes the rule and an example message, and asks for a coding rule, not a
+rule about running the gate or a command. Ward never edits that file, and issues each prompt at most
+once per record.
 
 The store carries `formatVersion` 2. A version 1 store, which tracked gate statuses, is discarded
 without a warning and replaced on the next learning run.

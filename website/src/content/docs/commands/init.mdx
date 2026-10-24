@@ -3,102 +3,183 @@ title: init
 description: Create ward.toml and select integrations.
 ---
 
-`ward init` creates `ward.toml` using an interactive wizard or explicit options.
+import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
 
-To set up Ward together with your coding agent instead, install the
-[agent skills](/integrations/agent-skills/). The `ward-init` skill inspects the project, explains
-each choice for this codebase, and runs `init` with explicit options after you approve the
-`--dry-run` plan.
+`ward init` creates `ward.toml` using an interactive wizard or explicit options.
 
 ```sh
 ward init [-C <dir>] [--project <dir>]... [--preset <standard|strict>] [--integration <none|agent>[,...]] [--quality-hooks] [--remove-quality-hooks] [--ci github] [--agent-rules] [--gate <id>[,...]] [--tool openspec] [--openspec-validation <openspec|openspec-archived>[,...]] [--install-tool <tool|gate>[,...]] [--architecture <style>] [--overwrite] [--dry-run] [--accept-compatibility-updates] [--yes]
 ```
 
-`agent` accepts the IDs documented for [`integrate`](/commands/integrate/), including `codex`, `cursor`,
-`copilot`, `gemini`, `windsurf`, `cline`, `factory-droid`, and `amp`.
+<Aside type="tip">
+To set up Ward together with your coding agent instead, install the
+[agent skills](/integrations/agent-skills/). The `ward-init` skill inspects the project, explains
+each choice for this codebase, and runs `init` with explicit options after you approve the
+`--dry-run` plan.
+</Aside>
 
-The gate selector accepts supported [gate IDs](/configuration/gates/). `none` is exclusive with
-agent integrations. `archunit` prompts for Layered, Hexagonal, or Clean architecture and creates a
-minimal `ArchitectureTest.java` only if one is absent. If test sources already contain ArchUnit
-classes ending in `Test` or `Tests`, init reuses them and configures the gate to run those classes
-instead of generating a duplicate. Existing configurations are preserved unless
-overwrite is confirmed or `--overwrite` is supplied. Initialization does not install tools or run
-gates. `standard` and `strict` presets pre-select their offline gates; `custom` starts with no gates selected.
-The gates you confirm are exactly the gates configured: unticking a pre-selected preset gate removes its
-`ward.toml` section, Maven declarations, and rule file, while the preset's rules still apply to the
-remaining gates. `zap` writes a `<TARGET_URL>` placeholder that you must replace
-with an authorized target before `check` will run it. On Maven, `api-compat` is offered only when
-`pom.xml` declares `<distributionManagement>`, because it needs a released baseline; passing
-`--gate api-compat` otherwise fails with that explanation. `openapi-lint`, `openapi-diff`, and
-`openapi-compat` are offered only when Git tracks an `openapi.yml`, `openapi.yaml`, or `openapi.json` in
-`src/main/resources` or the project root; init writes that path as their `spec` (see
-[OpenAPI contract gates](/configuration/gates/#openapi-contract-gates)). For `format`, `enforcer`, `license`, `api-compat`, and
-`pmd`, missing Maven plugins are added to `pom.xml` using Ward's embedded Java/Maven compatibility catalog.
-For Gradle projects, equivalent pinned plugin declarations are added to `build.gradle` or
-`build.gradle.kts` using the detected DSL, and the Gradle Wrapper is preferred when available.
-Existing compatible plugin versions are preserved. Incompatible managed plugins show the current version,
-selected compatible version, detected constraints, and affected file before asking for consent. `--yes`
-(see [How questions are answered](#how-questions-are-answered)) also accepts these validated compatibility
-updates without prompting; it does not bypass unresolved prerequisites
-or install standalone binaries such as Semgrep, Gitleaks, Trivy, or ZAP. Missing Trivy, Gitleaks, or
-Semgrep tools may be installed with explicit per-tool consent when Homebrew or pipx is available;
-use `--install-tool <gate>` for non-interactive consent. ZAP has manual guidance only. When `trivy` runs
-after a selected Maven or Gradle gate, init adds `--offline-scan` so Trivy resolves dependencies from
-the local repository instead of Maven Central ([why](/guides/ci-cd/#trivy-offline-scans)). Declined updates leave the POM
-unchanged and report that the selected gate was not reconfigured. Preset rule files are Ward-owned;
-unmarked existing files are preserved and reported. With `--preset`, `--gate` only adds gates to the
-preset's set; it never removes preset gates. `-C <dir>` selects the
-directory init starts in. Exit codes: `0` success, `2` invalid usage or
-inability to initialize (including cancelled or invalid selection).
+## Options
 
-Maven plugins are added only to the project-level `<build><plugins>` and dependencies only to the
-project-level `<dependencies>`. Profiles, `dependencyManagement`, and plugin dependencies are never
-edited, and missing `<build>`, `<plugins>`, or `<dependencies>` sections are created. The one addition
-to `<build><pluginManagement>` is the strict `enforcer` pins described under
-[First failures under `strict`](#first-failures-under-strict); existing entries there are never changed. New declarations match the file's indentation. The rest of `pom.xml` is left byte for byte as
-it was. Before writing, Ward checks the edited `pom.xml` in-process, without running Maven or
-fetching anything: the file must be well-formed XML, and each added declaration must contain only
-elements Maven allows there. If a check fails, `pom.xml` is not written, the error names the tool being
-added, and init rolls back its other changes. POMs with a `DOCTYPE` declaration are not edited
-automatically; add those declarations by hand. Compatibility version updates change only the managed
-plugin's own project-level `<version>`. A plugin declared only inside a profile is reported as not
-reconfigured.
+| Option | What it does |
+|---|---|
+| `-C`, `--directory <dir>` | Start in `<dir>` instead of the current directory. See [Choosing projects](#choosing-projects). |
+| `--project <dir>` | Configure this Maven or Gradle project, relative to `-C`. Repeat for several. |
+| `--preset <standard\|strict>` | Pre-select the preset's gates and rules. See [Presets and gates](#presets-and-gates). |
+| `--gate <id>[,...]` | Enable these [gates](/configuration/gates/). With `--preset`, adds to the preset's gates. |
+| `--integration <none\|agent>[,...]` | Install agent integrations. `none` cannot be combined with an agent. |
+| `--architecture <style>` | `layered`, `hexagonal`, or `clean` for the `archunit` gate. |
+| `--tool openspec` | Add OpenSpec as a project tool. |
+| `--openspec-validation <id>[,...]` | Add the `openspec` (active) or `openspec-archived` validation gate. |
+| `--install-tool <tool\|gate>[,...]` | Consent to install a missing tool, such as `trivy` or `openspec`. |
+| `--quality-hooks` | Add Ward checks to the Git pre-commit and pre-push hooks. |
+| `--remove-quality-hooks` | Remove only Ward's sections from those hooks. |
+| `--ci github` | Write a GitHub Actions workflow that runs the `ci` profile. |
+| `--agent-rules` | Write the selected gates' limits into a Ward-owned section of `AGENTS.md`. |
+| `--overwrite` | Replace an existing `ward.toml` without asking. |
+| `--dry-run` | Print the change plan and exit without writing anything. |
+| `--accept-compatibility-updates` | Approve validated Maven plugin version updates without asking. |
+| `--yes` | Use defaults for unanswered questions, skip the review, approve compatibility updates. See [How questions are answered](#how-questions-are-answered). |
+| `--verbose` | Print initialization diagnostics to stderr. See [Troubleshooting](#troubleshooting-with-verbose-diagnostics). |
 
-In Gradle builds, plugin declarations go into the existing top-level `plugins { }` block. When the
-script has none, init creates one at the top, after any `buildscript { }` or `pluginManagement { }`
-block, because Gradle accepts `plugins { }` only there. Init then appends blocks that make the plugins
-use what it generated:
+`agent` accepts the IDs documented for [`integrate`](/commands/integrate/), including `codex`,
+`cursor`, `copilot`, `gemini`, `windsurf`, `cline`, `factory-droid`, and `amp`.
+
+## Presets and gates
+
+- `standard` and `strict` pre-select their offline gates. `custom` (wizard only) starts with none.
+- The gates you confirm are exactly the gates configured. Unticking a pre-selected gate removes its
+  `ward.toml` section, build declarations, and rule file. The preset's rules still apply to the
+  other gates.
+- With `--preset`, `--gate` only adds gates. It never removes preset gates.
+- Init does not run gates.
+
+Some gates need extra input:
+
+- **`archunit`** asks for Layered, Hexagonal, or Clean architecture. If test sources already
+  contain ArchUnit classes ending in `Test` or `Tests`, init runs those instead of generating a
+  duplicate. Otherwise it creates a minimal `ArchitectureTest.java`; see
+  [Generated files](#generated-files).
+- **`zap`** writes a `<TARGET_URL>` placeholder. Replace it with an authorized target before
+  `check` will run the gate.
+- **`api-compat`** needs a released baseline. On Maven it is offered only when `pom.xml` declares
+  `<distributionManagement>`; otherwise `--gate api-compat` fails with that explanation.
+- **`openapi-lint`, `openapi-diff`, and `openapi-compat`** are offered only when Git tracks an
+  `openapi.yml`, `openapi.yaml`, or `openapi.json` in `src/main/resources` or the project root.
+  Init writes that path as their `spec`; see
+  [OpenAPI contract gates](/configuration/gates/#openapi-contract-gates).
+- **`dependency-check` with `trivy`**: init warns that trivy already scans dependencies without an
+  API key, so you can usually drop one of them.
+
+### Profiles
+
+Init assigns each gate to cumulative [profiles](/configuration/ward-toml/):
+
+| Gates | Profiles |
+|---|---|
+| Fast: `format`, `checkstyle`, `pmd`, `gitleaks` | `default`, `pre-commit`, `pre-push`, `ci` |
+| Slower local gates, including `compile`, and custom commands | `pre-push`, `ci` |
+| Environment-dependent gates | `ci` |
+
+`default` is the same fast tier as `pre-commit`, and `ci` contains every selected gate.
+
+## What init changes in your build
+
+For `format`, `enforcer`, `license`, `api-compat`, and `pmd`, init adds missing plugins using
+Ward's embedded Java compatibility catalog.
+
+- Existing compatible plugin versions are kept.
+- For an incompatible managed plugin, init shows the current version, the compatible version, the
+  detected constraints, and the file, then asks for consent. Approve with `--yes` or
+  `--accept-compatibility-updates`.
+- A declined update leaves the build file unchanged, and init reports that the gate was not
+  reconfigured.
+
+<Tabs>
+<TabItem label="Maven">
+
+- Plugins go only into the project-level `<build><plugins>`, and dependencies only into the
+  project-level `<dependencies>`. Missing sections are created.
+- Profiles, `dependencyManagement`, and plugin dependencies are never edited. A plugin declared
+  only inside a profile is reported as not reconfigured.
+- The one addition to `<build><pluginManagement>` is the strict `enforcer` pins described in
+  [First failures under `strict`](#first-failures-under-strict). Existing entries there never
+  change.
+- Compatibility updates change only the managed plugin's own project-level `<version>`.
+- New declarations match the file's indentation. The rest of `pom.xml` stays byte for byte as it
+  was.
+- `mutation` adds `pitest-maven` 1.30.1 with `pitest-junit5-plugin` 1.2.3, which read Java 25
+  class files.
+- The `maven-pmd-plugin` declaration enables `<analysisCache>true</analysisCache>`. On Ward's own
+  sources this cut a warm PMD run from about 8 s to 2 s.
+
+Before writing, Ward checks the edited `pom.xml` in-process, without running Maven or fetching
+anything. The file must be well-formed XML, and each added declaration may contain only elements
+Maven allows there. If a check fails, `pom.xml` is not written, the error names the tool, and init
+rolls back its other changes.
+
+<Aside type="caution">
+POMs with a `DOCTYPE` declaration are not edited automatically. Add those declarations by hand.
+</Aside>
+
+</TabItem>
+<TabItem label="Gradle">
+
+Init adds pinned plugin declarations to `build.gradle` or `build.gradle.kts` in the detected DSL,
+and prefers the Gradle Wrapper when one exists.
+
+- Declarations go into the existing top-level `plugins { }` block. Without one, init creates it at
+  the top, after any `buildscript { }` or `pluginManagement { }` block, because Gradle accepts
+  `plugins { }` only there.
+- Each block is added only once, so running init again does not duplicate it. The Kotlin DSL gets
+  the same blocks in Kotlin syntax.
+
+Init then appends blocks that make the plugins use what it generated:
 
 - With a preset, `checkstyle { configFile = file('config/checkstyle.xml') }` and
-  `pmd { ruleSetFiles = files('config/pmd-ruleset.xml'); ruleSets = [] }`, both limited to the `main`
-  source set, as the Maven plugins are. Each is followed by a `tasks.named` block that limits the task to
-  the files in the `wardPaths` property when a partial check sets it.
+  `pmd { ruleSetFiles = files('config/pmd-ruleset.xml'); ruleSets = [] }`, both limited to the
+  `main` source set, as the Maven plugins are. Each is followed by a `tasks.named` block that limits
+  the task to the files in the `wardPaths` property when a partial check sets it.
 - `spotless { java { googleJavaFormat() } }` for `format`, unless a `spotless { }` block exists.
-- `jacocoTestCoverageVerification` with the preset's minimums, or `LINE` `0.80` without a preset. The
-  `coverage` gate runs `jacocoTestCoverageVerification`, which fails below a minimum.
+- `jacocoTestCoverageVerification` with the preset's minimums, or `LINE` `0.80` without a preset.
+  The `coverage` gate runs this task, which fails below a minimum.
 - `pitest { pitestVersion = '1.30.1'; junit5PluginVersion = '1.2.3' }` for `mutation`, plus the
-  preset's `mutationThreshold`. The PIT version is pinned because the Gradle plugin's default PIT
-  cannot read Java 25 class files. PIT derives `targetClasses` from the project `group`, so set
-  `group` in the build script.
+  preset's `mutationThreshold`. PIT is pinned because the plugin's default PIT cannot read Java 25
+  class files. PIT derives `targetClasses` from the project `group`, so set `group` in the build
+  script.
 
-The Kotlin DSL gets the same blocks in Kotlin syntax. A block is added only once, so running init
-again does not duplicate it.
+</TabItem>
+</Tabs>
 
-For `mutation` on Maven, init adds `pitest-maven` 1.30.1 with `pitest-junit5-plugin` 1.2.3, which
-read Java 25 class files. Neither build tool gets PIT history settings: since PIT 1.30, incremental
-analysis needs the commercial Arcmutate history plugin.
+Neither build tool gets PIT history settings: since PIT 1.30, incremental analysis needs the
+commercial Arcmutate history plugin.
 
-The generated `ward.toml` includes [`partial` tables](/configuration/gates/#partial-checks) for
-`checkstyle`, `pmd`, `format`, and `semgrep`, so the check after each agent edit skips gates the edit
-does not affect and narrows supported tools to the edited files. Other gates, `ward check` without
-`--path`, git hooks, and CI keep checking the whole project. The `maven-pmd-plugin` declaration init
-adds enables `<analysisCache>true</analysisCache>`, which cut a warm PMD run on Ward's own sources
-from about 8 s to 2 s.
+### Generated files
 
-Init generates `ArchitectureTest.java` in the package shared by all main sources, for example
-`com.acme.shop` for `com.acme.shop.domain` and `com.acme.shop.application`, and its rules analyze that
-whole package. The layer rule passes while its layer packages have no classes, so a new project does
-not fail before those packages exist.
+- **`ward.toml`** includes [`partial` tables](/configuration/gates/#partial-checks) for
+  `checkstyle`, `pmd`, `format`, and `semgrep`. The check after each agent edit skips gates the edit
+  cannot affect and narrows these tools to the edited files. Other gates, `ward check` without
+  `--path`, Git hooks, and CI still check the whole project.
+- **`ArchitectureTest.java`** goes in the package shared by all main sources, for example
+  `com.acme.shop` for `com.acme.shop.domain` and `com.acme.shop.application`. Its rules analyze that
+  whole package. The layer rule passes while layer packages are empty, so a new project does not
+  fail before they exist.
+- **The `gitleaks` gate** writes a redacted SARIF report, so `ward check` can attach findings (file,
+  line, and rule) to a failed gate:
+
+  ```toml
+  [quality-gates.gitleaks]
+  command = ["gitleaks", "detect", "--no-banner", "--redact",
+             "--report-format", "sarif", "--report-path", "target/gitleaks.sarif"]
+  ```
+
+  Gradle projects use `build/gitleaks.sarif`. Ward creates the report directory before the gate
+  runs, so it works on a fresh clone. Configurations from earlier versions keep working without
+  findings; re-run `ward init` or add the four report arguments to enable them.
+
+### Existing files
+
+- An existing `ward.toml` is kept unless you confirm the overwrite or pass `--overwrite`.
+- Preset rule files are Ward-owned. Unmarked existing rule files are kept and reported.
 
 ### First failures under `strict`
 
@@ -108,66 +189,78 @@ finding. With `strict`, expect these on most existing projects:
 - `checkstyle`: findings such as `MagicNumber`, `MissingJavadocMethod`, or `MethodLength` in
   existing code.
 - `enforcer`: strict keeps `requirePluginVersions` on purpose, so every plugin needs a pinned
-  version. Init pins the plugins Maven adds through its default lifecycle (clean, resources, compiler,
-  surefire, jar, install, deploy, and site) in `<pluginManagement>`, using the versions Maven 3.9.16
-  binds by default, and skips any plugin the POM already declares. The pins appear in `--dry-run`.
-  `requirePluginVersions` can still fail on plugins outside that list, such as `maven-war-plugin`,
-  or when a parent POM supplies a version; pin those in `<pluginManagement>` with the versions the
-  message reports. Use `standard` if you do not want that rule.
+  version.
+  - Init pins the plugins Maven adds through its default lifecycle (clean, resources, compiler,
+    surefire, jar, install, deploy, and site) in `<pluginManagement>`. It uses the versions Maven
+    3.9.16 binds by default and skips plugins the POM already declares. The pins appear in
+    `--dry-run`.
+  - The rule can still fail on other plugins, such as `maven-war-plugin`, or when a parent POM
+    supplies a version. Pin those in `<pluginManagement>` with the versions the message reports.
+  - Use `standard` if you do not want this rule.
 
-Init-generated configurations assign gates to cumulative execution phases. Fast gates (`format`,
-`checkstyle`, `pmd`, and `gitleaks`) belong to `default`, `pre-commit`, `pre-push`, and
-`ci`. Slower local gates belong to `pre-push` and `ci`; environment-dependent gates belong to `ci`,
-and custom commands belong to `pre-push` and `ci`. The `default` profile is intentionally the same
-fast tier as `pre-commit`, while `ci` contains every selected gate. `compile` is a slower local gate
-and therefore runs only in `pre-push` and `ci`. Init does not generate a CI workflow.
+## Tools init can install
 
-The generated `gitleaks` command writes a redacted SARIF report so `ward check` can attach
-structured findings (file, line, and rule) to a failed gate:
+Init installs a missing tool only with your explicit consent, one tool at a time.
 
-```toml
-[quality-gates.gitleaks]
-command = ["gitleaks", "detect", "--no-banner", "--redact",
-           "--report-format", "sarif", "--report-path", "target/gitleaks.sarif"]
-```
+| Tool | How |
+|---|---|
+| Trivy, Gitleaks | Homebrew |
+| Semgrep | Homebrew, or pipx as a fallback |
+| ZAP (`zap-baseline.py`) | Manual guidance only |
+| OpenSpec | `--install-tool openspec` |
 
-Gradle projects use `build/gitleaks.sarif`. Ward creates the report directory before the gate
-runs, so the gate works on a fresh clone. Configurations generated by earlier versions keep working
-without findings; re-run `ward init` or add the four report arguments to enable them.
+- In the wizard, each unavailable tool gets a Yes/No question. No is the default, and blank input or
+  end of input declines.
+- In non-interactive runs, consent with `--install-tool <gate>`, for example
+  `--install-tool trivy`.
+- `--yes` never installs tools and never bypasses unresolved prerequisites. `--dry-run` lists the
+  install commands but runs none. `ward check` never installs gate tools.
 
-Quality hooks are separate from agent integrations and are opt-in. Pass `--quality-hooks` to add
-Ward-managed checks to `.git/hooks/pre-commit` and `.git/hooks/pre-push`. Each managed section is
-inserted after the shebang and before existing user logic; it does not replace the hook. The
-pre-commit section runs `ward check --profile pre-commit --format json`, and the pre-push section runs
-`ward check --profile pre-push --format json`. Re-run the option to refresh the managed sections. Use
-`--remove-quality-hooks` to remove only Ward's marked sections, preserving user content,
-executable permissions, and other Ward integrations. A malformed or duplicate quality-hook marker
-is reported as a conflict and left unchanged.
+When `trivy` runs after a selected Maven or Gradle gate, init adds `--offline-scan`, so Trivy
+resolves dependencies from the local repository instead of Maven Central
+([why](/guides/ci-cd/#trivy-offline-scans)).
 
-Pass `--ci github` to write `.github/workflows/ward.yml`, a GitHub Actions workflow that runs
-`ward check --profile ci` on pull requests and pushes to `main`. It installs the Ward release
-that ran init (`WARD_VERSION`), pins the tools the selected gates need (gitleaks, trivy, semgrep,
-OpenSpec), fetches full history for gitleaks, caches the trivy database, passes the `NVD_API_KEY`
-secret to `dependency-check`, and uploads the SARIF report to code scanning for pull requests from
-the same repository. The file is Ward-owned: re-running init refreshes it, and an existing
-workflow at that path without Ward's marker blocks initialization as a conflict. Gates that need
-a running application, such as `zap`, are not set up in the workflow.
+## Optional generated files
 
-Pass `--agent-rules` to write a Ward-owned section into `AGENTS.md` that tells coding agents the
-limits the selected gates enforce: the preset's Checkstyle limits, PMD rule sets, SpotBugs effort,
-coverage and mutation minimums, and enforcer rules. Content outside the section's markers is kept.
-When a rule file is user-owned, the section points to the file instead of quoting preset values. Init
-changes `AGENTS.md` only when `--agent-rules` is given, and then rewrites the section from the preset,
-so pass it again after tuning rules only if you want the preset values back.
+### Quality hooks
 
-When both `dependency-check` and `trivy` are selected, init warns that trivy already scans
-dependencies without an API key, so one of them can usually be dropped.
+Quality hooks are opt-in and separate from agent integrations. `--quality-hooks` adds Ward-managed
+sections to `.git/hooks/pre-commit` and `.git/hooks/pre-push`:
 
-On supported macOS and Linux terminals, use Up/Down to move, Space to toggle, and Enter to confirm.
-Press `q`, `Q`, or Ctrl+C to cancel. On Windows, piped input, or when raw terminal mode is unavailable,
-the wizard uses numbered prompts instead. Numbered prompts show pre-selected items as `[x]`; each number
-you enter toggles that item, and an empty line accepts the pre-selection. For example, after choosing
-`standard`, entering the number of `pmd` configures every standard gate except `pmd`.
+- Each section goes after the shebang and before your own logic. It does not replace the hook.
+- pre-commit runs `ward check --profile pre-commit --format json`; pre-push runs
+  `ward check --profile pre-push --format json`.
+- Re-run the option to refresh the sections.
+- `--remove-quality-hooks` removes only Ward's marked sections. It keeps your content, executable
+  permissions, and other Ward integrations.
+- A malformed or duplicate marker is reported as a conflict and left unchanged.
+
+### CI workflow
+
+Without `--ci`, init does not generate a CI workflow. `--ci github` writes
+`.github/workflows/ward.yml`, which runs `ward check --profile ci` on pull requests and pushes to
+`main`. The workflow:
+
+- installs the Ward release that ran init (`WARD_VERSION`);
+- pins the tools the selected gates need (gitleaks, trivy, semgrep, OpenSpec);
+- fetches full history for gitleaks and caches the trivy database;
+- passes the `NVD_API_KEY` secret to `dependency-check`;
+- uploads the SARIF report to code scanning for pull requests from the same repository.
+
+The file is Ward-owned, so re-running init refreshes it. An existing workflow at that path without
+Ward's marker blocks initialization as a conflict. Gates that need a running application, such as
+`zap`, are not set up in the workflow.
+
+### Agent rules
+
+`--agent-rules` writes a Ward-owned section into `AGENTS.md` with the limits the selected gates
+enforce: Checkstyle limits, PMD rule sets, SpotBugs effort, coverage and mutation minimums, and
+enforcer rules.
+
+- Content outside the section's markers is kept.
+- When a rule file is user-owned, the section points to the file instead of quoting preset values.
+- Init changes `AGENTS.md` only when you pass `--agent-rules`, and then rewrites the section from the
+  preset. Pass it again after tuning rules only if you want the preset values back.
 
 ## Choosing projects
 
@@ -175,12 +268,14 @@ Init configures the Maven or Gradle project that contains the `-C` directory. St
 build module, it configures the aggregator that lists the module, so `ward.toml` lands next to the
 aggregator's `pom.xml` or `settings.gradle(.kts)`.
 
-When the `-C` directory is not inside a Maven or Gradle project, such as the root of a pnpm or
-Turbo monorepo, init looks for Maven and Gradle projects below it. It skips hidden directories and
-`node_modules`, `target`, `build`, `dist`, and `out`, and it counts modules toward their aggregator
-instead of listing them. With one project found, init configures it and says so. With several, the
-wizard asks which to configure, all checked. Without a terminal, or with `--yes`, init stops and
-lists the `--project` values to pass.
+When the `-C` directory is not inside a Maven or Gradle project, such as the root of a pnpm or Turbo
+monorepo, init looks for projects below it:
+
+- It skips hidden directories and `node_modules`, `target`, `build`, `dist`, and `out`.
+- Modules count toward their aggregator instead of being listed.
+- With one project found, init configures it and says so.
+- With several, the wizard asks which to configure, all checked. Without a terminal, or with `--yes`,
+  init stops and lists the `--project` values to pass.
 
 `--project <dir>` names a project explicitly, relative to `-C`. Repeat it to configure several
 projects in one run:
@@ -190,14 +285,16 @@ ward init --project apps/api --project services/billing --preset standard --inte
 ```
 
 Each value must be a Maven or Gradle project root. A module or a subdirectory fails before anything
-is planned and names the project to use instead. The answers apply to every selected project; run
-init again with a single `--project` to give one project different settings.
+is planned, and the error names the project to use instead. The answers apply to every selected
+project; run init again with a single `--project` to give one project different settings.
 
 ## Monorepos
 
-Ward keeps two roots apart. The **project root** holds `ward.toml`, the build file, the rule files,
-and `AGENTS.md`. The **repository root**, the Git top-level, holds what Git, GitHub, and agent
-sessions only read there:
+Ward keeps two roots apart:
+
+- The **project root** holds `ward.toml`, the build file, the rule files, and `AGENTS.md`.
+- The **repository root**, the Git top-level, holds the files that Git, GitHub, and agent sessions
+  read only there.
 
 | File | Single-project repository | Project in `apps/api` |
 |---|---|---|
@@ -209,50 +306,63 @@ sessions only read there:
 | OpenSpec gates | `openspec/` in the project | `root = "../.."` when `openspec/` exists only at the repository root |
 
 The plan shows repository-level files relative to the project root, such as
-`modify ../../.git/hooks/pre-commit`, and a run that configures several projects lists them once
-under **Repository root**. A project whose root is the repository root gets exactly the files it
-always did.
+`modify ../../.git/hooks/pre-commit`. A run that configures several projects lists them once under
+**Repository root**. A project whose root is the repository root gets exactly the files it always
+did.
 
 The other agents read a single hook file at the repository root, so every project shares one
-installation. Its hook names no project: Ward checks the project whose `ward.toml` is closest above
-each edited file, and at turn end every configured project with changes. Edits outside every
-configured project, such as `apps/web/page.tsx`, run nothing. Removing such an integration removes
-it for every project in the repository.
+installation:
 
+- The hook names no project. Ward checks the project whose `ward.toml` is closest above each edited
+  file, and at turn end every configured project with changes.
+- Edits outside every configured project, such as `apps/web/page.tsx`, run nothing.
+- Removing such an integration removes it for every project in the repository.
+
+<Aside title="Upgrading from earlier versions">
 Earlier Ward versions wrote these files inside the project, where nothing reads them. After
 re-running init, delete them by hand if they exist: `apps/api/.git/hooks/` (only when
 `apps/api/.git` holds nothing but that directory), `apps/api/.github/workflows/ward.yml`, and the
-Ward files under `apps/api/.claude/`, `apps/api/.opencode/`, and the other agents' directories
-(such as `apps/api/.codex/`).
+Ward files under `apps/api/.claude/`, `apps/api/.opencode/`, and the other agents' directories (such
+as `apps/api/.codex/`).
+</Aside>
 
 ## Wizard tips
 
-- Each question starts with `Step N of M`. The total can grow when an answer adds a follow-up question,
-  such as the architecture style after you select `archunit`.
+- Each question starts with `Step N of M`. The total can grow when an answer adds a follow-up
+  question, such as the architecture style after you select `archunit`.
 - Press Enter to accept the default shown in brackets: `Enter=1` (`standard`) at the preset question
   and `Enter=layered` at the architecture question.
-- Gates whose tool is not installed are marked `[unavailable]` in the gate list. If you select one
-  anyway, init configures it and prints how to make it available, for example
+- Gates whose tool is not installed are marked `[unavailable]`. If you select one anyway, init
+  configures it and prints how to make it available, for example
   `Selected quality gate 'semgrep': UNAVAILABLE - ...`.
 - The arrow-key menus redraw in place, so your earlier answers stay on screen.
 
+### Keys
+
+| Where | How to answer |
+|---|---|
+| macOS and Linux terminals | Up/Down to move, Space to toggle, Enter to confirm. `q`, `Q`, or Ctrl+C cancels. |
+| Windows, piped input, or no raw terminal mode | Numbered prompts. Pre-selected items show as `[x]`; each number you enter toggles that item, and an empty line accepts the pre-selection. |
+
+For example, after choosing `standard`, entering the number of `pmd` configures every standard gate
+except `pmd`.
+
 ### Reconfiguring
 
-Run `ward init` again and answer `y` to the overwrite question (or pass `--overwrite`) to change an
-existing setup. The preset question defaults to the preset recorded in `ward.toml` (`custom` when
-none is recorded), and the gate list starts with the gates that are currently enabled, so changing one
-gate takes a couple of key presses. Integrations, hooks, tools, and the architecture style are asked
-as usual. If the existing file can't be read, the usual defaults apply. Answering `n` keeps the file
-and prints `Kept existing ward.toml. No changes were made.`
+Run `ward init` again and answer `y` to the overwrite question, or pass `--overwrite`.
+
+- The preset question defaults to the preset recorded in `ward.toml` (`custom` when none is
+  recorded).
+- The gate list starts with the currently enabled gates, so changing one gate takes a couple of key
+  presses.
+- Integrations, hooks, tools, and the architecture style are asked as usual.
+- If the existing file can't be read, the usual defaults apply.
+
+Answering `n` keeps the file and prints `Kept existing ward.toml. No changes were made.`
 
 ### Gate tool installation
 
-When a selected external gate tool is unavailable, the wizard offers one Yes/No installation
-question per resolvable tool. No is the default; blank input or end of input declines. Homebrew is
-supported for Trivy, Gitleaks, and Semgrep, and pipx is a fallback for Semgrep. ZAP's
-`zap-baseline.py` has manual guidance only. In non-interactive mode, explicitly consent with
-`--install-tool <gate>` (for example `--install-tool trivy`); `--yes` never installs tools.
-`--dry-run` lists commands but runs none. `ward check` never installs gate tools.
+See [Tools init can install](#tools-init-can-install).
 
 ## Review and dry run
 
@@ -275,22 +385,20 @@ Ward will make these changes:
 Proceed? [Y/n]:
 ```
 
-The plan lists every file init would create, modify, or remove, including agent-integration files and
-Git hooks. For `pom.xml` or the Gradle build file it names each plugin it would add, with its version,
-and each managed plugin whose version it would update. Updates that still need approval are marked
-`(requires approval)`. User-owned files that init leaves alone are listed as `keep`. A user-owned file
-that would block initialization is listed as `conflict`, and init stops with exit code `2` before
-writing anything.
+| Plan entry | Meaning |
+|---|---|
+| `create`, `modify`, `remove` | Every file init would change, including agent-integration files and Git hooks. |
+| `+ plugin version` | A plugin init would add to `pom.xml` or the Gradle build file. |
+| `~ plugin old -> new` | A managed plugin version update; `(requires approval)` when it still needs approval. |
+| `keep` | A user-owned file init leaves alone. |
+| `conflict` | A user-owned file that blocks initialization. Init stops with exit code `2` before writing anything. |
 
-`--dry-run` resolves your answers the same way, prints the plan, and exits with code `0` without
-writing files, installing OpenSpec, or asking for compatibility approval:
+`--dry-run` resolves your answers the same way, prints the plan, and exits with code `0`. It writes
+no files, installs nothing (including OpenSpec), and asks for no compatibility approval:
 
 ```console
 ward init --dry-run --preset strict --integration none --architecture layered
 ```
-
-`--accept-compatibility-updates` approves validated Maven compatibility updates without prompting,
-without the other effects of `--yes`.
 
 ## How questions are answered
 
@@ -306,36 +414,56 @@ Each question is answered by the first of these that applies:
 3. An answer read from input.
 
 On a terminal, options never hide the questions they don't answer, so
-`ward init --integration claude-code` still asks for the preset, gates, Tools, and quality hooks.
-Without a terminal, for example in CI, when `--preset`, `--gate`, or `--integration` is given, init
-reads nothing: unanswered questions take their defaults, so an open but silent standard input can't
-make it wait. Without options, answers can be piped, for example `printf '1\n1\n\n' | ward init`.
+`ward init --integration claude-code` still asks for the preset, gates, tools, and quality hooks.
 
-The preset and gate selection is the only required answer. If input ends before it, or it is missing
-in a non-interactive run, init exits with code `2` and suggests `--preset`, `--gate`, or `--yes`. If
-input ends at any other question, init uses its default and continues, except at the OpenSpec
-installation prompt, where initialization is cancelled and no files are changed.
+Without a terminal, for example in CI:
 
-On a terminal, an invalid answer, such as `4` at the preset question, an out-of-range number, or an
-empty gate selection, shows the error and asks the same question again, keeping your earlier answers.
-The raw-key menus stay open after an empty confirmation. With piped input, an invalid answer fails
-immediately with exit code `2` and no changes.
+- When `--preset`, `--gate`, or `--integration` is given, init reads nothing. Unanswered questions
+  take their defaults, so an open but silent standard input can't make it wait.
+- Without options, answers can be piped, for example `printf '1\n1\n\n' | ward init`.
 
-The wizard has a separate optional Tools screen. OpenSpec, its active validation
-(`openspec validate --all --strict --no-interactive`), and its archived validation
-(`openspec validate --archived --no-interactive`) are unselected by default. Selecting a tool or
-validation is not installation consent. `--install-tool openspec` is explicit consent; without it
-Ward only writes selected validations and reports manual remediation. When a selected validation's
-`openspec/` directory is ignored by Git, init still writes the gate but prints a warning: CI checkouts
-will not contain the specs, so the gate fails there.
+### Missing and invalid answers
+
+- The preset and gate selection is the only required answer. If input ends before it, or it is
+  missing in a non-interactive run, init exits with code `2` and suggests `--preset`, `--gate`, or
+  `--yes`.
+- If input ends at any other question, init uses its default and continues. The exception is the
+  OpenSpec installation prompt, where initialization is cancelled and no files change.
+- On a terminal, an invalid answer (such as `4` at the preset question, an out-of-range number, or an
+  empty gate selection) shows the error and asks again, keeping your earlier answers. The raw-key
+  menus stay open after an empty confirmation.
+- With piped input, an invalid answer fails immediately with exit code `2` and no changes.
+
+### Tools screen
+
+The wizard has a separate optional Tools screen. OpenSpec and its two validations are unselected by
+default:
+
+- active: `openspec validate --all --strict --no-interactive`
+- archived: `openspec validate --archived --no-interactive`
+
+Selecting a tool or validation is not consent to install it. `--install-tool openspec` is explicit
+consent; without it, Ward only writes the selected validations and reports manual remediation.
+
+<Aside type="caution">
+When a selected validation's `openspec/` directory is ignored by Git, init still writes the gate but
+warns you: CI checkouts will not contain the specs, so the gate fails there.
+</Aside>
 
 ## Troubleshooting with verbose diagnostics
 
-Add `--verbose` to the root command or `init` command to route initialization decisions to stderr.
-Diagnostics identify ownership conflicts, applied changes, and rollback outcomes without printing
+Add `--verbose` to the root command or to `init` to route initialization decisions to stderr. The
+diagnostics identify ownership conflicts, applied changes, and rollback outcomes without printing
 file contents:
 
 ```console
 ward --verbose init
 ward init --verbose
 ```
+
+## Exit codes
+
+| Code | Meaning |
+|---|---|
+| `0` | Initialization succeeded, or `--dry-run` printed the plan. |
+| `2` | Invalid usage, or init could not initialize: a conflict, a cancelled or invalid selection, or a missing required answer. |

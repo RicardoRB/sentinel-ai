@@ -16,6 +16,23 @@ coding agent can act on. Any agent integration can call it with the files it jus
 Today it supports [OpenSpec](/configuration/gates/). It is a no-op unless an OpenSpec validation is enabled in
 `ward.toml`, so projects without OpenSpec see no change.
 
+## Options
+
+| Option | Subcommand | What it does |
+|---|---|---|
+| `-C`, `--directory <dir>` | all | Run for the project in `<dir>` instead of the current directory. |
+| `--profile <name>[,...]` | `validate`, `enforce` | Profiles whose OpenSpec registrations run (default: `default`). |
+| `<path>...` | `validate`, `guard` | Files to validate, or files the agent would write. |
+| `--cwd <dir>` | `guard` | Directory that relative paths and shell commands resolve against (default: the project root). |
+| `--patch-stdin` | `guard` | Read a patch from stdin. |
+| `--shell-stdin` | `guard` | Read a shell command from stdin. |
+| `--skill <name>` | `guard` | Check a skill or command invocation. |
+| `--base <revision>` | `enforce` | The base revision to compare with. Required. |
+| `--bootstrap-baseline <declaration>` | `enforce` | Accept the first baseline explicitly. See [`spec enforce`](#enforcing-revision-provenance-spec-enforce). |
+| `--verbose` | all | Print diagnostics to stderr. |
+
+`guard` takes exactly one kind of input: paths, `--patch-stdin`, `--shell-stdin`, or `--skill`.
+
 ## Targeted validation: with paths
 
 Pass the files that changed. Paths may be absolute or relative to the project root.
@@ -79,7 +96,7 @@ Output is bounded so it fits agent hook context limits:
 - When a validation fails without recognizable `ERROR`, `WARNING`, or `INFO` lines, a short excerpt of its
   output is shown instead.
 
-## Exit codes
+### Validate exit codes
 
 | Code | Meaning |
 |---|---|
@@ -186,13 +203,13 @@ ward spec enforce --base origin/main
 
 Ward resolves the checked-out `HEAD`, computes `git merge-base` with the explicit base, and compares the
 merge-base OpenSpec snapshot with the candidate. The checkout must contain the base revision and enough history
-for that merge base; shallow or missing history fails with exit code `2` and should be repaired with
+for that merge base. Shallow or missing history fails with exit code `2`; repair it with
 `actions/checkout` `fetch-depth: 0` (or an equivalent fetch).
 
-The command reuses the configured active, archived, and optional JUnit traceability checks. Existing archives are
-immutable. A changed live specification must be exactly produced by one newly added, complete archive; an archive
-name or commit message alone is not sufficient. Exit code `1` means policy findings and exit code `0` means the
-checks pass.
+- The command reuses the configured active, archived, and optional JUnit traceability checks.
+- Existing archives are immutable.
+- A changed live specification must be produced exactly by one newly added, complete archive. An
+  archive name or commit message alone is not enough.
 
 For the first baseline only, a reviewer may explicitly select bootstrap:
 
@@ -203,3 +220,14 @@ ward spec enforce --base origin/main --bootstrap-baseline "approved initial base
 Missing history never implicitly enables bootstrap. Git history and archive provenance are evidence of deterministic
 origin, not proof of human approval; required status checks and code-owner review remain repository settings.
 Generated blocking integrations never invoke `/opsx:verify`, which remains advisory.
+
+## Exit codes
+
+| Subcommand | `0` | `1` | `2` |
+|---|---|---|---|
+| `spec validate` | Nothing to report | Findings, or an unsuccessful validation | Ward could not run |
+| `spec guard` | Allowed | Refused; the reason is on stdout | Ward could not decide |
+| `spec enforce` | The checks pass | Policy findings | Ward could not run, including shallow or missing history |
+
+See [Validate exit codes](#validate-exit-codes) and [Guard exit codes](#guard-exit-codes) for
+details.

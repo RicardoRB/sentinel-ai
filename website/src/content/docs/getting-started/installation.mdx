@@ -51,10 +51,12 @@ ward --version
 ```
 
 The script downloads `ward-windows-x86_64.zip`, verifies its SHA-256 checksum, and installs
-`ward.exe` in `%LOCALAPPDATA%\Programs\ward\bin`, with `LICENSE` and `NOTICE` one directory up. It
-needs no administrator rights. It adds the install directory to your user `PATH` and to the current
-session; terminals that are already open must be restarted to see it. On Windows ARM64 it installs
-the x86_64 binary, which runs under emulation.
+`ward.exe` in `%LOCALAPPDATA%\Programs\ward\bin`, with `LICENSE` and `NOTICE` one directory up.
+
+- It needs no administrator rights.
+- It adds the install directory to your user `PATH` and to the current session. Terminals that are
+  already open must be restarted to see it.
+- On Windows ARM64 it installs the x86_64 binary, which runs under emulation.
 
 It reads the same `WARD_VERSION`, `WARD_INSTALL_DIR`, `WARD_DOC_DIR`, and `WARD_BASE_URL`
 variables; `WARD_DOC_DIR` defaults to the install directory's parent:
