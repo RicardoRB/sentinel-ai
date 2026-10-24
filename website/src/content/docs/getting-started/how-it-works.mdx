@@ -32,7 +32,8 @@ and [other agents](/integrations/native-harnesses/).
 
 ### 2. Commit
 
-The `pre-commit` hook runs the same fast checks on the whole project. It catches what the edit layer
+The `pre-commit` hook runs the same fast checks on the staged files, including a secret scan of
+those files. It catches what the edit layer
 can't see: files changed outside the agent, by a person, or by a tool. See
 [quality hooks](/integrations/quality-hooks/).
 

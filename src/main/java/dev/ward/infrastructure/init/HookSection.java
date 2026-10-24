@@ -15,6 +15,22 @@ record HookSection(String projectPath) {
   private static final String PRE_PUSH = "pre-push";
 
   /**
+   * Passes each staged file as {@code --path}, so gates with a {@code partial} table check the
+   * commit's files. A subshell keeps the hook's own arguments; raw paths keep non-ASCII names.
+   */
+  private static final String STAGED_PATHS =
+      """
+      (
+        set --
+        while IFS= read -r ward_path; do
+          if [ -n "$ward_path" ]; then set -- "$@" "--path=$ward_path"; fi
+        done <<WARD_STAGED
+      $(git -c core.quotePath=false diff --cached --name-only --diff-filter=ACMR --relative)
+      WARD_STAGED
+        ward check --profile pre-commit --format json "$@"
+      )""";
+
+  /**
    * Creates the section.
    *
    * @throws WardException if the path cannot be written safely inside single quotes
@@ -39,12 +55,7 @@ record HookSection(String projectPath) {
   /** Returns the full section, markers included, that runs {@code profile}. */
   String render(final String profile) {
     if (projectPath.isEmpty()) {
-      return start()
-          + "\nif ! ward check --profile "
-          + profile
-          + " --format json; then\n  exit 1\nfi\n"
-          + end()
-          + "\n";
+      return start() + "\nif ! " + check(profile) + "; then\n  exit 1\nfi\n" + end() + "\n";
     }
     final String quoted = "'" + projectPath + "'";
     return start()
@@ -53,14 +64,21 @@ record HookSection(String projectPath) {
         + "; then\n"
         + "  if ! (cd \"$(git rev-parse --show-toplevel)\"/"
         + quoted
-        + " && ward check --profile "
-        + profile
-        + " --format json); then\n"
+        + " && "
+        + check(profile)
+        + "); then\n"
         + "    exit 1\n"
         + "  fi\n"
         + "fi\n"
         + end()
         + "\n";
+  }
+
+  /** The check command; pre-commit narrows it to the staged files. */
+  private static String check(final String profile) {
+    return PRE_PUSH.equals(profile)
+        ? "ward check --profile " + profile + " --format json"
+        : STAGED_PATHS;
   }
 
   /**

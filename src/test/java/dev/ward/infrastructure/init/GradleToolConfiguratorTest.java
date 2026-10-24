@@ -99,7 +99,7 @@ class GradleToolConfiguratorTest {
             "org.owasp.dependencycheck",
             "info.solidsoft.pitest",
             "org.sonarqube",
-            "com.github.hierynomus.license",
+            "com.github.jk1.dependency-license-report",
             "me.champeau.gradle.japicmp");
   }
 

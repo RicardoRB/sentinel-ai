@@ -67,9 +67,9 @@ record BuildToolGates(boolean gradle, boolean available, String availability, St
             task("check", "enforcer:enforce")),
         option(
             "license",
-            "Checks dependency license compliance with the License Maven Plugin.",
-            " (license policy is configured in pom.xml.)",
-            task("licenseMain", "license:add-third-party")),
+            "Checks dependency licenses against the build file's license policy.",
+            " (license policy is configured in the build file.)",
+            task("checkLicense", "license:add-third-party")),
         apiCompat(),
         option(
             "command",

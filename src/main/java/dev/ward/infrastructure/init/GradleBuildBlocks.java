@@ -70,7 +70,14 @@ final class GradleBuildBlocks {
               GradleQualityBlocks.PITEST_JUNIT5,
               "pitest-junit5",
               "",
-              GradleQualityBlocks::pitest));
+              GradleQualityBlocks::pitest),
+          new Block(
+              "license",
+              false,
+              "licenseReport {",
+              "license-policy",
+              "",
+              GradleLicensePolicy::block));
 
   private GradleBuildBlocks() {}
 

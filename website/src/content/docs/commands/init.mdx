@@ -156,9 +156,11 @@ commercial Arcmutate history plugin.
 ### Generated files
 
 - **`ward.toml`** includes [`partial` tables](/configuration/gates/#partial-checks) for
-  `checkstyle`, `pmd`, `format`, and `semgrep`. The check after each agent edit skips gates the edit
-  cannot affect and narrows these tools to the edited files. Other gates, `ward check` without
-  `--path`, Git hooks, and CI still check the whole project.
+  `checkstyle`, `pmd`, `format`, `semgrep`, and `gitleaks`. The check after each agent edit, and
+  the pre-commit hook, skip gates the change cannot affect and narrow these tools to the edited or
+  staged files. Other gates, `ward check` without `--path`, the pre-push hook, and CI still check
+  the whole project. `gitleaks` scans those files directly, so it sees changes that are not yet
+  committed; its full run scans the Git history.
 - **`ArchitectureTest.java`** goes in the package shared by all main sources, for example
   `com.acme.shop` for `com.acme.shop.domain` and `com.acme.shop.application`. Its rules analyze that
   whole package. The layer rule passes while layer packages are empty, so a new project does not
@@ -175,6 +177,28 @@ commercial Arcmutate history plugin.
   Gradle projects use `build/gitleaks.sarif`. Ward creates the report directory before the gate
   runs, so it works on a fresh clone. Configurations from earlier versions keep working without
   findings; re-run `ward init` or add the four report arguments to enable them.
+- **The `license` plugin** matches license names exactly and case-sensitively, so init adds
+  `licenseMerges` that map common spellings to one name. The policy depends on the preset:
+  - `standard` denies GPL and AGPL, mapping spellings such as `GPL-3.0` and
+    `GNU Affero General Public License v3.0` to the excluded names. Licenses it does not recognize
+    pass, so unusual GPL spellings are not caught.
+  - `strict` allows only Apache-2.0, MIT, BSD-2-Clause, BSD-3-Clause, ISC, EPL-1.0, EPL-2.0, and
+    CC0-1.0. Any other license, or a dependency without one, fails the build. A dual-licensed
+    dependency passes when one of its licenses is allowed. LGPL, MPL, and CDDL are not listed
+    because they need a legal decision; add an approved license to `includedLicenses` and its
+    spellings to `licenseMerges`.
+- **On Gradle, the `license` gate** runs `checkLicense` from the
+  `com.github.jk1.dependency-license-report` plugin, and init writes a `licenseReport {}` block
+  whose rules are case-insensitive regular expressions. The plugin reads licenses from POMs and
+  from files inside the jar, and a dependency passes when any of them matches a rule.
+  - `standard` allows every license except GPL and AGPL. LGPL, the Classpath Exception, and
+    dependencies without a license pass. Other GPL exceptions, such as MySQL's Universal FOSS
+    Exception, only cover open-source use, so they fail.
+  - `strict` allows only Apache-2.0, MIT, BSD, ISC, EPL, and CC0 or public domain. Any other
+    license, or a dependency without one, fails.
+  - Earlier versions configured `com.github.hierynomus.license`, whose `licenseMain` checks
+    source headers, not dependencies. Re-run `ward init` to switch; remove the old plugin
+    yourself if you do not use it for headers.
 
 ### Existing files
 
@@ -197,6 +221,11 @@ finding. With `strict`, expect these on most existing projects:
   - The rule can still fail on other plugins, such as `maven-war-plugin`, or when a parent POM
     supplies a version. Pin those in `<pluginManagement>` with the versions the message reports.
   - Use `standard` if you do not want this rule.
+- `license`: "There are some forbidden licenses used" (Maven) or "Some libraries do not declare at
+  least one allowed license" (Gradle) for any dependency whose only licenses are not on the
+  allowlist, for example an LGPL-only JDBC driver. On Maven, add the license to
+  `includedLicenses` once your legal policy approves it, or add its spelling to `licenseMerges`
+  when it is an approved license written another way. On Gradle, add a rule to `licenseReport`.
 
 ## Tools init can install
 
@@ -228,8 +257,9 @@ Quality hooks are opt-in and separate from agent integrations. `--quality-hooks`
 sections to `.git/hooks/pre-commit` and `.git/hooks/pre-push`:
 
 - Each section goes after the shebang and before your own logic. It does not replace the hook.
-- pre-commit runs `ward check --profile pre-commit --format json`; pre-push runs
-  `ward check --profile pre-push --format json`.
+- pre-commit runs `ward check --profile pre-commit --format json` with each staged file as a
+  `--path`, so [partial checks](/configuration/gates/#partial-checks) cover the commit's files;
+  pre-push runs `ward check --profile pre-push --format json` on the whole project.
 - Re-run the option to refresh the sections.
 - `--remove-quality-hooks` removes only Ward's marked sections. It keeps your content, executable
   permissions, and other Ward integrations.
