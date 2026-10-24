@@ -10,7 +10,7 @@ on:
       native-runners:
         description: JSON array of runners for the native checks.
         type: string
-        default: '["ubuntu-24.04", "macos-14"]'
+        default: '["ubuntu-24.04", "macos-14", "windows-latest"]'
       harness-compatibility:
         description: Also run the deterministic agent-harness suites against the native executable.
         type: boolean
