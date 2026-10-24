@@ -20,6 +20,9 @@
         <native-build-tools.version>1.1.16</native-build-tools.version>
         <junit.version>6.1.3</junit.version>
         <assertj.version>3.27.7</assertj.version>
+        <!-- Mutate use cases and domain logic; adapters are covered by integration tests. -->
+        <pit.targetClasses>dev.ward.domain.*,dev.ward.application.*</pit.targetClasses>
+        <pit.failWhenNoMutations>true</pit.failWhenNoMutations>
     </properties>
 
     <dependencies>
@@ -116,6 +119,19 @@
     </dependencies>
 
     <profiles>
+        <!-- Pull request CI sets PIT_TARGET_CLASSES to the classes the change touches. -->
+        <profile>
+            <id>pit-changed-classes</id>
+            <activation>
+                <property>
+                    <name>env.PIT_TARGET_CLASSES</name>
+                </property>
+            </activation>
+            <properties>
+                <pit.targetClasses>${env.PIT_TARGET_CLASSES}</pit.targetClasses>
+                <pit.failWhenNoMutations>false</pit.failWhenNoMutations>
+            </properties>
+        </profile>
         <profile>
             <id>native</id>
             <dependencies>
@@ -379,11 +395,8 @@
                 </dependency>
               </dependencies>
               <configuration>
-                <!-- Mutate use cases and domain logic; adapters are covered by integration tests. -->
-                <targetClasses>
-                  <param>dev.ward.domain.*</param>
-                  <param>dev.ward.application.*</param>
-                </targetClasses>
+                <targetClasses>${pit.targetClasses}</targetClasses>
+                <failWhenNoMutations>${pit.failWhenNoMutations}</failWhenNoMutations>
                 <threads>4</threads>
                 <environmentVariables>
                   <WARD_NO_UPDATE_CHECK>1</WARD_NO_UPDATE_CHECK>

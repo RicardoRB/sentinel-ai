@@ -34,7 +34,7 @@ Gates in `ward.toml`; edit hooks run the `default` profile (format, checkstyle, 
 - Checkstyle (`config/checkstyle.xml`): file ≤500 lines, method ≤60, ≤5 params, cyclomatic ≤10; Javadoc on public types and methods; no magic numbers (use named constants); no star/unused imports; no `catch (Exception|RuntimeException|Throwable)`; no empty catch; `switch` needs `default`; one declaration/statement per line; no field-hiding locals/params except constructors and setters.
 - PMD (`config/pmd-ruleset.xml`): all errorprone, bestpractices, design, codestyle, multithreading, performance, security categories minus listed excludes. Mark locals and parameters `final`; no `var`; ≤8 duplicate literals per file; keep classes small (design rules flag god classes, too many methods/imports, coupling, cognitive complexity).
 - SpotBugs: effort Max, threshold Medium; only generated Dagger/Fory classes excluded. Copy mutable collections in and out of records/constructors.
-- Coverage (JaCoCo): bundle ≥85% line, ≥75% branch. Mutation (PIT, `ci`): ≥60%. New code needs tests that assert behavior.
+- Coverage (JaCoCo): bundle ≥85% line, ≥75% branch. Mutation (PIT, `ci`): ≥60%; pull request CI mutates only the domain/application classes the change touches (`PIT_TARGET_CLASSES`), releases mutate all. New code needs tests that assert behavior.
 - ArchUnit gate runs a fixed test list; add any new architecture/native contract test to that command.
 - Enforcer (`config/enforcer-rules.xml`): pin every plugin version, no dynamic versions, converging dependencies, Maven ≥3.9.
 - License: no GPL/AGPL dependencies.
