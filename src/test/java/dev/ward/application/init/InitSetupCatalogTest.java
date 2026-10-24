@@ -3,6 +3,7 @@ package dev.ward.application.init;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import dev.ward.JavaPresetGates;
 import dev.ward.ProjectFixtures;
 import dev.ward.application.gate.QualityGateFactory;
 import dev.ward.application.project.ProjectDetector;
@@ -63,7 +64,7 @@ class InitSetupCatalogTest {
   void exposesPresetRules() {
     final InitSetupCatalog catalog = new InitSetupCatalog(new FakeEnvironmentInspection());
     assertThat(catalog.presets()).containsExactly(QualityPreset.STANDARD, QualityPreset.STRICT);
-    assertThat(QualityPreset.STANDARD.gates())
+    assertThat(JavaPresetGates.STANDARD)
         .containsExactly(COMPILE, TESTS, "format", "checkstyle", "pmd", "spotbugs", "coverage");
     assertThat(QualityPreset.STRICT.rules().jacocoMinimums())
         .containsEntry("LINE", STRICT_LINE_MINIMUM)

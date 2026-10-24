@@ -6,26 +6,18 @@ import dev.ward.domain.gate.GateFindings;
 import dev.ward.domain.gate.GateOutputVisibility;
 import dev.ward.domain.gate.GateResult;
 import dev.ward.domain.gate.GateStatus;
+import dev.ward.domain.gate.QualityGateDefinitions;
 import dev.ward.domain.gate.SeverityThreshold;
 import dev.ward.domain.learning.LearningOutcome;
 import dev.ward.domain.learning.LearningPrompt;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
 /** Human-readable text fragments of a check report. */
 final class ReportText {
   static final String NL = System.lineSeparator();
   private static final int OUTPUT_TAIL_LINES = 40;
   private static final int SUMMARY_CAPACITY = 256;
-  private static final Map<String, String> DISPLAY_NAMES =
-      Map.ofEntries(
-          Map.entry("checkstyle", "Checkstyle"),
-          Map.entry("pmd", "PMD"),
-          Map.entry("spotbugs", "SpotBugs"),
-          Map.entry("owasp", "OWASP Dependency-Check"),
-          Map.entry("dependency-check", "OWASP Dependency-Check"),
-          Map.entry("gitleaks", "Gitleaks"));
 
   private ReportText() {}
 
@@ -77,7 +69,9 @@ final class ReportText {
   }
 
   static String displayName(final String id) {
-    return DISPLAY_NAMES.getOrDefault(id.toLowerCase(Locale.ROOT), id);
+    return QualityGateDefinitions.find(id.toLowerCase(Locale.ROOT))
+        .map(QualityGateDefinitions.Definition::displayName)
+        .orElse(id);
   }
 
   private static String tally(final CheckReport report) {

@@ -2,6 +2,7 @@ package dev.ward.application.init;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import dev.ward.JavaPresetGates;
 import dev.ward.domain.init.InitGateOption;
 import dev.ward.domain.init.QualityPreset;
 import dev.ward.domain.project.BuildTool;
@@ -24,7 +25,7 @@ class AgentRulesTemplateTest {
   void strictPresetStatesEveryLimitAgentsMustMeet() {
     final String body =
         AgentRulesTemplate.render(
-                PROJECT, gates(QualityPreset.STRICT.gates()), QualityPreset.STRICT, List.of())
+                PROJECT, gates(JavaPresetGates.STRICT), QualityPreset.STRICT, List.of())
             .body();
 
     assertThat(body)

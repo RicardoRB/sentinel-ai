@@ -11,6 +11,7 @@ import dev.ward.domain.project.Project;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 /** A nested project's turn-end check runs only when the turn changed the project. */
@@ -24,7 +25,8 @@ class HookScopeTest {
           Framework.NONE,
           false,
           false,
-          REPOSITORY);
+          REPOSITORY,
+          Set.of());
   private static final Project ROOT =
       new Project(REPOSITORY, Language.JAVA, BuildTool.MAVEN, Framework.NONE);
 

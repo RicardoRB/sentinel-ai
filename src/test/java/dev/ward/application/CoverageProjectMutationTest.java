@@ -2,6 +2,7 @@ package dev.ward.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import dev.ward.JavaPresetGates;
 import dev.ward.ProjectFixtures;
 import dev.ward.application.gate.CommandQualityGate;
 import dev.ward.application.gate.MavenTestGate;
@@ -26,6 +27,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -41,7 +43,8 @@ class CoverageProjectMutationTest {
     final InitSetupCatalog catalog = new InitSetupCatalog(new FakeEnvironmentInspection());
     final List<InitGateOption> gates =
         catalog.gates(
-            new Project(root, Language.JAVA, BuildTool.MAVEN, Framework.NONE, false, true, root));
+            new Project(
+                root, Language.JAVA, BuildTool.MAVEN, Framework.NONE, false, true, root, Set.of()));
     final PomToolConfigurator configurator = new PomToolConfigurator();
     final BuildFileChange change =
         configurator.apply(
@@ -85,7 +88,7 @@ class CoverageProjectMutationTest {
     final Project project = new Project(root, Language.JAVA, BuildTool.MAVEN, Framework.NONE);
     final List<InitGateOption> gates =
         catalog.gates(project).stream()
-            .filter(gate -> QualityPreset.STRICT.gates().contains(gate.id()))
+            .filter(gate -> JavaPresetGates.STRICT.contains(gate.id()))
             .toList();
     final BuildFileChange change =
         new PomToolConfigurator().apply(project, gates, QualityPreset.STRICT);

@@ -2,12 +2,12 @@ package dev.ward.infrastructure.cli.init;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import dev.ward.JavaPresetGates;
 import dev.ward.application.init.InitProjectFiles;
 import dev.ward.application.init.InitService;
 import dev.ward.application.init.InitSetupCatalog;
 import dev.ward.application.project.ProjectDetector;
 import dev.ward.domain.FakeEnvironmentInspection;
-import dev.ward.domain.init.QualityPreset;
 import dev.ward.infrastructure.init.ArchitectureTestGenerator;
 import dev.ward.infrastructure.init.FileConfigurationStorage;
 import dev.ward.infrastructure.init.PomToolConfigurator;
@@ -132,11 +132,11 @@ class InitWizardLineModeTest {
 
     assertThat(exit).as(output.toString()).isZero();
     final String configuration = Files.readString(root.resolve("ward.toml"));
-    for (final String gate : QualityPreset.STANDARD.gates()) {
+    for (final String gate : JavaPresetGates.STANDARD) {
       assertThat(configuration).contains("[quality-gates." + gate + "]");
     }
     assertThat(configuration.split("\\[quality-gates\\.", -1))
-        .hasSize(QualityPreset.STANDARD.gates().size() + STANDARD_PARTIAL_TABLES + 1);
+        .hasSize(JavaPresetGates.STANDARD.size() + STANDARD_PARTIAL_TABLES + 1);
   }
 
   @Test

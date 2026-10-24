@@ -5,6 +5,7 @@ import static dev.ward.ProjectFixtures.withPom;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import dev.ward.CompatibilityFixtures;
+import dev.ward.JavaPresetGates;
 import dev.ward.ProjectSnapshot;
 import dev.ward.application.project.ProjectDetector;
 import dev.ward.domain.FakeEnvironmentInspection;
@@ -136,7 +137,7 @@ class InitServicePlanTest {
       final List<String> integrations, final List<String> install, final boolean hooks) {
     return new InitSelection(
         integrations,
-        QualityPreset.STANDARD.gates(),
+        JavaPresetGates.STANDARD,
         null,
         QualityPreset.STANDARD,
         install.isEmpty() ? List.of() : List.of("openspec"),

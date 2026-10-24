@@ -157,7 +157,7 @@ class PomXmlTest {
 
   @Test
   void pitSnippetsPinJava25CapableVersionsWithoutHistorySettings() {
-    final String plain = PomToolConfigurator.PIT_PLUGIN;
+    final String plain = PomTools.PIT_PLUGIN;
     final String strict = PresetPluginSnippets.pit(QualityPreset.STRICT);
 
     for (final String snippet : List.of(plain, strict)) {

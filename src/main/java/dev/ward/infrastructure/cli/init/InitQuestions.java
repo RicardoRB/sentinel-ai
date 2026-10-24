@@ -4,6 +4,7 @@ import dev.ward.application.init.InitSetupCatalog;
 import dev.ward.application.init.PreviousChoices;
 import dev.ward.domain.config.WardException;
 import dev.ward.domain.init.InitSelection;
+import dev.ward.domain.init.PresetGateOrder;
 import dev.ward.domain.init.QualityPreset;
 import dev.ward.domain.project.Project;
 import java.nio.file.Path;
@@ -123,10 +124,12 @@ final class InitQuestions {
   private List<String> gates(final boolean gatesGiven, final QualityPreset preset) {
     if (gatesGiven) {
       final List<String> explicit = Objects.requireNonNullElse(answers.gates(), List.<String>of());
-      return preset == null ? explicit : preset.withExplicitGates(explicit);
+      return preset == null
+          ? explicit
+          : PresetGateOrder.withExplicitGates(catalog.presetGates(project, preset), explicit);
     }
     if (answers.yes()) {
-      return preset.gates();
+      return catalog.presetGates(project, preset);
     }
     progress.step();
     return wizard.selectGates(
@@ -135,7 +138,7 @@ final class InitQuestions {
         previous
             .filter(choices -> choices.preset() == preset)
             .map(PreviousChoices::gates)
-            .orElse(preset == null ? List.of() : preset.gates()));
+            .orElse(preset == null ? List.of() : catalog.presetGates(project, preset)));
   }
 
   private String architecture(final List<String> chosenGates, final List<String> gates) {

@@ -3,6 +3,7 @@ package dev.ward.application.init;
 import dev.ward.domain.config.WardException;
 import dev.ward.domain.init.InitGateOption;
 import dev.ward.domain.init.InitSelection;
+import dev.ward.domain.init.PresetGateOrder;
 import dev.ward.domain.project.Project;
 import dev.ward.domain.project.Toolchain;
 import java.util.ArrayList;
@@ -30,7 +31,8 @@ final class SelectedGates {
         Stream.concat(
                 (selection.preset() == null
                         ? selection.gates()
-                        : selection.preset().orderSelected(selection.gates()))
+                        : PresetGateOrder.orderSelected(
+                            catalog.presetGates(project, selection.preset()), selection.gates()))
                     .stream(),
                 selection.openSpecValidations().stream())
             .distinct()

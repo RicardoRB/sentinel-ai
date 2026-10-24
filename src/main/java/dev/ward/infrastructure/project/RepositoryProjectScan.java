@@ -74,7 +74,7 @@ final class RepositoryProjectScan {
     return found.stream().distinct().toList();
   }
 
-  private static boolean skipped(final Path dir) {
+  static boolean skipped(final Path dir) {
     final Path name = dir.getFileName();
     return name != null && (name.toString().startsWith(".") || SKIPPED.contains(name.toString()));
   }

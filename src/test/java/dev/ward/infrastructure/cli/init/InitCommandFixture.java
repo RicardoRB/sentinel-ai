@@ -68,7 +68,13 @@ final class InitCommandFixture {
 
   /** Runs init in a repository whose root is not a project; tests add the projects themselves. */
   static InitCommandFixture repository(final Path root) throws IOException {
-    return new InitCommandFixture(root, false, new PomToolConfigurator());
+    return repository(root, new PomToolConfigurator());
+  }
+
+  /** Runs init in a repository whose root is not a project, editing builds with {@code tools}. */
+  static InitCommandFixture repository(final Path root, final BuildToolConfiguration tools)
+      throws IOException {
+    return new InitCommandFixture(root, false, tools);
   }
 
   /** Runs init with piped input. */

@@ -1,19 +1,33 @@
 package dev.ward.application.init;
 
 import dev.ward.domain.doctor.EnvironmentInspection;
+import dev.ward.domain.init.QualityPreset;
 import dev.ward.domain.project.BuildTool;
+import dev.ward.domain.project.Language;
 import dev.ward.domain.project.Project;
+import java.util.List;
+import java.util.Map;
 
 /** Init choices for Maven and Gradle projects. */
 final class JvmInitSupport implements ToolchainInitSupport {
+  private static final JavaGates JAVA = new JavaGates();
+  // shortcut: Kotlin gets Java's tools until Ward ships ktlint/detekt; give it its own gates then.
+  private static final Map<Language, SourceLanguageGates<BuildToolGates>> LANGUAGES =
+      Map.of(Language.JAVA, JAVA, Language.KOTLIN, JAVA);
+
   @Override
   public Gates gates(final Project project, final EnvironmentInspection environment) {
     final BuildToolGates buildTool = buildToolGates(project, environment);
     return new Gates(
-        buildTool.analysisGates(),
+        SourceLanguages.of(LANGUAGES, project).analysisGates(buildTool),
         buildTool.policyGates().stream()
             .filter(gate -> !"api-compat".equals(gate.id()) || project.hasApiBaseline())
             .toList());
+  }
+
+  @Override
+  public List<String> presetGates(final Project project, final QualityPreset preset) {
+    return SourceLanguages.of(LANGUAGES, project).presetGates(preset);
   }
 
   @Override

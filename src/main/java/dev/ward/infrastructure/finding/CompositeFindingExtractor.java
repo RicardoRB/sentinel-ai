@@ -8,6 +8,7 @@ import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.inject.Inject;
@@ -33,6 +34,11 @@ public final class CompositeFindingExtractor implements FindingExtractor {
     final Map<String, GateFindingSource> byGate = new LinkedHashMap<>();
     sources.forEach(source -> byGate.put(source.gateId(), source));
     this.sources = Map.copyOf(byGate);
+  }
+
+  /** Returns the gates that have a finding source, for the gate contract test. */
+  Set<String> gates() {
+    return sources.keySet();
   }
 
   @Override

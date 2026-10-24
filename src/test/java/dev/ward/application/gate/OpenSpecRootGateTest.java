@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -33,7 +34,15 @@ class OpenSpecRootGateTest {
   void nestedProject() throws IOException {
     final Path root = Files.createDirectories(repository.resolve("apps/api"));
     api =
-        new Project(root, Language.JAVA, BuildTool.MAVEN, Framework.NONE, false, false, repository);
+        new Project(
+            root,
+            Language.JAVA,
+            BuildTool.MAVEN,
+            Framework.NONE,
+            false,
+            false,
+            repository,
+            Set.of());
   }
 
   @Test

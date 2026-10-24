@@ -11,6 +11,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Stream;
 import javax.inject.Inject;
@@ -24,7 +25,7 @@ import org.xml.sax.SAXException;
 /** Filesystem-backed project marker scanning and secure Maven metadata inspection. */
 public final class FileSystemProjectInspection implements ProjectInspection {
   // Build files are searched this many directories below the repository root.
-  private static final int MAX_SEARCH_DEPTH = 4;
+  static final int MAX_SEARCH_DEPTH = 4;
   public static final String POM = "pom.xml";
   static final String GIT = ".git";
   private static final String SPRING_BOOT_GROUP_ID = "org.springframework.boot";
@@ -34,8 +35,8 @@ public final class FileSystemProjectInspection implements ProjectInspection {
   private static final List<Marker> MARKERS =
       List.of(
           new Marker(POM, FileSystemProjectInspection::mavenProject),
-          new Marker("build.gradle.kts", dir -> gradleProject(dir, Language.KOTLIN)),
-          new Marker("build.gradle", dir -> gradleProject(dir, Language.JAVA)),
+          new Marker("build.gradle.kts", FileSystemProjectInspection::gradleProject),
+          new Marker("build.gradle", FileSystemProjectInspection::gradleProject),
           new Marker(
               "tsconfig.json",
               dir -> new Project(dir, Language.TYPESCRIPT, tool(dir), Framework.NONE)),
@@ -111,23 +112,29 @@ public final class FileSystemProjectInspection implements ProjectInspection {
 
   private static Project mavenProject(final Path dir) {
     final Optional<Document> pom = parse(dir.resolve(POM));
+    final Set<Language> languages = JvmSourceLanguages.of(dir);
     return new Project(
         dir,
-        Language.JAVA,
+        JvmSourceLanguages.primary(languages),
         BuildTool.MAVEN,
         pom.map(FileSystemProjectInspection::framework).orElse(Framework.NONE),
         Files.isRegularFile(dir.resolve("mvnw")),
         pom.map(FileSystemProjectInspection::publishes).orElse(false),
-        dir);
+        dir,
+        languages);
   }
 
-  private static Project gradleProject(final Path dir, final Language language) {
+  private static Project gradleProject(final Path dir) {
+    final Set<Language> languages = JvmSourceLanguages.of(dir);
     return new Project(
         dir,
-        language,
+        JvmSourceLanguages.primary(languages),
         BuildTool.GRADLE,
         Framework.NONE,
-        Files.isExecutable(dir.resolve("gradlew")));
+        Files.isExecutable(dir.resolve("gradlew")),
+        false,
+        dir,
+        languages);
   }
 
   private static BuildTool tool(final Path dir) {

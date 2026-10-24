@@ -83,6 +83,14 @@ public class InitGeneralCatalog {
   }
 
   /**
+   * Returns the gate IDs {@code preset} enables for {@code project}'s languages, in configuration
+   * order.
+   */
+  public List<String> presetGates(final Project project, final QualityPreset preset) {
+    return InitToolchains.support(project).presetGates(project, preset);
+  }
+
+  /**
    * Returns the agent integration with {@code id}.
    *
    * @throws WardException if {@code id} is not a supported integration

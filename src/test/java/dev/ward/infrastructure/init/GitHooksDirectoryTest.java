@@ -9,6 +9,7 @@ import dev.ward.domain.project.Language;
 import dev.ward.domain.project.Project;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 /** Ward installs hooks where Git runs them, falling back to the repository's .git/hooks. */
@@ -22,7 +23,8 @@ class GitHooksDirectoryTest {
           Framework.NONE,
           false,
           false,
-          REPOSITORY);
+          REPOSITORY,
+          Set.of());
 
   @Test
   void relativeAnswerResolvesAgainstTheProjectRoot() {

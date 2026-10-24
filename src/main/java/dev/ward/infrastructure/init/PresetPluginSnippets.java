@@ -97,7 +97,7 @@ final class PresetPluginSnippets {
 
   static String pit(final QualityPreset preset) {
     if (preset.rules().mutationThreshold() == null) {
-      return PomToolConfigurator.PIT_PLUGIN;
+      return PomTools.PIT_PLUGIN;
     }
     return """
             <plugin>

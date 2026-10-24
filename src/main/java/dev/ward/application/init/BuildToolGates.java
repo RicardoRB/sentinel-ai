@@ -7,50 +7,54 @@ import java.util.List;
 /** Gate choices that run through the project's Maven or Gradle executable. */
 record BuildToolGates(boolean gradle, boolean available, String availability, String executable) {
 
-  /** Gates that build, test, and analyze the project, in wizard order. */
-  List<InitGateOption> analysisGates() {
-    return List.of(
-        option("tests", "Runs the project's tests.", "", "test"),
-        option("compile", "Checks that the project compiles.", "", task("classes", "compile")),
-        option(
-            "coverage",
-            "Enforces minimum test coverage.",
-            gradle
-                ? " (minimum coverage is configured in the Gradle build.)"
-                : " (minimum coverage is configured in pom.xml.)",
-            task("jacocoTestCoverageVerification", "jacoco:check")),
-        option(
-            "spotbugs",
-            "Finds potential bugs through static analysis.",
-            "",
-            task("spotbugsMain", "spotbugs:check")),
-        option(
-            "checkstyle",
-            "Checks source style and formatting rules.",
-            "",
-            task("checkstyleMain", "checkstyle:check")),
-        option(
-            "pmd",
-            "Finds common Java design and implementation problems with PMD.",
-            "",
-            task("pmdMain", "pmd:check")),
-        option("sonar", "Checks code quality, smells, and duplication.", "", "sonar"),
-        option(
-            "dependency-check",
-            "Scans dependencies for known CVEs.",
-            "",
-            task("dependencyCheckAnalyze", "dependency-check:check")),
-        archunit(),
-        option(
-            "mutation",
-            "Measures test strength with mutation testing.",
-            "",
-            task("pitest", "pitest:mutationCoverage")),
-        option(
-            "format",
-            "Checks formatting with Spotless and google-java-format.",
-            "",
-            task("spotlessCheck", "spotless:check")));
+  /** Runs the project's tests. */
+  InitGateOption tests() {
+    return option("tests", "Runs the project's tests.", "", "test");
+  }
+
+  /** Checks that the project compiles. */
+  InitGateOption compile() {
+    return option("compile", "Checks that the project compiles.", "", task("classes", "compile"));
+  }
+
+  /** Enforces minimum test coverage with JaCoCo. */
+  InitGateOption coverage() {
+    return option(
+        "coverage",
+        "Enforces minimum test coverage.",
+        gradle
+            ? " (minimum coverage is configured in the Gradle build.)"
+            : " (minimum coverage is configured in pom.xml.)",
+        task("jacocoTestCoverageVerification", "jacoco:check"));
+  }
+
+  /** Checks code quality, smells, and duplication with Sonar. */
+  InitGateOption sonar() {
+    return option("sonar", "Checks code quality, smells, and duplication.", "", "sonar");
+  }
+
+  /** Scans dependencies for known CVEs. */
+  InitGateOption dependencyCheck() {
+    return tool(
+        "dependency-check",
+        "Scans dependencies for known CVEs.",
+        "dependencyCheckAnalyze",
+        "dependency-check:check");
+  }
+
+  /** Measures test strength with PIT mutation testing. */
+  InitGateOption mutation() {
+    return tool(
+        "mutation",
+        "Measures test strength with mutation testing.",
+        "pitest",
+        "pitest:mutationCoverage");
+  }
+
+  /** A source-language tool gate that runs {@code gradleTask} or {@code mavenTask}. */
+  InitGateOption tool(
+      final String id, final String description, final String gradleTask, final String mavenTask) {
+    return option(id, description, "", task(gradleTask, mavenTask));
   }
 
   /** Gates that enforce build, license, compatibility, or custom policies, in wizard order. */
@@ -75,7 +79,8 @@ record BuildToolGates(boolean gradle, boolean available, String availability, St
   }
 
   // Gradle task options follow their task: test --tests <pattern>.
-  private InitGateOption archunit() {
+  /** Checks architecture rules with the generated ArchitectureTest. */
+  InitGateOption archunit() {
     final String description = "Checks architecture rules with ArchitectureTest.";
     final String note = " (runs only ArchitectureTest.)";
     return gradle

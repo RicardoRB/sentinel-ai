@@ -28,7 +28,17 @@ class WardCliContract1Test extends WardCliIntegrationSupport {
   void detectsFixtureProject() {
     assertThat(run("detect", "-C", project.toString())).isZero();
     assertThat(out.toString())
-        .contains("Project detected", "Java", "Maven", "Spring Boot", project.toString());
+        .contains("Project detected", "Java", "Maven", "Spring Boot", project.toString())
+        .doesNotContain("Languages:");
+  }
+
+  @Test
+  void detectListsEveryLanguageOfAMixedProject() throws IOException {
+    Files.createDirectories(project.resolve("src/main/java"));
+    Files.createDirectories(project.resolve("src/main/kotlin"));
+
+    assertThat(run("detect", "-C", project.toString())).isZero();
+    assertThat(out.toString()).contains("Language:     Java", "Languages:    Java, Kotlin");
   }
 
   @Test
@@ -59,7 +69,7 @@ class WardCliContract1Test extends WardCliIntegrationSupport {
         project.resolve("gradlew"), PosixFilePermissions.fromString("rwxr-xr-x"));
 
     assertThat(run("detect", "-C", project.toString())).isZero();
-    assertThat(out.toString()).contains("Kotlin", "Gradle", project.toString());
+    assertThat(out.toString()).contains("Java", "Gradle", project.toString());
     out.getBuffer().setLength(0);
 
     assertThat(run(INIT, INTEGRATION_OPTION, NONE, GATE_OPTION, TESTS, "-C", project.toString()))

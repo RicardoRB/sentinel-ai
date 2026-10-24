@@ -1,6 +1,7 @@
 package dev.ward.infrastructure.cli.project;
 
 import dev.ward.application.project.ProjectDetector;
+import dev.ward.domain.project.Language;
 import dev.ward.domain.project.Project;
 import dev.ward.infrastructure.cli.ExitCodes;
 import dev.ward.infrastructure.cli.ProjectOptions;
@@ -8,7 +9,9 @@ import dev.ward.infrastructure.cli.VersionProvider;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
@@ -47,6 +50,12 @@ public class DetectCommand implements Callable<Integer> {
     output().println("Project detected");
     output().println();
     output().printf("Language:     %s%n", p.language().displayName());
+    if (!p.languages().equals(Set.of(p.language()))) {
+      output()
+          .printf(
+              "Languages:    %s%n",
+              p.languages().stream().map(Language::displayName).collect(Collectors.joining(", ")));
+    }
     output().printf("Build tool:   %s%n", p.buildTool().displayName());
     output().printf("Framework:    %s%n", p.framework().displayName());
     output().printf("Project root: %s%n", p.root());

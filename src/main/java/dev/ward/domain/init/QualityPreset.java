@@ -2,13 +2,11 @@ package dev.ward.domain.init;
 
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Stream;
 
 /** Opinionated, immutable quality configurations used by {@code ward init}. */
 public enum QualityPreset {
   STANDARD(
       "standard",
-      List.of("compile", "tests", "format", "checkstyle", "pmd", "spotbugs", "coverage"),
       new PresetRules(
           List.of("rulesets/java/quickstart.xml"),
           List.of(
@@ -33,17 +31,6 @@ public enum QualityPreset {
           new ArchitectureExtras(false, false, false))),
   STRICT(
       "strict",
-      List.of(
-          "compile",
-          "tests",
-          "format",
-          "checkstyle",
-          "pmd",
-          "spotbugs",
-          "coverage",
-          "archunit",
-          "enforcer",
-          "mutation"),
       new PresetRules(
           List.of(
               "rulesets/java/quickstart.xml",
@@ -99,14 +86,12 @@ public enum QualityPreset {
           new ArchitectureExtras(true, true, true)));
 
   private final String id;
-  private final List<String> gates;
 
   // Enum constants serialize by name, so their fields are never serialized.
   private final transient PresetRules rules;
 
-  QualityPreset(final String id, final List<String> gates, final PresetRules rules) {
+  QualityPreset(final String id, final PresetRules rules) {
     this.id = id;
-    this.gates = List.copyOf(gates);
     this.rules = rules;
   }
 
@@ -115,32 +100,9 @@ public enum QualityPreset {
     return id;
   }
 
-  /** Returns the gates the preset enables, in configuration order. */
-  public List<String> gates() {
-    return gates;
-  }
-
   /** Returns the tool rules the preset writes. */
   public PresetRules rules() {
     return rules;
-  }
-
-  /**
-   * Returns the selected gates with this preset's selected gates first, in preset order, followed
-   * by the other selected gates in their given order. Unselected preset gates are not added.
-   */
-  public List<String> orderSelected(final List<String> selected) {
-    return Stream.concat(gates.stream().filter(selected::contains), selected.stream())
-        .distinct()
-        .toList();
-  }
-
-  /**
-   * Returns this preset's gates followed by every explicit gate not already present, in the given
-   * order. Explicit gates never remove preset gates.
-   */
-  public List<String> withExplicitGates(final List<String> explicit) {
-    return Stream.concat(gates.stream(), explicit.stream()).distinct().toList();
   }
 
   /**
