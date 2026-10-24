@@ -10,7 +10,7 @@ on:
       native-runners:
         description: JSON array of runners for the native checks.
         type: string
-        default: '["ubuntu-24.04", "macos-14"]'
+        default: '["ubuntu-24.04", "macos-14", "windows-latest"]'
       harness-compatibility:
         description: Also run the deterministic agent-harness suites against the native executable.
         type: boolean
@@ -79,6 +79,23 @@ jobs:
         run: |
           ./install.sh
           echo "$WARD_INSTALL_DIR" >> "$GITHUB_PATH"
+
+      # Pull requests mutate only the domain and application classes they change, or whose test
+      # changed; releases mutate everything. The pom.xml profile reads PIT_TARGET_CLASSES.
+      - name: Limit mutation testing to changed classes
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          set -eu
+          targets=$(git diff --name-only --diff-filter=ACMR "origin/${BASE_REF}...HEAD" -- \
+              src/main/java/dev/ward/domain src/main/java/dev/ward/application \
+              src/test/java/dev/ward/domain src/test/java/dev/ward/application \
+            | grep '\.java$' \
+            | sed -E -e 's#^src/(main|test)/java/##' -e 's#(Test)?\.java$#*#' -e 's#/#.#g' \
+            | sort -u | paste -sd, - || true)
+          echo "Mutation targets: ${targets:-none}"
+          echo "PIT_TARGET_CLASSES=${targets:-none.changed}" >> "$GITHUB_ENV"
 
       # --output keeps the text report on stdout for the job log.
       - name: Run quality gates

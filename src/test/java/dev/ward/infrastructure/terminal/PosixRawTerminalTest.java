@@ -7,6 +7,8 @@ import java.lang.foreign.Arena;
 import java.lang.foreign.ValueLayout;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 
 class PosixRawTerminalTest {
   private static final byte KEY_A = 'A';
@@ -28,7 +30,9 @@ class PosixRawTerminalTest {
     }
   }
 
+  /** Binds the real libc {@code isatty}, which Windows does not export. */
   @Test
+  @DisabledOnOs(OS.WINDOWS)
   void nonTtyStdinFallsBack() {
     assertThat(new PosixRawTerminal("Linux").open()).isEmpty();
   }
