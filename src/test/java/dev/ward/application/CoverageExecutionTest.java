@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import dev.ward.ProjectFixtures;
 import dev.ward.application.gate.CheckService;
-import dev.ward.application.gate.LanguageGateRegistry;
 import dev.ward.application.gate.QualityGateFactory;
 import dev.ward.application.gate.QualityGateRunner;
 import dev.ward.application.project.ProjectDetector;
@@ -14,7 +13,6 @@ import dev.ward.domain.agent.AgentRequest;
 import dev.ward.domain.config.WardException;
 import dev.ward.domain.process.CommandExecutor;
 import dev.ward.domain.process.CommandResult;
-import dev.ward.domain.project.Language;
 import dev.ward.infrastructure.agent.ProcessAgentRunner;
 import dev.ward.infrastructure.cli.CommandLineRunnerImpl;
 import dev.ward.infrastructure.cli.ExitCodes;
@@ -44,14 +42,6 @@ class CoverageExecutionTest {
     final ProcessAgentRunner failing =
         new ProcessAgentRunner(executor, Path.of("/tmp"), List.of("fail"));
     assertThat(failing.run(new AgentRequest("fix", 2)).summary()).isEqualTo("Agent failed.");
-  }
-
-  @Test
-  void languageRegistryHasDefaultsForEveryLanguage() {
-    final LanguageGateRegistry registry = new LanguageGateRegistry();
-    for (final Language language : Language.values()) {
-      assertThat(registry.defaults(language)).isNotEmpty();
-    }
   }
 
   @Test

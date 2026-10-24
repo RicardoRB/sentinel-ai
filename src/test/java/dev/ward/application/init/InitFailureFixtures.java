@@ -4,14 +4,15 @@ import dev.ward.ProjectFixtures;
 import dev.ward.application.project.ProjectDetector;
 import dev.ward.domain.FakeEnvironmentInspection;
 import dev.ward.domain.agent.PlannedFileChange;
+import dev.ward.domain.init.BuildFileChange;
 import dev.ward.domain.init.BuildToolConfiguration;
 import dev.ward.domain.init.ConfigurationStorage;
 import dev.ward.domain.init.InitGateOption;
-import dev.ward.domain.init.PomChange;
 import dev.ward.domain.init.QualityPreset;
 import dev.ward.domain.init.RuleFileChange;
 import dev.ward.domain.init.RuleFileGeneration;
 import dev.ward.domain.project.Project;
+import dev.ward.domain.project.Toolchain;
 import dev.ward.infrastructure.init.ArchitectureTestGenerator;
 import dev.ward.infrastructure.project.FileSystemProjectInspection;
 import java.nio.file.Path;
@@ -67,9 +68,9 @@ final class InitFailureFixtures {
   private static BuildToolConfiguration unchangedPom() {
     return new BuildToolConfiguration() {
       @Override
-      public PomChange apply(final Project project, final List<InitGateOption> gates) {
-        return new PomChange(
-            project.root().resolve("pom.xml"), ProjectFixtures.PLAIN_POM, List.of());
+      public BuildFileChange apply(final Project project, final List<InitGateOption> gates) {
+        return new BuildFileChange(
+            Toolchain.JVM, project.root().resolve("pom.xml"), ProjectFixtures.PLAIN_POM, List.of());
       }
 
       @Override
@@ -83,7 +84,7 @@ final class InitFailureFixtures {
       }
 
       @Override
-      public void rollback(final PomChange change) {}
+      public void rollback(final BuildFileChange change) {}
     };
   }
 

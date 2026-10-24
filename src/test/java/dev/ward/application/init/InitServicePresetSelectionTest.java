@@ -4,6 +4,7 @@ import static dev.ward.ProjectFixtures.PLAIN_POM;
 import static dev.ward.ProjectFixtures.withPom;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import dev.ward.JavaPresetGates;
 import dev.ward.application.project.ProjectDetector;
 import dev.ward.domain.FakeEnvironmentInspection;
 import dev.ward.domain.init.InitGateOption;
@@ -70,7 +71,7 @@ class InitServicePresetSelectionTest {
   void unselectedPresetGateIsNotConfigured(@TempDir final Path dir) throws Exception {
     withPom(dir, PLAIN_POM);
     final List<String> strictWithoutMutation =
-        QualityPreset.STRICT.gates().stream().filter(gate -> !"mutation".equals(gate)).toList();
+        JavaPresetGates.STRICT.stream().filter(gate -> !"mutation".equals(gate)).toList();
 
     final InitResult result =
         service.initialize(
@@ -91,7 +92,7 @@ class InitServicePresetSelectionTest {
   void unselectedPresetGateWritesNoRuleFile(@TempDir final Path dir) throws Exception {
     withPom(dir, PLAIN_POM);
     final List<String> standardWithoutPmd =
-        QualityPreset.STANDARD.gates().stream().filter(gate -> !"pmd".equals(gate)).toList();
+        JavaPresetGates.STANDARD.stream().filter(gate -> !"pmd".equals(gate)).toList();
 
     service.initialize(
         dir, new InitSelection(List.of("none"), standardWithoutPmd, null, QualityPreset.STANDARD));

@@ -11,6 +11,14 @@
 - `dev.ward.config.WardComponent` wires Dagger at compile time; preserve the explicit constructor graph for native-image compatibility.
 - Native images contain only classes seen at build time. Do not call APIs that build classes at runtime: `MethodHandleProxies`, `MethodHandles.Lookup#defineHiddenClass` / `defineClass`, and similar (`java.lang.classfile`, custom class loaders). `NativeImageCompatibilityTest` rejects them. Register any `java.lang.reflect.Proxy` interface, reflective type, or FFM downcall in `src/main/resources/META-INF/native-image/dev.ward/ward-cli/reachability-metadata.json`.
 
+## Adding a toolchain, language or tool
+
+Ward resolves behavior along three axes. Add classes and rows; do not add `BuildTool` or `Language` branches outside the owning support. `GateCatalogContractTest`, `PomToolsContractTest` and `FindingSourceContractTest` name any missing piece.
+
+- **Toolchain** (`domain/project/Toolchain`, from `BuildTool`): implement `ToolchainInitSupport` (gates, preset gates, CI setup) and register it in `InitToolchains`; implement `BuildToolConfiguration` and register it in `BuildToolBindingsModule`; add its case to `doctor/BuildToolFindings`.
+- **Language**: add the `Language` constant and its detection in `infrastructure/project` (from sources, not build files); implement `SourceLanguageGates` for its toolchain (analysis gates and preset gate sets) and add it to that toolchain's language map. A language without an entry fails init by design.
+- **Tool**: add its row to `QualityGateDefinitions` (ID, display name, phase, learning); offer it from a `SourceLanguageGates`; add its build-file entry for each build tool (`PomTools` and `ManagedPluginCatalog`, Gradle `PLUGINS` or `GradleBuildBlocks`); add optional rows in `PartialCheckDefaults`, `AgentRulesTemplate`, preset rule files and a `GateFindingSource`. Update `ward.toml` and the `website/` gate docs.
+
 ## Code Style
 
 - Use constructor injection; do not add field injection.

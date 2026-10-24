@@ -3,6 +3,7 @@ package dev.ward.application.init;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import dev.ward.JavaPresetGates;
 import dev.ward.domain.config.GateConfiguration;
 import dev.ward.domain.config.OpenApiGateOptions;
 import dev.ward.domain.config.PartialGateConfiguration;
@@ -82,7 +83,7 @@ class InitOpenApiGatesTest {
   @Test
   void presetsDoNotSelectOpenApiGates() {
     for (final QualityPreset preset : QualityPreset.values()) {
-      assertThat(preset.gates()).doesNotContain(LINT, DIFF, COMPAT);
+      assertThat(JavaPresetGates.of(preset)).doesNotContain(LINT, DIFF, COMPAT);
     }
   }
 

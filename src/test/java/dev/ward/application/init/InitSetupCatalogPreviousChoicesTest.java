@@ -4,6 +4,7 @@ import static dev.ward.ProjectFixtures.PLAIN_POM;
 import static dev.ward.ProjectFixtures.withPom;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import dev.ward.JavaPresetGates;
 import dev.ward.application.project.ProjectDetector;
 import dev.ward.domain.FakeEnvironmentInspection;
 import dev.ward.domain.init.InitSelection;
@@ -43,10 +44,10 @@ class InitSetupCatalogPreviousChoicesTest {
     service.initialize(
         dir,
         new InitSelection(
-            List.of("none"), QualityPreset.STRICT.gates(), "layered", QualityPreset.STRICT));
+            List.of("none"), JavaPresetGates.STRICT, "layered", QualityPreset.STRICT));
 
     assertThat(catalog.previousChoices(project(dir)))
-        .hasValue(new PreviousChoices(QualityPreset.STRICT, QualityPreset.STRICT.gates()));
+        .hasValue(new PreviousChoices(QualityPreset.STRICT, JavaPresetGates.STRICT));
   }
 
   @Test

@@ -8,13 +8,13 @@ import java.util.function.Predicate;
 /** Applies and rolls back build-tool declarations needed by selected setup options. */
 public interface BuildToolConfiguration {
   /** Adds the build plugins {@code gates} need and returns the change for rollback. */
-  PomChange apply(Project project, List<InitGateOption> gates);
+  BuildFileChange apply(Project project, List<InitGateOption> gates);
 
   /**
    * Adds the build plugins {@code gates} need, configured for {@code preset}; the default ignores
    * the preset.
    */
-  default PomChange apply(
+  default BuildFileChange apply(
       final Project project, final List<InitGateOption> gates, final QualityPreset preset) {
     return apply(project, gates);
   }
@@ -23,7 +23,7 @@ public interface BuildToolConfiguration {
    * Adds the build plugins {@code gates} need; plugin version updates are applied only when {@code
    * approval} accepts them. The default applies no updates.
    */
-  default PomChange apply(
+  default BuildFileChange apply(
       final Project project,
       final List<InitGateOption> gates,
       final QualityPreset preset,
@@ -39,5 +39,5 @@ public interface BuildToolConfiguration {
       Project project, List<InitGateOption> gates, QualityPreset preset, boolean approved);
 
   /** Restores the build file to its content before {@code change}. */
-  void rollback(PomChange change);
+  void rollback(BuildFileChange change);
 }

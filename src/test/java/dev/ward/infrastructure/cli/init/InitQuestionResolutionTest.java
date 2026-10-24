@@ -2,7 +2,7 @@ package dev.ward.infrastructure.cli.init;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import dev.ward.domain.init.QualityPreset;
+import dev.ward.JavaPresetGates;
 import dev.ward.infrastructure.cli.ExitCodes;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -23,7 +23,7 @@ class InitQuestionResolutionTest {
     assertThat(init.output())
         .doesNotContain(
             "Choose a preset", "Select agent", "Select quality gates", "Select optional", "[y/N]");
-    for (final String gate : QualityPreset.STANDARD.gates()) {
+    for (final String gate : JavaPresetGates.STANDARD) {
       assertThat(init.configuration()).contains("[quality-gates." + gate + "]");
     }
     assertThat(init.output()).contains("No agent integration installed.");

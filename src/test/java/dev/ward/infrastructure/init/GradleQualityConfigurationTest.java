@@ -2,8 +2,8 @@ package dev.ward.infrastructure.init;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import dev.ward.domain.init.BuildFileChange;
 import dev.ward.domain.init.InitGateOption;
-import dev.ward.domain.init.PomChange;
 import dev.ward.domain.init.QualityPreset;
 import dev.ward.domain.project.BuildTool;
 import dev.ward.domain.project.Framework;
@@ -116,7 +116,7 @@ class GradleQualityConfigurationTest {
     final String first =
         configure("build.gradle", "plugins {\n    id 'java'\n}\n", QualityPreset.STRICT);
 
-    final PomChange second =
+    final BuildFileChange second =
         new GradleToolConfigurator()
             .apply(project(), gates(), QualityPreset.STRICT, finding -> false);
 

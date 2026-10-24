@@ -17,6 +17,7 @@ import dev.ward.infrastructure.json.ForyJsonCodec;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 /** SARIF locations are relative to the repository root, so nested projects carry their path. */
@@ -80,6 +81,6 @@ class SarifNestedLocationsTest {
 
   private static Project project(final Path root) {
     return new Project(
-        root, Language.JAVA, BuildTool.MAVEN, Framework.NONE, false, false, REPOSITORY);
+        root, Language.JAVA, BuildTool.MAVEN, Framework.NONE, false, false, REPOSITORY, Set.of());
   }
 }

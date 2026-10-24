@@ -3,8 +3,9 @@ package dev.ward.application.init;
 import dev.ward.domain.config.WardException;
 import dev.ward.domain.init.InitGateOption;
 import dev.ward.domain.init.InitSelection;
-import dev.ward.domain.project.BuildTool;
+import dev.ward.domain.init.PresetGateOrder;
 import dev.ward.domain.project.Project;
+import dev.ward.domain.project.Toolchain;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.IntStream;
@@ -30,7 +31,8 @@ final class SelectedGates {
         Stream.concat(
                 (selection.preset() == null
                         ? selection.gates()
-                        : selection.preset().orderSelected(selection.gates()))
+                        : PresetGateOrder.orderSelected(
+                            catalog.presetGates(project, selection.preset()), selection.gates()))
                     .stream(),
                 selection.openSpecValidations().stream())
             .distinct()
@@ -52,7 +54,7 @@ final class SelectedGates {
    */
   static List<InitGateOption> offlineTrivy(
       final List<InitGateOption> gates, final Project project) {
-    if (project.buildTool() != BuildTool.MAVEN && project.buildTool() != BuildTool.GRADLE) {
+    if (project.toolchain() != Toolchain.JVM) {
       return gates;
     }
     final int firstBuild =

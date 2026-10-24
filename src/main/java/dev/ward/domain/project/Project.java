@@ -1,7 +1,10 @@
 package dev.ward.domain.project;
 
 import java.nio.file.Path;
+import java.util.Collections;
+import java.util.EnumSet;
 import java.util.Locale;
+import java.util.Set;
 
 /**
  * A detected project.
@@ -15,6 +18,7 @@ import java.util.Locale;
  *     signal that a released library baseline exists
  * @param repositoryRoot the Git top-level containing the project, or {@code root} outside a Git
  *     work tree
+ * @param languages every source language the project contains; always includes {@code language}
  */
 public record Project(
     Path root,
@@ -23,7 +27,15 @@ public record Project(
     Framework framework,
     boolean mavenWrapperAvailable,
     boolean publishesArtifacts,
-    Path repositoryRoot) {
+    Path repositoryRoot,
+    Set<Language> languages) {
+  /** Copies {@code languages}, in declaration order, and adds the primary language. */
+  public Project {
+    final Set<Language> all = EnumSet.of(language);
+    all.addAll(languages);
+    languages = Collections.unmodifiableSet(all);
+  }
+
   /** Creates a project without a Maven Wrapper. */
   public Project(
       final Path root,
@@ -40,7 +52,7 @@ public record Project(
       final BuildTool buildTool,
       final Framework framework,
       final boolean mavenWrapperAvailable) {
-    this(root, language, buildTool, framework, mavenWrapperAvailable, false, root);
+    this(root, language, buildTool, framework, mavenWrapperAvailable, false, root, Set.of());
   }
 
   /** Returns this project inside the Git work tree whose top-level is {@code repository}. */
@@ -52,7 +64,8 @@ public record Project(
         framework,
         mavenWrapperAvailable,
         publishesArtifacts,
-        repository);
+        repository,
+        languages);
   }
 
   /**
@@ -100,6 +113,11 @@ public record Project(
    */
   public boolean hasApiBaseline() {
     return buildTool != BuildTool.MAVEN || publishesArtifacts;
+  }
+
+  /** Returns the toolchain of this project's build tool. */
+  public Toolchain toolchain() {
+    return buildTool.toolchain();
   }
 
   /** Returns whether the wrapper belonging to this project's build tool is available. */

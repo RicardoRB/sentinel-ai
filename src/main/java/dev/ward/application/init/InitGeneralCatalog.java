@@ -10,7 +10,6 @@ import dev.ward.domain.init.InitGateOption;
 import dev.ward.domain.init.InitIntegrationOption;
 import dev.ward.domain.init.PlannedGateInstallation;
 import dev.ward.domain.init.QualityPreset;
-import dev.ward.domain.project.BuildTool;
 import dev.ward.domain.project.Project;
 import java.util.ArrayList;
 import java.util.List;
@@ -68,12 +67,11 @@ public class InitGeneralCatalog {
    * against the project's build tool and the executables on the path.
    */
   public List<InitGateOption> gates(final Project project) {
-    final BuildToolGates buildTool = buildToolGates(project);
-    final List<InitGateOption> options = new ArrayList<>(buildTool.analysisGates());
+    final ToolchainInitSupport.Gates buildTool =
+        InitToolchains.support(project).gates(project, environment);
+    final List<InitGateOption> options = new ArrayList<>(buildTool.analysis());
     options.addAll(new BinaryToolGates(environment, project).gates());
-    buildTool.policyGates().stream()
-        .filter(gate -> !"api-compat".equals(gate.id()) || project.hasApiBaseline())
-        .forEach(options::add);
+    options.addAll(buildTool.policy());
     options.add(
         new InitGateOption(
             SupportedQualityGates.TRACEABILITY,
@@ -84,24 +82,12 @@ public class InitGeneralCatalog {
     return List.copyOf(options);
   }
 
-  private BuildToolGates buildToolGates(final Project project) {
-    final boolean gradle = project.buildTool() == BuildTool.GRADLE;
-    final String executable = project.buildExecutable();
-    final String toolName = gradle ? "Gradle" : "Maven";
-    final String systemExecutable = gradle ? "gradle" : "mvn";
-    final boolean toolAvailable =
-        project.wrapperAvailable()
-            || environment.inspect(project.root()).hasExecutable(systemExecutable);
-    final String availability =
-        toolAvailable
-            ? toolName + " command available: " + executable
-            : toolName
-                + " is unavailable; install "
-                + toolName
-                + " or add a "
-                + toolName
-                + " Wrapper before running this gate.";
-    return new BuildToolGates(gradle, toolAvailable, availability, executable);
+  /**
+   * Returns the gate IDs {@code preset} enables for {@code project}'s languages, in configuration
+   * order.
+   */
+  public List<String> presetGates(final Project project, final QualityPreset preset) {
+    return InitToolchains.support(project).presetGates(project, preset);
   }
 
   /**

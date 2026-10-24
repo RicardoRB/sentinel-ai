@@ -3,7 +3,6 @@ package dev.ward.application.init;
 import dev.ward.application.project.ProjectDetector;
 import dev.ward.application.project.ProjectNotFoundException;
 import dev.ward.domain.config.WardException;
-import dev.ward.domain.project.BuildTool;
 import dev.ward.domain.project.DiscoveredProject;
 import dev.ward.domain.project.Project;
 import java.nio.file.Path;
@@ -32,7 +31,8 @@ public record InitTargets(
    * Resolves the projects for {@code start}: the {@code explicit} directories when given, else the
    * Maven or Gradle project containing {@code start}, else the ones discovered below it.
    *
-   * @throws WardException if an explicit directory is not a Maven or Gradle project root
+   * @throws WardException if an explicit directory is not a Maven or Gradle project root, or if
+   *     nothing supported is found and {@code start} is inside a project of another toolchain
    * @throws ProjectNotFoundException if no supported project is found
    */
   static InitTargets resolve(
@@ -44,22 +44,21 @@ public record InitTargets(
           explicit.stream().map(dir -> named(detector, base, dir)).toList(), false, false);
     }
     final Optional<Project> containing = detector.detect(base);
-    if (containing.filter(InitTargets::isJvm).isPresent()) {
+    if (containing.filter(InitToolchains::supported).isPresent()) {
       log("containing", 1);
       return new InitTargets(List.of(new DiscoveredProject(containing.get(), 0)), false, false);
     }
     final List<DiscoveredProject> discovered =
         detector.discover(base).stream()
-            .filter(candidate -> isJvm(candidate.project()))
+            .filter(candidate -> InitToolchains.supported(candidate.project()))
             .filter(candidate -> candidate.project().root().startsWith(base))
             .toList();
     log("discovered", discovered.size());
     if (discovered.isEmpty()) {
-      // No Maven or Gradle project below: keep initializing whatever contains the start directory.
-      return new InitTargets(
-          List.of(new DiscoveredProject(containing.orElseThrow(ProjectNotFoundException::new), 0)),
-          false,
-          false);
+      // No supported project below: an unsupported containing project must not get JVM files.
+      throw containing
+          .<RuntimeException>map(project -> new WardException(InitToolchains.unsupported(project)))
+          .orElseGet(ProjectNotFoundException::new);
     }
     return new InitTargets(discovered, true, discovered.size() > 1);
   }
@@ -67,7 +66,7 @@ public record InitTargets(
   private static DiscoveredProject named(
       final ProjectDetector detector, final Path base, final String name) {
     final Path dir = base.resolve(name).toAbsolutePath().normalize();
-    final Optional<Project> project = detector.detect(dir).filter(InitTargets::isJvm);
+    final Optional<Project> project = detector.detect(dir).filter(InitToolchains::supported);
     if (project.isEmpty()) {
       throw new WardException("'" + name + "' is not inside a Maven or Gradle project.");
     }
@@ -93,10 +92,6 @@ public record InitTargets(
     return root.startsWith(base)
         ? base.relativize(root).toString().replace('\\', '/')
         : root.toString();
-  }
-
-  private static boolean isJvm(final Project project) {
-    return project.buildTool() == BuildTool.MAVEN || project.buildTool() == BuildTool.GRADLE;
   }
 
   private static void log(final String source, final int count) {

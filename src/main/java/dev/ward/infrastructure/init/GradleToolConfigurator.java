@@ -2,12 +2,13 @@ package dev.ward.infrastructure.init;
 
 import dev.ward.domain.agent.PlannedFileChange;
 import dev.ward.domain.config.WardException;
+import dev.ward.domain.init.BuildFileChange;
 import dev.ward.domain.init.BuildToolConfiguration;
 import dev.ward.domain.init.CompatibilityFinding;
 import dev.ward.domain.init.InitGateOption;
-import dev.ward.domain.init.PomChange;
 import dev.ward.domain.init.QualityPreset;
 import dev.ward.domain.project.Project;
+import dev.ward.domain.project.Toolchain;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -43,12 +44,12 @@ public final class GradleToolConfigurator implements BuildToolConfiguration {
   public GradleToolConfigurator() {}
 
   @Override
-  public PomChange apply(final Project project, final List<InitGateOption> gates) {
+  public BuildFileChange apply(final Project project, final List<InitGateOption> gates) {
     return apply(project, gates, null, finding -> false);
   }
 
   @Override
-  public PomChange apply(
+  public BuildFileChange apply(
       final Project project,
       final List<InitGateOption> gates,
       final QualityPreset preset,
@@ -66,7 +67,7 @@ public final class GradleToolConfigurator implements BuildToolConfiguration {
             "Could not configure Gradle tools in " + edit.buildFile() + ": " + e.getMessage(), e);
       }
     }
-    return new PomChange(edit.buildFile(), edit.original(), edit.tools());
+    return new BuildFileChange(Toolchain.JVM, edit.buildFile(), edit.original(), edit.tools());
   }
 
   @Override
@@ -110,7 +111,7 @@ public final class GradleToolConfigurator implements BuildToolConfiguration {
   }
 
   @Override
-  public void rollback(final PomChange change) {
+  public void rollback(final BuildFileChange change) {
     if (change == null || !change.changed()) {
       return;
     }

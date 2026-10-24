@@ -5,6 +5,7 @@ import static dev.ward.ProjectFixtures.withPom;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import dev.ward.JavaPresetGates;
 import dev.ward.application.project.ProjectDetector;
 import dev.ward.application.project.ProjectNotFoundException;
 import dev.ward.domain.FakeEnvironmentInspection;
@@ -156,7 +157,7 @@ class InitServiceTest {
                     dir,
                     new InitSelection(
                         List.of("opencode"),
-                        QualityPreset.STANDARD.gates(),
+                        JavaPresetGates.STANDARD,
                         null,
                         QualityPreset.STANDARD)))
         .hasMessageContaining("conflicts");

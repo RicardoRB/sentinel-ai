@@ -4,6 +4,7 @@ import dev.ward.domain.gate.CheckReport;
 import dev.ward.domain.gate.Finding;
 import dev.ward.domain.gate.GateResult;
 import dev.ward.domain.gate.GateStatus;
+import dev.ward.domain.gate.QualityGateDefinitions;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -16,11 +17,6 @@ import java.util.Set;
  * fixed.
  */
 public final class LearningPolicy {
-  /**
-   * Tools whose rule IDs name a specific rule; others report catch-all IDs with nothing to learn.
-   */
-  private static final Set<String> LEARNABLE_TOOLS = Set.of("checkstyle", "pmd", "gitleaks");
-
   private LearningPolicy() {}
 
   /**
@@ -64,7 +60,7 @@ public final class LearningPolicy {
     final Map<String, String> rules = new LinkedHashMap<>();
     if (result.status() == GateStatus.FAILED) {
       for (final Finding finding : result.findings().items()) {
-        if (LEARNABLE_TOOLS.contains(finding.tool()) && !finding.ruleId().equals(finding.tool())) {
+        if (learnable(finding.tool()) && !finding.ruleId().equals(finding.tool())) {
           rules.putIfAbsent(finding.ruleId(), finding.message());
         }
       }
@@ -128,5 +124,12 @@ public final class LearningPolicy {
     return value.length() <= LearningRecord.MAX_SUMMARY_LENGTH
         ? value
         : value.substring(0, LearningRecord.MAX_SUMMARY_LENGTH);
+  }
+
+  /** Whether the tool's rule IDs name a specific rule; others report catch-all IDs. */
+  private static boolean learnable(final String tool) {
+    return QualityGateDefinitions.find(tool)
+        .map(QualityGateDefinitions.Definition::learnable)
+        .orElse(false);
   }
 }

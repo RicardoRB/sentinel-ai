@@ -4,7 +4,8 @@ description: Detect a supported project.
 ---
 
 `ward detect` finds the supported project in the selected directory or its nearest parent, and
-reports its language, build tool, framework, and project root.
+reports its language, build tool, framework, and project root. A project with more than one
+language also gets a `Languages:` line that lists them all.
 
 ```sh
 ward detect [-C <dir>]
@@ -18,7 +19,13 @@ ward detect [-C <dir>]
 
 ## What is detected
 
-- Java and Kotlin Gradle projects are recognized from `build.gradle` and `build.gradle.kts`.
+- Gradle projects are recognized from `build.gradle` and `build.gradle.kts`.
+- For Maven and Gradle projects, the language comes from the sources, not from the build file.
+  Ward looks for `src/main/java` and `src/main/kotlin` in the project and its modules:
+  - With Java sources, the language is Java, even when the build script is `build.gradle.kts`.
+  - With only Kotlin sources, the language is Kotlin.
+  - With both, the language is Java, and `Languages:` lists Java and Kotlin.
+  - With no sources yet, the language is Java.
 - Spring Boot is recognized when the POM references `org.springframework.boot`.
 
 ## Modules and aggregators

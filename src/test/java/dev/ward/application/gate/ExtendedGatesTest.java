@@ -139,22 +139,4 @@ class ExtendedGatesTest {
     assertThat(result.exitCode()).isEqualTo(1);
     assertThat(String.valueOf(result.summary())).doesNotContain("AKIA");
   }
-
-  @Test
-  void javaDefaultsIncludeNewGates() {
-    assertThat(new LanguageGateRegistry().defaults(Language.JAVA))
-        .contains(
-            "format",
-            "semgrep",
-            GITLEAKS,
-            "zap",
-            "trivy",
-            "enforcer",
-            "license",
-            "api-compat",
-            "openapi-lint",
-            "openapi-diff",
-            "openapi-compat");
-    assertThat(new LanguageGateRegistry().defaults(Language.GO)).contains(GITLEAKS, "trivy");
-  }
 }

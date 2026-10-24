@@ -3,13 +3,13 @@ package dev.ward.application.init;
 import dev.ward.domain.agent.IntegrationResult;
 import dev.ward.domain.config.WardException;
 import dev.ward.domain.init.ArchitectureTestChange;
+import dev.ward.domain.init.BuildFileChange;
 import dev.ward.domain.init.CompatibilityFinding;
 import dev.ward.domain.init.InitGateOption;
 import dev.ward.domain.init.InitResult;
 import dev.ward.domain.init.InitSelection;
 import dev.ward.domain.init.OwnedSection;
 import dev.ward.domain.init.OwnedSectionChange;
-import dev.ward.domain.init.PomChange;
 import dev.ward.domain.init.QualityHookChange;
 import dev.ward.domain.init.QualityHookGeneration;
 import dev.ward.domain.init.QualityPreset;
@@ -31,7 +31,7 @@ final class InitChanges {
   private final QualityHookGeneration qualityHooks;
   private final List<IntegrationResult> installed = new ArrayList<>();
   private final List<OwnedSectionChange> sectionChanges = new ArrayList<>();
-  private PomChange pomChange;
+  private BuildFileChange pomChange;
   private RuleFileChange ruleFileChange;
   private ArchitectureTestChange architectureTest;
   private QualityHookChange qualityHookChange;
@@ -87,7 +87,7 @@ final class InitChanges {
       final boolean overwrite,
       final List<InitGateOption> gates,
       final List<String> warnings) {
-    final PomChange appliedPom = pomChange;
+    final BuildFileChange appliedPom = pomChange;
     if (appliedPom == null) {
       throw new IllegalStateException("Initialization changes have not been applied");
     }

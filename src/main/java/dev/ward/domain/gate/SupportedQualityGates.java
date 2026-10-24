@@ -10,32 +10,7 @@ public final class SupportedQualityGates {
   public static final String OPENAPI_DIFF = "openapi-diff";
   public static final String OPENAPI_COMPAT = "openapi-compat";
   public static final List<String> IDS =
-      List.of(
-          "tests",
-          "compile",
-          "coverage",
-          "spotbugs",
-          "checkstyle",
-          "pmd",
-          "sonar",
-          "dependency-check",
-          "archunit",
-          "mutation",
-          "format",
-          "semgrep",
-          "gitleaks",
-          "zap",
-          "trivy",
-          "enforcer",
-          "license",
-          "api-compat",
-          OPENAPI_LINT,
-          OPENAPI_DIFF,
-          OPENAPI_COMPAT,
-          TRACEABILITY,
-          "command",
-          "openspec",
-          "openspec-archived");
+      QualityGateDefinitions.all().stream().map(QualityGateDefinitions.Definition::id).toList();
 
   private static final Set<String> SPEC_IDS = Set.of("openspec", "openspec-archived");
 

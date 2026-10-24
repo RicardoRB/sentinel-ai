@@ -29,6 +29,7 @@ class CoverageProjectDiscoveryTest {
     Files.writeString(root.resolve("gradle/build.gradle"), "");
     Files.createDirectories(root.resolve("kotlin"));
     Files.writeString(root.resolve("kotlin/build.gradle.kts"), "");
+    Files.createDirectories(root.resolve("kotlin/src/main/kotlin"));
     Files.createDirectories(root.resolve("typescript"));
     Files.writeString(root.resolve("typescript/tsconfig.json"), "{}");
     Files.createDirectories(root.resolve("javascript"));

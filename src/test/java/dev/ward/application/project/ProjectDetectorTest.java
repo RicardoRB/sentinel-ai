@@ -62,6 +62,7 @@ class ProjectDetectorTest {
   void detectsGradleKotlinDslWithoutWrapper(@TempDir final Path dir) throws Exception {
     Files.writeString(
         dir.resolve("build.gradle.kts"), "plugins { kotlin(\"jvm\") version \"2.0.0\" }\n");
+    Files.createDirectories(dir.resolve("src/main/kotlin"));
 
     final Project project = detector.detect(dir).orElseThrow();
 

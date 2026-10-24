@@ -34,6 +34,7 @@ per check:
 |---|---|---|
 | `project` | `OK` / `ERROR` | A supported project was detected. When none is found, only the `ward` check runs after it. |
 | `maven` / `gradle` | `OK` / `ERROR` | The detected build tool's wrapper exists in the project root, or its executable (`mvn` / `gradle`) is on `PATH`. |
+| Other build tools, such as `cargo` or `poetry` | `WARNING` | Ward does not check that toolchain yet. The finding is named after the build tool, and nothing about Maven is reported. |
 | `configuration` | `OK` / `ERROR` | `ward.toml` exists in the project root; otherwise run `ward init`. |
 | `integration` | `OK` / `WARNING` | Lists configured project-local agent integrations as `id=status [capabilities]`. Integrations without pre-tool support are marked `advisory-only`. `installed` means the integration's files are present and Ward-owned; it does not show that the harness has loaded them. `WARNING` means none is configured (`No supported agent integration configured.`) or one is incomplete or outdated; re-run `ward integrate <agent>` to repair it. For a project in a monorepo, agent integrations are looked up at the repository root, where `ward init` installs them. |
 | `native` | `OK` / `WARNING` | `target/ward` exists in the current directory. This is a development check for the Ward repository. |

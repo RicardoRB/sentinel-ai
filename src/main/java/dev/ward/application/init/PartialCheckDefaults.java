@@ -6,7 +6,9 @@ import dev.ward.domain.project.BuildTool;
 import dev.ward.domain.project.Project;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * The {@code [quality-gates.<id>.partial]} table init writes for a gate whose tool can be scoped to
@@ -19,6 +21,18 @@ final class PartialCheckDefaults {
   private static final List<String> GRADLE_BUILD = List.of("build.gradle*", "settings.gradle*");
   private static final String GRADLE_PATHS = "-PwardPaths={paths}";
   private static final String COMMA = ",";
+
+  private static final Map<String, TableFactory> TABLES =
+      Map.of(
+          "checkstyle",
+          PartialCheckDefaults::checkstyle,
+          "pmd",
+          PartialCheckDefaults::pmd,
+          "format",
+          (gradle, preset, build) -> format(gradle, build),
+          "semgrep",
+          (gradle, preset, build) ->
+              new Table(List.of("**"), List.of(".semgrep*"), List.of("{paths}"), null, null));
 
   /** The table's keys; {@code item} and {@code separator} are omitted when {@code null}. */
   record Table(
@@ -34,21 +48,25 @@ final class PartialCheckDefaults {
     }
   }
 
+  /** Builds a gate's table for Maven or Gradle, with or without a preset. */
+  @FunctionalInterface
+  private interface TableFactory {
+    Table create(boolean gradle, QualityPreset preset, List<String> build);
+  }
+
   private PartialCheckDefaults() {}
 
   static Optional<Table> forGate(
       final String gate, final Project project, final QualityPreset preset) {
     final boolean gradle = project.buildTool() == BuildTool.GRADLE;
     final List<String> build = gradle ? GRADLE_BUILD : MAVEN_BUILD;
-    return switch (gate) {
-      case "checkstyle" -> Optional.of(checkstyle(gradle, preset, build));
-      case "pmd" -> Optional.of(pmd(gradle, preset, build));
-      case "format" -> Optional.of(format(gradle, build));
-      case "semgrep" ->
-          Optional.of(
-              new Table(List.of("**"), List.of(".semgrep*"), List.of("{paths}"), null, null));
-      default -> Optional.empty();
-    };
+    return Optional.ofNullable(TABLES.get(gate))
+        .map(factory -> factory.create(gradle, preset, build));
+  }
+
+  /** Returns the gates that have a partial table, for the gate contract test. */
+  static Set<String> gates() {
+    return TABLES.keySet();
   }
 
   /**

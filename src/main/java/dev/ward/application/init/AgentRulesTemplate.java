@@ -76,9 +76,22 @@ final class AgentRulesTemplate {
         project.root().resolve("AGENTS.md"), BEGIN, END, String.join("\n", lines) + "\n", false);
   }
 
+  /** Returns the gates that can get a limit line, for the gate contract test. */
+  static Set<String> limitGates() {
+    return limitLines(QualityPreset.STRICT.rules(), Set.of()).keySet();
+  }
+
   /** Returns one line per selected gate that has a limit worth stating, in gate order. */
   private static List<String> limits(
       final Set<String> ids, final PresetRules rules, final Set<String> owned) {
+    return limitLines(rules, owned).entrySet().stream()
+        .filter(entry -> ids.contains(entry.getKey()))
+        .map(Map.Entry::getValue)
+        .toList();
+  }
+
+  /** Returns the limit line of each gate that has one, keyed by gate ID, in gate order. */
+  private static Map<String, String> limitLines(final PresetRules rules, final Set<String> owned) {
     final Map<String, String> lines = new LinkedHashMap<>();
     lines.put(
         "checkstyle",
@@ -108,10 +121,7 @@ final class AgentRulesTemplate {
     lines.put(
         "archunit", "- ArchUnit: keep the architecture tests passing; do not add `@ArchIgnore`.");
     lines.put("enforcer", "- Enforcer: " + String.join(", ", rules.enforcerRules()) + ".");
-    return lines.entrySet().stream()
-        .filter(entry -> ids.contains(entry.getKey()))
-        .map(Map.Entry::getValue)
-        .toList();
+    return lines;
   }
 
   private static String checkstyle(final PresetRules rules) {
