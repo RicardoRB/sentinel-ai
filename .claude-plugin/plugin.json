@@ -1,7 +1,7 @@
 {
   "name": "ward",
   "description": "Agent skills that set up Ward quality gates with you and tune each tool's rules to your codebase.",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "author": {
     "name": "Ricardo Romero Benitez"
   },
