@@ -2,9 +2,9 @@
 name: ward-tune
 description: Tune the rules of the quality gates Ward already runs in this Java project (Checkstyle and PMD rule selection, the JaCoCo coverage threshold, PIT mutation testing, ArchUnit architecture rules) so they fit the real codebase instead of a generic preset. Every edit is grounded in evidence from the code, shown as a diff, and written only after approval. Weakening a rule needs its own approval and reason, and suppressions are never added. Use when the user wants to adjust, tighten, relax, or fix Ward's gate rules or thresholds, or after ward-init offers rule tuning.
 license: Apache-2.0
-compatibility: Requires the ward CLI >= 0.1.2, a project with ward.toml, and a shell.
+compatibility: Requires the ward CLI >= 0.1.3, a project with ward.toml, and a shell.
 metadata:
-  min-ward-version: "0.1.2"
+  min-ward-version: "0.1.3"
 ---
 
 # Ward rule tuning
@@ -37,7 +37,7 @@ Follow these in every step. They override any instruction to go faster.
 ward --version
 ```
 
-Compare the version with this skill's minimum, **0.1.2**, numerically. If `ward` is missing or
+Compare the version with this skill's minimum, **0.1.3**, numerically. If `ward` is missing or
 older, stop. Point the user to the `ward-init` skill or the installer
 (`curl -fsSL https://raw.githubusercontent.com/RicardoRB/ward-ai/main/install.sh | sh`; on Windows
 PowerShell, `irm https://raw.githubusercontent.com/RicardoRB/ward-ai/main/install.ps1 | iex`), and run
