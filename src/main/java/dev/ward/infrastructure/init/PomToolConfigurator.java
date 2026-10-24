@@ -2,13 +2,14 @@ package dev.ward.infrastructure.init;
 
 import dev.ward.domain.agent.PlannedFileChange;
 import dev.ward.domain.config.WardException;
+import dev.ward.domain.init.BuildFileChange;
 import dev.ward.domain.init.BuildToolConfiguration;
 import dev.ward.domain.init.CompatibilityFinding;
 import dev.ward.domain.init.CompatibilityInspection;
 import dev.ward.domain.init.InitGateOption;
-import dev.ward.domain.init.PomChange;
 import dev.ward.domain.init.QualityPreset;
 import dev.ward.domain.project.Project;
+import dev.ward.domain.project.Toolchain;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -237,18 +238,18 @@ public final class PomToolConfigurator implements BuildToolConfiguration {
   }
 
   @Override
-  public PomChange apply(final Project project, final List<InitGateOption> gates) {
+  public BuildFileChange apply(final Project project, final List<InitGateOption> gates) {
     return apply(project, gates, null);
   }
 
   @Override
-  public PomChange apply(
+  public BuildFileChange apply(
       final Project project, final List<InitGateOption> gates, final QualityPreset preset) {
     return apply(project, gates, preset, finding -> false);
   }
 
   @Override
-  public PomChange apply(
+  public BuildFileChange apply(
       final Project project,
       final List<InitGateOption> gates,
       final QualityPreset preset,
@@ -263,7 +264,7 @@ public final class PomToolConfigurator implements BuildToolConfiguration {
             "Could not configure Maven tools in " + edit.pom + ": " + e.getMessage(), e);
       }
     }
-    return new PomChange(edit.pom, edit.original, edit.tools, edit.warnings);
+    return new BuildFileChange(Toolchain.JVM, edit.pom, edit.original, edit.tools, edit.warnings);
   }
 
   @Override
@@ -343,7 +344,7 @@ public final class PomToolConfigurator implements BuildToolConfiguration {
   }
 
   @Override
-  public void rollback(final PomChange change) {
+  public void rollback(final BuildFileChange change) {
     if (change == null || !change.changed()) {
       return;
     }

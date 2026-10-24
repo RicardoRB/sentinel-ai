@@ -3,9 +3,9 @@ package dev.ward.infrastructure.init;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import dev.ward.domain.init.BuildFileChange;
 import dev.ward.domain.init.CompatibilityProjectSnapshot;
 import dev.ward.domain.init.InitGateOption;
-import dev.ward.domain.init.PomChange;
 import dev.ward.domain.init.ToolchainSnapshot;
 import dev.ward.domain.project.BuildTool;
 import dev.ward.domain.project.Framework;
@@ -76,7 +76,7 @@ class PomToolVersionUpdateTest {
             + "</plugin></plugins></build></profile></profiles></project>");
     final String original = Files.readString(root.resolve(POM));
 
-    final PomChange change = approvedFormatUpdate(root);
+    final BuildFileChange change = approvedFormatUpdate(root);
 
     assertThat(Files.readString(root.resolve(POM))).isEqualTo(original);
     assertThat(change.tools()).isEmpty();
@@ -84,7 +84,7 @@ class PomToolVersionUpdateTest {
         .anyMatch(message -> message.contains("not declared in the project-level build"));
   }
 
-  private static PomChange approvedFormatUpdate(final Path root) {
+  private static BuildFileChange approvedFormatUpdate(final Path root) {
     final Predicate<Object> approveAll = ignored -> true;
     return new PomToolConfigurator(
             ignored -> snapshot(JAVA_17, Map.of("spotless-maven-plugin", "1.0.0")))

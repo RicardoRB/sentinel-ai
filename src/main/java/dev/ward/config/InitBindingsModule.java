@@ -14,7 +14,6 @@ import dev.ward.domain.init.RuleFileGeneration;
 import dev.ward.domain.init.ToolInstaller;
 import dev.ward.domain.terminal.TerminalCapabilities;
 import dev.ward.infrastructure.init.ArchitectureTestGenerator;
-import dev.ward.infrastructure.init.BuildToolConfigurator;
 import dev.ward.infrastructure.init.CompositeToolInstaller;
 import dev.ward.infrastructure.init.FileConfigurationStorage;
 import dev.ward.infrastructure.init.OwnedSectionWriter;
@@ -23,7 +22,7 @@ import dev.ward.infrastructure.init.QualityHookInstaller;
 import dev.ward.infrastructure.terminal.JdkTerminalCapabilities;
 import dev.ward.infrastructure.terminal.PosixRawTerminal;
 
-@Module
+@Module(includes = BuildToolBindingsModule.class)
 interface InitBindingsModule {
   @Binds
   ConfigurationStorage configurationStorage(FileConfigurationStorage implementation);
@@ -33,9 +32,6 @@ interface InitBindingsModule {
 
   @Binds
   TerminalCapabilities terminalCapabilities(JdkTerminalCapabilities implementation);
-
-  @Binds
-  BuildToolConfiguration buildToolConfiguration(BuildToolConfigurator implementation);
 
   @Binds
   ArchitectureTestGeneration architectureTestGeneration(ArchitectureTestGenerator implementation);

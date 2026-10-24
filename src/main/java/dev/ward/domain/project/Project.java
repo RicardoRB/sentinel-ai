@@ -102,6 +102,11 @@ public record Project(
     return buildTool != BuildTool.MAVEN || publishesArtifacts;
   }
 
+  /** Returns the toolchain of this project's build tool. */
+  public Toolchain toolchain() {
+    return buildTool.toolchain();
+  }
+
   /** Returns whether the wrapper belonging to this project's build tool is available. */
   public boolean wrapperAvailable() {
     return mavenWrapperAvailable;

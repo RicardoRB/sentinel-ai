@@ -3,9 +3,9 @@ package dev.ward.infrastructure.init;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import dev.ward.domain.init.BuildFileChange;
 import dev.ward.domain.init.CompatibilityProjectSnapshot;
 import dev.ward.domain.init.InitGateOption;
-import dev.ward.domain.init.PomChange;
 import dev.ward.domain.init.ToolchainSnapshot;
 import dev.ward.domain.project.BuildTool;
 import dev.ward.domain.project.Framework;
@@ -51,7 +51,7 @@ class PomToolConfiguratorCompatibilityTest {
             ignored -> snapshot(JAVA_17, Map.of("spotless-maven-plugin", "1.0.0")));
     final String original = Files.readString(root.resolve("pom.xml"));
 
-    final PomChange change =
+    final BuildFileChange change =
         configurator.apply(project, List.of(gate("format")), null, ignored -> false);
 
     assertThat(Files.readString(root.resolve("pom.xml"))).isEqualTo(original);

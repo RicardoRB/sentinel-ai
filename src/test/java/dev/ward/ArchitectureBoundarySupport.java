@@ -134,6 +134,7 @@ final class ArchitectureBoundarySupport {
                       "dev.ward.config.ProcessBindingsModule",
                       "dev.ward.config.ProjectBindingsModule",
                       "dev.ward.config.InitBindingsModule",
+                      "dev.ward.config.BuildToolBindingsModule",
                       "dev.ward.config.CommandBindingsModule",
                       "dev.ward.config.SpecCommandBindingsModule",
                       "dev.ward.config.TraceabilityBindingsModule",

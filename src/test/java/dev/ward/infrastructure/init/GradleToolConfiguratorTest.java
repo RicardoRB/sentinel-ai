@@ -2,8 +2,8 @@ package dev.ward.infrastructure.init;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import dev.ward.domain.init.BuildFileChange;
 import dev.ward.domain.init.InitGateOption;
-import dev.ward.domain.init.PomChange;
 import dev.ward.domain.project.BuildTool;
 import dev.ward.domain.project.Framework;
 import dev.ward.domain.project.Language;
@@ -22,7 +22,7 @@ class GradleToolConfiguratorTest {
     final Project project = new Project(root, Language.JAVA, BuildTool.GRADLE, Framework.NONE);
     final GradleToolConfigurator configurator = new GradleToolConfigurator();
 
-    final PomChange change =
+    final BuildFileChange change =
         configurator.apply(project, List.of(gate("format")), null, finding -> false);
 
     final String updated = Files.readString(build);
@@ -40,7 +40,7 @@ class GradleToolConfiguratorTest {
     Files.writeString(build, original);
     final Project project = new Project(root, Language.KOTLIN, BuildTool.GRADLE, Framework.NONE);
 
-    final PomChange change =
+    final BuildFileChange change =
         new GradleToolConfigurator()
             .apply(project, List.of(gate("format")), null, finding -> false);
 
@@ -60,7 +60,7 @@ class GradleToolConfiguratorTest {
     Files.writeString(build, original);
     final Project project = new Project(root, Language.KOTLIN, BuildTool.GRADLE, Framework.NONE);
 
-    final PomChange change =
+    final BuildFileChange change =
         new GradleToolConfigurator()
             .apply(project, List.of(gate("format")), null, finding -> false);
 

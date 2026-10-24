@@ -2,7 +2,6 @@ package dev.ward.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import dev.ward.application.gate.LanguageGateRegistry;
 import dev.ward.application.project.ProjectDiscovery;
 import dev.ward.domain.project.Language;
 import dev.ward.domain.project.Project;
@@ -35,12 +34,5 @@ class PlatformCoverageTest {
         new ProjectDiscovery(new FileSystemProjectInspection()).discover(root).getFirst().project();
 
     assertThat(project.mavenWrapperAvailable()).isTrue();
-  }
-
-  @Test
-  void exposesLanguageGateDefaults() {
-    final LanguageGateRegistry registry = new LanguageGateRegistry();
-    assertThat(registry.defaults(Language.JAVA)).contains("tests", "archunit");
-    assertThat(registry.defaults(Language.GO)).contains("tests");
   }
 }

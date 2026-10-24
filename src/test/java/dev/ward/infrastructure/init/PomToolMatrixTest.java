@@ -2,8 +2,8 @@ package dev.ward.infrastructure.init;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import dev.ward.domain.init.BuildFileChange;
 import dev.ward.domain.init.InitGateOption;
-import dev.ward.domain.init.PomChange;
 import dev.ward.domain.init.QualityPreset;
 import dev.ward.domain.project.BuildTool;
 import dev.ward.domain.project.Framework;
@@ -71,7 +71,7 @@ class PomToolMatrixTest {
     final String original = Files.readString(FIXTURES.resolve(fixtureName));
     Files.writeString(root.resolve("pom.xml"), original);
 
-    final PomChange change =
+    final BuildFileChange change =
         new PomToolConfigurator()
             .apply(
                 new Project(root, Language.JAVA, BuildTool.MAVEN, Framework.NONE),

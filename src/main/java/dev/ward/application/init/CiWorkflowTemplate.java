@@ -3,7 +3,6 @@ package dev.ward.application.init;
 import dev.ward.domain.config.WardException;
 import dev.ward.domain.init.InitGateOption;
 import dev.ward.domain.init.OwnedSection;
-import dev.ward.domain.project.BuildTool;
 import dev.ward.domain.project.Project;
 import java.util.ArrayList;
 import java.util.List;
@@ -22,7 +21,7 @@ final class CiWorkflowTemplate {
   private static final String TRIVY_VERSION = "0.76.0";
   private static final String SEMGREP_VERSION = "1.181.0";
   private static final String OPENSPEC_VERSION = "1.14.1";
-  private static final String STEP = "      - name: ";
+  static final String STEP = "      - name: ";
 
   private CiWorkflowTemplate() {}
 
@@ -130,17 +129,7 @@ final class CiWorkflowTemplate {
         + "      - uses: actions/checkout@v5\n"
         // gitleaks scans the whole history.
         + (ids.contains("gitleaks") ? "        with:\n          fetch-depth: 0\n" : "")
-        + STEP
-        + "Set up JDK\n"
-        + "        uses: actions/setup-java@v5\n"
-        + "        with:\n"
-        + "          distribution: temurin\n"
-        // shortcut: always JDK 25, which compiles older releases; read the project's toolchain if a
-        // build pins a newer one.
-        + "          java-version: '25'\n"
-        + "          cache: "
-        + (project.buildTool() == BuildTool.GRADLE ? "gradle" : "maven")
-        + "\n";
+        + InitToolchains.support(project).ciSetup(project);
   }
 
   private static String tools(final Set<String> ids) {

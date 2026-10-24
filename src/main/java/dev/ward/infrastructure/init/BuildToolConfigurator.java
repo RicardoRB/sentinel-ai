@@ -1,38 +1,36 @@
 package dev.ward.infrastructure.init;
 
 import dev.ward.domain.agent.PlannedFileChange;
+import dev.ward.domain.config.WardException;
+import dev.ward.domain.init.BuildFileChange;
 import dev.ward.domain.init.BuildToolConfiguration;
 import dev.ward.domain.init.CompatibilityFinding;
 import dev.ward.domain.init.InitGateOption;
-import dev.ward.domain.init.PomChange;
 import dev.ward.domain.init.QualityPreset;
-import dev.ward.domain.project.BuildTool;
 import dev.ward.domain.project.Project;
-import java.nio.file.Path;
+import dev.ward.domain.project.Toolchain;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Predicate;
 import javax.inject.Inject;
 
-/** Routes initialization mutations to the adapter for the detected build tool. */
+/** Routes initialization mutations to the build-file adapter of the project's toolchain. */
 public final class BuildToolConfigurator implements BuildToolConfiguration {
-  private final PomToolConfigurator maven;
-  private final GradleToolConfigurator gradle;
+  private final Map<Toolchain, BuildToolConfiguration> adapters;
 
-  /** Creates the configurator that delegates to the Maven or Gradle configurator. */
+  /** Creates the router over one build-file adapter per supported toolchain. */
   @Inject
-  public BuildToolConfigurator(
-      final PomToolConfigurator maven, final GradleToolConfigurator gradle) {
-    this.maven = maven;
-    this.gradle = gradle;
+  public BuildToolConfigurator(final Map<Toolchain, BuildToolConfiguration> adapters) {
+    this.adapters = Map.copyOf(adapters);
   }
 
   @Override
-  public PomChange apply(final Project project, final List<InitGateOption> gates) {
+  public BuildFileChange apply(final Project project, final List<InitGateOption> gates) {
     return adapter(project).apply(project, gates);
   }
 
   @Override
-  public PomChange apply(
+  public BuildFileChange apply(
       final Project project,
       final List<InitGateOption> gates,
       final QualityPreset preset,
@@ -50,23 +48,26 @@ public final class BuildToolConfigurator implements BuildToolConfiguration {
   }
 
   @Override
-  public void rollback(final PomChange change) {
-    if (change == null) {
+  public void rollback(final BuildFileChange change) {
+    if (change == null || change.file() == null) {
       return;
     }
-    final Path file = change.file();
-    if (file == null) {
-      return;
+    final BuildToolConfiguration adapter = adapters.get(change.toolchain());
+    if (adapter == null) {
+      throw new WardException(
+          "Ward cannot roll back " + change.toolchain() + " build files: no adapter is available.");
     }
-    final String fileName = file.toString();
-    if (fileName.endsWith("/build.gradle") || fileName.endsWith("/build.gradle.kts")) {
-      gradle.rollback(change);
-    } else {
-      maven.rollback(change);
-    }
+    adapter.rollback(change);
   }
 
   private BuildToolConfiguration adapter(final Project project) {
-    return project.buildTool() == BuildTool.GRADLE ? gradle : maven;
+    final BuildToolConfiguration adapter = adapters.get(project.toolchain());
+    if (adapter == null) {
+      throw new WardException(
+          "Ward does not configure "
+              + project.buildTool().displayName()
+              + " build files; ward init supports Maven and Gradle projects.");
+    }
+    return adapter;
   }
 }

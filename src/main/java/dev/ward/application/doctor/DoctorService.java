@@ -10,7 +10,6 @@ import dev.ward.domain.config.WardConfigurationReader;
 import dev.ward.domain.config.WardException;
 import dev.ward.domain.doctor.EnvironmentFacts;
 import dev.ward.domain.doctor.EnvironmentInspection;
-import dev.ward.domain.project.BuildTool;
 import dev.ward.domain.project.Project;
 import dev.ward.domain.traceability.TraceabilityPrerequisites;
 import java.nio.file.Path;
@@ -96,27 +95,9 @@ public final class DoctorService {
     final Path root = project.get().root();
     final EnvironmentFacts facts = environment.inspect(root);
     final Project detected = project.get();
-    final String toolName = detected.buildTool().displayName();
-    final String wrapperName =
-        detected.buildTool() == BuildTool.GRADLE ? "Gradle Wrapper" : "Maven Wrapper";
-    final String executable = detected.buildTool() == BuildTool.GRADLE ? "gradle" : "mvn";
-    final String wrapperFlag =
-        detected.buildTool() == BuildTool.GRADLE
-            ? "gradleWrapperAvailable"
-            : "mavenWrapperAvailable";
-    final String toolMessage =
-        flag(facts, wrapperFlag)
-            ? wrapperName + " available."
-            : "System " + toolName + " is required.";
     final boolean openCode = flag(facts, "openCodeCommandPresent");
     findings.add(new Finding("project", Status.OK, root.toString()));
-    findings.add(
-        check(
-            toolName.toLowerCase(Locale.ROOT),
-            flag(facts, wrapperFlag) || facts.hasExecutable(executable),
-            Status.ERROR,
-            toolMessage,
-            toolMessage));
+    findings.addAll(BuildToolFindings.of(detected, facts));
     findings.add(
         check(
             "configuration",

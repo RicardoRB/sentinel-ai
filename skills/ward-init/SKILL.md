@@ -73,6 +73,8 @@ probe for tool availability. It never runs a build or a gate.
 If the directory is a monorepo root rather than a Maven or Gradle project, the inspection reference
 explains how to find the projects below it and pass each chosen one with `--project <dir>`. If no
 Maven or Gradle project exists there either, tell the user that Ward cannot be set up here, and stop.
+`ward init` fails the same way on its own: when only a project of another build tool (for example
+Poetry, Cargo or npm) is found, its error names that build tool and changes no file.
 
 Show the user the short inspection summary described at the end of that file before asking anything.
 

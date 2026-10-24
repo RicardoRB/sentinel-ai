@@ -276,6 +276,9 @@ monorepo, init looks for projects below it:
 - With one project found, init configures it and says so.
 - With several, the wizard asks which to configure, all checked. Without a terminal, or with `--yes`,
   init stops and lists the `--project` values to pass.
+- With none, init stops without changing any file. If the `-C` directory is inside a project of
+  another build tool, such as Poetry, Cargo or npm, the error names that build tool and says that
+  init supports Maven and Gradle projects.
 
 `--project <dir>` names a project explicitly, relative to `-C`. Repeat it to configure several
 projects in one run:

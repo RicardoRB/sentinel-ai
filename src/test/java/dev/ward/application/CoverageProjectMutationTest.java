@@ -10,8 +10,8 @@ import dev.ward.domain.FakeEnvironmentInspection;
 import dev.ward.domain.gate.GateResult;
 import dev.ward.domain.gate.GateStatus;
 import dev.ward.domain.gate.SkippedQualityGate;
+import dev.ward.domain.init.BuildFileChange;
 import dev.ward.domain.init.InitGateOption;
-import dev.ward.domain.init.PomChange;
 import dev.ward.domain.init.QualityPreset;
 import dev.ward.domain.process.CommandExecutor;
 import dev.ward.domain.process.CommandResult;
@@ -19,6 +19,7 @@ import dev.ward.domain.project.BuildTool;
 import dev.ward.domain.project.Framework;
 import dev.ward.domain.project.Language;
 import dev.ward.domain.project.Project;
+import dev.ward.domain.project.Toolchain;
 import dev.ward.infrastructure.init.PomToolConfigurator;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -42,7 +43,7 @@ class CoverageProjectMutationTest {
         catalog.gates(
             new Project(root, Language.JAVA, BuildTool.MAVEN, Framework.NONE, false, true, root));
     final PomToolConfigurator configurator = new PomToolConfigurator();
-    final PomChange change =
+    final BuildFileChange change =
         configurator.apply(
             new Project(root, Language.JAVA, BuildTool.MAVEN, Framework.NONE), gates);
     assertThat(change.tools())
@@ -72,7 +73,8 @@ class CoverageProjectMutationTest {
     configurator.rollback(change);
     assertThat(Files.readString(root.resolve("pom.xml"))).isEqualTo(ProjectFixtures.PLAIN_POM);
     configurator.rollback(null);
-    assertThat(new PomChange(root.resolve("pom.xml"), "", List.of()).changed()).isFalse();
+    assertThat(new BuildFileChange(Toolchain.JVM, root.resolve("pom.xml"), "", List.of()).changed())
+        .isFalse();
   }
 
   @Test
@@ -85,7 +87,8 @@ class CoverageProjectMutationTest {
         catalog.gates(project).stream()
             .filter(gate -> QualityPreset.STRICT.gates().contains(gate.id()))
             .toList();
-    final PomChange change = new PomToolConfigurator().apply(project, gates, QualityPreset.STRICT);
+    final BuildFileChange change =
+        new PomToolConfigurator().apply(project, gates, QualityPreset.STRICT);
     final String pom = Files.readString(root.resolve("pom.xml"));
     assertThat(pom)
         .contains("${project.basedir}/config/enforcer-rules.xml", "mutationThreshold>60");
@@ -101,7 +104,7 @@ class CoverageProjectMutationTest {
     Files.writeString(root.resolve("pom.xml"), pom);
     final InitSetupCatalog catalog = new InitSetupCatalog(new FakeEnvironmentInspection());
     final Project project = new Project(root, Language.JAVA, BuildTool.MAVEN, Framework.NONE);
-    final PomChange change =
+    final BuildFileChange change =
         new PomToolConfigurator()
             .apply(
                 project,

@@ -2,8 +2,8 @@ package dev.ward.infrastructure.init;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import dev.ward.domain.init.BuildFileChange;
 import dev.ward.domain.init.InitGateOption;
-import dev.ward.domain.init.PomChange;
 import dev.ward.domain.init.QualityPreset;
 import dev.ward.domain.project.BuildTool;
 import dev.ward.domain.project.Framework;
@@ -81,7 +81,7 @@ class GradlePathFilterBlockTest {
   void runningAgainOnAKotlinScriptChangesNothing() throws IOException {
     final String first = configure(KOTLIN, KOTLIN_PLUGINS, QualityPreset.STANDARD);
 
-    final PomChange second =
+    final BuildFileChange second =
         new GradleToolConfigurator()
             .apply(project(), gates(), QualityPreset.STANDARD, finding -> false);
 
