@@ -33,21 +33,6 @@ final class PomTools {
                 </configuration>
               </plugin>
             """;
-  private static final String LICENSE_PLUGIN =
-      """
-              <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>license-maven-plugin</artifactId>
-                <version>2.5.0</version>
-                <configuration>
-                  <failOnBlacklist>true</failOnBlacklist>
-                  <excludedLicenses>
-                    <excludedLicense>GNU General Public License (GPL)</excludedLicense>
-                    <excludedLicense>GNU Affero General Public License (AGPL)</excludedLicense>
-                  </excludedLicenses>
-                </configuration>
-              </plugin>
-            """;
   private static final String JAPICMP_PLUGIN =
       """
               <plugin>
@@ -198,7 +183,8 @@ final class PomTools {
           Tool.plugin(
               "enforcer", ENFORCER, ENFORCER_PLUGIN, preset -> PresetPluginSnippets.enforcer()),
           Tool.plugin("format", SPOTLESS, SPOTLESS_PLUGIN),
-          Tool.plugin("license", LICENSE, LICENSE_PLUGIN),
+          Tool.plugin(
+              "license", LICENSE, LicensePolicySnippets.DENYLIST, LicensePolicySnippets::forPreset),
           Tool.plugin("api-compat", JAPICMP, JAPICMP_PLUGIN));
 
   private PomTools() {}

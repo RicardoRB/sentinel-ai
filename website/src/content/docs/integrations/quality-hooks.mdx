@@ -9,7 +9,7 @@ description: Opt-in local Git hooks for Ward quality profiles.
 ward init --integration none --gate format,tests --quality-hooks
 ```
 
-- `.git/hooks/pre-commit` runs `ward check --profile pre-commit --format json` after the shebang and before existing hook logic.
+- `.git/hooks/pre-commit` runs `ward check --profile pre-commit --format json` after the shebang and before existing hook logic. It passes each staged file as `--path` (added, copied, modified, or renamed; deleted files are left out), so gates with a [`partial` table](/configuration/gates/#partial-checks) check only the commit's files, and `gitleaks` scans the staged files instead of the history. When nothing qualifies, as for a commit that only deletes files, every gate runs in full. A file staged in part is checked as it is in the working tree.
 - `.git/hooks/pre-push` runs `ward check --profile pre-push --format json` after the shebang and before existing hook logic.
 - Compilation is intentionally part of `pre-push` (and `ci`), not `pre-commit`; the fast commit hook avoids paying for a compile on every edit.
 - Hooks report results as JSON on stdout so a coding agent that commits or pushes can read which findings to fix.
@@ -48,14 +48,23 @@ removing one project's section leaves the others alone:
 ```sh
 # ward-owned: quality-hooks v1 begin apps/api
 if ! git diff --cached --quiet -- 'apps/api'; then
-  if ! (cd "$(git rev-parse --show-toplevel)"/'apps/api' && ward check --profile pre-commit --format json); then
+  if ! (cd "$(git rev-parse --show-toplevel)"/'apps/api' && (
+  set --
+  while IFS= read -r ward_path; do
+    if [ -n "$ward_path" ]; then set -- "$@" "--path=$ward_path"; fi
+  done <<WARD_STAGED
+$(git -c core.quotePath=false diff --cached --name-only --diff-filter=ACMR --relative)
+WARD_STAGED
+  ward check --profile pre-commit --format json "$@"
+)); then
     exit 1
   fi
 fi
 # ward-owned: quality-hooks v1 end apps/api
 ```
 
-- `pre-commit` runs only when the commit stages a file under the project.
+- `pre-commit` runs only when the commit stages a file under the project, and passes the staged
+  paths relative to the project.
 - `pre-push` compares `HEAD` with the branch's upstream and runs only when the project changed.
   Without an upstream, as on a branch's first push, it always runs. The section never reads the
   ref list Git passes on stdin, so hook content after it still receives that list.

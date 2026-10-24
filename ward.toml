@@ -3,7 +3,8 @@ preset = "strict"
 
 [quality-gates.compile]
 enabled = true
-profiles = ["pre-push", "ci"]
+# Not in pre-push: the tests gate compiles anyway.
+profiles = ["ci"]
 command = "./mvnw compile"
 
 [quality-gates.tests]
@@ -73,6 +74,12 @@ command = "./mvnw pitest:mutationCoverage"
 enabled = true
 profiles = ["default", "pre-commit", "pre-push", "ci"]
 command = "gitleaks detect --no-banner --redact --report-format sarif --report-path target/gitleaks.sarif"
+
+# History scans miss uncommitted and staged edits, so edited and staged files are scanned directly.
+[quality-gates.gitleaks.partial]
+inputs = ["**"]
+config = [".gitleaks*"]
+args = ["--no-git", "--source={paths}"]
 
 [quality-gates.semgrep]
 enabled = true

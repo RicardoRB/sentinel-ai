@@ -36,7 +36,7 @@ public final class GradleToolConfigurator implements BuildToolConfiguration {
           new Plugin("dependency-check", "org.owasp.dependencycheck", "12.1.0"),
           new Plugin("mutation", "info.solidsoft.pitest", "1.19.0"),
           new Plugin("sonar", "org.sonarqube", "5.1.0.4882"),
-          new Plugin("license", "com.github.hierynomus.license", "0.16.1"),
+          new Plugin("license", "com.github.jk1.dependency-license-report", "3.1.4"),
           new Plugin("api-compat", "me.champeau.gradle.japicmp", "0.4.6"));
 
   /** Creates the stateless adapter that Dagger injects. */

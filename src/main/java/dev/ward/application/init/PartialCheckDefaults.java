@@ -32,7 +32,17 @@ final class PartialCheckDefaults {
           (gradle, preset, build) -> format(gradle, build),
           "semgrep",
           (gradle, preset, build) ->
-              new Table(List.of("**"), List.of(".semgrep*"), List.of("{paths}"), null, null));
+              new Table(List.of("**"), List.of(".semgrep*"), List.of("{paths}"), null, null),
+          // Its history scan misses uncommitted and staged edits, so edited files are scanned
+          // directly.
+          "gitleaks",
+          (gradle, preset, build) ->
+              new Table(
+                  List.of("**"),
+                  List.of(".gitleaks*"),
+                  List.of("--no-git", "--source={paths}"),
+                  null,
+                  null));
 
   /** The table's keys; {@code item} and {@code separator} are omitted when {@code null}. */
   record Table(

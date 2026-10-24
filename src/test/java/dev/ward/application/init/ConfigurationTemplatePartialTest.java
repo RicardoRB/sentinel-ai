@@ -97,11 +97,25 @@ class ConfigurationTemplatePartialTest {
   }
 
   @Test
+  void gitleaksScansEachEditedFileOutsideGitHistory() throws IOException {
+    final Map<String, GateConfiguration> gates = parse(BuildTool.MAVEN, QualityPreset.STANDARD);
+
+    assertThat(gates.get("gitleaks").partial())
+        .isEqualTo(
+            new PartialGateConfiguration(
+                List.of("**"),
+                List.of(".gitleaks*"),
+                List.of("--no-git", "--source={paths}"),
+                null,
+                null));
+  }
+
+  @Test
   void gatesThatDependOnTheWholeProjectHaveNoPartialTable() throws IOException {
     final Map<String, GateConfiguration> gates = parse(BuildTool.MAVEN, QualityPreset.STANDARD);
 
     for (final String gate :
-        List.of("compile", "tests", "coverage", "archunit", "mutation", "spotbugs", "gitleaks")) {
+        List.of("compile", "tests", "coverage", "archunit", "mutation", "spotbugs")) {
       assertThat(gates.get(gate).partial()).as(gate).isNull();
     }
   }

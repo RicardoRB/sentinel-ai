@@ -27,7 +27,7 @@ defines the actual tool invocation. Ward does not install gate tools during `che
 | | `trivy` | Trivy | Vulnerabilities in dependencies, containers, and IaC. |
 | Architecture | `archunit` | ArchUnit | Run architecture rules/tests. |
 | | `enforcer` | Maven Enforcer / Gradle checks | Dependency and build rules. |
-| Dependencies & Compliance | `license` | License Maven Plugin / Gradle license plugin | License compliance. |
+| Dependencies & Compliance | `license` | License Maven Plugin / Gradle License Report (`checkLicense`) | Dependency license policy. |
 | | `api-compat` | japicmp | Binary/API compatibility between versions. |
 | REST API contract | `openapi-lint` | vacuum | Lint the committed OpenAPI spec with every built-in rule. |
 | | `openapi-diff` | oasdiff | Breaking changes in uncommitted spec edits. |
@@ -56,7 +56,9 @@ deliberately, for example in a CI-only profile with `profiles = ["ci"]`:
 | `standard` | compile, tests, format, Checkstyle, PMD, SpotBugs, coverage | 70% line coverage |
 | `strict` | `standard` plus ArchUnit, Enforcer, and PIT mutation testing | 85% line, 75% branch, 60% mutation |
 
-Strict mutation testing can add a lot to check runtime.
+Strict mutation testing can add a lot to check runtime. When `license` is selected, `strict`
+writes a license allowlist instead of the GPL/AGPL denylist; see
+[what init changes in your build](/commands/init/#generated-files).
 
 Presets may write these rule files:
 
@@ -261,8 +263,8 @@ known. They appear in [JSON](/reference/json-output/) and SARIF output.
 ## Partial checks
 
 `ward init` writes a [`[quality-gates.<id>.partial]` table](/configuration/ward-toml/#partial-checks)
-for `checkstyle`, `pmd`, `format`, `semgrep`, `openapi-lint`, and `openapi-diff`. After an agent
-edit, a gate:
+for `checkstyle`, `pmd`, `format`, `semgrep`, `gitleaks`, `openapi-lint`, and `openapi-diff`. After an agent
+edit, and for the files a commit stages, a gate:
 
 - is skipped when no edited file is in its `inputs`;
 - runs in full when one of its `config` files was edited;
@@ -274,6 +276,7 @@ edit, a gate:
 | `pmd` | full, with PMD's analysis cache | `-PwardPaths=<paths>`, with a preset |
 | `format` | `-DspotlessFiles=.*/<path>`, a regular expression matched against the absolute path | full |
 | `semgrep` | each path as its own argument | each path as its own argument |
+| `gitleaks` | `--no-git --source=<path>` for each path, so uncommitted edits are scanned | same as Maven |
 | `openapi-lint`, `openapi-diff` | full, only when the spec is edited | full, only when the spec is edited |
 
 Gradle notes:

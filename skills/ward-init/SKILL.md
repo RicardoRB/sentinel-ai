@@ -103,6 +103,11 @@ order:
 
    Add `--overwrite` when `ward.toml` exists. Recommend `standard` for a first setup or a large
    legacy codebase. Recommend `strict` when the code already has tests and a clear structure.
+   With the `license` gate (Maven `license:add-third-party`, Gradle `checkLicense`), `strict`
+   writes a license allowlist that fails on any license it does
+   not list (including LGPL, MPL, and CDDL); `standard` only denies GPL and AGPL. Ask the user which
+   licenses their legal policy approves before recommending `strict` for a project with such
+   dependencies.
 3. **Gates.** Start from the preset's gates and ask what to add or remove. Mention what you found:
    - Gates whose tool is `UNAVAILABLE` and whether init can install the tool (an `install` line) or
      only point to a manual guide (a `guidance` line).
@@ -226,10 +231,11 @@ Tell the user:
 
 1. What is configured now: preset, gates and the profiles they run in, integration, hooks.
    Mention any CI workflow or `AGENTS.md` section init wrote (`Wrote Ward section:` lines).
-   Mention that `ward.toml` has `partial` tables for Checkstyle, PMD, format, and Semgrep: the
-   check after each agent edit skips gates the edit does not affect and narrows supported tools to
-   the edited files. Claude Code and the native harnesses still run the full `default` check when the
-   turn ends; git hooks and CI always check the whole project.
+   Mention that `ward.toml` has `partial` tables for Checkstyle, PMD, format, Semgrep, and
+   Gitleaks: the check after each agent edit, and the pre-commit hook, skip gates the change does
+   not affect and narrow supported tools to the edited or staged files. Claude Code and the native
+   harnesses still run the full `default` check when the turn ends; the pre-push hook and CI always
+   check the whole project.
 2. Every manual step still open, taken from the output. For example: tools that are still
    `UNAVAILABLE`, replacing `<TARGET_URL>` for `zap`, setting `NVD_API_KEY` for `dependency-check`
    (as a repository secret too when `--ci github` was used), committing the generated workflow, or a

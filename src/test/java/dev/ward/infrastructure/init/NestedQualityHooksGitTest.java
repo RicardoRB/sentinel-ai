@@ -89,7 +89,32 @@ class NestedQualityHooksGitTest {
     assertThat(runHook("pre-commit")).isZero();
     assertThat(Files.readString(calls).strip())
         .isEqualTo(
-            real(repository.resolve("apps/api")) + " check --profile pre-commit --format json");
+            real(repository.resolve("apps/api"))
+                + " check --profile pre-commit --format json --path=pom.xml");
+  }
+
+  @Test
+  void preCommitPassesStagedFilesWithSpacesAndAccentsAsOneArgumentEach()
+      throws IOException, InterruptedException {
+    final Path arguments = bin.resolve("arguments");
+    final Path ward = bin.resolve("ward");
+    Files.writeString(ward, "#!/bin/sh\nfor a; do echo \"$a\"; done >> '" + arguments + "'\n");
+    Files.setPosixFilePermissions(ward, PosixFilePermissions.fromString("rwxr-xr-x"));
+    installer.apply(api);
+    Files.createDirectories(repository.resolve("apps/api/src"));
+    Files.writeString(repository.resolve("apps/api/src/Más datos.java"), "class A {}\n");
+    git("add", "apps/api/pom.xml", "apps/api/src/Más datos.java");
+
+    assertThat(runHook("pre-commit")).isZero();
+    assertThat(Files.readAllLines(arguments))
+        .containsExactly(
+            "check",
+            "--profile",
+            "pre-commit",
+            "--format",
+            "json",
+            "--path=pom.xml",
+            "--path=src/Más datos.java");
   }
 
   /** A stub {@code ward} on the PATH that records its working directory and arguments. */
