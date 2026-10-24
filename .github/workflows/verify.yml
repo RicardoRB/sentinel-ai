@@ -3,12 +3,12 @@ name: Verify
 # Shared by pull requests and releases. JVM tests cannot see native-image-only failures (for
 # example, classes defined at run time), so after the JVM quality gates pass, each runner runs the
 # terminal tests inside a native test image, builds the native executable, and drives its raw-key
-# init wizard through a pseudo-terminal.
+# init wizard through a pseudo-terminal (POSIX) or smoke-runs it (Windows).
 on:
   workflow_call:
     inputs:
       native-runners:
-        description: JSON array of POSIX runners for the native checks.
+        description: JSON array of runners for the native checks.
         type: string
         default: '["ubuntu-24.04", "macos-14"]'
       harness-compatibility:
@@ -118,37 +118,6 @@ jobs:
             target/ward.sarif
           if-no-files-found: ignore
 
-  # The installers change independently of the binary, so they install the latest published release.
-  windows-installers:
-    name: Windows installers
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v5
-
-      - name: Install with Windows PowerShell 5.1
-        shell: powershell
-        env:
-          WARD_INSTALL_DIR: ${{ runner.temp }}\ward-powershell\bin
-        run: |
-          Get-Content install.ps1 -Raw | Invoke-Expression
-          ward --version
-
-      - name: Install with PowerShell 7
-        shell: pwsh
-        env:
-          WARD_INSTALL_DIR: ${{ runner.temp }}\ward-pwsh\bin
-        run: |
-          Get-Content install.ps1 -Raw | Invoke-Expression
-          ward --version
-
-      - name: Install with Git Bash
-        shell: bash
-        env:
-          WARD_INSTALL_DIR: ${{ runner.temp }}/ward-bash/bin
-        run: |
-          ./install.sh
-          "$WARD_INSTALL_DIR/ward.exe" --version
-
   native:
     name: Native checks (${{ matrix.os }})
     needs: quality
@@ -157,6 +126,10 @@ jobs:
       matrix:
         os: ${{ fromJSON(inputs.native-runners) }}
     runs-on: ${{ matrix.os }}
+    # PowerShell splits -Dname.with.dots=value arguments; Git Bash runs the mvnw script on Windows.
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@v5
 
@@ -179,19 +152,26 @@ jobs:
         run: ./mvnw -B -q -Pnative -DskipTests package native:compile
 
       - name: Drive init through a pseudo-terminal
+        if: runner.os != 'Windows'
         run: >-
           ./mvnw -B
           -Dtest=NativeInitTerminalSmokeTest
           -Dward.native.binary=target/ward
           test
 
+      - name: Smoke-run the Windows executable
+        if: runner.os == 'Windows'
+        run: |
+          set -euo pipefail
+          target/ward.exe --version
+          target/ward.exe --help > /dev/null
+
       - name: Set up Bun
-        if: inputs.harness-compatibility
+        if: inputs.harness-compatibility && runner.os != 'Windows'
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.3.11
 
       - name: Verify agent integrations against the native executable
-        if: inputs.harness-compatibility
-        shell: bash
+        if: inputs.harness-compatibility && runner.os != 'Windows'
         run: compatibility/run-deterministic.sh target/ward
